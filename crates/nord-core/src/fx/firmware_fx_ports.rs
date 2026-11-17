@@ -46,6 +46,7 @@ impl FirmwareFx {
     /// Switches on every port that is on in `other` (including `amp`); never switches one off.
     pub fn merge_on(&mut self, other: &FirmwareFx) {
         self.amp |= other.amp;
+        self.pump |= other.pump;
         for n in PORT_NAMES {
             if other.port(n) {
                 if let Some(p) = self.port_mut(n) {
@@ -103,6 +104,6 @@ mod tests {
         assert!(off.enable_ports("nope").is_err());
         let mut g = FirmwareFx::OFF;
         g.merge_on(&FirmwareFx::DEFAULT);
-        assert!(g.amp && g.ports_on().is_empty());
+        assert!(g.amp && g.pump && g.ports_on().is_empty());
     }
 }

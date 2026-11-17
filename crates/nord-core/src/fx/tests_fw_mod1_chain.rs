@@ -7,6 +7,7 @@ fn chain(on: bool, ty: u8) -> LayerFxChain {
     let mut fx = LayerFxChain::new(48_000.0);
     fx.firmware_fx = FirmwareFx {
         mod1: on,
+        pump: on,
         ..FirmwareFx::OFF
     };
     fx.mod1_type = match ty {

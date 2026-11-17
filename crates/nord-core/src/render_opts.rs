@@ -381,6 +381,9 @@ pub struct FirmwareOptions {
     /// `--amp-path engine|firmware`: `FirmwareFx::amp` on every chain (`None` = the engine default,
     /// firmware drive stage on; `Some(false)` = engine drive and RBJ cabinet).
     pub amp_path: Option<bool>,
+    /// `--legacy-pump`: the engine PUMP model (`fx/mod1_dynamic.rs`) in place of the firmware
+    /// routine `0x122D2C`, which is the default since D134 (`FirmwareFx::pump`).
+    pub legacy_pump: bool,
     /// `--rotary-drive engine|unity|scaled`.
     pub rotary_drive: RotaryDrive,
     /// `--organ-level firmware|legacy`: the organ output level law ([`OutputLevel`]): the swell
@@ -436,6 +439,7 @@ impl Default for FirmwareOptions {
             synth_velocity_fw: false,
             firmware_routing: true,
             amp_path: None,
+            legacy_pump: false,
             rotary_drive: RotaryDrive::Engine,
             organ_level: OutputLevel::ModelDefault,
             leslie_firmware: false,
@@ -501,6 +505,7 @@ impl FirmwareOptions {
             synth_velocity_fw: false,
             firmware_routing: true,
             amp_path: None,
+            legacy_pump: false,
             rotary_drive: RotaryDrive::Engine,
             organ_level: OutputLevel::ModelDefault,
             leslie_firmware: false,
@@ -640,6 +645,9 @@ impl FirmwareOptions {
         if has("--legacy-routing") {
             o.firmware_routing = false;
         }
+        if has("--legacy-pump") {
+            o.legacy_pump = true;
+        }
         if let Some(v) = value("--amp-path") {
             o.amp_path = Some(parse_amp_path(v)?);
         }
@@ -694,6 +702,9 @@ impl FirmwareOptions {
         apply_firmware_options(engine, self.tone_source, self.filter_engine, false);
         for c in engine.fx_chains.iter_mut() {
             c.firmware_fx.merge_on(&self.fx);
+            if self.legacy_pump {
+                c.firmware_fx.pump = false;
+            }
         }
         apply_piano_level(engine, self.piano_firmware_level);
         engine.piano_a.firmware_bus_scale = self.piano_bus_scale;
@@ -763,6 +774,9 @@ impl FirmwareOptions {
         let mut fx = self.fx;
         if let Some(amp) = self.amp_path {
             fx.amp = amp;
+        }
+        if self.legacy_pump {
+            fx.pump = false;
         }
         for c in engine.fx_chains.iter_mut() {
             c.firmware_fx = fx;
@@ -1016,6 +1030,9 @@ impl FirmwareOptions {
         }
         if self.sample_pitch_fw {
             parts.push("sample-pitch=fw".into());
+        }
+        if self.legacy_pump {
+            parts.push("legacy-pump".into());
         }
         if let Some(a) = self.amp_path {
             parts.push(format!("amp={}", if a { "firmware" } else { "engine" }));

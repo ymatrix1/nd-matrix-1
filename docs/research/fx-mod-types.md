@@ -15,7 +15,7 @@ Tags follow `.agents/rules/provenance-in-code.md`: **VERIFIED** = reproduced by 
 | 4, 5 RM | `0x1239D0`, module `0xC02BB10C` | **model VERIFIED 500/500 twice, ported, wired** (`FwMod1Rest`, s7) | 3 / 3 |
 | 6, 7 A-WAH | `0x123E9B`, module `0xC0279290` | **model VERIFIED, ported, wired** (s7) | 6 / 7 |
 | 8, 9 WAH | `0x123DD2` (what s1 of the first version called the waveshaper: an LFO or pedal driven state variable filter; module `0xC04414C4`) | **model VERIFIED, ported, wired** (s7) | 2 / 2 |
-| 10, 11 PUMP | `0x122D2C` (`0x124374` is the module's reset routine, not audio), module `0xC02BB5E4` | **model VERIFIED, ported, wired** (s7); Master Clock sync (s7.2, D134) | 9 / 19 |
+| 10, 11 PUMP | `0x122D2C` (`0x124374` is the module's reset routine, not audio), module `0xC02BB5E4` | **model VERIFIED, ported, wired** (s7); default and Master Clock sync (s7.2, D134) | 9 / 19 |
 
 Update (s7): all 12 Mod 1 types now run a firmware routine under `FirmwareFx::mod1`, so every one of the 89 programs with Mod 1 enabled (123 occurrences) is covered.
 
