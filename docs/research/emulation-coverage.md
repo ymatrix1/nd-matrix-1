@@ -13,7 +13,7 @@ Tags: **VERIFIED** = matches firmware or oracle by a reproducible check, **EMPIR
 | Is the emulation complete? | **No.** Every engine family sounds; the oracle runs a large part of the firmware; both have named gaps below. |
 | Oracle instruction level | 8,287 distinct firmware instructions run on the model and on the ADSP-21489 simulator: 49,722 cases, **18 differ** in 6 shapes. The census is not yet run on the 21571 (SHARC+) simulator. |
 | Oracle routine level | PNO bank `0x122620` and mix `0x12268F` bit-exact on the 21571 simulator; output stage `0x1229B3` and post stage `0x12272D` DM compared in session notes (PRs #131). SY1SY2 resampler `0x1C10EE` and SMP voice loop bit-exact against the Rust engine. |
-| ARM harness | Boots the real firmware to the main loop in **433 M instructions (36 s)**; full settle 3.0 B instructions in 201 s. The DSP side is absent: `DspAck` stands in for it. |
+| ARM harness | Boots the real firmware to the main loop in **433 M instructions (36 s)**; full settle 3.0 B instructions in 201 s. The DSP side is absent except for the live chips (D138, D144): PNO core 1, PNO core 2 and ORG core 2 run against the real ARM stream (`tools/arm_dsp_live.py`, one direction); the other chips (FX, ORG core 1, SY, SMP) and every DSP answer are still stubs (`DspAck`). |
 | Factory programs (384) | Path uses classified: default **1,015 verified (15 %), 5,677 assumed (83 %), 119 unmodelled (2 %)**; `--firmware-all` **2,634 / 4,058 / 119** (39 % / 60 % / 2 %). Render health 384 of 384 without panic, NaN or silence. |
 | Hardware evidence | 22 Part A segments (`emu_vs_hw_segments.json`: 3 organ, 5 piano, 11 synth, 1 piano + pad, 2 FX), 17 synth validation clips (6 fit, 11 hold-out). One chorus clip for FX (`fx-chorus-hw-clip`). No FM, Wavetable or init-patch clip. |
 | Real time | Default path meets the 0.8 ms block budget for a typical program (0.67 to 0.70 ms); worst case 2.2 to 2.5 ms (TD-14). B3 Bass (3.3 to 3.6 s CPU per s) and Farfisa (about 2 s per s) firmware stages are offline only (TD-15, D71, D74). |
@@ -96,7 +96,7 @@ Lane E beans (`ns4-36hw`, `ns4-doy1`, `ns4-vnp2`, `ns4-qll9`, `ns4-ca0i`, `ns4-a
 | Reverb tails | 7b.4 "FX wiring ... reverb tables" (open); tail clip: proposed in this PR |
 | Touch default | 7b.5 Touch tick; flip: proposed in this PR |
 | Piano extra voices | closed: already played by default (D23), pedal-down list opt-in (D123, [piano-extra-voices](piano-extra-voices.md)) |
-| Sample pitch entry `e` | 7b.6 "SAMPLES remainder" (open) |
+| Sample pitch entry `e` | 7b.6 "SAMPLES remainder" (open); SY external-port chain model `epchain` (opt-in, D141, [dsp-flash-dma-model](dsp-flash-dma-model.md)): 0 window writes, no SPI flash |
 | B3 processor, Leslie | 7b.3 "B3 / Vox presence", "Real time firmware organ stages", "Organ unit EQ routines, Leslie rotor" (open) |
 | Mod 1 PUMP clock | proposed in this PR |
 | Filter factors, envelope pass | 7b.6 "synth parity remainder" (open); envelope pass, tick: proposed |
@@ -154,7 +154,8 @@ Effort to close the 18 census cases: low. Effort to run the 21571 census: medium
 | Boot | reaches the cooperative main loop at `0xC00A0248` after 433 M instructions (36 s); 3.0 B instructions in 201 s (the "about 4 min" of the brief is this full run plus capture); cold-boot capture about 80 s; settled snapshot restores in 2 s | [arm-organ-messages](arm-organ-messages.md) s10.1, [arm-bulk-tables](arm-bulk-tables.md) | VERIFIED (run) |
 | Message capture | 80,815 boot messages from the real EMIFA ports, fingerprinted and replayed into `sharc-pass` / `sharc-org` | ROADMAP line 231 | VERIFIED |
 | Timer | the 24 kHz timer (irq 22, VERIFIED, D130) is injected by `run_ticking` every 200,000 instructions (16 x the 12,500 cycles of a 300 MHz ARM per interrupt; the "ms" of the harness is 41.67 us of timer time) | arm-organ-messages s10.1 | ASSUMED |
-| Stubs | `DspAck` (voice-ready bit), SPI transfer `0xC0066E64`, flow control `0xC006CA48`, allocator, poll breaker, UI stubs, null-call guard; the harness has **no DSP**, so every DSP answer is a stub | arm-fw-emulation s2, arm-organ-messages s5 | FAKE by design |
+| Live chips | PNO core 1 with a B3 program: 30,067 ARM words in, 2,441 passes, ARM tick coupled to the DSP pass (D138, [arm-dsp-live-link](arm-dsp-live-link.md)); `0x1256AD` runs in 0 of 2,441 passes, the reply direction is telemetry only. **D144:** ORG core 2 and PNO core 2 run live on the same clock with a synth program (Smooth Lead, 12dB Sweep): 12,601 boot + 912 load words each, key words only to PNO core 2, voice peak 0.4499 equal to its replay; the SY chip is not live (interrupt driven, [arm-dsp-live-link-synth](arm-dsp-live-link-synth.md) s4) | arm-dsp-live-link s1 | VERIFIED (run) |
+| Stubs | `DspAck` (voice-ready bit), SPI transfer `0xC0066E64`, flow control `0xC006CA48`, allocator, poll breaker, UI stubs, null-call guard; every DSP answer is a stub (the live chip does not answer into ARM state) | arm-fw-emulation s2, arm-organ-messages s5 | FAKE by design |
 | Not run | the real keybed link (UART2 ring), timer tasks beyond the tick, ring consumer behind real DMA, the "go" state after the DSP answers, per-key velocity source | ROADMAP line 230, OQ19, OQ23 | open |
 | Used for | layer-level law (D87), Touch curves (D88, D99), Mod 2 laws (D90), reverb colour words (D91), FM generator (D107), FX defaults (D101), velocity (D104) | decisions | VERIFIED |
 

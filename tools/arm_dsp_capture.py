@@ -164,7 +164,12 @@ def bind_samples(emu, data: bytes) -> list[int]:  # noqa: ANN001  # pragma: no c
 
 
 def capture(
-    code: Path, sram: Path, eeprom: Path, program: Path, sample: bytes | None = None
+    code: Path,
+    sram: Path,
+    eeprom: Path,
+    program: Path,
+    sample: bytes | None = None,
+    spi_neutral: bool = True,
 ) -> list[str]:  # pragma: no cover
     """Boot with `program` in the Store record and run all phases; returns every row.
 
@@ -183,6 +188,11 @@ def capture(
     rig = kd.Rig(session.emu, kd.Uart2().install(session.emu))
     session.emu.install_dsp_ports()
     install_dsp_ack(session.emu)
+    if spi_neutral:
+        # D143: the harness maps SPI1 as RAM, the note-on refill reads test-pattern leftovers.
+        import arm_voice_gate as vg
+
+        vg.install_spi_neutral(session.emu)
     rows = run_phase(rig, LOAD_TICKS, "load")
     rows += run_phase(rig, IDLE_TICKS, "idle")
     if sample is not None:
@@ -207,7 +217,7 @@ def run_one(ns) -> int:  # noqa: ANN001  # pragma: no cover
 
         sample = pl.read_npno(ns.ns4b, ns.member, 0x400000)
     t0 = time.perf_counter()
-    rows = capture(ns.image, ns.sram, ns.eeprom, program, sample)
+    rows = capture(ns.image, ns.sram, ns.eeprom, program, sample, ns.spi_neutral)
     write_rows(out / f"{out_name(program)}.txt.gz", rows)
     print(f"{program.stem}: {len(rows)} messages in {time.perf_counter() - t0:.0f} s", flush=True)
     return 0
@@ -219,6 +229,7 @@ def worker_command(ns, program: Path) -> list[str]:
         sys.executable, "-I", str(Path(__file__).resolve()), "one",
         str(ns.image), str(ns.sram), "--eeprom", str(ns.eeprom), "--out", str(ns.out),
         *(["--ns4b", str(ns.ns4b), "--member", ns.member] if ns.ns4b else []),
+        *([] if ns.spi_neutral else ["--no-spi-neutral"]),
         str(program),
     ]  # fmt: skip
 
@@ -246,6 +257,12 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
         p.add_argument("--out", type=Path, required=True)
         p.add_argument("--ns4b", type=Path, help="backup archive: bind a library sample (see docs)")
         p.add_argument("--member", default=SAMPLE_MEMBER)
+        p.add_argument(
+            "--spi-neutral",
+            action=argparse.BooleanOptionalAction,
+            default=True,
+            help="zero the SPI1 refill read the voice scheduler gates on (D143)",
+        )
         p.add_argument("programs" if name == "batch" else "program", type=Path)
         if name == "batch":
             p.add_argument("--workers", type=int, default=4)

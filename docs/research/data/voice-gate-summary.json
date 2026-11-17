@@ -1,0 +1,13 @@
+{
+ "programs": 119,
+ "gated_voiced": 32,
+ "gated_stopped": 87,
+ "neutral_voiced": 110,
+ "fixed": 78,
+ "prediction_agrees": 109,
+ "spi_words": {
+  "0x1": 31,
+  "0x0": 9,
+  "0x3": 79
+ }
+}

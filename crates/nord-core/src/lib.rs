@@ -20,6 +20,7 @@ pub mod preset_cli;
 pub mod program_check;
 pub mod render;
 pub mod render_opts;
+mod render_opts_fx_rate;
 mod render_opts_tick;
 mod render_opts_wave;
 pub mod sinc;

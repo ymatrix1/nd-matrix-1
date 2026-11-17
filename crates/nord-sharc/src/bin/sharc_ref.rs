@@ -8,6 +8,8 @@
 //! a reference render of the Rust engine. `--watch LO:LEN[:LIMIT]` appends a log of every data
 //! write into `[LO, LO+LEN)` (core step, pc, address, value; scenario pokes show the pc of the
 //! previous store) to the output message.
+#[path = "sharc_ref/epchain_cmd.rs"]
+mod epchain_cmd;
 #[path = "sharc_ref/exec.rs"]
 mod exec;
 #[path = "sharc_ref/isr.rs"]
@@ -62,7 +64,8 @@ fn run(args: &[String]) -> Result<String, String> {
         ) = (lo, len, limit);
     }
     runner.exec(&cmds)?;
-    let log = watch_log(&runner.core);
+    let mut log = watch_log(&runner.core);
+    log.push_str(&epchain_cmd::report(&mut runner.core));
     let render = &runner.render;
     let extra = vec![
         ("tool".to_string(), "sharc-ref".to_string()),

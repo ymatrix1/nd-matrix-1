@@ -76,10 +76,12 @@ Phase `load` (800 ticks after the boot), bulk stores excluded (they are counted 
 ## 6. Follow-ups
 
 1. Resolve the sample id hash to a library file (not CRC-32, Adler-32, FNV, djb2, sdbm, Jenkins of file name, stem or header name; the ARM computes or reads it: find the lookup in the sample loader `0xC01D710C` path or the directory build) so the capture can bind the program's own sample.
-2. Diagnose why 59 of 119 sample programs stop at the voice gate (allocator counters `0xC05B0C78 + 0x78 / 0x7C / 0x80`, owner limits `[owner + 8]`, zone and MIDI channel), and capture the other keys.
+2. ~~Diagnose why 59 of 119 sample programs stop at the voice gate~~ **answered, D143 ([sample-voice-gate](sample-voice-gate.md)):** the harness serves SPI1 `0x01E12040` as RAM and the scheduler `0xC01DEAFC` defers the voice event; fixed in the capture (default `--spi-neutral`, 110 of 119 voiced on key 60). Capture the other keys with it.
 3. Look at what the **real library load** does on the ARM side (file reads of the `.nsmp4`, any SPI or SDRAM write of sample data, `0xC01C0B70`-like bulk stores) with the program's own sample: the bulk store path of this run is the only ARM to DSP data transfer seen.
 4. SPI flash / external-port DMA model (separate task): input is the SY image side (opcode 9, `0x1C03AA`), not the ARM stream.
 5. Add the key phases for programs with splits (the 59 unvoiced ones may only sound in another key range).
+
+Note (D143): the counts above (60 of 119 voiced, 59 stopped) were taken before `--spi-neutral` became the default; see [sample-voice-gate](sample-voice-gate.md).
 
 ## Reproduce
 

@@ -142,6 +142,7 @@ impl Runner {
                 let st = StreamState::from_file(*voice, std::path::Path::new(path), *skip)?;
                 self.streams.push(st);
             }
+            Cmd::EpChain { path, base } => self.enable_epchain(path.as_deref(), *base)?,
             Cmd::Dump { addr, count } => self.dump(*addr, *count)?,
             Cmd::Dev(addr, value) => self.core.preset_device(*addr, *value),
             Cmd::Fifo(base) => {

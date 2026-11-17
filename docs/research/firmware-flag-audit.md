@@ -1,0 +1,149 @@
+# Firmware flag audit: which opt-in firmware paths can become defaults
+
+- **Checked:** 2026-11-17 (`main` @ `e4bbe75f`, open PRs #486, #490, #491 read by title only; D133 (PR #489) is on `main` and read in full; PR #498 outcome added 2026-11-17)
+- **Sources:** `crates/nord-core/src/render_opts.rs` (`FirmwareOptions::default()`, `firmware_all()`, `from_args`), `crates/nord-core/src/fx/firmware_fx_ports.rs` (`FirmwareFx` ports), `crates/nord-gui/src/firmware_panel/info.rs` (one `SwitchInfo` per GUI switch, same flags as the CLI), `docs/DECISIONS.md` (D22 and the per-flag decisions cited per row), [audio-remaining](audio-remaining.md), [emulator-vs-hardware-audio](emulator-vs-hardware-audio.md), [synth-filter-links](synth-filter-links.md), [piano-extra-voices](piano-extra-voices.md), [piano-attack-fw](piano-attack-fw.md), [program-coverage](program-coverage.md), [emulation-coverage](emulation-coverage.md), [fx-chorus-hw-clip](fx-chorus-hw-clip.md), [b3-rotary](b3-rotary.md), [organ-output-law](organ-output-law.md), [audible-genius-synth-lessons](audible-genius-synth-lessons.md). No firmware, `.ns4b`, sample or audio content was opened for this note; every number below is copied from the cited repo file.
+- **Question:** The owner's rule of 2026-11-17: everything validated against the firmware should be the default, as long as it does not make the hardware-clip comparison worse. For each remaining opt-in firmware flag: what does the oracle validate, what do the clips say, what blocks the flip, and which flips buy the most audio parity per hour?
+
+Scoring convention in this note: "score" is the `tools/emu_vs_hw.py` gap score (lower is better), as in the cited files. "Clip" means a Part A video segment or the DSoundman clip. A number is quoted only with its source file; where a source has none, the cell says "no number in the repo docs".
+
+## 1. Policy used for the recommendations
+
+D22 (DECISIONS.md, accepted 2026-11-13) requires (1) algorithm VERIFIED against the oracle, (2) ARM/preset mapping into it VERIFIED, (3) `render_hash` re-baselined. The owner's rule of 2026-11-17 keeps D22's evidence criteria and adds one condition: a flip is allowed only if no hardware clip gets worse. Where no clip exists the owner's explicit OK is required, and a missing clip is not evidence that nothing gets worse. Recommendation values:
+
+| Value | Meaning |
+|---|---|
+| DEFAULT NOW | oracle-validated end to end and no clip worsens |
+| DEFAULT WITH OWNER OK | oracle-validated, no clip exists; needs the owner's explicit OK (D22) |
+| BLOCKED | a named piece is missing, or a clip gets worse until it is fixed |
+| KEEP OPT-IN | research aid: EMPIRICAL or ASSUMED by design, not firmware-derived |
+
+Oracle column tags follow `.agents/rules/provenance-in-code.md`. "Already default" rows are listed so the table is complete; they need no action.
+
+## 2. Flags that are already default (for completeness)
+
+| Flag | Default | Source |
+|---|---|---|
+| `--synth-chain strip`, `--synth-stages`, `--synth-knob-laws`, `--synth-p` (EMPIRICAL table) | on | `render_opts.rs` `Default`, D57 |
+| `--firmware-piano-level` | on | D23 |
+| `--synth-layer-law` `(v/127)^2` | on, Leaky Stabs II score 3.19 to 1.95, Grand Pad 1.48 to 1.42 | D87, audio-remaining row 1 |
+| `--firmware-routing` | on | D73 |
+| `--sample-kernel key` | on | D40 (flag doc in `render_opts.rs`) |
+| measured 24 kHz tick | on | D131, #487 |
+| `--amp-path firmware` (`FirmwareFx::amp`) | on (`FirmwareFx::DEFAULT` = amp only) | D22 update 2026-11-13: Vox score 3.98 to 1.30 |
+| firmware WAVE bank | on only if `NS4_WAVE_TABLES` names the user's OS image | D127 |
+
+`--firmware-all` (`FirmwareOptions::firmware_all()`) adds only `tone_source=Firmware`, `filter_engine=Firmware` and `FirmwareFx::ALL` to the defaults. Every row below with a flag not in that set stays off even under `--firmware-all`.
+
+## 3. Audit table
+
+Programs affected come from [program-coverage](program-coverage.md) (384 factory programs; 272 contain a piano layer: 173 + 77 + 16 + 6 by engine mix, s2) and [emulation-coverage](emulation-coverage.md); "not counted" means no count exists in the repo docs.
+
+### 3.1 Piano
+
+| Flag | What it switches | Oracle / ARM validation | Hardware clips | Programs | Blocker | Recommendation |
+|---|---|---|---|---|---|---|
+| `--firmware-piano-touch` (`piano_touch`) | Program Touch plays firmware velocity curves 10/11/13 | VERIFIED: ARM recall gives `T`, `X`, Q23 amps equal to `NpnoLevel::voices_touch` in 18 of 18 rows, max err 0 (D117, `tools/arm_program_touch.py`); file bits VERIFIED by single-bit recall (D99). Non-`.npno` sounds use the ASSUMED `touch_fallback_amp` | no clip of a Heavy or Light program (D99, D117). Listening test 2026-11-15: key force changes the sound a lot (audio-remaining row 4) | factory census layer A: 156 medium / 208 / 20 (D117); 176 Touch programs in audio-remaining s4 rank 6 | D117: ASSUMED fallback gain, System-menu MIDI velocity curves, no Heavy/Light clip | **DEFAULT WITH OWNER OK**, but this audit disagrees with D117: D117 rejected flipping for `.npno` sounds only ("renders would mix a verified and an assumed path"). The flag is global (the non-`.npno` sounds take the ASSUMED `touch_fallback_amp`), the System-menu MIDI velocity curves are unclosed, and a missing Heavy/Light clip means the effect on parity cannot be measured. Treat as the owner's call with those stated |
+| `--piano-slew-fw` (`piano_slew`) | SMP voice-gain slew, key-up sample record | VERIFIED: ramp, note-off words (D68, D103); `F15` between velocities ASSUMED; rate table EMPIRICAL (Velvet points) | Mixed. Felt Upright chain+slew 2.18 to 1.31 (default 1.37); Velvet chain+slew 3.25 to 3.74 (default 1.37) (piano-attack-fw s4). Level 5 to 13 dB low in every case (piano-extra-voices s5) | 272 piano programs | D72: Part A and DSoundman clips disagree by about 22 dB; OQ20 bus scale | **BLOCKED**: Velvet worsens; needs OQ20 receiver scale and the pedal-down bypass |
+| `--firmware-piano-chain` (`piano_chain_scale`) | Sample path times the FX receiver path 0.7464 | VERIFIED words; engine unit = DAC fraction ASSUMED (`info.rs`, D49) | Alone: +2.7 dB, moves Part A away (+12.3 dB), D72 alternatives. Chain+slew Velvet 3.74 / Felt 1.31 / Grand Pad 2.61 (piano-extra-voices s5) | 272 | D72, OQ20, OQ24 | **BLOCKED**: unit ASSUMED, same two-clip conflict |
+| `--firmware-piano-pedal-voices` (`piano_pedal_voices`) | Notes struck with damper down take the firmware voice list | VERIFIED by ARM run, damper-down list equals pedal-up list (D123) | Velvet 1.37 to 2.74 (worse: presence +1.9 to +4.1, brilliance +3.9 to +7.7 dB), Felt 1.37 to 1.33, Grand Pad 1.43 to 1.51 (piano-extra-voices s5). Level +0.8 to +2.1 dB, inside 3 dB | 250 programs, 276 layers have the extra voice; pedal-down share not counted | D123 | **BLOCKED**: Velvet worsens. |
+| `--firmware-piano-layer-law` (`piano_layer_law`) | Piano fader `(v/127)^2` | VERIFIED: handler `0xC011A7A4` run live, identical to the organ handler (D29). Path from the stored word to the SMP voice gain not traced | D72: "no clip has a piano fader below 127", so no clip can show it either way (the effect cannot be measured) | not counted (programs with piano level below 127) | D29: untraced SMP voice-gain path | **DEFAULT WITH OWNER OK** once the layer-to-voice path is traced; today BLOCKED by D29 criterion (2). Same law is already default for synth (D87) |
+| `--firmware-piano-bus` (`piano_bus_scale`) | SMP sample scale 0.5 instead of 0.55 | ASSUMED: Q31 receiver scale (info.rs); SMP post stage unity, ring `= bus * 2^-29` (D30) | Velvet level reads the same with the flag (D29 impact); 0.83 dB only | 272 | OQ20: receiver unknown by up to 12 dB | **KEEP OPT-IN** |
+
+### 3.2 Synth
+
+| Flag | What it switches | Oracle validation | Hardware clips | Programs | Blocker | Recommendation |
+|---|---|---|---|---|---|---|
+| `--synth-fw-resonance` (`synth_fw_resonance`) | Firmware resonance table position only | VERIFIED link: position `128 knob / 127`, smoothing `0.995 w10 + 0.005 w` (D121). The D108 map (47.4..80.6) was the pass-59 transient | D108: 3.20 against 2.18 on 12 clips. After D121: mean 2.17 against 2.18, two clips 0.04 to 0.07 better, none worse than 0.02 (synth-filter-links s5). D116 four-clip result predates D121 (Oo Pad 0.61 helped, others hurt) | about 988 filter-on layers (audio-remaining s4) | none known | **DEFAULT NOW after the re-run** (not yet: the D121 result has no hardware-clip re-run of the D116 clips, two of 12 clips are 0.02 or less worse), with zero expected gain: s5 says the engine default already sat within one table index. Re-run the D116 four clips on the D121 build before flipping |
+| `--synth-fw-filter` / `--synth-filter-law 1.015` | One `2 F` cutoff factor for all types plus fw resonance | Stage equations match the Rust port (D122); links VERIFIED (D121); the type factors are EMPIRICAL | 3.36 against 2.18 (synth-filter-links s5; D108: 3.88 for the law alone). Not re-run: the `F` reading 0.507 scored 5.42 | about 988 | D121, D122, D132: gap sits upstream of the stages (oscillator and filter both differ from native; no stage dominates) | **BLOCKED**: row and type cutoff factors still fitted; needs envelope edit stream and `cin` test (D132) |
+| `--synth-super-lp24` (`synth_super_lp24_milli`) | LP24 SUPER type factor, default 4.4 | EMPIRICAL (D81 fit on Horizon Whl, D116) | Four-clip mean 3.17 / 3.95 at 4.4 against 2.44 / 2.58 at 2.0 (D116) | SUPER/LP24 programs: Horizon, Sidechain, Oo Pad, Believer plus seven others with no clip | D116: needs trusted note list, wheel position, hold-out clip | **KEEP OPT-IN** (the default value 4.4 is itself the weak point; flipping to 2.0 is not firmware-derived) |
+| `--measured-laws` (`measured_laws`) | 16-voice Super Saw, envelope depth, decay, pitch, vibrato laws | EMPIRICAL: Audible Genius clips, third-party | no hardware-clip score in the repo docs; lessons note compares to the fitted measurements (audible-genius-synth-lessons s1..s3) | not counted | not firmware-derived | **KEEP OPT-IN** |
+| `--synth-wave-bank` / `NS4_WAVE_TABLES` (`synth_wave_bank`) | Firmware stage `0x1247B6` and 46 tables instead of the 64-table placeholder | VERIFIED: 320 of 320 oracle words (D127) | no clip of a WAVE program (audio-remaining row 20) | 12 programs (`synth.osc=Wavetable`, program-coverage s3) | tables are firmware rodata, never committed; the user's OS image is needed (D127, D128, D129) | Nearest value: **DEFAULT WITH OWNER OK**. Already default where the user's image is present (D127, D136 point 5); it cannot be unconditional, so no further flip is possible |
+| `--firmware-synth-velocity` (`synth_velocity_fw`) | Amp `V` and filter-envelope `F` velocity laws | VERIFIED: 768 of 768 oracle words within 1 ulp (D104). How `V` and `F` multiply the voice is ASSUMED; file bits of the three fields taken equal to the edit value by analogy | no clip varies the synth velocity (D104). PR #498 (2026-11-17) ran the Part A synth clips at velocity 100: 4 of 16 worse | 213 of 287 factory programs with a synth layer (D104) | D104: multiply into the voice, `kOscEnvVel`, file bits | **BLOCKED**: the `V`/`F` multiply is ASSUMED (D136 point 1 needs the mapping VERIFIED). Update 2026-11-17, PR #498: file bits VERIFIED 27 of 27 by recall, but 4 of 16 distinct Part A synth clips score worse at replay velocity 100, so the flip was not made (numbers in #498's research note) |
+| `--sample-pitch fw` (`sample_pitch_fw`) | SAMPLES step from the ARM exponent tables | law VERIFIED; root and rate fields ASSUMED; writer of pitch entry `e` not found in 4 hunts, ARM side closed (D124: 119 of 119 SAMPLE programs, no ARM word) | no clip | 119 SAMPLE programs | D65, D105, D111, D112, D124, OQ22 | **BLOCKED**: writer of the 16-bit entry at `DM(0x9354A + index)` |
+| `--synth-sustain-pedal` (`synth_sustain_pedal`) | CC 64 also holds the synth layers | SUSTPED decoded, stored per program (381 of 384 set); hold logic not traced (D97) | Grand Pad score 1.42 to 1.68, tail 6.7 to 10.9 s against 13.4 s (D93) | 381 programs store the bit | D97: ARM hold logic untraced | **BLOCKED**: clip worsens, tail improves; trace the ARM hold logic first |
+| `--synth-shape`, `--synth-p ...` variants | SHAPE word, oscillator P block | ASSUMED (saw placeholder) / EMPIRICAL | no per-flag number | not counted | research knobs | **KEEP OPT-IN** |
+| `--filter-engine firmware` (`filter_engine`) | Firmware LP4 filter on the legacy chain | VERIFIED against the SHARC oracle (info.rs) | synth_lead 4.93 to 4.46 on the legacy chain (emulator-vs-hardware-audio, effect table). Under the default strip chain: no number in the repo docs | not counted | the default chain is `strip`; the flag's effect under it is not recorded | **KEEP OPT-IN** until a re-run under the strip chain is recorded; fold into the filter-law work |
+
+### 3.3 Organ
+
+| Flag | What it switches | Oracle validation | Hardware clips | Programs | Blocker | Recommendation |
+|---|---|---|---|---|---|---|
+| `--tone-source firmware` (`tone_source`) | Firmware wheel/pipe bank for all organ engines | VERIFIED for the Pipe bank (oracle full pass gain 1.00014, 45.3 dB SNR); the B3 bank was disproved as B3 (D22 history); Vox and Farfisa partial | Pipe: 4.95 firmware against 3.99 legacy, but the clip is synth-dominated (organ alone 6.4 to 6.5, pipe-video-gap) so no verdict. Vox bank 5.68 to 7.66, later 3.44 with key-down weights. B3 `b3wheels` 4.83 to 4.76; with tail 8.07 (12 dB too dark in the mid band) | organ programs: 12 + 10 + 16 + 6 (program-coverage s2); Vox 7, B3 27 | D25: Pipe takes it by default; B3, Vox stay opt-in. Mid band deficit is not post-chain (b3-vox-video-gap) | **BLOCKED** for B3 and Vox (mid and treble gap); Pipe is already default |
+| `--organ-level firmware` (`organ_level`) | Swell word, squared layer level, `ORGAN_BUS_GAIN` | VERIFIED words; `K = 2.8` EMPIRICAL, no gain word found (D106, D113) | B3 `-1.2 / +1.2 / +2.3 / -19.9 / -13.4`, RMS `-2.7`, score 7.62; Vox score 6.10; Pipe legacy 4.95 (organ-output-law s4 table) | organ programs | OQ24 | **BLOCKED**: scores worse than the legacy rows |
+| `--rotary-drive scaled` / `unity` | Rotary drive unit 0..10 to 0..1 / `tanh(g x)/g` | EMPIRICAL (b3-rotary s2) | B3 routing clip RMS +3.8 to -9.3 dB (b3-rotary s2 table); needs an organ output gain after it | 24 programs have the rotary enabled | b3-rotary line 63 states the program drive "is now imported in the firmware unit (preset / 10)" (D25): check whether `scaled` is already redundant with the default path before any work | **KEEP OPT-IN**; open check: verify the current default drive unit in `engine/program.rs` |
+| `--leslie firmware` (+ `--leslie-ring`, `--leslie-gain-db`, `--leslie-drive`) | Instruction-level port of the PNO core 1 Leslie | routine VERIFIED against the oracle; history ring EMPIRICAL; drive words VERIFIED, not closing residuals (D94, D98); ring-DMA model on live PNO lane: routines `0x1256AD` and `0x1237F8` run in 0 of 76 passes (D126) | B3 clip: presence +1.5 to +2.8 dB (inside 3 dB), RMS -4.9 to -6.7 dB, sub +14 dB flat 0..90 Hz rumble (D94); mid +3, brilliance +5 dB open | 24 rotary programs (35 layers) | D94, D98, D126, D135 (PR #486, open: B3 Leslie on the FX chip not supported by evidence so far) | **BLOCKED**: ring DMA install of `0x1256AD` unknown; sub and RMS clip gaps |
+| `--tone-source b3wheels`, `--b3-tail`, `--b3-bass-processor`, `--farfisa-processor` | B3/Farfisa wheel and processor stages | Mixed; Farfisa and B3 Bass processors partly ASSUMED (info.rs); real time not met (Bass 3.3 to 3.6 s CPU per second, Farfisa about 2 s; D71, D74) | B3 numbers above; Farfisa clip fx_amp score 2.51 on default | B3 Bass, Farfisa: 6 programs | TD-15 performance | **KEEP OPT-IN** |
+
+### 3.4 FX and global
+
+| Flag | What it switches | Oracle validation | Hardware clips | Programs | Blocker | Recommendation |
+|---|---|---|---|---|---|---|
+| `FirmwareFx::delay_laws`, `delay_time`, `compressor` (ports) | Delay mix, free-run delay time, firmware gain computer | delay time VERIFIED (ARM harness and oracle); delay_laws words VERIFIED, role EMPIRICAL; compressor slope and log gain ASSUMED (info.rs) | no segment exercises them: all six Part A segments score identically with `FirmwareFx::ALL` (delta below 0.02, emulator-vs-hardware-audio, effect table) | delay, compressor use not counted; reverb 358 programs | segments for Boxxx (A:28) and a Pipe1 plus delay clip are an unfinished follow-up of that note | **DEFAULT WITH OWNER OK** for `delay_time` (VERIFIED, no clip); the `delay_laws` and `compressor` **BLOCKED** until one delay and one compressor clip exist |
+| `FirmwareFx::reverb_mix` (`--firmware-fx-ports reverb-mix`) | Reverb send and dry gains follow `kRvbAmt`; the network stays the engine's | words VERIFIED, role EMPIRICAL (`info.rs`) | No clip-based measurement. Listening 2026-11-17 (owner, EMPIRICAL, by ear): little audible difference with the switch on or off on one program (A:21 White Grand, Reverb Cathedral at knob 3, held key). No verdict either way | reverb 358 programs (audio-remaining row 7) | the role of `kRvbAmt` is EMPIRICAL, not oracle-verified; no clip | **BLOCKED**: role not verified and no clip. Recommendation follows the oracle and clip evidence only, the listening note neither supports nor blocks it. Wanted: hardware RT60 clip of Cathedral at several knob positions |
+| `FirmwareFx::reverb` (`--firmware-reverb`) | Spring (0, 1) and multi-tap (2..11) routines | routines run; D133 (on `main`): the reverb type 0 mismatch was the harness and type 0 equals `FwReverb`; multi-tap types 2..11 are not covered by D133 | no tail clip (OQ21c); firmware tails 0.5 to 1.35 s (D91). **Listening 2026-11-17 (owner, EMPIRICAL, by ear, one program): A:21 White Grand, Reverb Cathedral, knob 3, held key, GUI. With the "Reverb" switch off (engine reverb) it sounds better and closer to the owner's hardware reference video than with it on.** No clip measurement; a hardware RT60 measurement against the reference video is still wanted. Offline render of a synth pad with Cathedral: the firmware path adds broadband energy the engine path does not (sub +21 dB, brilliance +26 dB, air +36 dB relative to dry), consistent with but not proof of a defect in the multi-tap types 2..11 (D133 examined only type 0 and CHOR; render figures reported by the DSP-image-hunt session, no repo file yet). The `reverb-mix` switch alone made little difference (row above) | 358 programs | D133, OQ21c | **BLOCKED / KEEP OPT-IN** (owner hears it worse than the engine reverb by ear, EMPIRICAL): the remaining gap is the multi-tap types 2..11 and a hardware tail clip, not the type 0 oracle match |
+| `FirmwareFx::mod1` | A-PAN and TREM firmware routines, free running only | VERIFIED routines, laws at 44 values (D100) | none | 90 programs (124 layers) | PUMP: hardware 2.11 Hz against 6.11 Hz free-run; counter writer not an ARM message (OQ36, D134); PR #490 (D134) and draft PR #491 (firmware PUMP default, blocked by the Mod 1 rate-to-division law) | **BLOCKED** (PUMP); the A-PAN and TREM part is **DEFAULT WITH OWNER OK** if PUMP is split off, since 9 programs use PUMP and 81 do not |
+| `FirmwareFx::mod2` | CHOR, PHAS, FLANG, ENS, SPIN stages | laws VERIFIED on a dense ARM grid (D90, D100); ENS tap registers ASSUMED, ENS needs no tap registers per D114 | chorus clip: delay misses by a factor 1.7 (swing 2.1), no dry reference, no band metric (fx-chorus-hw-clip s5); no ENS or SPIN clip | 158 programs use Mod 2 | D109, D114, D22 bar "no side worse than 3 dB" | **BLOCKED**: chorus delay law factor 1.7; needs a dry reference clip |
+| `FirmwareFx::eq` | Firmware tone stack `0x1243F4` | routine VERIFIED, joint mid words ASSUMED | no clip; EQ FREQ2 law 6 % EMPIRICAL (audio-remaining row 14) | not counted | joint mid words | **KEEP OPT-IN** |
+| `--fx-defaults-firmware` (`fx_defaults`) | 8 chain defaults from the ARM `Edt_*` table | VERIFIED words (D101) | no init-patch clip (OQ34, FX-defaults row) | applies to every fresh layer | OQ34 | **DEFAULT WITH OWNER OK**: oracle-validated, no clip exists, so the effect on parity cannot be measured; needs the owner's OK |
+| `--legacy-*` opt-outs, `--firmware-all`, `--legacy-all` | presets | n/a | n/a | n/a | n/a | n/a |
+
+### 3.5 Coverage check
+
+Every opt-in field of `FirmwareOptions` and every `FirmwareFx` port appears above, including: piano_touch, piano_slew, piano_pedal_voices, piano_chain_scale, piano_layer_law, piano_bus_scale, fx_defaults, measured_laws, synth_fw_resonance, synth_wave_bank, synth_velocity_fw, sample_pitch_fw, synth_sustain_pedal, leslie_firmware, leslie_drive, rotary_drive, tone_source, filter_engine, amp_path (default on, see s2) and FirmwareFx DEFAULT against ALL. Value variants of one flag (`--tone-source vox|farfisa|b3wheels`, `--organ-level chain|legacy|firmware`) are covered by the `--tone-source` and `--organ-level` rows. The GUI panel adds no flag of its own: every `SwitchInfo` in `firmware_panel/info.rs` names a `FirmwareOptions` flag; its `Status` label (Verified / Mixed / Empirical / Assumed) agrees with the oracle column where checked, but `FILTER` says Verified while the clips show the filter-law factors are not (see s3.2).
+
+## 4. Ranked flips: parity gained per hour of work
+
+Ranking is ASSUMED (no listening test per row; programs x impact / effort, as in audio-remaining s4).
+
+| Rank | Flip | Why | What it needs | Programs |
+|---|---|---|---|---|
+| 1 | `--firmware-synth-velocity` | VERIFIED law (768 of 768 words), 213 programs, listening test said synth velocity "is not captured right" (D104) | Update 2026-11-17: PR #498 verified the file bits (27 of 27) but 4 of 16 Part A synth clips worsen at velocity 100 and the `V`/`F` multiply stays ASSUMED; needs those clips understood first, then the owner's OK | 213 of 287 synth programs |
+| 2 | `--firmware-piano-touch` for `.npno` sounds | VERIFIED end to end for the recall to level chain (18 of 18), no Heavy/Light clip (effect cannot be measured), key force strongly audible; D117 rejected an `.npno`-only flip | Owner OK. Optional: Heavy and Light clip. The flag is global, so the fallback sounds move too: state this against D117 | 156 / 208 / 20 programs by Touch, layer A |
+| 3 | `--synth-fw-resonance` | Corrected link removes the old regression (3.20 to 2.17 against 2.18). Zero gain, consistency only | Re-run the D116 four clips on the D121 build, then flip. Low effort | about 988 filter-on layers |
+| 4 | `--fx-defaults-firmware` | Words VERIFIED from the ARM edit table, no clip to measure the effect | Owner OK, `render_hash` re-baseline; add the init-patch clip (OQ34) as a follow-up | every fresh layer |
+| 5 | `FirmwareFx::delay_time` | VERIFIED, not exercised by any clip | Owner OK; add the Boxxx (A:28) clip the emulator-vs-hardware note asked for | delay users, not counted |
+| 6 | `--firmware-piano-layer-law` | Law VERIFIED, no clip with a fader below 127 | Trace the layer to SMP voice-gain path (D29), then owner OK | not counted |
+| 7 | `--firmware-piano-pedal-voices` | VERIFIED list, 250 programs, but Velvet worsens 1.37 to 2.74 | Understand the Velvet presence and brilliance excess; likely tied to the level/chain work (OQ20) | 250 programs, 276 layers |
+
+Not worth the hour now: `--sample-pitch fw` (four hunts, no writer), `--leslie firmware` (ring DMA), the filter-law family (gap is upstream of the stages, D132), PUMP default (PR #491 is draft and blocked by the Mod 1 rate-to-division law).
+
+## 5. Audio path pieces with no firmware-validated implementation
+
+Statements and sources. "No firmware-validated implementation" = the code runs an engine model whose constants are ASSUMED or EMPIRICAL, or nothing at all.
+
+| Piece | State | Source |
+|---|---|---|
+| Piano, synth and Clav-class amp cabinets | ASSUMED equal to the Twin/JC/Small cabinet; JC and Small have no recording | DECISIONS.md D22 update 2026-11-13 ("Open: JC and Small have no recording, piano and synth cabinets are ASSUMED equal"), fx-type-map s11 |
+| Amp To Rotary pass-through | unmodelled, 2 programs | audio-remaining row 22, program-coverage s3 (`fx.amp=TO ROTARY`) |
+| LP+HP filter type, Clav EQ, morph slots | unmodelled | audio-remaining row 22, OQ31 |
+| Raw synth filter type 3, stage `0x1257B2` | unmodelled, played as LP12 by `filter_model_of_type`; 61 of 988 filter-on factory layers | D121 (DECISIONS.md) |
+| Master limiter or compressor | no firmware-validated stage. Only the FX compressor routine is ported (`FirmwareFx::compressor`, slope and log gain ASSUMED). Hardware clips peak at -2.9 to -11.6 dBFS while the emulator clips on 10 % of samples on the B3 clip; the B3 note says "the master limiter is not calibrated" as a hypothesis. I found no decoded master-limiter word | emulator-vs-hardware-audio ranked gaps 2, `info.rs` compressor row. Not confirmed absent in the firmware: record as open |
+| Master output stage constant `0.1866` | measured in the oracle path (output multiply `DM(0xB651A)`), but how the engine's per-layer scales map onto it is the open `K = 2.8` and OQ20 receiver scale | D39 (FX SPORT3B copy and the `0.1866` output multiply), D106, D113 |
+| Organ output level `K = 2.8` | EMPIRICAL; no `1 / 0.21875` lane word found in the images or ARM code; K per engine Vox 1.7 to 1.8, Pipe 3.6 to 6.2, B3 4.9 to 8.4 | audio-remaining row 3, D85, D106, D113 |
+| MIDI velocity curves (System menu) | not modelled; the firmware Touch curves exist (D88) but "the System-menu MIDI velocity curves" are named as an unverified link in D117 | D117, piano-touch-curves s6 |
+| Mouse velocity in the GUI | ASSUMED linear 20 to 127 | audio-remaining row 5 (D84) |
+| Arpeggiator gate | firmware reads 2/3 of a step; engine keeps 1/2; no clip | audio-remaining row 19 (D130, OQ32) |
+| PUMP clock | engine free-runs; firmware PUMP follows the Master Clock (#490, open) | audio-remaining row 17, D134 PR |
+| Real-time Bass and Farfisa organ stages | bit exact but offline only | audio-remaining row 16, D71, D74 |
+| SAMPLES pitch entry `e` | writer not found | audio-remaining row 2 |
+| FM banks 1 and 2 | generator ported, level and `SynthLayer` hookup open, no clip | audio-remaining row 10 (D107) |
+| Piano T60 and attack absolute level | piano is 5 to 13 dB low under chain + slew; Part A and DSoundman disagree by about 22 dB | D72, piano-extra-voices s5 |
+| Stereo width and synth stereo path | OQ21b; width 0.09 against 0.28 on the synth lead clip | audio-remaining row 8, emulator-vs-hardware-audio |
+
+## Implications
+
+- Under the owner's rule, three groups can move: (a) VERIFIED with no clip to measure the effect (piano Touch for `.npno`, FX defaults, `delay_time`, piano layer law after its path is traced): need the owner's explicit OK per D22; synth velocity moved to BLOCKED after PR #498 (4 of 16 clips worse); (b) the resonance flag, which D121 already neutralised and which only needs a re-run; (c) everything else is blocked by a named missing piece or by a clip that gets worse (pedal voices on Velvet, chain+slew on Velvet, sustain pedal on Grand Pad, filter law 3.36 against 2.18, firmware organ levels).
+- The clip set is thin: one performance per program and two piano clips that disagree by about 22 dB under the verified words (D72). That conflict, not the individual flags, is the main reason the piano flags stay blocked. A clip with a known recording level would unblock chain, slew, bus scale and layer law together.
+- Velvet 1.37 to 2.74 is pedal-voices alone; chain+slew on Velvet is 3.74 (piano-extra-voices s5). The two are easy to mix up.
+- Two stale-looking statuses to resolve before any decision: the `--rotary-drive scaled` unit (b3-rotary line 63) and the GUI `FILTER` switch labelled Verified.
+
+## Follow-ups
+
+1. Owner heard `--firmware-reverb` worse than the engine reverb on A:21 White Grand, Cathedral knob 3: examine multi-tap types 2..11 against the oracle (PR #489 covered type 0 and CHOR only) and record the broadband-energy render in a repo file.
+2. Hardware RT60 clip of Reverb Cathedral (and one more type) to settle the `reverb-mix` role; the 2026-11-17 listening note (little audible difference, one program, by ear) is not a verdict.
+3. Owner decision on group (a): which of piano Touch (all sounds, against D117), FX defaults, `delay_time` to flip. D136 records the policy; each flip needs its own PR with the `render_hash` re-baseline (D22 criterion 3).
+4. Re-run the four D116 SUPER clips plus the 12-clip set with `--synth-fw-resonance` on the current build.
+5. File-bit recall check of the three synth velocity fields (`kAmpEnvVel`, `kFltEnvVel`, `kOscEnvVel`), same method as `tools/arm_program_touch.py`.
+6. Add the missing clips named in emulator-vs-hardware-audio (delay, compressor), an init-patch clip (OQ34) and a Heavy and a Light piano clip (D117).
+7. Master limiter: search the ARM and FX images for a master limiter word before calling it absent; record the result here.
+8. Check `--rotary-drive scaled` against the current default drive unit.

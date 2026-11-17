@@ -19,7 +19,10 @@ impl LayerFxChain {
         }
         match &mut self.fw_amp {
             Some(st) => {
-                [*l, *r] = st.process_frame([*l, *r]);
+                [*l, *r] = match &mut self.fw_rate_match {
+                    Some(rm) => rm.process_frame([*l, *r], |f| st.process_frame(f)),
+                    None => st.process_frame([*l, *r]),
+                };
                 true
             }
             None => false,

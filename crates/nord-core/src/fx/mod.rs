@@ -66,6 +66,7 @@ mod fw_phas0;
 mod fw_phas1;
 mod fw_pump;
 mod fw_pump_clock;
+mod fw_rate_match;
 pub(crate) use fw_pump_clock::sync_beats as pump_sync_beats;
 mod fw_reverb;
 mod fw_rm;
@@ -141,6 +142,8 @@ mod tests_fw_mod2_chain;
 #[cfg(test)]
 mod tests_fw_pump_sync;
 #[cfg(test)]
+mod tests_fw_rate_match_chain;
+#[cfg(test)]
 mod tests_fw_reverb_chain;
 #[cfg(test)]
 mod tests_fw_reverb_mix;
@@ -190,6 +193,7 @@ pub use fw_params::{
     compressor_for_amount, set_allpass, set_amp_drive, set_compressor_amount, set_delay,
     set_tone_stack, CMP_SLOPE,
 };
+pub use fw_rate_match::RateMatch;
 pub use fw_reverb::{FwReverb, FwReverbF32};
 pub use fw_rvb_wrap::{mix2 as fw_rvb_mix2, FwRvbWrap};
 pub use fw_rvbm::{FwReverbMulti, FwReverbMultiF32};
@@ -320,6 +324,8 @@ pub struct LayerFxChain {
     fw_law: Option<Box<fw_mod2_law_stage::FwLawStage>>,
     fw_comp: Option<fw_stage::FwCompressorStage>,
     fw_amp: Option<fw_amp_stage::FwAmpStage>,
+    /// Runs the firmware amp stage at the DSP frame rate (`set_fx_rate_match`), default `None`.
+    fw_rate_match: Option<Box<RateMatch>>,
     /// The firmware Amp EQ (`firmware_fx.eq`), built when first needed.
     fw_eq: Option<fw_eq::FwEqStage>,
     /// The firmware Spring reverb (`firmware_fx.reverb`), built when first needed.
@@ -437,6 +443,7 @@ impl LayerFxChain {
             fw_law: None,
             fw_comp: None,
             fw_amp: None,
+            fw_rate_match: None,
             fw_eq: None,
             fw_reverb: None,
             fw_reverb_multi: None,
@@ -521,6 +528,20 @@ impl LayerFxChain {
         if morph_active(&m.reverb_amount) {
             self.reverb_mix = m.reverb_amount.evaluate(ctrl);
         }
+    }
+
+    /// Opt-in: runs the firmware Amp drive and cabinet at the DSP frame rate 43,402 Hz instead of
+    /// once per host frame (`fw_rate_match`, `docs/research/brightness-downstream-oracle.md`).
+    /// Allocates the kernel tables: call between audio blocks, not inside `process_frame`.
+    /// Adds about 0.8 ms of latency on layers whose amp runs the firmware stage; the host rate is
+    /// the chain's `sample_rate` at the time of the call. `false` restores the per-host-frame path.
+    pub fn set_fx_rate_match(&mut self, on: bool) {
+        self.fw_rate_match = on.then(|| Box::new(RateMatch::new(self.sample_rate)));
+    }
+
+    /// Whether [`Self::set_fx_rate_match`] is on.
+    pub fn fx_rate_match(&self) -> bool {
+        self.fw_rate_match.is_some()
     }
 
     /// Processes a single stereo frame `[left, right]` through all 5 layer FX stages at `bpm`.

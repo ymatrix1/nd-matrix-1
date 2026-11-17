@@ -1,0 +1,557 @@
+{
+ "checked": "2026-11-17",
+ "note": "numbers only; chips ORG core 2 and PNO core 2 live on one ARM stream, 2,700 ticks, 2,441 passes each",
+ "programs": {
+  "Smooth Lead": {
+   "boot_insns": 500200000,
+   "phase_start_pass": {
+    "load": 0,
+    "idle": 723,
+    "key": 813,
+    "off": 2170
+   },
+   "arm_messages": {
+    "FX1p2": 3501,
+    "FX2p2": 2765,
+    "ORG1p2": 25333,
+    "ORG2p2": 13513,
+    "PNO1p2": 35563,
+    "PNO2p2": 13517,
+    "SMP0p1": 1540,
+    "SY0p1": 290
+   },
+   "skipped_out_of_window": {},
+   "ticks": 2700,
+   "clock_passes": 2441,
+   "boot": {
+    "ORG2": {
+     "messages_sent": 12601,
+     "distinct_words": 11280,
+     "passes": 0,
+     "idle_passes": 0,
+     "halted": false,
+     "lane_peak": 0.0,
+     "lane_rms": 0.0,
+     "probe_hits": {},
+     "probe_first_pass": {},
+     "errors": []
+    },
+    "PNO2": {
+     "messages_sent": 12601,
+     "distinct_words": 11280,
+     "passes": 0,
+     "idle_passes": 0,
+     "halted": false,
+     "lane_peak": 0.0,
+     "lane_rms": 0.0,
+     "probe_hits": {},
+     "probe_first_pass": {},
+     "errors": []
+    }
+   },
+   "phases": {
+    "load": {
+     "ticks": 800,
+     "ORG2": {
+      "messages_sent": 912,
+      "distinct_words": 822,
+      "passes": 723,
+      "idle_passes": 723,
+      "probe_hits": {
+       "0x121c54": 0,
+       "0x1253bd": 0,
+       "0x12566e": 516
+      }
+     },
+     "PNO2": {
+      "messages_sent": 912,
+      "distinct_words": 822,
+      "passes": 723,
+      "idle_passes": 723,
+      "probe_hits": {
+       "0x121c54": 0,
+       "0x1253bd": 0,
+       "0x12566e": 516
+      }
+     }
+    },
+    "idle": {
+     "ticks": 100,
+     "ORG2": {
+      "messages_sent": 0,
+      "distinct_words": 0,
+      "passes": 90,
+      "idle_passes": 90,
+      "probe_hits": {
+       "0x121c54": 0,
+       "0x1253bd": 0,
+       "0x12566e": 90
+      }
+     },
+     "PNO2": {
+      "messages_sent": 0,
+      "distinct_words": 0,
+      "passes": 90,
+      "idle_passes": 90,
+      "probe_hits": {
+       "0x121c54": 0,
+       "0x1253bd": 0,
+       "0x12566e": 90
+      }
+     }
+    },
+    "key": {
+     "ticks": 1500,
+     "ORG2": {
+      "messages_sent": 0,
+      "distinct_words": 0,
+      "passes": 1357,
+      "idle_passes": 1357,
+      "probe_hits": {
+       "0x121c54": 0,
+       "0x1253bd": 0,
+       "0x12566e": 1357
+      }
+     },
+     "PNO2": {
+      "messages_sent": 2,
+      "distinct_words": 0,
+      "passes": 1357,
+      "idle_passes": 1357,
+      "probe_hits": {
+       "0x121c54": 0,
+       "0x1253bd": 0,
+       "0x12566e": 1357
+      }
+     }
+    },
+    "off": {
+     "ticks": 300,
+     "ORG2": {
+      "messages_sent": 0,
+      "distinct_words": 0,
+      "passes": 271,
+      "idle_passes": 271,
+      "probe_hits": {
+       "0x121c54": 0,
+       "0x1253bd": 0,
+       "0x12566e": 271
+      }
+     },
+     "PNO2": {
+      "messages_sent": 2,
+      "distinct_words": 0,
+      "passes": 271,
+      "idle_passes": 271,
+      "probe_hits": {
+       "0x121c54": 0,
+       "0x1253bd": 0,
+       "0x12566e": 271
+      }
+     }
+    }
+   },
+   "final": {
+    "ORG2": {
+     "messages_sent": 13513,
+     "distinct_words": 12102,
+     "passes": 2441,
+     "idle_passes": 2441,
+     "halted": false,
+     "lane_peak": 0.0,
+     "lane_rms": 0.0,
+     "probe_hits": {
+      "0x121c54": 0,
+      "0x1253bd": 0,
+      "0x12566e": 2234
+     },
+     "probe_first_pass": {
+      "0x12566e": 207
+     },
+     "errors": []
+    },
+    "PNO2": {
+     "messages_sent": 13517,
+     "distinct_words": 12102,
+     "passes": 2441,
+     "idle_passes": 2441,
+     "halted": false,
+     "lane_peak": 0.4498952627,
+     "lane_rms": 0.1305744981937988,
+     "probe_hits": {
+      "0x121c54": 0,
+      "0x1253bd": 0,
+      "0x12566e": 2234
+     },
+     "probe_first_pass": {
+      "0x12566e": 207
+     },
+     "errors": []
+    }
+   },
+   "watch": {
+    "ORG2": {
+     "0xc1174": {
+      "first_change_pass": null,
+      "final": "0x00000000",
+      "float_min": 0.0,
+      "float_max": 0.0
+     },
+     "0xc1180": {
+      "first_change_pass": null,
+      "final": "0x00000000",
+      "float_min": 0.0,
+      "float_max": 0.0
+     },
+     "0xc118e": {
+      "first_change_pass": null,
+      "final": "0x00000000",
+      "float_min": 0.0,
+      "float_max": 0.0
+     }
+    },
+    "PNO2": {
+     "0xc1174": {
+      "first_change_pass": 816,
+      "final": "0x3f70745a",
+      "float_min": 0.0,
+      "float_max": 1.0
+     },
+     "0xc1180": {
+      "first_change_pass": 816,
+      "final": "0x3f65abb6",
+      "float_min": 0.0,
+      "float_max": 1.0
+     },
+     "0xc118e": {
+      "first_change_pass": 816,
+      "final": "0x2f2f9d15",
+      "float_min": 0.0,
+      "float_max": 0.03147158771753311
+     }
+    }
+   },
+   "replay": {
+    "ORG2": {
+     "peak": 0.0,
+     "rms": 0.0,
+     "samples": 9764,
+     "passes": 2441
+    },
+    "PNO2": {
+     "peak": 0.4498952627182007,
+     "rms": 0.13057449819381578,
+     "samples": 9764,
+     "passes": 2441
+    }
+   },
+   "envelope_chain_first_change_max_final_by_replay_timing": {
+    "live_timing_on_org_image": {
+     "0xc1174": [
+      815,
+      1.0,
+      0.9393
+     ],
+     "0xc1180": [
+      815,
+      1.0,
+      0.8972
+     ],
+     "0xc118e": [
+      815,
+      1.0,
+      0.0001
+     ]
+    },
+    "d132_timing": {
+     "0xc1174": [
+      301,
+      1.0,
+      0.2841
+     ],
+     "0xc1180": [
+      301,
+      1.0,
+      0.1133
+     ],
+     "0xc118e": [
+      301,
+      0.2518,
+      0.0
+     ]
+    }
+   },
+   "old_replay": {
+    "recall": "ORG2",
+    "key": "PNO2",
+    "key_words": 4,
+    "peak": 0.4498952627182007,
+    "rms": 0.13057449819381578,
+    "samples": 9764,
+    "passes": 2441
+   }
+  },
+  "12dB Sweep": {
+   "boot_insns": 500200000,
+   "phase_start_pass": {
+    "load": 0,
+    "idle": 723,
+    "key": 813,
+    "off": 2170
+   },
+   "arm_messages": {
+    "FX1p2": 3543,
+    "FX2p2": 2765,
+    "ORG1p2": 25329,
+    "ORG2p2": 13509,
+    "PNO1p2": 35565,
+    "PNO2p2": 13513,
+    "SMP0p1": 1540,
+    "SY0p1": 290
+   },
+   "skipped_out_of_window": {},
+   "ticks": 2700,
+   "clock_passes": 2441,
+   "boot": {
+    "ORG2": {
+     "messages_sent": 12597,
+     "distinct_words": 11280,
+     "passes": 0,
+     "idle_passes": 0,
+     "halted": false,
+     "lane_peak": 0.0,
+     "lane_rms": 0.0,
+     "probe_hits": {},
+     "probe_first_pass": {},
+     "errors": []
+    },
+    "PNO2": {
+     "messages_sent": 12597,
+     "distinct_words": 11280,
+     "passes": 0,
+     "idle_passes": 0,
+     "halted": false,
+     "lane_peak": 0.0,
+     "lane_rms": 0.0,
+     "probe_hits": {},
+     "probe_first_pass": {},
+     "errors": []
+    }
+   },
+   "phases": {
+    "load": {
+     "ticks": 800,
+     "ORG2": {
+      "messages_sent": 912,
+      "distinct_words": 822,
+      "passes": 723,
+      "idle_passes": 723,
+      "probe_hits": {}
+     },
+     "PNO2": {
+      "messages_sent": 912,
+      "distinct_words": 822,
+      "passes": 723,
+      "idle_passes": 723,
+      "probe_hits": {}
+     }
+    },
+    "idle": {
+     "ticks": 100,
+     "ORG2": {
+      "messages_sent": 0,
+      "distinct_words": 0,
+      "passes": 90,
+      "idle_passes": 90,
+      "probe_hits": {}
+     },
+     "PNO2": {
+      "messages_sent": 0,
+      "distinct_words": 0,
+      "passes": 90,
+      "idle_passes": 90,
+      "probe_hits": {}
+     }
+    },
+    "key": {
+     "ticks": 1500,
+     "ORG2": {
+      "messages_sent": 0,
+      "distinct_words": 0,
+      "passes": 1357,
+      "idle_passes": 1357,
+      "probe_hits": {}
+     },
+     "PNO2": {
+      "messages_sent": 2,
+      "distinct_words": 0,
+      "passes": 1357,
+      "idle_passes": 1357,
+      "probe_hits": {}
+     }
+    },
+    "off": {
+     "ticks": 300,
+     "ORG2": {
+      "messages_sent": 0,
+      "distinct_words": 0,
+      "passes": 271,
+      "idle_passes": 271,
+      "probe_hits": {}
+     },
+     "PNO2": {
+      "messages_sent": 2,
+      "distinct_words": 0,
+      "passes": 271,
+      "idle_passes": 271,
+      "probe_hits": {}
+     }
+    }
+   },
+   "final": {
+    "ORG2": {
+     "messages_sent": 13509,
+     "distinct_words": 12102,
+     "passes": 2441,
+     "idle_passes": 2441,
+     "halted": false,
+     "lane_peak": 0.0,
+     "lane_rms": 0.0,
+     "probe_hits": {},
+     "probe_first_pass": {},
+     "errors": []
+    },
+    "PNO2": {
+     "messages_sent": 13513,
+     "distinct_words": 12102,
+     "passes": 2441,
+     "idle_passes": 2441,
+     "halted": false,
+     "lane_peak": 0.2029174119,
+     "lane_rms": 0.08440895742728054,
+     "probe_hits": {},
+     "probe_first_pass": {},
+     "errors": []
+    }
+   },
+   "watch": {
+    "ORG2": {
+     "0xc1174": {
+      "first_change_pass": null,
+      "final": "0x00000000",
+      "float_min": 0.0,
+      "float_max": 0.0
+     },
+     "0xc1180": {
+      "first_change_pass": null,
+      "final": "0x00000000",
+      "float_min": 0.0,
+      "float_max": 0.0
+     },
+     "0xc118e": {
+      "first_change_pass": null,
+      "final": "0x00000000",
+      "float_min": 0.0,
+      "float_max": 0.0
+     }
+    },
+    "PNO2": {
+     "0xc1174": {
+      "first_change_pass": 816,
+      "final": "0x3f6b6719",
+      "float_min": 0.0,
+      "float_max": 1.0
+     },
+     "0xc1180": {
+      "first_change_pass": 816,
+      "final": "0x3d85cdc6",
+      "float_min": 0.0,
+      "float_max": 0.0659826248884201
+     },
+     "0xc118e": {
+      "first_change_pass": 815,
+      "final": "0x3184c0ab",
+      "float_min": 0.0,
+      "float_max": 1.0
+     }
+    }
+   },
+   "replay": {
+    "ORG2": {
+     "peak": 0.0,
+     "rms": 0.0,
+     "samples": 9764,
+     "passes": 2441
+    },
+    "PNO2": {
+     "peak": 0.2029174119234085,
+     "rms": 0.0844089574268957,
+     "samples": 9764,
+     "passes": 2441
+    }
+   },
+   "old_replay": {
+    "recall": "ORG2",
+    "key": "PNO2",
+    "key_words": 4,
+    "peak": 0.20303736627101898,
+    "rms": 0.08444872213271286,
+    "samples": 9764,
+    "passes": 2441
+   },
+   "envelope_chain_first_change_max_final_by_replay_timing": {
+    "live_timing_on_org_image": {
+     "0xc1174": [
+      815,
+      1.0,
+      0.9195
+     ],
+     "0xc1180": [
+      815,
+      0.066,
+      0.0653
+     ],
+     "0xc118e": [
+      815,
+      1.0,
+      0.1602
+     ]
+    },
+    "d132_timing": {
+     "0xc1174": [
+      301,
+      1.0,
+      0.1855
+     ],
+     "0xc1180": [
+      301,
+      0.5278,
+      0.4328
+     ],
+     "0xc118e": [
+      300,
+      1.0,
+      0.0
+     ]
+    }
+   }
+  }
+ },
+ "determinism": {
+  "program": "Smooth Lead",
+  "message_streams_byte_identical": true,
+  "summary_equal": true
+ },
+ "stream_vs_offline_capture": {
+  "program": "Smooth Lead",
+  "ORG2_words": 912,
+  "ORG2_identical_in_order": true,
+  "PNO2_load_words_identical": true,
+  "capture_notes": [
+   36,
+   60,
+   84
+  ],
+  "live_note": 60
+ }
+}

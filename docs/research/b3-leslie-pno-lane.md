@@ -58,5 +58,5 @@ Census of `--ring-dma` (44,048 passes): `0x310C3000` is touched in 5,506 passes 
 
 ## 5. Follow-ups
 
-1. Find which ARM message or recall phase links `0x1256AD` (row 6 of `0xC05450C8`) or `0xB0476` / `0xB047E` into an active chain head on PNO core 1, or check the FX cores (`fx_core1.script` / `fx_core2.script`) for the active Leslie path of `B3 Chords n Solo.ns4p`.
+1. Find which ARM message or recall phase links `0x1256AD` (row 6 of `0xC05450C8`) or `0xB0476` / `0xB047E` into an active chain head on PNO core 1, or check the FX cores (`fx_core1.script` / `fx_core2.script`) for the active Leslie path of `B3 Chords n Solo.ns4p` (checked in [b3-leslie-fx-chip](b3-leslie-fx-chip.md), D135: no Leslie processor in the static FX images and no Leslie row in the boot logs; run-time loaded code and an amp type 7 recall untested).
 2. Verify the SHARC TCB layout of `0xE31E8..` / `0xE35E0..` (including the second record `2, 0xA0E31A6, 0xA0E2E08, 0x32A`) against CCES documentation / simulator once `0x1256AD` is active on a lane.

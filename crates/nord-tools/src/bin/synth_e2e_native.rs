@@ -4,7 +4,7 @@
 //! numbers (no audio content).
 //!
 //! Usage: `cargo run --release -p nord-tools --bin synth_e2e_native -- <program.ns4p> --out <f32>
-//! [--layer 0|1|2] [--note 60] [--velocity 100] [--frames 96000] [--start 0] [--hold 72000] [--no-filter]
+//! [--layer 0|1|2] [--note 60] [--velocity 100] [--frames 96000] [--start 0] [--hold 72000] [--no-filter] [--unity] [--unison 0..3]
 //! [firmware option flags of `ns4 render-patch`, e.g. --synth-fw-filter]`.
 //! Analog-oscillator programs only (no sample bank is loaded).
 
@@ -45,6 +45,14 @@ fn render_layer(
         .collect()
 }
 
+/// Amp path out of the way: no velocity blend, an instant full sustain, so the steady level is the
+/// oscillator row gain times the fixed voice constant (the oracle oscillator path has neither).
+fn unity_amp(layer: &mut SynthLayer) {
+    layer.amp_velocity = 0.0;
+    layer.attack_sec = 0.001;
+    layer.sustain_level = 1.0;
+}
+
 fn run(args: &[String]) -> Result<(), String> {
     let path = args
         .get(1)
@@ -80,9 +88,17 @@ fn run(args: &[String]) -> Result<(), String> {
     if args.iter().any(|a| a == "--no-filter") {
         layer.filter_on = false;
     }
+    if let Some(u) = flag(args, "--unison") {
+        layer.unison = u.parse().map_err(|_| "bad --unison")?;
+    }
+    if args.iter().any(|a| a == "--unity") {
+        unity_amp(layer);
+    }
     let info = json!({
         "cutoff_hz": layer.cutoff_hz,
         "filter_on": layer.filter_on,
+        "p_wave": layer.p_wave.name(),
+        "table_gain": layer.p_table.map(|t| t.block(layer.p_wave).gain),
         "octave": layer.octave_offset,
         "unison": layer.unison,
         "amp_env": [layer.attack_sec, layer.decay_sec, layer.sustain_level, layer.release_sec],
@@ -133,6 +149,16 @@ mod tests {
             "silent before the note"
         );
         assert!(fr[1_000..3_000].iter().flatten().any(|x| x.abs() > 1e-4));
+    }
+
+    #[test]
+    fn unity_amp_removes_velocity_and_sustain_loss() {
+        let mut l = SynthLayer::new(FS);
+        l.amp_velocity = 1.0;
+        l.sustain_level = 0.3;
+        unity_amp(&mut l);
+        assert_eq!((l.amp_velocity, l.sustain_level), (0.0, 1.0));
+        assert!(l.attack_sec <= 0.001);
     }
 
     #[test]
