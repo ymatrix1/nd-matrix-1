@@ -1,0 +1,219 @@
+{
+ "note": "D142: score and RMS delta (emulator minus hardware, dB) per Part A synth clip, tools/emu_vs_hw.py; derived numbers only. default = linear velocity blend (flag off), fw = --firmware-synth-velocity. Replay velocity 100 unless v<N> is given.",
+ "replay_v100": {
+  "organ_pipe": {
+   "default_score": 1.74,
+   "fw_score": 1.7,
+   "default_rms_db": 1.26,
+   "fw_rms_db": 1.37
+  },
+  "synth_lead": {
+   "default_score": 0.8,
+   "fw_score": 0.8,
+   "default_rms_db": -3.66,
+   "fw_rms_db": -3.66
+  },
+  "synth_crunch": {
+   "default_score": 0.89,
+   "fw_score": 0.89,
+   "default_rms_db": 2.04,
+   "fw_rms_db": 2.55
+  },
+  "synth_silkpad": {
+   "default_score": 1.64,
+   "fw_score": 1.47,
+   "default_rms_db": -0.55,
+   "fw_rms_db": -0.57
+  },
+  "synth_filterbank": {
+   "default_score": 5.39,
+   "fw_score": 5.4,
+   "default_rms_db": -1.35,
+   "fw_rms_db": -1.07
+  },
+  "synth_sineplk": {
+   "default_score": 4.73,
+   "fw_score": 4.75,
+   "default_rms_db": 1.51,
+   "fw_rms_db": 1.5
+  },
+  "synth_megaline": {
+   "default_score": 2.0,
+   "fw_score": 2.0,
+   "default_rms_db": -7.63,
+   "fw_rms_db": -7.63
+  },
+  "synth_horizon": {
+   "default_score": 1.89,
+   "fw_score": 2.02,
+   "default_rms_db": -0.18,
+   "fw_rms_db": -0.03
+  },
+  "super_lp24_horizon": {
+   "default_score": 1.89,
+   "fw_score": 2.02,
+   "default_rms_db": -0.18,
+   "fw_rms_db": -0.03
+  },
+  "super_lp24_sidechain": {
+   "default_score": 4.32,
+   "fw_score": 4.32,
+   "default_rms_db": 5.72,
+   "fw_rms_db": 5.72
+  },
+  "super_lp24_oopad": {
+   "default_score": 4.86,
+   "fw_score": 4.89,
+   "default_rms_db": -0.99,
+   "fw_rms_db": 0.28
+  },
+  "super_lp24_believer": {
+   "default_score": 1.6,
+   "fw_score": 1.6,
+   "default_rms_db": 6.22,
+   "fw_rms_db": 6.31
+  },
+  "synth_12db": {
+   "default_score": 1.39,
+   "fw_score": 1.39,
+   "default_rms_db": 6.65,
+   "fw_rms_db": 6.65
+  },
+  "synth_phat3": {
+   "default_score": 2.38,
+   "fw_score": 2.38,
+   "default_rms_db": -3.86,
+   "fw_rms_db": -3.86
+  },
+  "synth_80s": {
+   "default_score": 0.91,
+   "fw_score": 0.91,
+   "default_rms_db": 5.03,
+   "fw_rms_db": 5.03
+  },
+  "synth_leaky": {
+   "default_score": 1.9,
+   "fw_score": 1.9,
+   "default_rms_db": -4.64,
+   "fw_rms_db": -4.64
+  },
+  "pianopad_grand": {
+   "default_score": 2.19,
+   "fw_score": 2.19,
+   "default_rms_db": 14.26,
+   "fw_rms_db": 14.26
+  }
+ },
+ "velocity_sweep": {
+  "synth_silkpad": {
+   "60": {
+    "default": 4.1,
+    "fw": 6.77
+   },
+   "80": {
+    "default": 2.4,
+    "fw": 4.31
+   },
+   "90": {
+    "default": 1.51,
+    "fw": 2.62
+   },
+   "110": {
+    "default": 2.31,
+    "fw": 2.84
+   },
+   "127": {
+    "default": 3.8,
+    "fw": 3.8
+   }
+  },
+  "synth_filterbank": {
+   "60": {
+    "default": 7.88,
+    "fw": 9.09
+   },
+   "80": {
+    "default": 6.4,
+    "fw": 7.94
+   },
+   "90": {
+    "default": 5.85,
+    "fw": 6.45
+   },
+   "110": {
+    "default": 5.03,
+    "fw": 4.85
+   },
+   "127": {
+    "default": 4.77,
+    "fw": 4.7
+   }
+  },
+  "synth_sineplk": {
+   "60": {
+    "default": 4.92,
+    "fw": 5.08
+   },
+   "80": {
+    "default": 4.82,
+    "fw": 4.93
+   },
+   "90": {
+    "default": 4.78,
+    "fw": 4.83
+   },
+   "110": {
+    "default": 4.7,
+    "fw": 4.68
+   },
+   "127": {
+    "default": 4.64,
+    "fw": 4.64
+   }
+  },
+  "synth_horizon": {
+   "60": {
+    "default": 1.54,
+    "fw": 1.45
+   },
+   "80": {
+    "default": 1.63,
+    "fw": 1.57
+   },
+   "90": {
+    "default": 1.76,
+    "fw": 1.79
+   },
+   "110": {
+    "default": 2.0,
+    "fw": 2.36
+   },
+   "127": {
+    "default": 2.06,
+    "fw": 2.64
+   }
+  },
+  "super_lp24_oopad": {
+   "60": {
+    "default": 4.71,
+    "fw": 4.83
+   },
+   "80": {
+    "default": 4.79,
+    "fw": 4.77
+   },
+   "90": {
+    "default": 4.83,
+    "fw": 4.85
+   },
+   "110": {
+    "default": 4.88,
+    "fw": 4.95
+   },
+   "127": {
+    "default": 4.9,
+    "fw": 4.96
+   }
+  }
+ }
+}

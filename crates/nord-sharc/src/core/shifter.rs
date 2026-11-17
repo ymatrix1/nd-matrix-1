@@ -156,7 +156,10 @@ pub(super) fn shift_imm_params(w: u64) -> Option<(u64, usize, usize, u32)> {
     let (n, x) = (bits(w, 7, 4) as usize, bits(w, 3, 0) as usize);
     let op = immediate_to_register_op(bits(w, 21, 16))?;
     let ry = if matches!(op, 0x00 | 0x04 | 0x08 | 0x20 | 0x24) {
-        sign_extend(data, 12)
+        // VERIFIED (CCES 2.12.1 ADSP-21489 simulator, `census_probe.py` on 75 shift-immediate
+        // shapes x 3 states, `census_extra_cases.txt`): LSHIFT, ASHIFT, ROT and their OR forms take
+        // an 8-bit signed count; bits 11..8 of the immediate are ignored (`BY 256` shifts by 0).
+        sign_extend(data & 0xFF, 8)
     } else {
         data
     };

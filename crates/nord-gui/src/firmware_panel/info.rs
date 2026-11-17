@@ -155,6 +155,14 @@ pub const SHAPE: SwitchInfo = sw(
     Assumed,
     "Shape word of the firmware SHAPE oscillator (strip chain); off keeps the saw placeholder.",
 );
+/// Synth velocity (`--firmware-synth-velocity` / `--legacy-synth-velocity`).
+pub const SYNTH_VELOCITY: SwitchInfo = sw(
+    "Synth",
+    "--legacy-synth-velocity",
+    "Firmware velocity",
+    Mixed,
+    "Amp gain V and filter-envelope factor F from the ORG core 2 pass (768 of 768 oracle words within 1 ulp, file bits recalled); the multiply inside the voice is ASSUMED; on by default since D142 (owner approval; 4 of 16 distinct synth clips marginally worse at replay velocity 100); --legacy-synth-velocity restores the linear blend.",
+);
 /// Piano level (`--firmware-piano-level` / `--legacy-piano-level`).
 pub const PIANO_LEVEL: SwitchInfo = sw(
     "Piano",
@@ -358,7 +366,7 @@ pub const TICK: SwitchInfo = sw(
 );
 
 /// All switches in bar order.
-pub const ALL: [SwitchInfo; 36] = [
+pub const ALL: [SwitchInfo; 37] = [
     TONE,
     B3_TAIL,
     FARFISA,
@@ -377,6 +385,7 @@ pub const ALL: [SwitchInfo; 36] = [
     CHAIN,
     STAGES,
     KNOB_LAWS,
+    SYNTH_VELOCITY,
     P_TABLE,
     FILTER,
     MEASURED,

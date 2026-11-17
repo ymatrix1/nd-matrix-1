@@ -275,7 +275,7 @@ pub struct SynthLayer {
     /// Strip chain only: voice level from the key-down velocity series `g(vel) / 127` instead of the
     /// linear velocity (`key_velocity.rs`, default on; no effect on the legacy chain).
     pub strip_key_velocity: bool,
-    /// Velocity from the ORG core 2 pass (`fw_velocity.rs`, `--firmware-synth-velocity`, default off):
+    /// Velocity from the ORG core 2 pass (`fw_velocity.rs`, `--firmware-synth-velocity`; default on since D142, off in `legacy`):
     /// the amp gain `V(setting, g)` replaces the linear `amp_velocity` blend and the filter-envelope
     /// depth follows `G / 128`, with `g` the ARM key byte of the velocity.
     pub firmware_velocity: bool,
@@ -456,6 +456,7 @@ impl SynthLayer {
             fw_filter_law: None,
             super_lp24_scale: None,
             fw_resonance: false,
+            firmware_velocity: false,
             ..Self::new(sample_rate)
         }
     }
@@ -472,7 +473,7 @@ impl SynthLayer {
             measured_tick: true,
             chain: SynthChain::FirmwareStrip,
             strip_key_velocity: true,
-            firmware_velocity: false,
+            firmware_velocity: true,
             strip_shape: None,
             p_block: None,
             p_table: Some(PTable::FITTED),

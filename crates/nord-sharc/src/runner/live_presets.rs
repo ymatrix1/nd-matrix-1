@@ -1,4 +1,4 @@
-//! Start-up presets of the chips `sharc-live` can serve (D138, D144): the constants of `sharc-sys`
+//! Start-up presets of the chips `sharc-live` can serve (D138, D144, D153): the constants of `sharc-sys`
 //! (`--pno`, default ORG) as data, so one binary serves PNO core 1, and the organ program that runs
 //! on ORG core 1, ORG core 2 and PNO core 2 (loader entry `0x125C88`, `dsp-image-hunt.md` s5.17).
 use super::pass::{fault_text, run_steps};
@@ -17,6 +17,8 @@ pub struct Preset {
     pub ping_pong: Option<(u32, u32, u32)>,
     pub devs: Vec<(u32, u32)>,
     pub flag1: bool,
+    /// The SY1SY2 sample chip: FLAG12 high and the interrupt-driven pass of `live_sy` (D153).
+    pub sy: bool,
 }
 
 /// VERIFIED: the `--pno` preset of `sharc-sys` (`pno-full-pass.md`): entry `0x121007`, poll loop
@@ -36,6 +38,7 @@ pub fn pno_preset() -> Preset {
             (0x3108_c00c, 4),
         ],
         flag1: true,
+        sy: false,
     }
 }
 
@@ -56,6 +59,24 @@ pub fn org_preset() -> Preset {
         ping_pong: None,
         devs: vec![(0x282c_0380, 1), (0x3108_d008, 5)],
         flag1: false,
+        sy: false,
+    }
+}
+
+/// The SY1SY2 start-up of the `sharc-ref` scenarios (`sy_isr_refill.scn`): `warmup 0x1c0b2d
+/// 100000 flag12=1`. VERIFIED: the image reaches its idle loop and runs 400 audio interrupts
+/// under it (`sy-smp-audio.md` s2); it has no poll loop, so `idle_pc` and `trigger` are unused.
+pub fn sy_preset() -> Preset {
+    Preset {
+        entry: 0x1C_0B2D,
+        idle_pc: 0,
+        trigger: 0,
+        boot: 100_000,
+        irq: None,
+        ping_pong: None,
+        devs: vec![],
+        flag1: false,
+        sy: true,
     }
 }
 
@@ -64,6 +85,7 @@ pub fn preset_named(name: &str) -> Option<Preset> {
     match name {
         "pno" => Some(pno_preset()),
         "org" => Some(org_preset()),
+        "sy" => Some(sy_preset()),
         _ => None,
     }
 }
@@ -75,6 +97,9 @@ pub fn boot_core(data: &[u8], preset: &Preset, periph: &PeriphOpts) -> Result<Co
     core.pc = preset.entry;
     if preset.flag1 {
         core.set_flag_input(1, true);
+    }
+    if preset.sy {
+        core.set_flag_input(12, true);
     }
     for &(a, v) in &preset.devs {
         core.preset_device(a, v);
@@ -115,6 +140,7 @@ mod tests {
     fn presets_are_selected_by_name() {
         assert_eq!(preset_named("org").unwrap().entry, 0x12_5C88);
         assert_eq!(preset_named("pno").unwrap().entry, 0x12_1007);
-        assert!(preset_named("sy").is_none());
+        assert!(preset_named("sy").unwrap().sy && !preset_named("org").unwrap().sy);
+        assert!(preset_named("smp").is_none());
     }
 }

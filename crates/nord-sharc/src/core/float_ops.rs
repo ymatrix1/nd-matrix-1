@@ -146,12 +146,35 @@ impl Core {
     }
 
     /// `Rx <-> Sy`: swaps the registers with their extensions (VERIFIED: the extension survives).
+    #[cfg(test)]
     pub(super) fn swap_rs(&mut self, r: usize, s: usize) {
         let (er, es) = (self.ext_slot(r as u8), self.ext_slot(0x50 | s as u8));
         std::mem::swap(&mut self.r[r], &mut self.s[s]);
         if let (Some(er), Some(es)) = (er, es) {
             self.put_ext_slot(r as u8, es);
             self.put_ext_slot(0x50 | s as u8, er);
+        }
+    }
+
+    /// `Rx <-> Sy` under the instruction's condition. Both halves read the old values; the write
+    /// to `Rx` follows PEx's condition and the write to `Sy` follows PEy's (in scalar mode only
+    /// PEx's exists, so the swap is whole or skipped). There is no PEy-side duplicate swap.
+    /// VERIFIED: ADSP-21489 simulator, `census_extra_cases.txt` (`IF cc R14 <-> S3` triple
+    /// operation, all 32 conditions, 6 states incl. SIMD), census `IF EQ R2 <-> S0`.
+    pub(super) fn swap_each_pe(&mut self, d: &super::exec::Decoded, r: usize, s: usize) {
+        let (er, es) = (self.ext_slot(r as u8), self.ext_slot(0x50 | s as u8));
+        let (rv, sv) = (self.r[r], self.s[s]);
+        if d.cond_ok {
+            self.r[r] = sv;
+            if let (Some(es), Some(_)) = (es, er) {
+                self.put_ext_slot(r as u8, es);
+            }
+        }
+        if (self.simd() && d.cond_y) || (!self.simd() && d.cond_ok) {
+            self.s[s] = rv;
+            if let (Some(er), Some(_)) = (er, es) {
+                self.put_ext_slot(0x50 | s as u8, er);
+            }
         }
     }
 

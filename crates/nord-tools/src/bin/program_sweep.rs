@@ -3,7 +3,9 @@
 //! program, the resolved sounds, the routing facts and the output-health statistics.
 //!
 //! Usage: `cargo run --release -p nord-tools --bin program_sweep -- <backup.ns4b>
-//! [--frames N] [--limit N] [--only <substring>] [--every K] [--notes a,b,..] [--velocity V] [--synth-velocity]`;
+//! [--frames N] [--limit N] [--only <substring>] [--every K] [--notes a,b,..] [--velocity V] [--synth-velocity] [--legacy-synth-velocity]`
+//! (`--synth-velocity` is a no-op since D142 made the firmware synth velocity law the default;
+//! `--legacy-synth-velocity` renders both modes with the linear blend);
 //! `tools/program_sweep.py` drives it. Output
 //! holds derived numbers only (no audio, no firmware or sample content). Release build only: a
 //! debug build overflows the stack in the FX chains.
@@ -122,6 +124,17 @@ fn build_engine(
     engine
 }
 
+/// `--synth-velocity` forces the firmware law on (the default since D142), `--legacy-synth-velocity`
+/// forces the linear blend; the legacy flag wins.
+fn apply_synth_velocity_flags(o: &mut FirmwareOptions, args: &[String]) {
+    if args.iter().any(|a| a == "--synth-velocity") {
+        o.synth_velocity_fw = true;
+    }
+    if args.iter().any(|a| a == "--legacy-synth-velocity") {
+        o.synth_velocity_fw = false;
+    }
+}
+
 fn panic_message(p: Box<dyn std::any::Any + Send>) -> String {
     p.downcast_ref::<String>()
         .cloned()
@@ -177,10 +190,8 @@ fn main() -> Result<(), String> {
             },
         ),
     ];
-    if args.iter().any(|a| a == "--synth-velocity") {
-        for (_, o) in &mut modes {
-            o.synth_velocity_fw = true;
-        }
+    for (_, o) in &mut modes {
+        apply_synth_velocity_flags(o, &args);
     }
     if args.iter().any(|a| a == "--legacy-1khz-tick") {
         // the pre-D131 1 ms ARM tick, to compare a sweep before and after the flip
@@ -281,6 +292,22 @@ mod tests {
 
     fn args(v: &[&str]) -> Vec<String> {
         v.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn synth_velocity_flags_default_on_and_legacy_wins() {
+        let mut o = FirmwareOptions::default();
+        apply_synth_velocity_flags(&mut o, &args(&[]));
+        assert!(o.synth_velocity_fw);
+        apply_synth_velocity_flags(&mut o, &args(&["--legacy-synth-velocity"]));
+        assert!(!o.synth_velocity_fw);
+        apply_synth_velocity_flags(&mut o, &args(&["--synth-velocity"]));
+        assert!(o.synth_velocity_fw);
+        apply_synth_velocity_flags(
+            &mut o,
+            &args(&["--synth-velocity", "--legacy-synth-velocity"]),
+        );
+        assert!(!o.synth_velocity_fw);
     }
 
     #[test]

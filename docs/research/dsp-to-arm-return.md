@@ -67,7 +67,7 @@ Data: `docs/research/data/dsp-to-arm-return-live.json`. Chips `PNO:2=org` and `O
 
 ## 6. Follow-ups
 
-1. SY preset in `sharc-live` (ISR driven, FIFO pairs as `sy_isr_refill.scn`), then answer the idle and release masks from the chip and measure voice free timing and stealing.
+1. **Done, D153** ([sy-live-chip](sy-live-chip.md)): SY preset in `sharc-live`, masks answered from the chip. The 40,682 reads of section 4 belong to a second wait (return `0xC01E26FC`), not to `0xC01E0694`. Voice free and stealing: not shown.
 2. Decode the 52 other `0xC0066E64` sites and the reader of `DM(0x9219A)`.
 3. Longer live runs of PNO core 2 / ORG answering the peeks (section 4b is one program).
 4. SMP status word of the piano voice allocation (item 5): address `[object + 0x240]`, value not measured.

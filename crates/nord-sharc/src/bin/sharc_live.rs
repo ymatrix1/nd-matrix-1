@@ -1,10 +1,11 @@
-//! `sharc-live IMAGE [--pno|--org] [--epdma] [--ring-dma] [--probe PC]... [--lane SET:PAIR]
+//! `sharc-live IMAGE [--pno|--org|--sy] [--epdma] [--epchain] [--isrs N] [--ring-dma] [--probe PC]... [--lane SET:PAIR]
 //! [--window ADDR:COUNT:STRIDE]`: one DSP
 //! chip as a line-protocol server (D138). The ARM harness (`tools/arm_dsp_link.py`) writes the
 //! messages the firmware sends (`M W1 W2`), asks for passes (`P N`) and reads the summary lines;
 //! the protocol is in `nord_sharc::runner::live`. Prints `READY` once the chip has booted.
 //! Evidence: `docs/research/arm-dsp-live-link.md`.
 use nord_sharc::runner::live::{boot_core, preset_named, Live};
+use nord_sharc::runner::live_sy::SyModel;
 use nord_sharc::runner::parse_number;
 use nord_sharc::runner::pass::PassConfig;
 use nord_sharc::runner::periph_run::PeriphOpts;
@@ -23,6 +24,8 @@ struct Parsed {
     lane: (u32, u32),
     window: Window,
     preset: &'static str,
+    /// Audio frames per pass of the SY chip (`--isrs N`, default 2, D153).
+    isrs: u32,
 }
 
 fn parse(args: &[String]) -> Result<Parsed, String> {
@@ -33,12 +36,14 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
         lane: (2, 0),
         window: None,
         preset: "pno",
+        isrs: 2,
     };
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
             "--pno" => p.preset = "pno",
             "--org" => p.preset = "org", // ORG core 1/2 and PNO core 2 (organ program, D144)
+            "--sy" => p.preset = "sy",   // SY1SY2 sample chip, interrupt-driven pass (D153)
             "--window" => {
                 let s = it.next().ok_or("--window needs ADDR:COUNT:STRIDE")?;
                 let bad = || format!("bad --window {s:?} (want ADDR:COUNT:STRIDE)");
@@ -51,6 +56,13 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
                     [a, n, st] if n > 0 && st > 0 && n <= 64 => p.window = Some((a, n, st)),
                     _ => return Err(bad()),
                 }
+            }
+            "--isrs" => {
+                p.isrs = it
+                    .next()
+                    .and_then(|s| parse_number(s))
+                    .filter(|n| (1..=64).contains(n))
+                    .ok_or("--isrs needs 1..64")?;
             }
             "--probe" => p.probes.push(
                 it.next()
@@ -75,7 +87,7 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
         }
     }
     if p.image.is_empty() {
-        return Err("usage: sharc-live IMAGE [--pno|--org] [--epdma] [--ring-dma] [--probe PC]... [--lane SET:PAIR] [--window ADDR:COUNT:STRIDE]".into());
+        return Err("usage: sharc-live IMAGE [--pno|--org|--sy] [--epdma] [--epchain] [--isrs N] [--ring-dma] [--probe PC]... [--lane SET:PAIR] [--window ADDR:COUNT:STRIDE]".into());
     }
     Ok(p)
 }
@@ -92,6 +104,9 @@ fn serve(args: &[String]) -> Result<(), String> {
         irq: periph.start_status(p.irq),
     };
     let mut live = Live::new(core, cfg, p.ping_pong, a.lane, a.probes);
+    if p.sy {
+        live = live.with_sy(SyModel::new(a.isrs));
+    }
     if let Some((addr, n, st)) = a.window {
         live = live.with_window(addr, n, st);
     }
@@ -167,6 +182,13 @@ mod tests {
     }
 
     #[test]
+    fn sy_flag_and_frames_per_pass_are_parsed() {
+        let a = parse(&args(&["sy.bin", "--sy", "--isrs", "1", "--epchain"])).unwrap();
+        assert_eq!((a.preset, a.isrs, a.periph.epchain), ("sy", 1, true));
+        assert_eq!(parse(&args(&["sy.bin", "--sy"])).unwrap().isrs, 2);
+    }
+
+    #[test]
     fn bad_arguments_are_refused() {
         for bad in [
             &["a.bin", "--lane", "9:0"][..],
@@ -178,6 +200,8 @@ mod tests {
             &["a", "--window", "1:2:2:3"],
             &["a", "--window", "1:0:2"],
             &["a", "--window", "1:99:2"],
+            &["a", "--isrs", "0"],
+            &["a", "--isrs", "65"],
         ] {
             assert!(parse(&args(bad)).is_err(), "{bad:?}");
         }

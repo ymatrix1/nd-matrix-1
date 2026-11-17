@@ -46,6 +46,12 @@ IDLE_MASK, RELEASE_MASK, VOICES = 0x92196, 0x9219A, 56
 # `DM(0x92196..7)` = `ffffffff 00ffffff` (reset), `fffffffe 00ffffff` (prepare), `fffffffe 00ffffff`
 # (go), `ffffffff 00ffffff` (reset). The idle state `0x1C07B0` is ASSUMED to set the bit as reset
 # does (not dumped separately; same ARM record initialiser).
+# VERIFIED (listings `0xC01E0694..0xC01E073C`, `0xC01E26A8..0xC01E270C`): two voice update waits
+# test
+# `cache[[d + 4]] & [d + 8]` when the status read returns to the address below, with the descriptor
+# `d` in the register given; the destination of the read is the cache base.
+WAIT_RETURN = 0xC01E072C  # first wait (idle mask, descriptor in r5)
+WAIT_SITES = {WAIT_RETURN: 5, 0xC01E26FC: 4}  # second wait: the ready mask, descriptor in r4
 STATE_BASE, STATE_STRIDE = 0x92414, 0x38
 STATE_IDLE, STATE_RESET, STATE_PREPARE, STATE_GO = 0x1C07B0, 0x1C0794, 0x1C07CD, 0x1C084C
 IDLE_STATES, BUSY_STATES = (STATE_IDLE, STATE_RESET), (STATE_PREPARE, STATE_GO)
@@ -152,10 +158,10 @@ class ReturnSource:
     def word(self, chip: int, core: int, dm: int) -> int:
         """One DM word, first layer that knows it."""
         self.reads[(chip, core, dm)] += 1
+        if (chip, core) in self.live:  # a live chip (SY included, D153) answers before any model
+            return self._hit("live", self.live[(chip, core)](dm, 1)[0])
         if chip == SY_CHIP and (w := self.sy.word(dm)) is not None:
             return self._hit("sy_mask", w)
-        if (chip, core) in self.live:
-            return self._hit("live", self.live[(chip, core)](dm, 1)[0])
         if (chip, core, dm) in self.shadow:
             return self._hit("shadow", self.shadow[(chip, core, dm)])
         if image_word(self.images.get((chip, core)), dm):
@@ -180,6 +186,23 @@ class ReturnSource:
         return [self.word(chip, core, dm + k) for k in range(count)]
 
 
+def poll_advance(dump: Callable, step: Callable[[], object], every: int) -> Callable:
+    """`dump` that also runs one pass (`step`) per `every` reads of the same address: the DSP runs
+    while the ARM polls a status word (ASSUMED: the real ARM polls against a running chip; the
+    harness otherwise freezes the chip in the poll loop, D153). `every` 0 leaves `dump` as is."""
+    if every <= 0:
+        return dump
+    count: dict[int, int] = {}
+
+    def advance(address: int, n: int) -> list[int]:
+        count[address] = count.get(address, 0) + 1
+        if count[address] % every == 0:
+            step()
+        return dump(address, n)
+
+    return advance
+
+
 @dataclass
 class ReadLog:
     """Reads the ARM issued through the three routines (numbers only)."""
@@ -190,6 +213,10 @@ class ReadLog:
     polls: Counter = field(default_factory=Counter)  # (chip, address) -> reads
     tick: int = 0
     fallbacks: int = 0  # `0xC0066E64` calls left to the old stub
+    # the voice update wait (D153): (cache word index, mask, address) -> [tests, tests that passed]
+    waits: dict[tuple[int, int, int], list[int]] = field(default_factory=dict)
+    wait_ticks: dict[int, list[int]] = field(default_factory=dict)  # address -> [first, last] tick
+    callers: Counter = field(default_factory=Counter)  # (routine, return address, address) -> calls
 
 
 def make_stub(source: ReturnSource, log: ReadLog, kind: int) -> Callable:  # noqa: ANN201
@@ -211,8 +238,17 @@ def make_stub(source: ReturnSource, log: ReadLog, kind: int) -> Callable:  # noq
         log.polls[key] += 1
         words = source.read(chip, address, count)
         log.calls.append((kind, chip, address, count, log.tick))
+        log.callers[(kind, emu.reg(14), address)] += 1
         for k, w in enumerate(words):
             emu.write32(dst + 4 * k, w)
+        if kind == SPI_READN and emu.reg(14) in WAIT_SITES:
+            desc = emu.reg(WAIT_SITES[emu.reg(14)])
+            index, mask = emu.read32(desc + 4), emu.read32(desc + 8)
+            row = log.waits.setdefault((index, mask, address), [0, 0])
+            row[0] += 1
+            row[1] += bool(emu.read32(dst + 4 * index) & mask)
+            span = log.wait_ticks.setdefault(address, [log.tick, log.tick])
+            span[1] = log.tick
         return 0
 
     return stub

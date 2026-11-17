@@ -21,6 +21,8 @@ pub struct PeriphOpts {
     pub sec_id: Option<u32>,
     /// `--ring-dma`: the Leslie history-ring restart register of PNO core 1 (`core::periph::ringdma`).
     pub ring_dma: bool,
+    /// `--epchain`: external-port DMA channel 0 with chain loading (SY1SY2 image, D141).
+    pub epchain: bool,
 }
 
 impl PeriphOpts {
@@ -30,6 +32,7 @@ impl PeriphOpts {
             "--epdma" => self.epdma = true,
             "--census" => self.census = true,
             "--ring-dma" => self.ring_dma = true,
+            "--epchain" => self.epchain = true,
             _ => return false,
         }
         true
@@ -43,7 +46,7 @@ impl PeriphOpts {
 
     /// Whether any model or census is on.
     pub fn any(&self) -> bool {
-        self.epdma || self.census || self.ring_dma || self.sec_id.is_some()
+        self.epdma || self.census || self.ring_dma || self.epchain || self.sec_id.is_some()
     }
 
     /// Pass-start status for `irq`: the SEC source id when `--sec-id` is given.
@@ -64,6 +67,9 @@ impl PeriphOpts {
         }
         if self.ring_dma {
             core.enable_ringdma();
+        }
+        if self.epchain {
+            core.enable_epchain();
         }
     }
 }
@@ -256,6 +262,15 @@ mod tests {
         o.attach(&mut c);
         assert!(c.epdma().is_some() && c.access_log().is_some());
         assert!(c.ringdma().is_some());
+        let mut e = PeriphOpts::default();
+        assert!(e.take_flag("--epchain") && e.epchain && e.any());
+        let mut c = clearing_core();
+        assert!(c.epchain().is_none());
+        e.attach(&mut c);
+        assert!(
+            c.epchain().is_some(),
+            "--epchain switches the SY external-port chain model on"
+        );
     }
 
     #[test]

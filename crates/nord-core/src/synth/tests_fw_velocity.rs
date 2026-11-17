@@ -21,9 +21,9 @@ fn layer(firmware: bool, setting: f32) -> SynthLayer {
 }
 
 #[test]
-fn off_by_default() {
+fn on_by_default_and_off_in_legacy() {
+    assert!(SynthLayer::new(48_000.0).firmware_velocity);
     assert!(!SynthLayer::legacy(48_000.0).firmware_velocity);
-    assert!(!SynthLayer::new(48_000.0).firmware_velocity);
 }
 
 #[test]

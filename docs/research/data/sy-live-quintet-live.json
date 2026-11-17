@@ -1,0 +1,370 @@
+{
+ "boot_pc": "0xc00a0248",
+ "boot_insns": 500200000,
+ "boot": {
+  "SY0": {
+   "messages_sent": 283,
+   "distinct_words": 58,
+   "passes": 0,
+   "idle_passes": 0,
+   "halted": false,
+   "lane_peak": 0.0,
+   "lane_rms": 0.0,
+   "probe_hits": {},
+   "probe_first_pass": {},
+   "errors": [],
+   "wall_s": 55.4
+  }
+ },
+ "flagged_layers": [
+  0
+ ],
+ "sy_timeline": {
+  "messages_by_chip": {
+   "FX": 6270,
+   "ORG": 38298,
+   "PNO": 48942,
+   "SMP": 1540,
+   "SY": 359
+  },
+  "sy_messages": 359,
+  "key_down_delay_ticks": [
+   1,
+   1,
+   1
+  ],
+  "prepare": 3,
+  "go": 3,
+  "free_after_off_ticks": null,
+  "frees": 0,
+  "voice0_busy_tick": 901,
+  "voice0_playing_tick": null,
+  "voice0_release_tick": 905,
+  "voice0_free_after_off_ticks": null,
+  "samples": 2700,
+  "first_audio_tick": null,
+  "audio_ticks": 0,
+  "peak": 0.0,
+  "source_frames": 0.0,
+  "past_first_ring": false,
+  "audio_ticks_after_first_ring": 0,
+  "transitions": [
+   [
+    0,
+    0,
+    0,
+    "0x1c07b0",
+    "0x1000000"
+   ],
+   [
+    1,
+    1,
+    0,
+    "0x1c07b0",
+    "0x0"
+   ],
+   [
+    901,
+    0,
+    0,
+    "0x1c0811",
+    "0x0"
+   ],
+   [
+    905,
+    0,
+    1,
+    "0x1c083c",
+    "0x0"
+   ],
+   [
+    906,
+    0,
+    0,
+    "0x1c0811",
+    "0x0"
+   ],
+   [
+    907,
+    0,
+    1,
+    "0x1c083c",
+    "0x0"
+   ],
+   [
+    909,
+    0,
+    0,
+    "0x1c0811",
+    "0x0"
+   ],
+   [
+    916,
+    0,
+    1,
+    "0x1c083c",
+    "0x0"
+   ],
+   [
+    917,
+    0,
+    0,
+    "0x1c0811",
+    "0x0"
+   ],
+   [
+    919,
+    0,
+    1,
+    "0x1c083c",
+    "0x0"
+   ],
+   [
+    920,
+    0,
+    0,
+    "0x1c0811",
+    "0x0"
+   ],
+   [
+    921,
+    0,
+    1,
+    "0x1c083c",
+    "0x0"
+   ]
+  ],
+  "state_messages": [
+   [
+    901,
+    "0x92414",
+    "0x1c0794"
+   ],
+   [
+    901,
+    "0x92414",
+    "0x1c0794"
+   ],
+   [
+    901,
+    "0x92414",
+    "0x1c07cd"
+   ],
+   [
+    901,
+    "0x92414",
+    "0x1c084c"
+   ],
+   [
+    921,
+    "0x9244c",
+    "0x1c0794"
+   ],
+   [
+    921,
+    "0x9244c",
+    "0x1c0794"
+   ],
+   [
+    921,
+    "0x9244c",
+    "0x1c07cd"
+   ],
+   [
+    921,
+    "0x9244c",
+    "0x1c084c"
+   ],
+   [
+    941,
+    "0x92484",
+    "0x1c0794"
+   ],
+   [
+    941,
+    "0x92484",
+    "0x1c0794"
+   ],
+   [
+    941,
+    "0x92484",
+    "0x1c07cd"
+   ],
+   [
+    941,
+    "0x92484",
+    "0x1c084c"
+   ]
+  ],
+  "note_ticks": [
+   900,
+   920,
+   940
+  ],
+  "off_tick": 2400
+ },
+ "sy_chip": {
+  "counters": {
+   "isrs": 4918,
+   "resets": 11,
+   "pairs": 352,
+   "queued": 0,
+   "refills": 9726,
+   "staged": 3
+  },
+  "errors": []
+ },
+ "phases": {
+  "load": {
+   "ticks": 800,
+   "SY0": {
+    "messages_sent": 0,
+    "distinct_words": 0,
+    "passes": 723,
+    "idle_passes": 723,
+    "probe_hits": {}
+   }
+  },
+  "idle": {
+   "ticks": 100,
+   "SY0": {
+    "messages_sent": 0,
+    "distinct_words": 0,
+    "passes": 90,
+    "idle_passes": 90,
+    "probe_hits": {}
+   }
+  },
+  "key": {
+   "ticks": 1500,
+   "SY0": {
+    "messages_sent": 69,
+    "distinct_words": 57,
+    "passes": 1375,
+    "idle_passes": 1375,
+    "probe_hits": {}
+   }
+  },
+  "off": {
+   "ticks": 300,
+   "SY0": {
+    "messages_sent": 0,
+    "distinct_words": 0,
+    "passes": 271,
+    "idle_passes": 271,
+    "probe_hits": {}
+   }
+  }
+ },
+ "final": {
+  "SY0": {
+   "messages_sent": 352,
+   "distinct_words": 115,
+   "passes": 2459,
+   "idle_passes": 2459,
+   "halted": false,
+   "lane_peak": 0.0,
+   "lane_rms": 0.0,
+   "probe_hits": {},
+   "probe_first_pass": {},
+   "errors": [],
+   "wall_s": 142.4
+  }
+ },
+ "phase_start_pass": {
+  "load": 0,
+  "idle": 723,
+  "key": 813,
+  "off": 2188
+ },
+ "watch": {
+  "SY0": {}
+ },
+ "arm_messages": {
+  "FX1p2": 3505,
+  "FX2p2": 2765,
+  "ORG1p2": 25059,
+  "ORG2p2": 13239,
+  "PNO1p2": 35694,
+  "PNO2p2": 13248,
+  "SMP0p1": 1540,
+  "SY0p1": 359
+ },
+ "skipped_out_of_window": {
+  "SY0p1": 7
+ },
+ "ticks": 2700,
+ "clock_passes": 2441,
+ "return_path": {
+  "reads": {
+   "PNO:2:0xc1ddc": 1,
+   "PNO:2:0xc1ddd": 1,
+   "PNO:2:0xc1dde": 1,
+   "PNO:2:0xc1ddf": 1,
+   "ORG:1:0xc1ddc": 1,
+   "ORG:1:0xc1ddd": 1,
+   "ORG:1:0xc1dde": 1,
+   "ORG:1:0xc1ddf": 1,
+   "ORG:2:0xc1ddc": 1,
+   "ORG:2:0xc1ddd": 1,
+   "ORG:2:0xc1dde": 1,
+   "ORG:2:0xc1ddf": 1,
+   "SY:0:0x92196": 3,
+   "SY:0:0x92197": 3,
+   "SY:0:0x9219a": 576,
+   "SY:0:0x9219b": 576
+  },
+  "answered_by": {
+   "zero": 12,
+   "live": 1158
+  },
+  "calls": 582,
+  "callers": {
+   "0xc00119a4:0xc01b1cb8:0x28b07770": 1,
+   "0xc00119a4:0xc01b1cd4:0x28307770": 1,
+   "0xc00119a4:0xc01b1cf0:0x28b07770": 1,
+   "0xc0066e64:0xc01e072c:0x92196": 3,
+   "0xc0066e64:0xc01e26fc:0x9219a": 576
+  },
+  "wait_tests": {
+   "idx0:mask0x1:0x92196": [
+    1,
+    1
+   ],
+   "idx0:mask0x1:0x9219a": [
+    192,
+    1
+   ],
+   "idx0:mask0x2:0x92196": [
+    1,
+    1
+   ],
+   "idx0:mask0x2:0x9219a": [
+    192,
+    1
+   ],
+   "idx0:mask0x4:0x92196": [
+    1,
+    1
+   ],
+   "idx0:mask0x4:0x9219a": [
+    192,
+    1
+   ]
+  },
+  "wait_ticks": {
+   "0x92196": [
+    901,
+    941
+   ],
+   "0x9219a": [
+    901,
+    941
+   ]
+  },
+  "busy_voices": 3
+ },
+ "chips": {
+  "SY0": "--sy"
+ }
+}

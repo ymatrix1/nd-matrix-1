@@ -49,7 +49,15 @@ impl Core {
             // VERIFIED (census diff, scalar mode, 126 firmware forms): a long-word access moves the
             // register pair `Un, Un+1` (n even; an odd register selects its pair) to or from the two
             // words at `addr & !1`. ASSUMED in SIMD mode (the simulator also changes S0 there: open).
-            let (u0, u1) = (ureg, ureg ^ 1); // the named register takes the lower address
+            // ASTATx/y and STKYx/y have no pair: VERIFIED (ADSP-21489 simulator, `census_extra_cases.txt`,
+            // `STKYx = DM(a) (LW)` 6 cases and the 0x76..0x79 sweep): both words load the named
+            // register in turn, so it ends with the word at `addr + 1` and its partner is untouched.
+            let partner = if (0x76..=0x79).contains(&ureg) {
+                ureg
+            } else {
+                ureg ^ 1
+            };
+            let (u0, u1) = (ureg, partner); // the named register takes the lower address
             let a = addr & !1;
             if write {
                 let (v0, v1) = (self.read_ureg(u0), self.read_ureg(u1));
@@ -84,7 +92,10 @@ impl Core {
                     .map_err(bad)?;
             }
         } else {
-            if x_ok {
+            // VERIFIED (ADSP-21489 simulator, `census_extra_cases.txt`, `IF cc M12 = DM(I0, M0)` over
+            // 10 conditions x SIMD states): a register that is not a data register has no PEy twin,
+            // so in SIMD mode the load happens when either element's condition holds
+            if x_ok || (self.simd() && !data && y_ok) {
                 let v = self.dm_read(addr).map_err(bad)?;
                 self.write_ureg(ureg, v);
             }
@@ -117,7 +128,7 @@ impl Core {
                     } {
                         self.on_each_pe(d, d.cond_ok, d.cond_y, |core| core.exec_compute_op(cop))?;
                     }
-                    self.swap_rs(r as usize, s as usize);
+                    self.swap_each_pe(d, r as usize, s as usize);
                 }
                 Ok(())
             }
@@ -248,7 +259,7 @@ impl Core {
                     // exchange (the PEy file is the S file).
                     let (s, r) = (bits(w, 41, 38) as usize, bits(w, 26, 23) as usize);
                     self.run_move_compute(d, with_compute)?;
-                    self.swap_rs(r, s);
+                    self.swap_each_pe(d, r, s);
                 } else {
                     let src = ((bits(w, 42, 38) << 2) | bits(w, 32, 31)) as u8;
                     // the compute and the transfer both read the registers as they were before

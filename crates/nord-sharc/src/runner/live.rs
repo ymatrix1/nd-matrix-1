@@ -11,7 +11,8 @@
 //! | `Q` | end | none |
 //!
 //! Everything is deterministic: no clock, no thread, replies are a pure function of the commands.
-pub use super::live_presets::{boot_core, org_preset, pno_preset, preset_named, Preset};
+pub use super::live_presets::{boot_core, org_preset, pno_preset, preset_named, sy_preset, Preset};
+use super::live_sy::SyModel;
 use super::msg::{deliver, Msg};
 use super::pass::PassConfig;
 use super::periph_run::lane_words;
@@ -33,6 +34,8 @@ pub struct Live {
     pub pass: u32,
     halted: bool,
     error: Option<String>,
+    /// The SY chip: messages go to its FIFO queue and a pass is audio interrupts (D153).
+    sy: Option<SyModel>,
 }
 
 impl Live {
@@ -54,7 +57,14 @@ impl Live {
             pass: 0,
             halted: false,
             error: None,
+            sy: None,
         }
+    }
+
+    /// Serves the SY1SY2 chip: `M` queues FIFO pairs, `P` runs `model.isrs_per_pass` frames.
+    pub fn with_sy(mut self, model: SyModel) -> Self {
+        self.sy = Some(model);
+        self
     }
 
     /// Reads the level statistic from `count` words at `addr + k * stride` (float bits) instead of
@@ -66,6 +76,9 @@ impl Live {
 
     /// The words the level statistic of one pass reads (lane pair or voice window).
     fn level_words(&mut self) -> Vec<u32> {
+        if let Some(sy) = &self.sy {
+            return sy.level_words();
+        }
         if let Some((a, n, st)) = self.window {
             return (0..n)
                 .map(|k| self.core.dm_read(a.wrapping_add(k * st)).unwrap_or(0))
@@ -112,6 +125,10 @@ impl Live {
                     .get(2)
                     .and_then(|s| parse_value(s))
                     .ok_or(format!("bad command {line:?}"))?;
+                if let Some(sy) = &mut self.sy {
+                    sy.send(num(1)?, w2);
+                    return Ok(None);
+                }
                 let m = Msg {
                     pass: self.pass,
                     word1: num(1)?,
@@ -153,7 +170,13 @@ impl Live {
             if let Some(pp) = self.ping_pong {
                 set_ping_pong(&mut self.core, pp, self.pass);
             }
-            let (s, ok) = if self.probing {
+            let (s, ok) = if let Some(sy) = &mut self.sy {
+                let r = sy.pass(&mut self.core);
+                if let Some(e) = sy.take_error() {
+                    self.error.get_or_insert(e);
+                }
+                r
+            } else if self.probing {
                 let (s, ok, seen) = probe_pass(&mut self.core, &self.cfg);
                 for (h, pc) in hits.iter_mut().zip(&self.probes) {
                     *h += u32::from(seen.contains(pc));
@@ -193,6 +216,9 @@ impl Live {
                 .map(|(p, h)| format!("{p:x}:{h}"))
                 .collect();
             let _ = write!(out, " hits={}", list.join(","));
+        }
+        if let Some(sy) = &self.sy {
+            let _ = write!(out, " {}", sy.report());
         }
         if let Some(e) = self.error.take() {
             let _ = write!(out, " error={}", e.replace(' ', "_"));

@@ -438,6 +438,12 @@ impl Core {
             2 => (f.an != f.av) || f.az,
             3 => f.ac,
             4 => f.av,
+            // MV and MS test the multiplier overflow and sign flags (ASTAT bits 7 and 6) of the
+            // element; NOT MV / NOT MS (21, 22) are their negations. VERIFIED: ADSP-21489
+            // simulator, `census_extra_cases.txt` (all 32 condition codes on one instruction,
+            // 6 random states), the census `IF NOT MS` triple operation (5 cases).
+            5 => self.sys.astat_extra[usize::from(y)] >> 7 & 1 == 1,
+            6 => self.sys.astat_extra[usize::from(y)] >> 6 & 1 == 1,
             7 => f.sv,
             8 => f.sz,
             // FLAG0_IN..FLAG3_IN: the pin level of an input flag (PRM Table 4-37)

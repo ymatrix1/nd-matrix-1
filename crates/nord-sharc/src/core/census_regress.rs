@@ -14,14 +14,14 @@ const CASES: &str = include_str!("../../../../docs/research/sharc-seq/census_cas
 const MEASURED: &str = include_str!("../../../../docs/research/sharc-seq/census_measured.txt");
 const N_STATE: usize = 107;
 
-#[test]
-fn model_matches_the_simulator_on_every_census_regression_case() {
-    let scr = scratch_of(CASES);
-    let got = run_cases(FIXTURE, CASES).unwrap();
-    let want: Vec<&str> = MEASURED.lines().collect();
+/// Replays `cases` on the model and compares with the simulator output `measured`.
+fn check(cases: &str, measured: &str) {
+    let scr = scratch_of(cases);
+    let got = run_cases(FIXTURE, cases).unwrap();
+    let want: Vec<&str> = measured.lines().collect();
     let got: Vec<String> = got.lines().map(|l| compact(l, &scr, N_STATE)).collect();
     assert_eq!(got.len(), want.len(), "one output line per case");
-    let cases: Vec<&str> = CASES.lines().skip(1).collect();
+    let cases: Vec<&str> = cases.lines().skip(1).collect();
     let bad: Vec<String> = (0..got.len())
         .filter(|&i| got[i] != want[i])
         .map(|i| {
@@ -33,12 +33,36 @@ fn model_matches_the_simulator_on_every_census_regression_case() {
             )
         })
         .collect();
-    let shown = bad[..bad.len().min(20)].join("\n");
+    let shown = bad[..bad.len().min(20)].join(
+        "
+",
+    );
     assert!(
         bad.is_empty(),
-        "{} cases differ (first shown):\n{shown}",
+        "{} cases differ (first shown):
+{shown}",
         bad.len()
     );
+}
+
+#[test]
+fn model_matches_the_simulator_on_every_census_regression_case() {
+    check(CASES, MEASURED);
+}
+
+const EXTRA_CASES: &str =
+    include_str!("../../../../docs/research/sharc-seq/census_extra_cases.txt");
+const EXTRA_MEASURED: &str =
+    include_str!("../../../../docs/research/sharc-seq/census_extra_measured.txt");
+
+/// VERIFIED on the ADSP-21489 simulator (`census_probe.py`, 461 cases): the former census-diff
+/// gaps. Shift-immediate counts (8-bit signed: `BY 256` shifts by 0, 225 cases), the conditions
+/// MV and MS and the per-element swap `IF cc R14 <-> S3` (all 32 condition codes x 6 states,
+/// 180 cases), `STKYx/STKYy/ASTATx/ASTATy = DM(a) (LW)` (16 cases) and `IF cc M12 = DM(I0, M0)`
+/// in SIMD mode (40 cases). Each of these failed on the model before the fix.
+#[test]
+fn model_matches_the_simulator_on_the_closed_census_diffs() {
+    check(EXTRA_CASES, EXTRA_MEASURED);
 }
 
 const PLUS_FIXTURE: &str = include_str!("../../../../docs/research/sharc-seq/census21_fixture.txt");

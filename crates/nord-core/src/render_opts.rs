@@ -378,8 +378,10 @@ pub struct FirmwareOptions {
     /// `--sample-pitch fw|equal`: the `SAMPLES` oscillator step follows the ARM exponent tables
     /// (`sinc::pitch_law`, VERIFIED law; root and sample-rate fields ASSUMED). Off by default.
     pub sample_pitch_fw: bool,
-    /// `--firmware-synth-velocity`: `SynthLayer::firmware_velocity` (amp and filter-envelope velocity
-    /// laws of the ORG core 2 pass, VERIFIED against `sharc-org`; opt-in, D22).
+    /// `--firmware-synth-velocity` / `--legacy-synth-velocity`: `SynthLayer::firmware_velocity` (amp
+    /// and filter-envelope velocity laws of the ORG core 2 pass, VERIFIED against `sharc-org`; file
+    /// bits VERIFIED by the program recall, the multiply inside the voice ASSUMED). On by default
+    /// since D142 (owner approval 2026-11-17); `--legacy-synth-velocity` and `--legacy-all` turn it off.
     pub synth_velocity_fw: bool,
     /// `--firmware-routing` / `--legacy-routing`: section / layer enables and per-layer KB zones
     /// as the program stores them ([`FirmwareRouting`]). On by default since D73: the zone key
@@ -446,7 +448,7 @@ impl Default for FirmwareOptions {
             synth_wave_bank: false,
             sample_kernel_key: true,
             sample_pitch_fw: false,
-            synth_velocity_fw: false,
+            synth_velocity_fw: true,
             firmware_routing: true,
             amp_path: None,
             legacy_pump: false,
@@ -471,6 +473,7 @@ impl FirmwareOptions {
             synth_super_lp24_milli: None,
             synth_fw_resonance: false,
             synth_knob_laws: false,
+            synth_velocity_fw: false,
             piano_firmware_level: false,
             synth_layer_law: false,
             measured_tick: false,
@@ -515,7 +518,7 @@ impl FirmwareOptions {
             synth_wave_bank: false,
             sample_kernel_key: true,
             sample_pitch_fw: false,
-            synth_velocity_fw: false,
+            synth_velocity_fw: true,
             firmware_routing: true,
             amp_path: None,
             legacy_pump: false,
@@ -580,6 +583,9 @@ impl FirmwareOptions {
         o.piano_bus_scale |= has("--firmware-piano-bus");
         o.piano_touch |= has("--firmware-piano-touch");
         o.synth_velocity_fw |= has("--firmware-synth-velocity");
+        if has("--legacy-synth-velocity") {
+            o.synth_velocity_fw = false;
+        }
         o.piano_slew |= has("--piano-slew-fw");
         o.piano_pedal_voices |= has("--firmware-piano-pedal-voices");
         o.piano_chain_scale |= has("--firmware-piano-chain");
@@ -990,8 +996,8 @@ impl FirmwareOptions {
         if self.piano_touch {
             parts.push("piano-touch".into());
         }
-        if self.synth_velocity_fw {
-            parts.push("synth-velocity".into());
+        if !self.synth_velocity_fw {
+            parts.push("legacy-synth-velocity".into());
         }
         if self.piano_slew {
             parts.push("piano-slew".into());
@@ -1266,16 +1272,33 @@ mod tests {
     }
 
     #[test]
-    fn synth_velocity_flag_is_opt_in_and_reaches_every_synth_layer() {
-        assert!(!FirmwareOptions::default().synth_velocity_fw);
-        let o = FirmwareOptions::from_args(&["--firmware-synth-velocity".into()]).unwrap();
-        assert!(o.synth_velocity_fw && o.summary().contains("synth-velocity"));
+    fn synth_velocity_is_the_default_and_reaches_every_synth_layer() {
+        assert!(FirmwareOptions::default().synth_velocity_fw);
+        assert!(FirmwareOptions::firmware_all().synth_velocity_fw);
+        assert!(!FirmwareOptions::legacy_all().synth_velocity_fw);
+        assert!(!FirmwareOptions::default()
+            .summary()
+            .contains("legacy-synth-velocity"));
+        let o = FirmwareOptions::from_args(&["--legacy-synth-velocity".into()]).unwrap();
+        assert!(!o.synth_velocity_fw && o.summary().contains("legacy-synth-velocity"));
+        let on = FirmwareOptions::from_args(&[
+            "--legacy-all".into(),
+            "--firmware-synth-velocity".into(),
+        ])
+        .unwrap();
+        assert!(on.synth_velocity_fw);
         let mut e = Stage4Engine::new(48_000.0);
-        o.apply_to(&mut e);
+        FirmwareOptions::default().apply_to(&mut e);
         assert!(
             e.synth_a.firmware_velocity
                 && e.synth_b.firmware_velocity
                 && e.synth_c.firmware_velocity
+        );
+        o.apply_to(&mut e);
+        assert!(
+            !e.synth_a.firmware_velocity
+                && !e.synth_b.firmware_velocity
+                && !e.synth_c.firmware_velocity
         );
     }
 

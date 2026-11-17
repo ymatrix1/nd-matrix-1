@@ -213,6 +213,7 @@ fn synth_row(ui: &mut egui::Ui, o: &mut FirmwareOptions) {
             dropdown(ui, &info::CHAIN, &mut next.synth_chain, &CHAINS);
             checkbox(ui, &info::STAGES, &mut next.synth_stages);
             checkbox(ui, &info::KNOB_LAWS, &mut next.synth_knob_laws);
+            checkbox(ui, &info::SYNTH_VELOCITY, &mut next.synth_velocity_fw);
             dropdown(ui, &info::P_TABLE, &mut next.synth_p, &P_TABLES);
             dropdown(ui, &info::FILTER, &mut next.filter_engine, &FILTERS);
             checkbox(ui, &info::MEASURED, &mut next.measured_laws);

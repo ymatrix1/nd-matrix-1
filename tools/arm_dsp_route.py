@@ -16,7 +16,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 CHIPS = {"FX": 0, "PNO": 1, "ORG": 2, "SY": 3, "SMP": 4}
-PRESETS = ("pno", "org")  # `sharc-live` flags (`runner/live_presets.rs`); SY has none (D144 s4)
+PRESETS = ("pno", "org", "sy")  # `sharc-live` flags (`runner/live_presets.rs`); `sy` is D153
 DM_WORDS = 0x100000  # data word space of one core window (`0x28000000 + 4 w`, w < 2^20)
 
 
@@ -40,8 +40,15 @@ class ChipSpec:
     def comm(self) -> int:
         return CHIPS[self.chip]
 
+    @property
+    def path(self) -> int:
+        """ARM message path this chip receives: SY takes path 1 (DM word addresses), the rest 2."""
+        return 1 if self.preset == "sy" else 2
+
     def flags(self) -> list[str]:
         """`sharc-live` flags of this chip."""
+        if self.preset == "sy":  # interrupt driven pass, no epdma, no level window (D153)
+            return ["--sy", *(["--epchain"] if self.window == "epchain" else [])]
         out = [f"--{self.preset}", "--epdma"]
         if self.window:
             out += ["--window", self.window]
@@ -59,10 +66,12 @@ def parse_chip_spec(text: str) -> ChipSpec:
         raise ValueError(f"bad chip spec {text!r}")
     head, preset, image, *rest = parts
     chip, _, core = head.partition(":")
-    if chip not in CHIPS or not core.isdigit() or int(core) not in (1, 2):
-        raise ValueError(f"bad chip {head!r} (want FX|PNO|ORG|SY|SMP:1|2)")
+    if chip not in CHIPS or not core.isdigit() or int(core) not in (0, 1, 2):
+        raise ValueError(f"bad chip {head!r} (want FX|PNO|ORG:1|2 or SY:0)")
     if preset not in PRESETS:
         raise ValueError(f"bad preset {preset!r} (want one of {PRESETS})")
+    if (core == "0") != (chip == "SY") or (preset == "sy") != (chip == "SY"):
+        raise ValueError(f"bad chip {head!r} for preset {preset!r} (SY:0 takes the sy preset)")
     rest += [""] * (3 - len(rest))
     return ChipSpec(
         chip,
@@ -83,9 +92,9 @@ class Router:
         self.seen: dict[str, int] = {}
         self.skipped: dict[str, int] = {}
 
-    def add(self, spec: ChipSpec, link: object, path: int = 2) -> None:
-        """`link` receives the path-`path` messages of `spec` (only path 2 is wired, D144 s4)."""
-        self.owner[(spec.comm, spec.core, path)] = link
+    def add(self, spec: ChipSpec, link: object, path: int | None = None) -> None:
+        """`link` receives the messages of `spec`: path 2 (system addresses), path 1 for SY."""
+        self.owner[(spec.comm, spec.core, spec.path if path is None else path)] = link
 
     def dispatch(self, path: int, comm: int, core: int, dm_word: int, value: int) -> str:
         """Route one message: `sent`, `skipped` (outside the core window) or `counted` (no chip)."""

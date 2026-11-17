@@ -11,7 +11,7 @@ Tags: **VERIFIED** = matches firmware or oracle by a reproducible check, **EMPIR
 | Question | Answer |
 |---|---|
 | Is the emulation complete? | **No.** Every engine family sounds; the oracle runs a large part of the firmware; both have named gaps below. |
-| Oracle instruction level | 8,287 distinct firmware instructions run on the model and on the ADSP-21489 simulator: 49,722 cases, **18 differ** in 6 shapes. The census is not yet run on the 21571 (SHARC+) simulator. |
+| Oracle instruction level | 8,287 distinct firmware instructions run on the model and on the ADSP-21489 simulator: 49,722 cases, **18 differed** in 6 shapes; closed 2026-11-17 except 2 cases of one shape (MR2F read-back, [sharc-census-diff](sharc-census-diff.md)). The census is not yet run on the 21571 (SHARC+) simulator. |
 | Oracle routine level | PNO bank `0x122620` and mix `0x12268F` bit-exact on the 21571 simulator; output stage `0x1229B3` and post stage `0x12272D` DM compared in session notes (PRs #131). SY1SY2 resampler `0x1C10EE` and SMP voice loop bit-exact against the Rust engine. |
 | ARM harness | Boots the real firmware to the main loop in **433 M instructions (36 s)**; full settle 3.0 B instructions in 201 s. The DSP side is absent except for the live chips (D138, D144): PNO core 1, PNO core 2 and ORG core 2 run against the real ARM stream (`tools/arm_dsp_live.py`, one direction); the other chips (FX, ORG core 1, SY, SMP) and every DSP answer are still stubs (`DspAck`). |
 | Factory programs (384) | Path uses classified: default **1,015 verified (15 %), 5,677 assumed (83 %), 119 unmodelled (2 %)**; `--firmware-all` **2,634 / 4,058 / 119** (39 % / 60 % / 2 %). Render health 384 of 384 without panic, NaN or silence. |
@@ -96,7 +96,7 @@ Lane E beans (`ns4-36hw`, `ns4-doy1`, `ns4-vnp2`, `ns4-qll9`, `ns4-ca0i`, `ns4-a
 | Reverb tails | 7b.4 "FX wiring ... reverb tables" (open); tail clip: proposed in this PR |
 | Touch default | 7b.5 Touch tick; flip: proposed in this PR |
 | Piano extra voices | closed: already played by default (D23), pedal-down list opt-in (D123, [piano-extra-voices](piano-extra-voices.md)) |
-| DSP to ARM reads (voice mask, note-on peeks) | opt-in return source `tools/arm_dsp_return.py` (D147, [dsp-to-arm-return](dsp-to-arm-return.md)); SY release mask and stealing need a live SY |
+| DSP to ARM reads (voice mask, note-on peeks) | opt-in return source `tools/arm_dsp_return.py` (D147, [dsp-to-arm-return](dsp-to-arm-return.md)); SY chip live and opt-in (`--sy`, D153, [sy-live-chip](sy-live-chip.md)): `go` sent, Choir plays on the synthetic ring; voice free and stealing not shown |
 | Sample pitch entry `e` | 7b.6 "SAMPLES remainder" (open); SY external-port chain model `epchain` (opt-in, D141, [dsp-flash-dma-model](dsp-flash-dma-model.md)): 0 window writes, no SPI flash |
 | B3 processor, Leslie | 7b.3 "B3 / Vox presence", "Real time firmware organ stages", "Organ unit EQ routines, Leslie rotor" (open) |
 | Mod 1 PUMP clock | proposed in this PR |
@@ -113,7 +113,7 @@ Lane E beans (`ns4-36hw`, `ns4-doy1`, `ns4-vnp2`, `ns4-qll9`, `ns4-ca0i`, `ns4-a
 | Area | State | Evidence | Tag |
 |---|---|---|---|
 | VISA decoder | Matches ADI `elfdump` on the code of all five images; `adi_compare.py` 0 differences for types 8a, 9a/9b, 11a/11c, 12a, 19a on SY1SY2 and FX, PNO, ORG code ranges | [sharc-leftovers](sharc-leftovers.md) s1 | VERIFIED |
-| Executor, census | 8,287 distinct instructions (after dropping what ADI decodes differently, control flow, timer, stack, interrupt registers and MODE1 writes) x 6 random states. First run 1,875 of 50,052 differ; after 12 fixes **18 of 49,722** (6 shapes: `STKYx = DM (LW)`, conditional multiply + dual add/subtract + swap, SIMD per-element conditions on shifter flags, `MR1F` readback, SIMD `FPACK`) | [sharc-census-diff](sharc-census-diff.md); 1,104 cases replayed by `census_regress.rs` | VERIFIED (21489 simulator) |
+| Executor, census | 8,287 distinct instructions (after dropping what ADI decodes differently, control flow, timer, stack, interrupt registers and MODE1 writes) x 6 random states. First run 1,875 of 50,052 differ; after 12 fixes 18 of 49,722 (6 shapes), after 5 more fixes (2026-11-17: shift-immediate count, MV/MS conditions, SIMD swap, STKY long word, SIMD non-data load) **2 of 49,722** (`MR1F` MR2F read-back) | [sharc-census-diff](sharc-census-diff.md); 1,119 + 461 cases replayed by `census_regress.rs` | VERIFIED (21489 simulator) |
 | Excluded from the census | control flow, `DO UNTIL`, stacks, timers, interrupts, MODE1 writes: covered by separate probes (`sharc-seq/loops`, `stack`, `nested`, `entry`, `simd`), all with committed measured fixtures | `docs/research/sharc-seq/` | VERIFIED |
 | SHARC+ (21571) | Write masks of ASTATy, STKYx, STKYy measured; condition-code sweep of 40 cases agrees; **no instruction census on 21571** (about 0.3 s per case after a 140 s start-up, about 4 h; session note) | [sharc-plus](sharc-plus.md), [sharc-routine-diff](sharc-routine-diff.md) | partial |
 | Known simulator mismatch | `DO (PC, 0xFF800055)` (SHARC+ loop form): the 21489 simulator does not honour it; the model keeps the ADI listing semantics | [sharc-routine-diff](sharc-routine-diff.md) | VERIFIED on 21571 for `0x122620` |
@@ -121,7 +121,7 @@ Lane E beans (`ns4-36hw`, `ns4-doy1`, `ns4-vnp2`, `ns4-qll9`, `ns4-ca0i`, `ns4-a
 | Speed | long passes and the 21571 census need a faster step loop before CI use | ROADMAP line 221 | open |
 | Unit tests | 353 `#[test]` functions in `crates/nord-sharc/src` | `grep -c "#\[test\]"` | counted |
 
-Effort to close the 18 census cases: low. Effort to run the 21571 census: medium (machine time, no new code). Audible impact: none today (no firmware routine in use is known to hit them); it only widens the trust base.
+Effort to close the 18 census cases: done 2026-11-17 for 16 (5 of 6 shapes), 2 cases (MR2F) open. Effort to run the 21571 census: medium (machine time, no new code). Audible impact: none measured (old and new oracle give identical output on PNO bank/mix/post, PNO and ORG passes; 54 occurrences in 65,343, 15 sites); it only widens the trust base.
 
 ### 3.2 Which images, cores and firmware paths run
 
@@ -208,7 +208,7 @@ Status columns: **Fw** = verified against firmware or oracle, **Clip** = fitted 
 | Unison | 51 / 47 / 72 programs at 1 / 2 / 3 | Asm (SUPER voice spread EMPIRICAL) | default | Super Saw level flat within 1.2 dB over Detune 0 to 10 (hardware flat) | | medium | low |
 | Layer level law | all | Fw `(v / 127)^2` (D87) | **default** | handler `0xC011BB48` run live; Leaky Stabs II 3.19 to 1.95 | Reverb GLOBAL, DSoundman taper | | |
 | Sustain pedal (SUSTPED) | 381 of 384 set | Fw bit decoded (D97) | opt-in `--synth-sustain-pedal` | | ARM hold logic | low | low |
-| Velocity | 213 of 287 synth programs sensitive | Fw laws (D104) | **opt-in** `--firmware-synth-velocity` | 768 of 768 words within 1 ulp | file bits of the three velocity fields, `kOscEnvVel`, a clip | medium | medium |
+| Velocity | 213 of 287 synth programs sensitive | Fw laws (D104) | **default** since D142 (`--legacy-synth-velocity` opts out) | 768 of 768 words within 1 ulp; file bits VERIFIED (27 of 27) | 4 of 16 clips marginally worse at replay v100, multiply in the voice, `kOscEnvVel` | medium | medium |
 | Not modelled | MISC 8, MULTI 43, SHAPE SINE 30, SYNC 16, SUB OSC 1 programs per program-coverage | stale: stage models exist (section 5) | | | regenerate the classification | low | none (bookkeeping) |
 
 ### 4.4 Effects
@@ -276,6 +276,7 @@ The 119 unmodelled uses: Wavetable 14 (12 programs), SHAPE SINE 32 (30), MULTI 4
 
 1. Regenerate `program-sweep.json` on current `main` and store per-program path sets, so the count of programs with an unmodelled path is known and the stale rows of section 4 are corrected.
 2. Correct `sharc-routine-diff.md` for PR #131 (post and output stages) and move the session-note numbers into a research file.
-3. Run the instruction census on the 21571 simulator (about 4 h).
+3. Run the instruction census on the 21571 simulator (about 4 h); then compare the five shapes closed on 2026-11-17 (21489 only).
 4. Merge D113 to D116 (PRs #437 to #440) and refresh the rows tagged open in [audio-remaining](audio-remaining.md).
 5. Benchmark the opt-in ports in real time before any default flip.
+6. ARM peripheral gaps that still affect sound (counts from the sections above; each needs a DSP or peripheral model, not a core fix): (a) the pitch entry `e` writer for SAMPLE layers, 119 programs, not found in 384 recalls and 149 played voices; (b) the ARM ring consumer `0xC01CE7D8`, 393 port messages sent, 0 to SY / SMP; (c) SPI DMA (opcode 9) with a flash model, not run; (d) the keybed UART2 ring and the per-key velocity source, not run (OQ19, OQ23); (e) the `DspAck` voice-ready bit, set by hand; (f) the SPI1 data register `0x01E12040` served as RAM (59 of 119 SAMPLE programs stopped before D143, neutralised only).

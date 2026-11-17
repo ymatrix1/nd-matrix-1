@@ -76,3 +76,28 @@ def test_tap_levels_take_every_other_word_of_the_window() -> None:
     peak, rms, n = r.tap_levels(raw, 5, 4)
     assert (peak, n) == (0.5, 4)
     assert rms == pytest.approx(((0.25 + 0.0625) / 2) ** 0.5)
+
+
+def test_sy_chip_spec_takes_path_1_and_the_sy_flag() -> None:
+    s = r.parse_chip_spec("SY:0=sy=target/oracle/sy.bin")
+    assert (s.name, s.comm, s.core, s.path) == ("SY0", 3, 0, 1)
+    assert s.flags() == ["--sy"]  # no epdma, no level window
+    assert r.parse_chip_spec("SY:0=sy=i==").path == 1 and r.parse_chip_spec("ORG:2=org=i").path == 2
+    assert r.parse_chip_spec("SY:0=sy=i=epchain").flags() == ["--sy", "--epchain"]
+
+
+@pytest.mark.parametrize("bad", ["SY:0=org=i", "SY:1=sy=i", "ORG:0=org=i", "PNO:0=sy=i"])
+def test_sy_preset_and_core_zero_only_go_together(bad: str) -> None:
+    with pytest.raises(ValueError):
+        r.parse_chip_spec(bad)
+
+
+def test_router_sends_sy_path_1_messages_to_the_sy_chip_only() -> None:
+    sy, org = FakeLink(), FakeLink()
+    rt = r.Router()
+    rt.add(r.parse_chip_spec("SY:0=sy=i"), sy)
+    rt.add(r.parse_chip_spec("ORG:2=org=i"), org)
+    assert rt.dispatch(1, 3, 0, 0x92414, 0x1C07CD) == "sent"
+    assert rt.dispatch(2, 3, 2, 0x92414, 1) == "counted"  # SY path 2: nobody owns it
+    assert rt.dispatch(1, 4, 0, 0x92414, 1) == "counted"  # SMP path 1
+    assert sy.sent == [(0x92414, 0x1C07CD)] and org.sent == []

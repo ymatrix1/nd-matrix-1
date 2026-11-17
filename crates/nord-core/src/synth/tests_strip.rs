@@ -124,6 +124,8 @@ fn strip_voice_level_follows_the_key_velocity_series() {
     let level = |on: bool, vel: u8| {
         let mut s = layer(SynthChain::FirmwareStrip);
         s.strip_key_velocity = on;
+        // the legacy blend of `amp_velocity` and `g / 127`; the firmware law has its own tests
+        s.firmware_velocity = false;
         s.note_on(57, vel);
         energy(&render_n(&mut s, 9_600)).sqrt()
     };

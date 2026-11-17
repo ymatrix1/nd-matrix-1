@@ -183,3 +183,17 @@ def test_script_text_is_a_msg_script_in_send_order() -> None:
     assert dl.script_text([(0, 0xB0200, 0x12), (3, 0x95471, 0x3F800000)]) == (
         "0 0xb0200 0x00000012\n3 0x95471 0x3f800000\n"
     )
+
+
+def test_sy_counters_of_a_pass_reply_are_parsed_and_the_last_ones_kept() -> None:
+    line = (
+        "P req=2 idle=2 steps=9 last=4 pass=2 halted=0 cnt=4 sumsq=0e0 peak=0e0 "
+        "sy=isrs:4,resets:1,pairs:7,queued:0,refills:4,staged:1"
+    )
+    r = dl.PassReport.parse(line)
+    assert r.sy == {"isrs": 4, "resets": 1, "pairs": 7, "queued": 0, "refills": 4, "staged": 1}
+    assert dl.PassReport.parse(line.split(" sy=")[0]).sy == {}
+    s = dl.LinkStats()
+    s.add(r, 0)
+    s.add(dl.PassReport(), 2)  # a reply without counters keeps the last ones
+    assert s.sy["isrs"] == 4

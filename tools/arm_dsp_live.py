@@ -19,7 +19,9 @@ after each tick the owed passes run on all of them. Phases: `load` (program reca
         --live target/release/sharc-live --sys-exe target/release/sharc-sys \
         --log live --out live.json
 
-Chip spec `CHIP:CORE=PRESET=IMAGE[=WINDOW[=PROBES[=WATCH]]]` (`arm_dsp_route.parse_chip_spec`). The
+Chip spec `CHIP:CORE=PRESET=IMAGE[=WINDOW[=PROBES[=WATCH]]]` (`arm_dsp_route.parse_chip_spec`);
+the SY chip is `SY:0=sy=IMAGE` (path 1, interrupt driven pass, D153; WINDOW `epchain` adds the
+EP DMA model). The
 old one-chip flags (`--dsp-image`, `--probe`, `--flags`) still build `PNO:1=pno=IMAGE`.
 
 The ARM side keeps the harness conventions: 200,000 instructions per timer tick (16 x the hardware
@@ -38,6 +40,7 @@ from pathlib import Path
 import arm_dsp_link as dl
 import arm_dsp_return as rtn
 import arm_dsp_route as rt
+import arm_sy_timeline as syt
 
 LOAD_TICKS, IDLE_TICKS, KEY_TICKS, OFF_TICKS = 800, 100, 1500, 300
 KEY, VELOCITY = 60, 100
@@ -79,10 +82,11 @@ def phase_delta(before: dict[str, object], after: dict[str, object]) -> dict[str
 class Feeder:
     """Moves the new port stores of the emulator through the grouper to the router."""
 
-    def __init__(self, emu, router: rt.Router, observer=None) -> None:  # noqa: ANN001
+    def __init__(self, emu, router: rt.Router, observer=None, timeline=None) -> None:  # noqa: ANN001
         import arm_emu as ae
 
         self.emu, self.router, self.ae = emu, router, ae
+        self.timeline, self.tick = timeline, -1  # tick -1: the boot, before the clock runs (D153)
         self.observer = observer  # called with every grouped message (return path shadow, D147)
         self.grouper = dl.PortGrouper(
             dl.port_table(ae.PORT2_BASE, ae.PORT1_BASE, ae.COMM_COUNT, emu.pad)
@@ -95,6 +99,8 @@ class Feeder:
             m = self.ae.Message(path, comm, w1, w2, pc)
             if self.observer:
                 self.observer(m)
+            if self.timeline:
+                self.timeline.message(self.tick, m.chip, m.path, m.word1, m.word2)
             self.router.dispatch(path, comm, m.core, m.dm_word, w2)
 
 
@@ -105,11 +111,17 @@ def return_observer(source):  # noqa: ANN001, ANN201
     return lambda m: source.observe(m.comm, m.core, m.path, m.word1, m.word2)
 
 
-def return_source(items, images: Path | None) -> rtn.ReturnSource:  # noqa: ANN001
-    """Return source with every live chip registered as a live layer (D147)."""
+def return_source(  # noqa: ANN001
+    items, images: Path | None, poll: int = 0, before: list | None = None
+) -> rtn.ReturnSource:
+    """Return source with every live chip registered as a live layer (D147); `poll` > 0 runs one
+    SY pass per `poll` reads of the same status word (`rtn.poll_advance`), after the callables of
+    `before` (the message feed: the ARM sends a message and polls its effect inside one tick)."""
     source = rtn.ReturnSource(images=rtn.load_images(images, {1: "PNO", 2: "ORG"}))
     for spec, link in items:
-        source.live[(spec.comm, spec.core)] = link.dump
+        every = poll if spec.chip == "SY" else 0
+        step = lambda link=link: ([f() for f in before or []], link.run(1))  # noqa: E731
+        source.live[(spec.comm, spec.core)] = rtn.poll_advance(link.dump, step, every)
     return source
 
 
@@ -122,6 +134,9 @@ def return_report(source: rtn.ReturnSource, log: rtn.ReadLog) -> dict[str, objec
         "reads": reads,
         "answered_by": dict(source.layer),
         "calls": len(log.calls),
+        "callers": {f"{k:#x}:{lr:#x}:{a:#x}": n for (k, lr, a), n in sorted(log.callers.items())},
+        "wait_tests": {f"idx{i}:mask{m:#x}:{a:#x}": row for (i, m, a), row in log.waits.items()},
+        "wait_ticks": {f"{a:#x}": span for a, span in log.wait_ticks.items()},
         "busy_voices": rtn.VOICES - bin(source.sy.idle).count("1"),
     }
 
@@ -137,13 +152,19 @@ class Chips:
     def lead(self) -> dl.Link:
         return self.items[0][1]
 
-    def run(self, owed: int) -> None:
-        """Run `owed` passes on every chip, then sample the watched words."""
+    def run(self, owed: int) -> dict[str, object]:
+        """Run `owed` passes on every chip, then sample the watched words; reports by chip name."""
+        reports = {}
         for spec, link in self.items:
-            link.run(owed)
+            reports[spec.name] = link.run(owed)
             if spec.watch:
                 words = {a: link.dump(a, 1)[0] for a in spec.watch}
                 self.watch[spec.name].add(link.pass_index, words)
+        return reports
+
+    def sy_link(self):  # noqa: ANN201
+        """Link of the live SY chip, `None` when SY is not live."""
+        return next((link for s, link in self.items if s.chip == "SY"), None)
 
 
 def boot_live(session, feeder: Feeder, chips: Chips) -> tuple[int, int]:  # noqa: ANN001  # pragma: no cover
@@ -171,23 +192,34 @@ def boot_live(session, feeder: Feeder, chips: Chips) -> tuple[int, int]:  # noqa
     return pc, total
 
 
-def run_ticks(rig, feeder: Feeder, clock: dl.Clock, chips: Chips, ticks: int, insns: int) -> None:  # noqa: ANN001  # pragma: no cover
-    """ARM tick by tick: instructions, queue pump, messages to the chips, then the owed passes."""
+def run_ticks(rig, feeder: Feeder, clock: dl.Clock, chips: Chips, ticks: int, insns: int,  # noqa: ANN001  # pragma: no cover
+              events: dict | None = None, probe=None, log=None) -> None:  # fmt: skip
+    """ARM tick by tick: instructions, queue pump, messages to the chips, then the owed passes.
+
+    `events` maps a tick of this phase to an action run first (the chord notes); `probe`
+    (`arm_sy_timeline.SyProbe`) takes one SY sample per tick (D153).
+    """
     import arm_steady as ast
     import arm_sy_voice as sv
 
     for n in range(ticks):
         if n % 200 == 0:
             progress(f"tick {n}/{ticks} passes {chips.lead.pass_index}")
+        if events and n in events:
+            events[n]()
+        feeder.tick = clock.ticks
+        if log is not None:
+            log.tick = clock.ticks
         ast.run_ticking(rig.emu, insns, per_tick=insns)
         sv.pump(rig.emu)
         feeder.feed()
         owed = clock.tick()
-        if owed:
-            chips.run(owed)
+        reports = chips.run(owed) if owed else {}
+        if probe:
+            probe.take(feeder.tick, owed, reports.get("SY0"))
 
 
-def drive(ns, chips: Chips, router: rt.Router, source=None) -> dict[str, object]:  # noqa: ANN001  # pragma: no cover
+def drive(ns, chips: Chips, router: rt.Router, source=None, before=None) -> dict[str, object]:  # noqa: ANN001  # pragma: no cover
     """The whole experiment; returns the result record."""
     import arm_dsp_capture as cap
     import arm_keydown as kd
@@ -201,7 +233,10 @@ def drive(ns, chips: Chips, router: rt.Router, source=None) -> dict[str, object]
     session.load_eeproms(apl.build_image(ns.eeprom.read_bytes(), program, ns.program.stem[:23]))
     kd.install_board_present(session.emu)
     real_port_capture(session.emu)
-    feeder = Feeder(session.emu, router, return_observer(source))
+    timeline = syt.SyTimeline() if ns.sy_timeline else None
+    feeder = Feeder(session.emu, router, return_observer(source), timeline)
+    if before is not None:
+        before.append(feeder.feed)  # a poll inside one ARM tick sees the messages sent so far
     pc, insns = boot_live(session, feeder, chips)
     result: dict[str, object] = {"boot_pc": f"{pc:#x}", "boot_insns": insns}
     result["boot"] = {s.name: snapshot(link, t0) for s, link in chips.items}
@@ -215,18 +250,37 @@ def drive(ns, chips: Chips, router: rt.Router, source=None) -> dict[str, object]
     feeder.grouper.pending.clear()
     clock, phases = dl.Clock(), {}
     prev = {s.name: snapshot(link, t0) for s, link in chips.items}
-    plan = [("load", LOAD_TICKS, None), ("idle", IDLE_TICKS, None),
-            ("key", ns.key_ticks, lambda: rig.send(kd.note_on(ns.key, VELOCITY))),
-            ("off", OFF_TICKS, lambda: rig.send(kd.note_off(ns.key)))]  # fmt: skip
-    starts = {}
-    for name, ticks, action in plan:
-        starts[name] = chips.lead.pass_index
+    keys = [int(k) for k in ns.keys.split(",")] if ns.keys else [ns.key]
+    probe = syt.SyProbe(timeline, chips.sy_link(), source) if timeline else None
+    chord = {
+        i * ns.key_gap: (lambda k=k: rig.send(kd.note_on(k, VELOCITY))) for i, k in enumerate(keys)
+    }
+    plan = [("load", LOAD_TICKS, None, None), ("idle", IDLE_TICKS, None, None),
+            ("key", ns.key_ticks, None, chord),
+            ("off", OFF_TICKS, lambda: [rig.send(kd.note_off(k)) for k in keys], None)]  # fmt: skip
+    starts, marks = {}, {}
+    for name, ticks, action, events in plan:
+        starts[name], marks[name] = chips.lead.pass_index, clock.ticks
         if action:
             action()
-        run_ticks(rig, feeder, clock, chips, ticks, ns.insns_per_tick)
+        run_ticks(rig, feeder, clock, chips, ticks, ns.insns_per_tick, events, probe, read_log)
+        if (
+            name == "idle" and ns.ns4b
+        ):  # the recall flags the SAMPLE layers, the harness has no library
+            import arm_piano_load as pl
+
+            result["flagged_layers"] = cap.bind_samples(
+                session.emu, pl.read_npno(ns.ns4b, cap.SAMPLE_MEMBER, 0x400000)
+            )
         now = {s.name: snapshot(link, t0) for s, link in chips.items}
         phases[name] = {"ticks": ticks, **{n: phase_delta(prev[n], now[n]) for n in now}}
         prev = now
+    if timeline:
+        notes = [marks["key"] + i * ns.key_gap for i in range(len(keys))]
+        result["sy_timeline"] = timeline.summary(notes, marks["off"])
+        result["sy_timeline"]["note_ticks"], result["sy_timeline"]["off_tick"] = notes, marks["off"]
+        sy = chips.sy_link()
+        result["sy_chip"] = {"counters": sy.stats.sy, "errors": sy.stats.errors[:3]} if sy else None
     result.update(
         phases=phases,
         final=prev,
@@ -300,6 +354,19 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
     ap.add_argument("--sys-exe", type=Path, help="sharc-sys executable: replay the logs afterwards")
     ap.add_argument("--key", type=int, default=KEY)
     ap.add_argument("--key-ticks", type=int, default=KEY_TICKS)
+    ap.add_argument("--keys", help="chord notes, comma list (default: --key)")
+    ap.add_argument(
+        "--poll-advance",
+        type=int,
+        default=0,
+        help="run one SY pass per N reads of "
+        "the same status word (the chip runs while the ARM polls; 0 = off)",
+    )
+    ap.add_argument("--key-gap", type=int, default=20, help="ticks between chord notes")
+    ap.add_argument("--ns4b", type=Path, help="factory backup: bind a stand-in sample to the "
+                    "flagged SAMPLE layers after the idle phase")  # fmt: skip
+    ap.add_argument("--sy-timeline", action="store_true",
+                    help="per-tick SY sample and key-down / free timing (D153)")  # fmt: skip
     ap.add_argument("--insns-per-tick", type=int, default=200_000)
     ap.add_argument("--old-replay", metavar="RECALL,KEY", help="chip names, e.g. ORG2,PNO2: the "
                     "D132 way: RECALL chip stream + the KEY chip's key and off words")  # fmt: skip
@@ -318,8 +385,11 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
         items.append((s, link))
     chips = Chips(items)
     try:
-        source = return_source(items, ns.images) if ns.return_path else None
-        result = drive(ns, chips, router, source)
+        before: list = []
+        source = (
+            return_source(items, ns.images, ns.poll_advance, before) if ns.return_path else None
+        )
+        result = drive(ns, chips, router, source, before)
         result["chips"] = {s.name: " ".join(s.flags()) for s in specs}
         if ns.log:
             ns.log.mkdir(parents=True, exist_ok=True)

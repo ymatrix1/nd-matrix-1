@@ -99,6 +99,7 @@ class PassReport:
     peak: float = 0.0
     hits: dict[int, int] = field(default_factory=dict)
     error: str = ""
+    sy: dict[str, int] = field(default_factory=dict)  # `sy=key:n,...` of the SY chip (D153)
 
     @staticmethod
     def parse(line: str) -> PassReport:
@@ -124,6 +125,9 @@ class PassReport:
             peak=float(kv["peak"]),
             hits=hits,
             error=kv.get("error", ""),
+            sy={k: int(v) for k, v in (i.split(":") for i in kv["sy"].split(","))}
+            if kv.get("sy")
+            else {},
         )
 
 
@@ -142,6 +146,7 @@ class LinkStats:
     first_hit: dict[int, int] = field(default_factory=dict)
     halted: bool = False
     errors: list[str] = field(default_factory=list)
+    sy: dict[str, int] = field(default_factory=dict)  # last SY counters (cumulative in the chip)
 
     def add(self, r: PassReport, first_pass: int) -> None:
         """Fold one reply in; `first_pass` is the pass index the reply's batch started at."""
@@ -157,6 +162,8 @@ class LinkStats:
                 self.first_hit[pc] = first_pass
         if r.error:
             self.errors.append(r.error)
+        if r.sy:
+            self.sy = r.sy
 
     @property
     def rms(self) -> float:

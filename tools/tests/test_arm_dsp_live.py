@@ -136,3 +136,26 @@ def test_return_report_counts_reads_and_busy_voices() -> None:
     rep = live.return_report(source, log)
     assert rep["reads"] == {"SY:0:0x92196": 1, "SY:0:0x92197": 1}
     assert rep["answered_by"] == {"sy_mask": 2} and rep["busy_voices"] == 0
+
+
+def test_poll_advance_feeds_the_messages_then_runs_one_sy_pass() -> None:
+    class Link:
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        def dump(self, addr: int, count: int) -> list[int]:
+            return [addr] * count
+
+        def run(self, n: int) -> None:
+            self.calls.append(f"run{n}")
+
+    link, order = Link(), []
+    before = [lambda: order.append("feed")]
+    items = [(rt.parse_chip_spec("SY:0=sy=i.bin"), link)]
+    source = live.return_source(items, None, 2, before)
+    live_dump = source.live[(3, 0)]
+    link.run = lambda n: order.append(f"run{n}")  # type: ignore[method-assign]
+    assert [live_dump(0x9219A, 1)[0] for _ in range(4)] == [0x9219A] * 4
+    assert order == ["feed", "run1", "feed", "run1"]  # every 2nd read of the address
+    off = live.return_source(items, None, 0, before).live[(3, 0)]
+    assert off == link.dump  # poll 0: the plain dump

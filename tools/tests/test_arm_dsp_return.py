@@ -161,3 +161,59 @@ def test_load_images_skips_missing(tmp_path) -> None:  # noqa: ANN001
     got = rt.load_images(tmp_path, {1: "PNO", 2: "ORG"})
     assert list(got) == [(1, 2)] and rt.image_word(got[(1, 2)], 0) == 1
     assert rt.load_images(None, {1: "PNO"}) == {}
+
+
+def test_a_live_sy_chip_answers_before_the_message_driven_mask() -> None:
+    src = rt.ReturnSource()
+    src.observe(3, 0, 1, rt.STATE_BASE, rt.STATE_PREPARE)  # the model says voice 0 is busy
+    assert src.read(3, rt.IDLE_MASK, 1) == [0xFFFFFFFE]
+    src.live[(3, 0)] = lambda dm, n: [0xFFFFFFFF] * n  # the chip says it is idle again
+    assert src.read(3, rt.IDLE_MASK, 2) == [0xFFFFFFFF, 0xFFFFFFFF]
+    assert src.layer["live"] == 2 and src.knows(3, rt.IDLE_MASK)
+
+
+def test_the_voice_update_wait_records_its_test_and_whether_it_passed() -> None:
+    src, log, emu = rt.ReturnSource(), rt.ReadLog(), FakeEmu()
+    src.live[(3, 0)] = lambda dm, n: [0x4, 0][:n] if dm == rt.RELEASE_MASK else [0] * n
+    emu.mem[rt.COMM_TABLE + 4 + 4 * 3] = 0x9002_0000
+    emu.regs[0], emu.regs[2], emu.regs[3], emu.regs[13] = (
+        0x9002_0000,
+        rt.RELEASE_MASK,
+        2,
+        0x9300_0000,
+    )
+    emu.regs[5], emu.regs[14] = 0x9400_0000, rt.WAIT_RETURN
+    emu.mem[0x9300_0000] = 0x9200_0000  # destination = cache base
+    emu.mem[0x9400_0004], emu.mem[0x9400_0008] = 0, 0x4  # descriptor: word index 0, mask bit 2
+    stub = rt.make_stub(src, log, rt.SPI_READN)
+    stub(emu)
+    emu.mem[0x9400_0008] = 0x1  # a different bit of the same word: the test fails
+    stub(emu)
+    assert log.waits == {(0, 0x4, rt.RELEASE_MASK): [1, 1], (0, 0x1, rt.RELEASE_MASK): [1, 0]}
+    emu.regs[4], emu.regs[14] = (
+        0x9500_0000,
+        0xC01E26FC,
+    )  # the second wait keeps its descriptor in r4
+    emu.mem[0x9500_0004], emu.mem[0x9500_0008] = 1, 0x2
+    stub(emu)
+    assert log.waits[(1, 0x2, rt.RELEASE_MASK)] == [1, 0]
+    assert log.wait_ticks[rt.RELEASE_MASK] == [0, 0]
+    emu.regs[14] = 0x1234  # any other caller: not a wait test, but counted by its return address
+    stub(emu)
+    assert sum(r[0] for r in log.waits.values()) == 3
+    assert log.callers[(rt.SPI_READN, 0x1234, rt.RELEASE_MASK)] == 1
+    assert log.callers[(rt.SPI_READN, rt.WAIT_RETURN, rt.RELEASE_MASK)] == 2
+
+
+def test_poll_advance_runs_one_pass_per_n_reads_of_the_same_address() -> None:
+    steps: list[int] = []
+    seen = rt.poll_advance(lambda a, n: [a] * n, lambda: steps.append(1), 3)
+    assert [seen(0x9219A, 1)[0] for _ in range(7)] == [0x9219A] * 7
+    assert len(steps) == 2  # reads 3 and 6
+    seen(0x92196, 1)  # another address has its own count
+    assert len(steps) == 2
+
+
+def test_poll_advance_zero_leaves_the_dump_untouched() -> None:
+    dump = lambda a, n: [a] * n  # noqa: E731
+    assert rt.poll_advance(dump, lambda: None, 0) is dump

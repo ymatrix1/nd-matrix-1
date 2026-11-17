@@ -1,0 +1,228 @@
+{
+ "boot_pc": "0xc00a0248",
+ "boot_insns": 500200000,
+ "boot": {
+  "PNO2": {
+   "messages_sent": 12339,
+   "distinct_words": 11280,
+   "passes": 0,
+   "idle_passes": 0,
+   "halted": false,
+   "lane_peak": 0.0,
+   "lane_rms": 0.0,
+   "probe_hits": {},
+   "probe_first_pass": {},
+   "errors": [],
+   "wall_s": 55.9
+  }
+ },
+ "flagged_layers": [
+  0
+ ],
+ "sy_timeline": {
+  "messages_by_chip": {
+   "FX": 6270,
+   "ORG": 38298,
+   "PNO": 48935,
+   "SMP": 1540,
+   "SY": 307
+  },
+  "sy_messages": 307,
+  "key_down_delay_ticks": [
+   1,
+   null,
+   null
+  ],
+  "prepare": 1,
+  "go": 0,
+  "free_after_off_ticks": null,
+  "frees": 0,
+  "voice0_busy_tick": 901,
+  "voice0_playing_tick": null,
+  "voice0_release_tick": null,
+  "voice0_free_after_off_ticks": null,
+  "samples": 2700,
+  "first_audio_tick": null,
+  "audio_ticks": 0,
+  "peak": 0.0,
+  "source_frames": 0.0,
+  "past_first_ring": false,
+  "audio_ticks_after_first_ring": 0,
+  "transitions": [
+   [
+    0,
+    1,
+    0,
+    "0x0",
+    "0x0"
+   ],
+   [
+    901,
+    0,
+    0,
+    "0x0",
+    "0x0"
+   ]
+  ],
+  "state_messages": [
+   [
+    901,
+    "0x92414",
+    "0x1c0794"
+   ],
+   [
+    901,
+    "0x92414",
+    "0x1c0794"
+   ],
+   [
+    901,
+    "0x92414",
+    "0x1c07cd"
+   ]
+  ],
+  "note_ticks": [
+   900,
+   920,
+   940
+  ],
+  "off_tick": 2400
+ },
+ "sy_chip": null,
+ "phases": {
+  "load": {
+   "ticks": 800,
+   "PNO2": {
+    "messages_sent": 900,
+    "distinct_words": 810,
+    "passes": 723,
+    "idle_passes": 723,
+    "probe_hits": {}
+   }
+  },
+  "idle": {
+   "ticks": 100,
+   "PNO2": {
+    "messages_sent": 0,
+    "distinct_words": 0,
+    "passes": 90,
+    "idle_passes": 90,
+    "probe_hits": {}
+   }
+  },
+  "key": {
+   "ticks": 1500,
+   "PNO2": {
+    "messages_sent": 2,
+    "distinct_words": 0,
+    "passes": 1357,
+    "idle_passes": 1357,
+    "probe_hits": {}
+   }
+  },
+  "off": {
+   "ticks": 300,
+   "PNO2": {
+    "messages_sent": 0,
+    "distinct_words": 0,
+    "passes": 271,
+    "idle_passes": 271,
+    "probe_hits": {}
+   }
+  }
+ },
+ "final": {
+  "PNO2": {
+   "messages_sent": 13241,
+   "distinct_words": 12090,
+   "passes": 2441,
+   "idle_passes": 2441,
+   "halted": false,
+   "lane_peak": 0.0,
+   "lane_rms": 0.0,
+   "probe_hits": {},
+   "probe_first_pass": {},
+   "errors": [],
+   "wall_s": 145.2
+  }
+ },
+ "phase_start_pass": {
+  "load": 0,
+  "idle": 723,
+  "key": 813,
+  "off": 2170
+ },
+ "watch": {
+  "PNO2": {}
+ },
+ "arm_messages": {
+  "FX1p2": 3505,
+  "FX2p2": 2765,
+  "ORG1p2": 25059,
+  "ORG2p2": 13239,
+  "PNO1p2": 35694,
+  "PNO2p2": 13241,
+  "SMP0p1": 1540,
+  "SY0p1": 307
+ },
+ "skipped_out_of_window": {},
+ "ticks": 2700,
+ "clock_passes": 2441,
+ "return_path": {
+  "reads": {
+   "PNO:2:0xc1ddc": 1,
+   "PNO:2:0xc1ddd": 1,
+   "PNO:2:0xc1dde": 1,
+   "PNO:2:0xc1ddf": 1,
+   "ORG:1:0xc1ddc": 1,
+   "ORG:1:0xc1ddd": 1,
+   "ORG:1:0xc1dde": 1,
+   "ORG:1:0xc1ddf": 1,
+   "ORG:2:0xc1ddc": 1,
+   "ORG:2:0xc1ddd": 1,
+   "ORG:2:0xc1dde": 1,
+   "ORG:2:0xc1ddf": 1,
+   "SY:0:0x92196": 1,
+   "SY:0:0x92197": 1,
+   "SY:0:0x9219a": 40682,
+   "SY:0:0x9219b": 40682
+  },
+  "answered_by": {
+   "live": 4,
+   "zero": 8,
+   "sy_mask": 81366
+  },
+  "calls": 40686,
+  "callers": {
+   "0xc00119a4:0xc01b1cb8:0x28b07770": 1,
+   "0xc00119a4:0xc01b1cd4:0x28307770": 1,
+   "0xc00119a4:0xc01b1cf0:0x28b07770": 1,
+   "0xc0066e64:0xc01e072c:0x92196": 1,
+   "0xc0066e64:0xc01e26fc:0x9219a": 40682
+  },
+  "wait_tests": {
+   "idx0:mask0x1:0x92196": [
+    1,
+    1
+   ],
+   "idx0:mask0x1:0x9219a": [
+    40682,
+    0
+   ]
+  },
+  "wait_ticks": {
+   "0x92196": [
+    901,
+    901
+   ],
+   "0x9219a": [
+    901,
+    901
+   ]
+  },
+  "busy_voices": 1
+ },
+ "chips": {
+  "PNO2": "--org --epdma"
+ }
+}

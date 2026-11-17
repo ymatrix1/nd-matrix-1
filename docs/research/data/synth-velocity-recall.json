@@ -1,0 +1,58 @@
+{
+ "note": "D142: recalled values of Edt_Syn_kAmpEnvVel (0x131), kFltEnvVel (0x13C), kOscEnvVel (0x124) per synth layer after the firmware recalls the program (tools/arm_program_synth_velocity.py, no poke); file = decoder values (synth-program-velocity.csv). Layer clients 4, 5, 6 = A, B, C by order (evidence: the values match the file per layer). Derived numbers only.",
+ "programs": {
+  "Program/Bank E/Steam Piano.ns4p": {
+   "A": [
+    3,
+    1,
+    0
+   ],
+   "B": [
+    0,
+    1,
+    1
+   ],
+   "C": [
+    2,
+    0,
+    1
+   ]
+  },
+  "Program/Bank E/Sub Surface.ns4p": {
+   "A": [
+    2,
+    1,
+    1
+   ],
+   "B": [
+    3,
+    1,
+    1
+   ],
+   "C": [
+    2,
+    0,
+    0
+   ]
+  },
+  "Program/Bank C/Santoor Pluck.ns4p": {
+   "A": [
+    2,
+    1,
+    0
+   ],
+   "B": [
+    3,
+    1,
+    0
+   ],
+   "C": [
+    1,
+    1,
+    1
+   ]
+  }
+ },
+ "format": "[amp, flt, osc]",
+ "recalled_equals_file": true
+}

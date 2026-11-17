@@ -28,9 +28,10 @@ FAMILIES = [
     (r'comp\(', 10), (r'<->', 12), (r'^s\d+=|=s\d+', 40), (r'dm\(0x', 25), (r'^mr', 10),
     (r'stky|astat', 10), (r'\*.*,.*(dm|pm)\(', 25), (r'dm\(.*\)=0$', 5),
 ]
-# instructions the model still gets wrong (docs/research/sharc-census-diff.md, 'Open'); the fixture
-# leaves them out so the test passes, the census report keeps listing them
-OPEN = ('02000F80000C', '10F8000B', '500016290000', '603F10C11300', '7800013F', '7CED3F7F0000')
+# instructions the model still gets wrong (docs/research/sharc-census-diff.md, 'Open': only the MR2F
+# read-back after `MR1F = R3` with a data move); the fixture leaves them out so the test passes, the
+# census report keeps listing them
+OPEN = ('603F10C11300',)
 STATES = (0, 1, 3)   # scalar, SIMD, SIMD with ALUSAT
 
 
