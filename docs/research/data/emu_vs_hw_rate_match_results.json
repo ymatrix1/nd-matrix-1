@@ -1,0 +1,429 @@
+{
+  "video": "_zksT69H30c",
+  "segments": [
+    {
+      "id": "organ_b3",
+      "entry": "Program/Bank A/B3 Chords n Solo.ns4p",
+      "engine": "organ B3",
+      "at_s": 238,
+      "duration_s": 25,
+      "notes": 101,
+      "variants": [
+        {
+          "bands_delta_db": {
+            "sub_20_120": -0.64,
+            "low_120_400": -0.2,
+            "mid_400_1500": 3.52,
+            "presence_1500_3000": -9.99,
+            "brilliance_3000_8000": -12.77,
+            "air_8000_20000": 17.4
+          },
+          "centroid_delta_hz": -80.8,
+          "rms_delta_db": 0.91,
+          "width_hw": 0.4797,
+          "width_emu": 0.3257,
+          "centroid_hw_hz": 480.8,
+          "rms_hw_dbfs": -20.53,
+          "attack_hw_ms": 106.7,
+          "attack_emu_ms": 91.7,
+          "t60_hw_s": 5.24,
+          "t60_emu_s": 0.61,
+          "hold_hw_db": 0.49,
+          "hold_emu_db": 0.43,
+          "rel_hw_db": 0.43,
+          "rel_emu_db": -8.22,
+          "label": "default",
+          "score": 5.42
+        },
+        {
+          "bands_delta_db": {
+            "sub_20_120": -0.64,
+            "low_120_400": -0.2,
+            "mid_400_1500": 3.52,
+            "presence_1500_3000": -9.99,
+            "brilliance_3000_8000": -12.77,
+            "air_8000_20000": 17.4
+          },
+          "centroid_delta_hz": -80.8,
+          "rms_delta_db": 0.91,
+          "width_hw": 0.4797,
+          "width_emu": 0.3257,
+          "centroid_hw_hz": 480.8,
+          "rms_hw_dbfs": -20.53,
+          "attack_hw_ms": 106.7,
+          "attack_emu_ms": 91.7,
+          "t60_hw_s": 5.24,
+          "t60_emu_s": 0.61,
+          "hold_hw_db": 0.49,
+          "hold_emu_db": 0.43,
+          "rel_hw_db": 0.43,
+          "rel_emu_db": -8.22,
+          "label": "rate-match",
+          "score": 5.42
+        }
+      ]
+    },
+    {
+      "id": "organ_vox",
+      "entry": "Program/Bank A/Vintage Vox J3.ns4p",
+      "engine": "organ Vox + Twin amp",
+      "at_s": 2360,
+      "duration_s": 11,
+      "notes": 36,
+      "variants": [
+        {
+          "bands_delta_db": {
+            "sub_20_120": -3.2,
+            "low_120_400": -0.2,
+            "mid_400_1500": 8.13,
+            "presence_1500_3000": -1.31,
+            "brilliance_3000_8000": 2.33,
+            "air_8000_20000": 6.47
+          },
+          "centroid_delta_hz": 292.0,
+          "rms_delta_db": 8.92,
+          "width_hw": 0.4968,
+          "width_emu": 0.19,
+          "centroid_hw_hz": 1467.9,
+          "rms_hw_dbfs": -26.76,
+          "attack_hw_ms": 86.0,
+          "attack_emu_ms": 23.2,
+          "t60_hw_s": 3.12,
+          "t60_emu_s": 1.03,
+          "hold_hw_db": 0.13,
+          "hold_emu_db": 0.53,
+          "rel_hw_db": -2.29,
+          "rel_emu_db": -3.16,
+          "label": "default",
+          "score": 3.03
+        },
+        {
+          "bands_delta_db": {
+            "sub_20_120": -3.59,
+            "low_120_400": -1.29,
+            "mid_400_1500": 6.78,
+            "presence_1500_3000": 1.24,
+            "brilliance_3000_8000": 1.87,
+            "air_8000_20000": 3.87
+          },
+          "centroid_delta_hz": 490.7,
+          "rms_delta_db": 9.66,
+          "width_hw": 0.4968,
+          "width_emu": 0.1846,
+          "centroid_hw_hz": 1467.9,
+          "rms_hw_dbfs": -26.76,
+          "attack_hw_ms": 86.0,
+          "attack_emu_ms": 22.1,
+          "t60_hw_s": 3.12,
+          "t60_emu_s": 1.04,
+          "hold_hw_db": 0.13,
+          "hold_emu_db": 0.16,
+          "rel_hw_db": -2.29,
+          "rel_emu_db": -4.47,
+          "label": "rate-match",
+          "score": 2.95
+        },
+        {
+          "bands_delta_db": {
+            "sub_20_120": 2.06,
+            "low_120_400": 3.03,
+            "mid_400_1500": 7.72,
+            "presence_1500_3000": -7.11,
+            "brilliance_3000_8000": -9.39,
+            "air_8000_20000": -25.0
+          },
+          "centroid_delta_hz": -1081.5,
+          "rms_delta_db": -13.62,
+          "width_hw": 0.4968,
+          "width_emu": 0.1939,
+          "centroid_hw_hz": 1467.9,
+          "rms_hw_dbfs": -26.76,
+          "attack_hw_ms": 86.0,
+          "attack_emu_ms": 62.2,
+          "t60_hw_s": 3.12,
+          "t60_emu_s": 1.01,
+          "hold_hw_db": 0.13,
+          "hold_emu_db": 0.6,
+          "rel_hw_db": -2.29,
+          "rel_emu_db": -2.08,
+          "label": "vox",
+          "score": 5.86
+        },
+        {
+          "bands_delta_db": {
+            "sub_20_120": 2.48,
+            "low_120_400": 2.83,
+            "mid_400_1500": 7.35,
+            "presence_1500_3000": -5.34,
+            "brilliance_3000_8000": -9.31,
+            "air_8000_20000": -27.95
+          },
+          "centroid_delta_hz": -1042.7,
+          "rms_delta_db": -13.67,
+          "width_hw": 0.4968,
+          "width_emu": 0.1932,
+          "centroid_hw_hz": 1467.9,
+          "rms_hw_dbfs": -26.76,
+          "attack_hw_ms": 86.0,
+          "attack_emu_ms": 58.6,
+          "t60_hw_s": 3.12,
+          "t60_emu_s": 1.01,
+          "hold_hw_db": 0.13,
+          "hold_emu_db": 0.78,
+          "rel_hw_db": -2.29,
+          "rel_emu_db": -2.34,
+          "label": "vox+rate-match",
+          "score": 5.46
+        }
+      ]
+    },
+    {
+      "id": "piano_dry",
+      "entry": "Program/Bank A/Velvet Grand.ns4p",
+      "engine": "piano Grand, no FX",
+      "at_s": 1708,
+      "duration_s": 25,
+      "notes": 169,
+      "variants": [
+        {
+          "bands_delta_db": {
+            "sub_20_120": 2.55,
+            "low_120_400": 0.23,
+            "mid_400_1500": -1.91,
+            "presence_1500_3000": 3.22,
+            "brilliance_3000_8000": 6.35,
+            "air_8000_20000": 4.4
+          },
+          "centroid_delta_hz": -31.1,
+          "rms_delta_db": 9.69,
+          "width_hw": 0.4568,
+          "width_emu": 0.4695,
+          "centroid_hw_hz": 463.8,
+          "rms_hw_dbfs": -24.54,
+          "attack_hw_ms": 86.9,
+          "attack_emu_ms": 67.5,
+          "t60_hw_s": null,
+          "t60_emu_s": 0.83,
+          "hold_hw_db": -2.8,
+          "hold_emu_db": -4.85,
+          "rel_hw_db": -2.95,
+          "rel_emu_db": -7.6,
+          "label": "default",
+          "score": 2.85
+        },
+        {
+          "bands_delta_db": {
+            "sub_20_120": 2.55,
+            "low_120_400": 0.23,
+            "mid_400_1500": -1.91,
+            "presence_1500_3000": 3.22,
+            "brilliance_3000_8000": 6.35,
+            "air_8000_20000": 4.4
+          },
+          "centroid_delta_hz": -31.1,
+          "rms_delta_db": 9.69,
+          "width_hw": 0.4568,
+          "width_emu": 0.4695,
+          "centroid_hw_hz": 463.8,
+          "rms_hw_dbfs": -24.54,
+          "attack_hw_ms": 86.9,
+          "attack_emu_ms": 67.5,
+          "t60_hw_s": null,
+          "t60_emu_s": 0.83,
+          "hold_hw_db": -2.8,
+          "hold_emu_db": -4.85,
+          "rel_hw_db": -2.95,
+          "rel_emu_db": -7.6,
+          "label": "rate-match",
+          "score": 2.85
+        }
+      ]
+    },
+    {
+      "id": "synth_lead",
+      "entry": "Program/Bank A/Smooth Lead.ns4p",
+      "engine": "synth Triangle LP24",
+      "at_s": 2420,
+      "duration_s": 22,
+      "notes": 156,
+      "variants": [
+        {
+          "bands_delta_db": {
+            "sub_20_120": 0.31,
+            "low_120_400": -0.46,
+            "mid_400_1500": 0.42,
+            "presence_1500_3000": -2.01,
+            "brilliance_3000_8000": 0.23,
+            "air_8000_20000": 29.79
+          },
+          "centroid_delta_hz": -38.4,
+          "rms_delta_db": -3.47,
+          "width_hw": 0.2782,
+          "width_emu": 0.088,
+          "centroid_hw_hz": 818.8,
+          "rms_hw_dbfs": -22.5,
+          "attack_hw_ms": 19.8,
+          "attack_emu_ms": 35.0,
+          "t60_hw_s": 1.4,
+          "t60_emu_s": 2.12,
+          "hold_hw_db": -0.2,
+          "hold_emu_db": 0.16,
+          "rel_hw_db": -0.56,
+          "rel_emu_db": 0.14,
+          "label": "default",
+          "score": 0.69
+        },
+        {
+          "bands_delta_db": {
+            "sub_20_120": 0.31,
+            "low_120_400": -0.46,
+            "mid_400_1500": 0.42,
+            "presence_1500_3000": -2.01,
+            "brilliance_3000_8000": 0.23,
+            "air_8000_20000": 29.79
+          },
+          "centroid_delta_hz": -38.4,
+          "rms_delta_db": -3.47,
+          "width_hw": 0.2782,
+          "width_emu": 0.088,
+          "centroid_hw_hz": 818.8,
+          "rms_hw_dbfs": -22.5,
+          "attack_hw_ms": 19.8,
+          "attack_emu_ms": 35.0,
+          "t60_hw_s": 1.4,
+          "t60_emu_s": 2.12,
+          "hold_hw_db": -0.2,
+          "hold_emu_db": 0.16,
+          "rel_hw_db": -0.56,
+          "rel_emu_db": 0.14,
+          "label": "rate-match",
+          "score": 0.69
+        }
+      ]
+    },
+    {
+      "id": "super_lp24_sidechain",
+      "entry": "Program/Bank A/Sidechain Whl II.ns4p",
+      "engine": "A:25 SUPER wave 0 LP24 1600 Hz res 0.1; clip ends 622 s (filter knob turned from 624 s)",
+      "at_s": 594,
+      "duration_s": 28,
+      "notes": 240,
+      "variants": [
+        {
+          "bands_delta_db": {
+            "sub_20_120": 3.41,
+            "low_120_400": 1.34,
+            "mid_400_1500": 0.09,
+            "presence_1500_3000": 4.94,
+            "brilliance_3000_8000": 12.68,
+            "air_8000_20000": 11.99
+          },
+          "centroid_delta_hz": -2.4,
+          "rms_delta_db": 4.0,
+          "width_hw": 0.7536,
+          "width_emu": 0.6348,
+          "centroid_hw_hz": 349.8,
+          "rms_hw_dbfs": -22.17,
+          "attack_hw_ms": 110.7,
+          "attack_emu_ms": 75.2,
+          "t60_hw_s": null,
+          "t60_emu_s": 4.57,
+          "hold_hw_db": 0.01,
+          "hold_emu_db": -1.02,
+          "rel_hw_db": -0.9,
+          "rel_emu_db": -3.45,
+          "label": "default",
+          "score": 4.49
+        },
+        {
+          "bands_delta_db": {
+            "sub_20_120": 3.41,
+            "low_120_400": 1.34,
+            "mid_400_1500": 0.09,
+            "presence_1500_3000": 4.94,
+            "brilliance_3000_8000": 12.68,
+            "air_8000_20000": 11.99
+          },
+          "centroid_delta_hz": -2.4,
+          "rms_delta_db": 4.0,
+          "width_hw": 0.7536,
+          "width_emu": 0.6348,
+          "centroid_hw_hz": 349.8,
+          "rms_hw_dbfs": -22.17,
+          "attack_hw_ms": 110.7,
+          "attack_emu_ms": 75.2,
+          "t60_hw_s": null,
+          "t60_emu_s": 4.57,
+          "hold_hw_db": 0.01,
+          "hold_emu_db": -1.02,
+          "rel_hw_db": -0.9,
+          "rel_emu_db": -3.45,
+          "label": "rate-match",
+          "score": 4.49
+        }
+      ]
+    },
+    {
+      "id": "fx_amp",
+      "entry": "Program/Bank A/Tiny Transistor.ns4p",
+      "engine": "organ Farfisa + Small II amp + reverb",
+      "at_s": 1812,
+      "duration_s": 25,
+      "notes": 78,
+      "variants": [
+        {
+          "bands_delta_db": {
+            "sub_20_120": 1.18,
+            "low_120_400": -7.27,
+            "mid_400_1500": -2.68,
+            "presence_1500_3000": 4.77,
+            "brilliance_3000_8000": 13.11,
+            "air_8000_20000": 13.74
+          },
+          "centroid_delta_hz": 765.8,
+          "rms_delta_db": -0.55,
+          "width_hw": 0.0881,
+          "width_emu": 0.0689,
+          "centroid_hw_hz": 1011.6,
+          "rms_hw_dbfs": -19.36,
+          "attack_hw_ms": 22.1,
+          "attack_emu_ms": 23.4,
+          "t60_hw_s": 3.71,
+          "t60_emu_s": 0.62,
+          "hold_hw_db": -0.37,
+          "hold_emu_db": 0.13,
+          "rel_hw_db": 0.27,
+          "rel_emu_db": -4.67,
+          "label": "default",
+          "score": 5.8
+        },
+        {
+          "bands_delta_db": {
+            "sub_20_120": 1.81,
+            "low_120_400": -5.99,
+            "mid_400_1500": -2.35,
+            "presence_1500_3000": 5.15,
+            "brilliance_3000_8000": 8.68,
+            "air_8000_20000": 10.12
+          },
+          "centroid_delta_hz": 631.2,
+          "rms_delta_db": -0.56,
+          "width_hw": 0.0881,
+          "width_emu": 0.0681,
+          "centroid_hw_hz": 1011.6,
+          "rms_hw_dbfs": -19.36,
+          "attack_hw_ms": 22.1,
+          "attack_emu_ms": 13.9,
+          "t60_hw_s": 3.71,
+          "t60_emu_s": 0.62,
+          "hold_hw_db": -0.37,
+          "hold_emu_db": -0.02,
+          "rel_hw_db": 0.27,
+          "rel_emu_db": -4.55,
+          "label": "rate-match",
+          "score": 4.8
+        }
+      ]
+    }
+  ]
+}

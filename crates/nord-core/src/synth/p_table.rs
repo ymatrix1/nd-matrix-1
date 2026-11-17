@@ -14,7 +14,7 @@
 use super::p_block::PBlock;
 
 /// Number of rows of the table.
-pub const PWAVE_COUNT: usize = 11;
+pub const PWAVE_COUNT: usize = 13;
 
 /// One row of the table: the oscillator stage family a decoded ANALOG wave plays through.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,8 +39,14 @@ pub enum PWave {
     Super1,
     /// PURE wave 6, white noise (stage `0x121FD8`).
     Noise,
-    /// Everything else (sine, triangle, SUB OSC, SYNC, MISC): idle block.
+    /// Everything else of the ANALOG bank (sine, triangle, SUB OSC, SYNC, MISC): idle block.
     Other,
+    /// The FM oscillator mode (any wave): idle block, own row since D140 so the oracle level
+    /// (`docs/research/synth-osc-gain-oracle.md`) can move it without touching the sample path.
+    Fm,
+    /// The SAMPLE and WAVETABLE oscillator modes: idle block, never measured against the oracle
+    /// (the SMP core is not on the ORG stream).
+    Sampled,
 }
 
 impl PWave {
@@ -56,6 +62,8 @@ impl PWave {
         "super1",
         "noise",
         "other",
+        "fm",
+        "sampled",
     ];
 
     /// Row of an ANALOG `(category, wave)` pair.
@@ -101,6 +109,8 @@ impl PWave {
         Self::Super1,
         Self::Noise,
         Self::Other,
+        Self::Fm,
+        Self::Sampled,
     ];
 }
 
@@ -288,6 +298,8 @@ const BLOCKS: [PBlock; PWAVE_COUNT] = [
     SUPER,
     SUPER1,
     NOISE,
+    PBlock::IDLE,
+    PBlock::IDLE,
     PBlock::IDLE,
 ];
 

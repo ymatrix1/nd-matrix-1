@@ -70,13 +70,16 @@ def test_program_files_single_file(tmp_path: Path) -> None:
 def test_worker_command_passes_sample_arguments() -> None:
     ns = Namespace(
         image=Path("c.bin"), sram=Path("s.bin"), eeprom=Path("e.bin"), out=Path("o"),
-        ns4b=Path("b.ns4b"), member="Samp Lib/x.nsmp4",
+        ns4b=Path("b.ns4b"), member="Samp Lib/x.nsmp4", spi_neutral=True,
     )  # fmt: skip
     cmd = cap.worker_command(ns, Path("p.ns4p"))
     assert cmd[3] == "one" and cmd[-1] == "p.ns4p"
     assert cmd[cmd.index("--member") + 1] == "Samp Lib/x.nsmp4"
     ns.ns4b = None
     assert "--ns4b" not in cap.worker_command(ns, Path("p.ns4p"))
+    assert "--no-spi-neutral" not in cmd
+    ns.spi_neutral = False
+    assert "--no-spi-neutral" in cap.worker_command(ns, Path("p.ns4p"))
 
 
 def test_phase_constants() -> None:

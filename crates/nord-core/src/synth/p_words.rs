@@ -197,6 +197,26 @@ impl PTableSpec {
         }
         PTableSpec::from_rows(rows, true)
     }
+
+    /// The table of `--synth-p oracle` (D140): the built-in table with the three rows that were
+    /// never fitted (ASSUMED idle block, gain 1.0) at `GAIN_PER_P16 * 0.25 = 0.4`: SHAPE square,
+    /// the ANALOG `Other` row (PURE sine / triangle, SUB OSC, SYNC, MISC) and the FM row.
+    ///
+    /// VERIFIED (oracle, `tools/synth_osc_gain.py`, `docs/research/data/synth-osc-gain-oracle.csv`):
+    /// the native oscillator times the fixed voice constant 0.25 equals the ORG core 2 oscillator
+    /// stage at row gain 1.0 within 0.1 dB (needed row gain 1.006, 1.006, 1.006 on three SHAPE
+    /// square programs, 1.001 on PURE sine, 0.999 / 1.003 on two FM programs, 0.956 on a third with an octave mismatch), and the ARM writes
+    /// `P[16] = 0.25` for these waves like for the saw, whose hardware fit is 0.4: the oracle puts
+    /// all of them at the same level, so an idle 1.0 sits +8 dB against the saw. The link to the
+    /// saw anchor (the voice gain behind the stage, 0.4) is EMPIRICAL (the oracle stream has no
+    /// output stage). SYNC pulse types write 0.175 / 0.2 (`synth-p-words.csv` types 30, 31): they
+    /// share the `Other` row and sit about 3 / 2 dB high (ASSUMED, no played SYNC program in the
+    /// measured set). SAMPLE and WAVETABLE rows stay idle: not on the oracle stream.
+    pub fn oracle() -> PTableSpec {
+        let row = format!("{:.3}/0/1/0.5/1", GAIN_PER_P16 * 0.25);
+        let rest = format!(":shapesq={row};other={row};fm={row}");
+        Self::parse(&rest).expect("fixed oracle rows parse")
+    }
 }
 
 #[cfg(test)]
@@ -282,6 +302,31 @@ mod tests {
                 "{w:?}"
             );
         }
+    }
+
+    #[test]
+    fn oracle_moves_only_the_idle_rows_that_the_oracle_measured() {
+        use crate::synth::PSpec;
+        let (o, f) = (PTableSpec::oracle().table(), PTable::FITTED);
+        let want = GAIN_PER_P16 * 0.25;
+        for w in [PWave::ShapeSquare, PWave::Other, PWave::Fm] {
+            assert!((o.block(w).gain - want).abs() < 1e-6, "{w:?}");
+            assert_eq!(f.block(w).gain, 1.0, "the built-in idle row {w:?}");
+            assert_eq!(o.block(w).cutoff_scale, f.block(w).cutoff_scale);
+        }
+        for w in PWave::ALL {
+            if !matches!(w, PWave::ShapeSquare | PWave::Other | PWave::Fm) {
+                assert_eq!(o.block(w), f.block(w), "{w:?}");
+            }
+        }
+        assert_eq!(
+            o.block(PWave::Sampled).gain,
+            1.0,
+            "samples are not on the stream"
+        );
+        assert!(o.words, "the words stages stay on");
+        assert_eq!(PSpec::parse("Oracle").unwrap(), PSpec::Oracle);
+        assert_eq!(PSpec::Oracle.table(), Some(o));
     }
 
     #[test]

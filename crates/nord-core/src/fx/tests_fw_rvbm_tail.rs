@@ -7,7 +7,7 @@ const FS: f64 = 48_000.0;
 
 /// T60 (s) of the wet impulse response of the chain, from the Schroeder backward integral fitted
 /// between -5 and -25 dB (T20 extrapolated). The first `skip` frames (the dry impulse) are left out.
-fn chain_t60(fx: &mut LayerFxChain, frames: usize, skip: usize) -> f64 {
+pub(super) fn chain_t60(fx: &mut LayerFxChain, frames: usize, skip: usize) -> f64 {
     let mut e = Vec::with_capacity(frames);
     for k in 0..frames {
         let x = f32::from(k == 0);
@@ -38,7 +38,7 @@ fn chain_t60(fx: &mut LayerFxChain, frames: usize, skip: usize) -> f64 {
     }
 }
 
-fn chain(fw: bool, model: ReverbModel, variation: bool) -> LayerFxChain {
+pub(super) fn chain(fw: bool, model: ReverbModel, variation: bool) -> LayerFxChain {
     let mut fx = LayerFxChain::new(48_000.0);
     fx.reverb_model = model;
     fx.reverb_variation = variation;

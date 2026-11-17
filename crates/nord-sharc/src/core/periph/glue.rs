@@ -1,5 +1,6 @@
 //! Wiring of the peripheral models into [`Core`]: the [`Bus`] onto its data memory and the
 //! enable, feed and access hooks used by `memory.rs`, `interrupts.rs` and `sharc-run`.
+use super::epchain::EpChain;
 use super::epdma::EpDma;
 use super::ringdma::RingDma;
 use super::sc57x::Sc57x;
@@ -86,6 +87,16 @@ impl Core {
         self.periph.get_or_insert_with(Default::default).epdma = Some(EpDma::default());
     }
 
+    /// Switches on external-port DMA channel 0 with chain loading (SY1SY2 image, D141).
+    pub fn enable_epchain(&mut self) {
+        self.periph.get_or_insert_with(Default::default).epchain = Some(EpChain::default());
+    }
+
+    /// The external-port chain model, if enabled.
+    pub fn epchain(&mut self) -> Option<&mut EpChain> {
+        self.periph.as_mut()?.epchain.as_mut()
+    }
+
     /// Switches on the history-ring restart register `DM(0x310C3000)` (PNO core 1, D126).
     pub fn enable_ringdma(&mut self) {
         self.periph.get_or_insert_with(Default::default).ringdma = Some(RingDma::default());
@@ -135,7 +146,7 @@ impl Core {
                 && self
                     .periph
                     .as_ref()
-                    .is_some_and(|p| p.epdma.is_some() || p.log.is_some()))
+                    .is_some_and(|p| p.epdma.is_some() || p.log.is_some() || p.epchain.is_some()))
     }
 
     /// Register read through the models (`None` = not modelled or scripted by `--dev`).
@@ -162,6 +173,9 @@ impl Core {
             _ => None,
         };
         if let Some(e) = p.epdma.as_mut().filter(|_| EpDma::contains(addr)) {
+            v = Some(e.read(addr));
+        }
+        if let Some(e) = p.epchain.as_ref().filter(|_| EpChain::contains(addr)) {
             v = Some(e.read(addr));
         }
         if v.is_some() {
@@ -191,6 +205,9 @@ impl Core {
         let mut irqs = Vec::new();
         let taken = if let Some(e) = p.epdma.as_mut().filter(|_| EpDma::contains(addr)) {
             e.write(addr, v);
+            true
+        } else if let Some(e) = p.epchain.as_mut().filter(|_| EpChain::contains(addr)) {
+            e.write(addr, v, &mut CoreBus(self));
             true
         } else if let Some(r) = p.ringdma.as_mut().filter(|_| RingDma::contains(addr)) {
             r.write(v, &mut CoreBus(self));
@@ -428,5 +445,26 @@ mod tests {
         c.dm_write(RESTART, GO_WORD).unwrap();
         assert_eq!((c.dm_read(0xE_31A6), c.dm_read(0xE_31A7)), (Ok(5), Ok(6)));
         assert_eq!(c.ringdma().unwrap().restarts, 1);
+    }
+
+    #[test]
+    fn epchain_is_off_by_default_and_runs_a_chain_on_the_dmac_enable() {
+        use crate::core::periph::epchain::{CPEP0, DMAC0, TCB_ALIAS};
+        let mut c = Core::new(&[]);
+        let p = 0x3_6008;
+        // TCB at IOP address p: II, IM, C, EI, EM, CP (descending addresses), CPDR clear
+        for (k, w) in [0x9_4000, 1, 2, 0x500, 1, 0].into_iter().enumerate() {
+            c.dm_write(TCB_ALIAS + p - k as u32, w).unwrap();
+        }
+        c.dm_write(CPEP0, p).unwrap();
+        c.dm_write(DMAC0, 0x125).unwrap();
+        assert!(c.epchain().is_none() && c.dm_read(0x9_4000) == Ok(0));
+        c.enable_epchain();
+        c.epchain().unwrap().load_words(0x500, &[7, 8]);
+        c.dm_write(CPEP0, p).unwrap();
+        assert_eq!(c.dm_read(CPEP0), Ok(p), "the pointer reads back");
+        c.dm_write(DMAC0, 0x125).unwrap();
+        assert_eq!((c.dm_read(0x9_4000), c.dm_read(0x9_4001)), (Ok(7), Ok(8)));
+        assert_eq!(c.epchain().unwrap().tcbs, 1);
     }
 }

@@ -1,0 +1,139 @@
+{
+ "boot_pc": "0xc00a0248",
+ "boot_insns": 500200000,
+ "boot": {
+  "messages_sent": 22389,
+  "distinct_words": 5944,
+  "passes": 0,
+  "idle_passes": 0,
+  "halted": false,
+  "lane_peak": 0.0,
+  "lane_rms": 0.0,
+  "probe_hits": {},
+  "probe_first_pass": {},
+  "errors": [],
+  "wall_s": 29.9
+ },
+ "phases": {
+  "load": {
+   "ticks": 800,
+   "messages_sent": 7340,
+   "distinct_words": 2364,
+   "passes": 723,
+   "idle_passes": 723,
+   "probe_hits": {
+    "0x1213e9": 723,
+    "0x121e2b": 425,
+    "0x1236f8": 0,
+    "0x1237f8": 0,
+    "0x1256ad": 0
+   }
+  },
+  "idle": {
+   "ticks": 100,
+   "messages_sent": 3,
+   "distinct_words": 0,
+   "passes": 90,
+   "idle_passes": 90,
+   "probe_hits": {
+    "0x1213e9": 90,
+    "0x121e2b": 90,
+    "0x1236f8": 0,
+    "0x1237f8": 0,
+    "0x1256ad": 0
+   }
+  },
+  "key": {
+   "ticks": 1500,
+   "messages_sent": 180,
+   "distinct_words": 90,
+   "passes": 1357,
+   "idle_passes": 1357,
+   "probe_hits": {
+    "0x1213e9": 1357,
+    "0x121e2b": 1357,
+    "0x1236f8": 0,
+    "0x1237f8": 0,
+    "0x1256ad": 0
+   }
+  },
+  "off": {
+   "ticks": 300,
+   "messages_sent": 155,
+   "distinct_words": 0,
+   "passes": 271,
+   "idle_passes": 271,
+   "probe_hits": {
+    "0x1213e9": 271,
+    "0x121e2b": 271,
+    "0x1236f8": 0,
+    "0x1237f8": 0,
+    "0x1256ad": 0
+   }
+  }
+ },
+ "final": {
+  "messages_sent": 30067,
+  "distinct_words": 8398,
+  "passes": 2441,
+  "idle_passes": 2441,
+  "halted": false,
+  "lane_peak": 0.07458944619,
+  "lane_rms": 0.01778849741721509,
+  "probe_hits": {
+   "0x1213e9": 2441,
+   "0x121e2b": 2143,
+   "0x1236f8": 0,
+   "0x1237f8": 0,
+   "0x1256ad": 0
+  },
+  "probe_first_pass": {
+   "0x1213e9": 0,
+   "0x121e2b": 298
+  },
+  "errors": [],
+  "wall_s": 96.9
+ },
+ "arm_messages": {
+  "FX1p2": 3495,
+  "FX2p2": 2765,
+  "ORG1p2": 25329,
+  "ORG2p2": 13509,
+  "PNO1p2": 35977,
+  "PNO2p2": 13509,
+  "SMP0p1": 1540,
+  "SY0p1": 290
+ },
+ "skipped_out_of_window": 5910,
+ "ticks": 2700,
+ "clock_passes": 2441,
+ "replay_sharc_sys": [
+  "2441 passes (0 warm-up), 30067 messages delivered, all idle: true",
+  "steps per pass: first 1204 min 1204 max 7891 mean 7131.8",
+  "sharc    mean   1149.91 us  median   1204.30 us  worst   9148.40 us  (n 2441)",
+  "msg      mean      0.48 us  median      0.20 us  worst    288.30 us  (n 2441)",
+  "stub     mean      0.85 us  median      0.50 us  worst    131.40 us  (n 2441)",
+  "total    mean   1151.23 us  median   1205.80 us  worst   9149.00 us  (n 2441)",
+  "pass period 46.08 us; mean total / period 24.98x, worst / period 198.54x",
+  "device accesses (unmodelled address space, whole run): 2517 reads, 127726 writes",
+  "hash pass buffers 0xB0000..0xB2FFF: e6c44513a2b06bd8, 321 words changed since boot",
+  "hash module state 0xC0000..0xC2FFF: 7d72a6693b8f47d7, 449 words changed since boot",
+  "hash strips 0xE0000..0xE02FF: c50d61c2ba0185e4, 0 words changed since boot",
+  "lane 2:0: 2441 passes, 4882 frames, steps first 1204 last 7881, peak 0.074589, rms 0.017788"
+ ],
+ "determinism": "second run: message stream byte-identical (cmp), phases, final numbers and ARM message counts equal",
+ "program": "Bank A/B3 Chords n Solo",
+ "key": 60,
+ "insns_per_tick": 200000,
+ "old_replay_key1_2016_passes": {
+  "peak": 0.067437,
+  "rms": 0.02487,
+  "probe_0x121e2b_passes": 2016
+ },
+ "stream_vs_old_replay": {
+  "old_distinct": 8306,
+  "missing_in_live": 0,
+  "value_differs": 27,
+  "new_in_live": 92
+ }
+}

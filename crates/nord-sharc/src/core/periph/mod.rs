@@ -16,6 +16,7 @@
 //! on the CCES simulator (probe list in `sharc-chip-identity.md` section 6).
 pub mod access_log;
 pub mod dma;
+pub mod epchain;
 pub mod epdma;
 pub mod l2;
 pub mod ringdma;
@@ -27,6 +28,7 @@ mod glue;
 pub mod sc57x;
 
 pub use access_log::AccessLog;
+pub use epchain::EpChain;
 pub use epdma::EpDma;
 pub use ringdma::RingDma;
 pub use sc57x::Sc57x;
@@ -46,6 +48,8 @@ pub struct Periph {
     pub boot: Option<SpiBoot>,
     /// ORG Core2 range-transfer registers at `DM(0x3E000..)` (opt-in, `Core::enable_epdma`).
     pub epdma: Option<EpDma>,
+    /// SY external-port DMA channel 0 with chain loading (opt-in, `Core::enable_epchain`, D141).
+    pub epchain: Option<EpChain>,
     /// Census of the accesses outside SRAM (opt-in, `Core::enable_access_log`).
     pub log: Option<AccessLog>,
     /// PNO core 1 Leslie history-ring restart (opt-in, `Core::enable_ringdma`, D126).
@@ -61,5 +65,6 @@ mod tests {
         let p = Periph::default();
         assert!(p.sc57x.is_none() && p.boot.is_none());
         assert!(p.epdma.is_none() && p.log.is_none() && p.ringdma.is_none());
+        assert!(p.epchain.is_none());
     }
 }

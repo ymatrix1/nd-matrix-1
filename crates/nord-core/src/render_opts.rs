@@ -327,6 +327,9 @@ pub struct FirmwareOptions {
     /// `--fx-defaults firmware`: every FX chain starts from the ARM `Edt_*` default words
     /// (`LayerFxChain::apply_firmware_defaults`, D101; opt-in, no hardware init-patch clip).
     pub fx_defaults: bool,
+    /// `--fx-rate-match`: the firmware Amp drive and cabinet run at the DSP frame rate 43,402 Hz
+    /// (`LayerFxChain::set_fx_rate_match`, D137; opt-in).
+    pub fx_rate_match: bool,
     /// The synth layer faders follow `(v / 127)^2` (default on, VERIFIED: the handler `0xC011BB48`
     /// run in the ARM harness, D87); `--legacy-synth-layer-law` turns it off.
     pub synth_layer_law: bool,
@@ -428,6 +431,7 @@ impl Default for FirmwareOptions {
             piano_chain_scale: false,
             piano_layer_law: false,
             fx_defaults: false,
+            fx_rate_match: false,
             synth_layer_law: true,
             measured_tick: true,
             synth_sustain_pedal: false,
@@ -496,6 +500,7 @@ impl FirmwareOptions {
             piano_chain_scale: false,
             piano_layer_law: false,
             fx_defaults: false,
+            fx_rate_match: false,
             synth_layer_law: true,
             measured_tick: true,
             synth_sustain_pedal: false,
@@ -580,6 +585,7 @@ impl FirmwareOptions {
         o.piano_chain_scale |= has("--firmware-piano-chain");
         o.piano_layer_law |= has("--firmware-piano-layer-law");
         o.fx_defaults |= has("--fx-defaults-firmware");
+        o.fx_rate_match |= has("--fx-rate-match");
         o.synth_layer_law |= has("--firmware-synth-layer-law");
         o.synth_sustain_pedal |= has("--synth-sustain-pedal");
         if has("--legacy-1khz-tick") {
@@ -738,6 +744,7 @@ impl FirmwareOptions {
                 c.apply_firmware_defaults();
             }
         }
+        crate::render_opts_fx_rate::apply_fx_rate_match(engine, self.fx_rate_match);
         apply_b3_tail(engine, self.b3_tail);
         apply_farfisa_processor(engine, self.farfisa_processor);
         apply_b3_bass_processor(engine, self.b3_bass_processor);
@@ -815,6 +822,7 @@ impl FirmwareOptions {
                 c.apply_firmware_defaults();
             }
         }
+        crate::render_opts_fx_rate::apply_fx_rate_match(engine, self.fx_rate_match);
         self.set_rotary(engine);
         let bass = self.b3_bass_processor == Some(true);
         apply_b3_tail(engine, Some(!bass && self.b3_tail.unwrap_or(true)));
@@ -999,6 +1007,9 @@ impl FirmwareOptions {
         }
         if self.fx_defaults {
             parts.push("fx-defaults".into());
+        }
+        if self.fx_rate_match {
+            parts.push("fx-rate-match".into());
         }
         if !self.synth_layer_law {
             parts.push("legacy-synth-layer".into());

@@ -1,0 +1,166 @@
+{
+ "video": "_zksT69H30c",
+ "note": "Downstream stage ablation of the clips that use an amp, EQ or compressor (docs/research/brightness-downstream-oracle.md s5). Edits switch one program stage off; flags select opt-in firmware ports. Run like emu_vs_hw_rate_match.json.",
+ "segments": [
+  {
+   "id": "fx_amp",
+   "entry": "Program/Bank A/Tiny Transistor.ns4p",
+   "engine": "organ Farfisa + Small II amp + reverb",
+   "at_s": 1812,
+   "duration_s": 25,
+   "variants": [
+    {
+     "label": "default"
+    },
+    {
+     "label": "rate-match",
+     "flags": [
+      "--fx-rate-match"
+     ]
+    },
+    {
+     "label": "amp_off",
+     "edits": {
+      "organ.fx.amp_enabled": false
+     }
+    },
+    {
+     "label": "eq_flat",
+     "edits": {
+      "organ.fx.eq_treble_db": 0.0,
+      "organ.fx.eq_mid_db": 0.0,
+      "organ.fx.eq_bass_db": 0.0
+     }
+    },
+    {
+     "label": "amp_eq_off",
+     "edits": {
+      "organ.fx.amp_enabled": false,
+      "organ.fx.eq_treble_db": 0.0,
+      "organ.fx.eq_mid_db": 0.0,
+      "organ.fx.eq_bass_db": 0.0
+     }
+    },
+    {
+     "label": "no_reverb",
+     "edits": {
+      "organ.fx.reverb_enabled": false
+     }
+    },
+    {
+     "label": "no_mod2",
+     "edits": {
+      "organ.fx.mod2_enabled": false
+     }
+    },
+    {
+     "label": "dry_all",
+     "edits": {
+      "organ.fx.amp_enabled": false,
+      "organ.fx.eq_treble_db": 0.0,
+      "organ.fx.eq_mid_db": 0.0,
+      "organ.fx.eq_bass_db": 0.0,
+      "organ.fx.reverb_enabled": false,
+      "organ.fx.mod2_enabled": false
+     }
+    },
+    {
+     "label": "fw-eq",
+     "flags": [
+      "--firmware-fx-ports",
+      "eq"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "organ_vox",
+   "entry": "Program/Bank A/Vintage Vox J3.ns4p",
+   "engine": "organ Vox + Twin amp",
+   "at_s": 2360,
+   "duration_s": 11,
+   "variants": [
+    {
+     "label": "default"
+    },
+    {
+     "label": "rate-match",
+     "flags": [
+      "--fx-rate-match"
+     ]
+    },
+    {
+     "label": "amp_off",
+     "edits": {
+      "organ.fx.amp_enabled": false
+     }
+    },
+    {
+     "label": "no_reverb",
+     "edits": {
+      "organ.fx.reverb_enabled": false
+     }
+    },
+    {
+     "label": "dry_all",
+     "edits": {
+      "organ.fx.amp_enabled": false,
+      "organ.fx.reverb_enabled": false,
+      "organ.fx.mod2_enabled": false,
+      "organ.fx.delay_enabled": false
+     }
+    }
+   ]
+  },
+  {
+   "id": "super_lp24_sidechain",
+   "entry": "Program/Bank A/Sidechain Whl II.ns4p",
+   "engine": "A:25 SUPER wave 0 LP24 1600 Hz res 0.1; clip ends 622 s (filter knob turned from 624 s)",
+   "at_s": 594,
+   "duration_s": 28,
+   "variants": [
+    {
+     "label": "default"
+    },
+    {
+     "label": "amp_lp24_off",
+     "edits": {
+      "piano.fx_a.amp_enabled": false,
+      "piano.fx_b.amp_enabled": false,
+      "synth.fx_b.amp_enabled": false
+     }
+    },
+    {
+     "label": "comp_off",
+     "edits": {
+      "piano.fx_a.comp_enabled": false,
+      "piano.fx_b.comp_enabled": false
+     }
+    },
+    {
+     "label": "fw-comp",
+     "flags": [
+      "--firmware-fx-ports",
+      "compressor"
+     ]
+    },
+    {
+     "label": "fw-eq",
+     "flags": [
+      "--firmware-fx-ports",
+      "eq"
+     ]
+    },
+    {
+     "label": "no_reverb",
+     "edits": {
+      "piano.fx_a.reverb_enabled": false,
+      "piano.fx_b.reverb_enabled": false,
+      "synth.fx_a.reverb_enabled": false,
+      "synth.fx_b.reverb_enabled": false
+     }
+    }
+   ]
+  }
+ ]
+}

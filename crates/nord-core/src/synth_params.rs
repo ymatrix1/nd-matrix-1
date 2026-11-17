@@ -59,11 +59,7 @@ fn apply_oscillator(synth: &mut SynthLayer, dec: &SynthLayerDecoded) {
     synth.osc_mode = dec.osc_mode;
     synth.waveform = dec.waveform;
     synth.osc_shape_category = dec.osc_mode == SynthOscMode::Analog && dec.osc_category == 3;
-    synth.p_wave = if dec.osc_mode == SynthOscMode::Analog {
-        PWave::from_category_wave(dec.osc_category, dec.osc_wave)
-    } else {
-        PWave::Other
-    };
+    synth.p_wave = PWave::for_osc_mode(dec.osc_mode, dec.osc_category, dec.osc_wave);
     synth.stage_words = if dec.osc_mode == SynthOscMode::Analog {
         StageWords::for_wave(dec.osc_category, dec.osc_wave)
     } else {

@@ -35,12 +35,14 @@
 //! Evidence: `docs/research/org-system-run.md`.
 use nord_sharc::core::Core;
 use nord_sharc::runner::audio::wav_bytes;
+use nord_sharc::runner::live::pno_preset;
+use nord_sharc::runner::live_presets::org_preset;
 use nord_sharc::runner::msg::{deliver, parse_msg, parse_rx_irq, parse_script, Msg};
 use nord_sharc::runner::pass::{fault_text, pc_ranges, run_steps, PassConfig, SRAM_WORDS};
 use nord_sharc::runner::periph_run::{census_run, lane_run, PeriphOpts};
 use nord_sharc::runner::system::{
     pass_period_s, probe_pass, region_hash, run_system, series, set_ping_pong, stats, PassTiming,
-    FRAME_RATE, PNO_PING_PONG,
+    FRAME_RATE,
 };
 use nord_sharc::runner::tap_run::{parse_tap, tap_run};
 use nord_sharc::runner::{parse_number, parse_value};
@@ -93,17 +95,18 @@ struct Options {
 }
 
 fn parse_args(args: &[String]) -> Result<Options, String> {
+    let org = org_preset();
     let mut o = Options {
-        entry: 0x12_5C88,
-        boot: 100_000,
+        entry: org.entry,
+        boot: org.boot,
         passes: 300,
         warmup: 16,
         frame_rate: FRAME_RATE,
         chunk: 1_000,
         rate: 48_000,
-        trigger: 0xB_00E2,
-        idle_pc: 0x12_5DDF,
-        devs: vec![(0x282c_0380, 1), (0x3108_d008, 5)],
+        trigger: org.trigger,
+        idle_pc: org.idle_pc,
+        devs: org.devs,
         ..Options::default()
     };
     let mut it = args.iter();
@@ -116,19 +119,15 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
             "--boot" => o.boot = u64::from(num(val()?)?),
             "--entry" => o.entry = num(val()?)?,
             "--pno" => {
-                o.entry = 0x12_1007;
-                o.idle_pc = 0x12_1091;
-                o.trigger = 0xB_00E1;
-                o.boot = 3_000_000;
-                o.irq = Some((15, 1));
-                o.flag1 = true;
-                o.ping_pong = Some(PNO_PING_PONG);
-                o.devs = vec![
-                    (0x28ac_0380, 1),
-                    (0x3108_d008, 5),
-                    (0x3108_c06c, 0x400),
-                    (0x3108_c00c, 4),
-                ];
+                let p = pno_preset();
+                o.entry = p.entry;
+                o.idle_pc = p.idle_pc;
+                o.trigger = p.trigger;
+                o.boot = p.boot;
+                o.irq = p.irq;
+                o.flag1 = p.flag1;
+                o.ping_pong = p.ping_pong;
+                o.devs = p.devs;
             }
             "--irq" => o.irq = Some(parse_rx_irq(&val()?)?),
             "--flag1" => o.flag1 = true,
@@ -642,7 +641,7 @@ mod tests {
             (0x12_1007, 0x12_1091, 0xB_00E1)
         );
         assert_eq!((o.irq, o.flag1, o.boot), (Some((15, 1)), true, 3_000_000));
-        assert_eq!(o.ping_pong, Some(PNO_PING_PONG));
+        assert_eq!(o.ping_pong, Some(nord_sharc::runner::system::PNO_PING_PONG));
         assert_eq!(o.devs.len(), 4);
     }
 

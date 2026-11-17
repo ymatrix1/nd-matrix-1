@@ -58,6 +58,7 @@ mod p_block;
 mod p_stage_words;
 mod p_table;
 mod p_type;
+mod p_wave_mode;
 mod p_words;
 mod pattern;
 mod pattern_presets;

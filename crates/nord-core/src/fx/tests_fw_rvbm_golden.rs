@@ -15,7 +15,7 @@ const SEED: u32 = 0x2545_F491;
 const AMT_127: (u32, u32) = (0x3F80_0000, 0);
 const AMT_63: (u32, u32) = (0x3EBB_0410, 0x3F6E_4FB0);
 
-fn fnv(words: impl IntoIterator<Item = u32>) -> u64 {
+pub(super) fn fnv(words: impl IntoIterator<Item = u32>) -> u64 {
     let mut h = 0xCBF2_9CE4_8422_2325u64;
     for w in words {
         let w = if w & 0x7FFF_FFFF == 0 { 0 } else { w };
@@ -49,7 +49,7 @@ impl Input {
     }
 }
 
-fn run<F: Fp>(g: &Golden, calls: usize) -> Vec<[u32; 8]> {
+pub(super) fn run<F: Fp>(g: &Golden, calls: usize) -> Vec<[u32; 8]> {
     let mut r = ReverbMulti::<F>::new(g.rvb_type).expect("a captured type");
     let (send, dry) = if g.amount == 127 { AMT_127 } else { AMT_63 };
     r.set_amount_words(f32::from_bits(send), f32::from_bits(dry), true);

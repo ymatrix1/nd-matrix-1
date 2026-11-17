@@ -116,6 +116,9 @@ pub enum PSpec {
     /// The verified ARM words (`p_words.rs`): [`PTableSpec::verified`], a unit variant so the GUI
     /// choice list and the option defaults stay `const`.
     Verified,
+    /// [`PSpec::Verified`] plus the oracle level of the rows the verified words do not cover
+    /// (`PTableSpec::oracle`, D140): opt-in, `--synth-p oracle`.
+    Oracle,
 }
 
 impl PSpec {
@@ -127,6 +130,9 @@ impl PSpec {
         if v.eq_ignore_ascii_case("verified") {
             return Ok(PSpec::Verified);
         }
+        if v.eq_ignore_ascii_case("oracle") {
+            return Ok(PSpec::Oracle);
+        }
         if v.is_char_boundary(8) && v[..8].eq_ignore_ascii_case("verified") {
             return PTableSpec::parse_over(PTableSpec::verified(), &v[8..]).map(PSpec::Table);
         }
@@ -135,7 +141,7 @@ impl PSpec {
         }
         let bad = || {
             format!(
-                "invalid --synth-p '{v}' (expected fitted|verified|table|gain,w2,r2,shape,cutoff)"
+                "invalid --synth-p '{v}' (expected fitted|verified|oracle|table|gain,w2,r2,shape,cutoff)"
             )
         };
         let mut m = [0i32; 5];
@@ -161,7 +167,7 @@ impl PSpec {
             PSpec::Fitted => PBlock::FITTED,
             PSpec::Custom(m) => PBlock::from_milli(m),
             // the single-block view of a table is the idle block; use `table()`
-            PSpec::Table(_) | PSpec::Verified => PBlock::IDLE,
+            PSpec::Table(_) | PSpec::Verified | PSpec::Oracle => PBlock::IDLE,
         }
     }
 
@@ -170,6 +176,7 @@ impl PSpec {
         match self {
             PSpec::Table(t) => Some(t.table()),
             PSpec::Verified => Some(PTableSpec::verified().table()),
+            PSpec::Oracle => Some(PTableSpec::oracle().table()),
             _ => None,
         }
     }
