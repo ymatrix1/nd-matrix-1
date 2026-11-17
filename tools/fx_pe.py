@@ -293,6 +293,11 @@ class Machine:
             self.ir[f"i{i}"], self.ir[f"m{m}"], self.ir.get(f"l{i}", 0), self.ir.get(f"b{i}", 0)
         )
 
+    def plain(self, i: int, m: int) -> int:
+        """Pre-modify address `Ii + Mm`: no write back and no circular wrap (PRM fig 6-5, D114:
+        only the post-modify and `MODIFY` update wraps)."""
+        return (self.ir[f"i{i}"] + self.ir[f"m{m}"]) & M32
+
     # --- one instruction ---------------------------------------------------------------------
     def step(self, pc, w=None, wx=None, wy=None, st=None, d=None, swaps=()):
         """Check the trace, then commit the effects of one instruction.

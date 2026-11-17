@@ -1,3 +1,5 @@
+> **Update 2026-11-17 (D133, [fx-reverb0-chor-oracle-diff](fx-reverb0-chor-oracle-diff.md)):** the mismatches of s3 and s4 were the harness (35 stage calls per pass) plus a CHOR port bug; both families now match the oracle. Candidates 1 to 3 of s4 were not the cause.
+
 # FX stages on live input in the SHARC oracle (reverb, chorus) against the native FX models
 
 - **Checked:** 2026-11-16

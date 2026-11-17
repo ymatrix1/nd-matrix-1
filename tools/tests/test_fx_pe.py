@@ -154,3 +154,9 @@ def test_parse_trace_splits_calls():
     assert [r["pc"] for r in first] == [0x1206B0, 0x1206B2]
     assert second[0]["pc"] == 5
     assert first[0]["r"][0] == 0 and first[0]["s"][0] == 16 and first[0]["b"][15] == 95
+
+
+def test_plain_address_does_not_wrap_but_matches_the_sum():
+    m = pe.Machine({}, {"i6": 0x100, "m6": 0x202})
+    assert m.plain(6, 6) == 0x302
+    assert pe.Machine({}, {"i6": 0xFFFFFFFF, "m6": 2}).plain(6, 6) == 1

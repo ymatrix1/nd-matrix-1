@@ -5,10 +5,12 @@
 //! Everything here is opt-in (`sharc-fxlive`); `sharc-sys` and the other runners do not use it.
 //! Provenance (`docs/research/fx-oracle-live.md`): the addresses are read from the Core2 listing
 //! (`VERIFIED`), the hand-over counter protocol and the fixed ping-pong choice are `ASSUMED`.
+pub use super::fx_probe::{calls_at, regs_at};
+pub use super::fx_wav::read_wav;
 use super::msg::{deliver, Msg};
 use super::pass::{fault_text, run_steps, PassConfig};
 use super::periph_run::PeriphOpts;
-use super::system::{lean_pass, start};
+use super::system::lean_pass;
 use crate::core::Core;
 
 /// Output location of a pass.
@@ -129,23 +131,6 @@ impl FxCore {
     }
 }
 
-/// Runs one pass and returns the `(M, I)` register banks the first time `pc` is about to execute
-/// (the entry registers of a stage routine: what the dispatcher provides). `None` when the pass
-/// never reaches `pc`.
-pub fn regs_at(core: &mut Core, cfg: &PassConfig, pc: u32) -> Option<([u32; 16], [u32; 16])> {
-    start(core, cfg);
-    let begin = core.steps;
-    while core.steps - begin < cfg.max_steps {
-        if core.pc == pc {
-            return Some((core.m, core.i));
-        }
-        if core.step().is_err() || (core.pc == cfg.idle_pc && core.dm_read(cfg.trigger) == Ok(0)) {
-            return None;
-        }
-    }
-    None
-}
-
 /// Reads 4 stereo frames `[L0 R0 L1 R1 ..]` at `base`, each word times `sign`.
 pub fn read_frames(core: &mut Core, base: u32, sign: f32) -> ([f32; 4], [f32; 4]) {
     {
@@ -257,60 +242,8 @@ pub fn fx_live_run(
     Ok(out)
 }
 
-/// Reads a RIFF WAV (PCM 16 bit or float 32 bit, any channel count) into per-channel floats and
-/// the sample rate. Local files only; feeds a PNO lane WAV into the FX run.
-pub fn read_wav(bytes: &[u8]) -> Result<(Vec<Vec<f32>>, u32), String> {
-    let bad = |s: &str| format!("bad WAV: {s}");
-    if bytes.len() < 12 || &bytes[..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
-        return Err(bad("no RIFF/WAVE header"));
-    }
-    let (mut pos, mut fmt, mut data) = (12, None, None);
-    while pos + 8 <= bytes.len() {
-        let id = &bytes[pos..pos + 4];
-        let len = u32::from_le_bytes([
-            bytes[pos + 4],
-            bytes[pos + 5],
-            bytes[pos + 6],
-            bytes[pos + 7],
-        ]) as usize;
-        let body = bytes
-            .get(pos + 8..(pos + 8 + len).min(bytes.len()))
-            .unwrap_or(&[]);
-        match id {
-            b"fmt " if body.len() >= 16 => {
-                let u16_at = |o: usize| u16::from_le_bytes([body[o], body[o + 1]]);
-                let rate = u32::from_le_bytes([body[4], body[5], body[6], body[7]]);
-                fmt = Some((u16_at(0), usize::from(u16_at(2)), rate, u16_at(14)));
-            }
-            b"data" => data = Some(body),
-            _ => {}
-        }
-        pos += 8 + len + (len & 1);
-    }
-    let ((tag, ch, rate, bits), data) = fmt.zip(data).ok_or_else(|| bad("missing fmt or data"))?;
-    let ch = ch.max(1);
-    let step = usize::from(bits / 8);
-    if step == 0 {
-        return Err(bad("zero sample size"));
-    }
-    let n = data.len() / (step * ch);
-    let mut out = vec![Vec::with_capacity(n); ch];
-    for f in 0..n {
-        for (c, o) in out.iter_mut().enumerate() {
-            let b = &data[(f * ch + c) * step..][..step];
-            o.push(match (tag, bits) {
-                (3, 32) => f32::from_le_bytes([b[0], b[1], b[2], b[3]]),
-                (1, 16) => f32::from(i16::from_le_bytes([b[0], b[1]])) / 32768.0,
-                _ => return Err(bad("only PCM16 and float32 are supported")),
-            });
-        }
-    }
-    Ok((out, rate))
-}
-
 #[cfg(test)]
 mod tests {
-    use super::super::audio::wav_bytes;
     use super::super::pass::tests::clearing_core;
     use super::*;
 
@@ -327,27 +260,6 @@ mod tests {
             .collect();
         assert_eq!(seen, [0, 1, 2, 3, 4, 5, 6, 7, 1, 2]);
         assert_eq!(c.dm_read(SELF_COUNTER), Ok(3), "own copy = counter + 1");
-    }
-
-    #[test]
-    fn regs_at_reports_the_registers_where_a_pass_reaches_the_pc() {
-        let cfg = PassConfig {
-            trigger: 0xB_00E2,
-            idle_pc: 0x12_0002,
-            max_steps: 10,
-            irq: None,
-        };
-        let mut c = clearing_core();
-        c.m[2] = 2;
-        let first = c.pc;
-        let (m, i) = regs_at(&mut c, &cfg, first).expect("the start pc is reached at once");
-        assert_eq!((m[2], i[0]), (2, 0xB_00E2));
-        let mut c = clearing_core();
-        assert_eq!(
-            regs_at(&mut c, &cfg, 0x1F_FFFF),
-            None,
-            "a pc the pass never reaches"
-        );
     }
 
     #[test]
@@ -409,28 +321,5 @@ mod tests {
         let mut bad = vec![0u8; at + 64];
         bad[at..at + 6].fill(0xFF);
         assert!(FX1.boot(&bad, 5, &PeriphOpts::default()).is_err());
-    }
-
-    #[test]
-    fn wav_reader_accepts_float_and_pcm16_and_rejects_junk() {
-        let (ch, rate) = read_wav(&wav_bytes(&[vec![0.5, -0.25], vec![1.0, 0.0]], 48_000)).unwrap();
-        assert_eq!((rate, ch), (48_000, vec![vec![0.5, -0.25], vec![1.0, 0.0]]));
-        let mut pcm = Vec::new();
-        pcm.extend_from_slice(b"RIFF\0\0\0\0WAVEfmt ");
-        pcm.extend_from_slice(&16u32.to_le_bytes());
-        for v in [1u16, 1] {
-            pcm.extend_from_slice(&v.to_le_bytes());
-        }
-        pcm.extend_from_slice(&44_100u32.to_le_bytes());
-        pcm.extend_from_slice(&88_200u32.to_le_bytes());
-        pcm.extend_from_slice(&2u16.to_le_bytes());
-        pcm.extend_from_slice(&16u16.to_le_bytes());
-        pcm.extend_from_slice(b"data");
-        pcm.extend_from_slice(&4u32.to_le_bytes());
-        pcm.extend_from_slice(&16384i16.to_le_bytes());
-        pcm.extend_from_slice(&(-32768i16).to_le_bytes());
-        assert_eq!(read_wav(&pcm).unwrap(), (vec![vec![0.5, -1.0]], 44_100));
-        assert!(read_wav(b"nope").is_err());
-        assert!(read_wav(&pcm[..30]).is_err());
     }
 }

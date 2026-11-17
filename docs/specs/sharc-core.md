@@ -82,6 +82,6 @@ Evidence, timing table and limits: [org-system-run](../research/org-system-run.m
 | Item | State |
 |---|---|
 | Chain transfer, pass-through stage `0x1231CB` | output = `0.1866 x DM(0xB6518) x input`, lag 0, -157.6 dB null after the gain fit (VERIFIED, [fx-oracle-live](../research/fx-oracle-live.md)) |
-| Stage install | records `S-0x20 ..` written by messages as the ARM does; reverb type 0 (`0x124AF2`) and Mod 2 CHOR (`0x123798`) install and run, their output does **not** match the native ports yet (stage calling convention open, OQ35) |
+| Stage install | records `S-0x20 ..` written by messages as the ARM does; reverb type 0 (`0x124AF2`) and Mod 2 CHOR (`0x123798`) install and run, the dispatcher calls an installed head stage 35 times per pass unless the head link and nine group headers are pointed at a null stub record (`null_chain()` in `tools/fx_oracle_live.py`, D133); with that, reverb type 0 and CHOR 4 / 5 (rate 64, amount 64) match the native ports |
 | Native counterpart | `fx_live_native` (`crates/nord-tools`), `tools/fx_oracle_live.py` compares (lag, fitted gain, RMS delta, centroid, tail, null depth) |
 | PNO lane to FX input | not wired (WAV hand-over only) |

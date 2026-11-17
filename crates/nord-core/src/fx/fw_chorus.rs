@@ -9,7 +9,14 @@
 //! addresses of the model scenarios (`tools/fx_model_chorus.py`), so a context captured from the
 //! DSP loads unchanged and the written-back words compare word for word with the golden vectors.
 //!
-//! VERIFIED: both routines against the `sharc-fx` oracle (`docs/research/fx-mod2-types.md`).
+//! Provenance (D133): the direct-call scenarios of `docs/research/fx-mod2-types.md` missed the
+//! left wet tap (a wrapped pre-modify store wrote no guard copy), so that old claim is withdrawn.
+//! EMPIRICAL: the live chain of the oracle (`sharc-fxlive`, real dispatcher) against this port,
+//! `python tools/fx_oracle_live.py chor4|chor5 --image <core1_sram.bin> --signal noise`: null depth
+//! -119 to -156 dB for CHOR soft over rates 0..127 and amounts 0..127, and -89.5 dB for the
+//! variation at rate 64 / amount 64 only (the oracle context of `chor5` is fixed; the residual
+//! cause is not measured). The check needs the local firmware image, so no test in the repo
+//! compares against the oracle; `tests_chorus_golden.rs` pins the port to the Python twin only.
 
 use super::fw_pe::{Mem, Pe};
 use super::{fw_chorus4, fw_chorus5};
@@ -191,7 +198,9 @@ mod tests {
             let got: Vec<u32> = frames.iter().map(|f| f.to_bits()).collect();
             assert_close(&got, o, 5.0e-6, &format!("{kind:?} call {n}"));
         }
-        assert_close(c.words(), ctx_out, 5.0e-6, "final context");
+        // The context words carry the f32 rounding of three calls on the live ring (the model keeps
+        // extended precision): 2e-5 relative, the frames stay within 5e-6.
+        assert_close(c.words(), ctx_out, 2.0e-5, "final context");
         let want = golden_ring();
         let changed: Vec<usize> = (0..RING_N).filter(|&k| c.ring()[k] != want[k]).collect();
         assert_eq!(
@@ -247,5 +256,45 @@ mod tests {
         assert_eq!(m.rd(0x1234), 0);
         m.wr(SCRATCH + 3, 5);
         assert_eq!(m.rd(SCRATCH + 3), 5);
+    }
+
+    /// Regression for the pre-modify store `DM(M6, I6)` (`I6 + 0x202`, no wrap, D114): the ports
+    /// wrapped it, so the guard copy of the ring was never written and the left wet tap of an
+    /// impulse stayed silent while the oracle (live FX chain, `docs/research/fx-reverb0-chor-oracle-diff.md`)
+    /// plays it (port against oracle after the fix: 80 calls, max difference 9.2e-7).
+    fn impulse_through(variation: bool) -> (Vec<[f32; 2]>, [u32; RING_N]) {
+        let mut st = super::super::fw_mod2::FwMod2Stage::new(variation, 64, 64, 43_402.344);
+        let out: Vec<[f32; 2]> = (0..400)
+            .map(|i| {
+                let x = if i == 0 { 0.5 } else { 0.0 };
+                st.process_frame([x, 0.8 * x])
+            })
+            .collect();
+        (out, *st.ring_for_test())
+    }
+
+    #[test]
+    fn an_impulse_has_a_left_and_a_right_wet_tap_and_the_guard_copy() {
+        for variation in [false, true] {
+            let (out, ring) = impulse_through(variation);
+            let wet = |ch: usize| out[40..].iter().map(|f| f[ch].abs()).fold(0.0f32, f32::max);
+            assert!(
+                wet(0) > 1.0e-4,
+                "variation {variation}: left wet {}",
+                wet(0)
+            );
+            assert!(
+                wet(1) > 1.0e-4,
+                "variation {variation}: right wet {}",
+                wet(1)
+            );
+            let mirrored = (0..0x200)
+                .filter(|&k| ring[k] != 0 && ring[k + 0x200] == ring[k])
+                .count();
+            assert!(
+                mirrored >= 1,
+                "variation {variation}: guard copy written ({mirrored} words)"
+            );
+        }
     }
 }

@@ -2,7 +2,7 @@
 //!
 //! Generated from the `tools/adi_dis.py` listing of the OS v1.66 FX image (core 2, `0x122E24` ..
 //! `0x122F53`), one `Pe::apply` per executed instruction (`tools/fx_model_chorus.py` is the Python
-//! twin). VERIFIED: the model reproduces the routine word for word against the `sharc-fx` oracle
+//! twin). Direct-call check (before D133, see `fw_chorus.rs` provenance): the model reproduces the routine word for word against the `sharc-fx` oracle
 //! (500/500 scenarios, two seeds, and the per-instruction register trace), the golden vectors of
 //! `tests_chorus_golden.rs` pin this port to the model (`docs/research/fx-mod2-types.md`).
 
@@ -23,7 +23,7 @@ pub(super) fn run(m: &mut Pe<ChorusMem<'_>>) {
     m.apply(&[W(3, iadd(m.r(2), m.r(0))), W(1, m.ld(m.a(3, 0x12)))]);
     m.apply(&[W(11, m.ld(m.a(3, -0x3)))]);
     m.apply(&[St(m.a(3, -0x18), m.r(3))]);
-    m.apply(&[W(4, m.ld(m.dmod(2, 0)))]);
+    m.apply(&[W(4, m.ld(m.plain(2, 0)))]);
     m.apply(&[W(4, iadd(m.r(4), m.r(1)))]);
     m.apply(&[W(14, imm(0xffffffe1))]);
     m.apply(&[W(1, ffloat(m.r(4), m.r(14))), W(12, m.ld(m.a(3, -0x1)))]);
@@ -89,8 +89,8 @@ pub(super) fn run(m: &mut Pe<ChorusMem<'_>>) {
     m.apply(&[Db(6, m.x[13])]);
     // 0x122EBD
     for _ in 0..m.x[15] {
-        m.apply(&[W(0, m.ld(m.dmod(0, 0)))]);
-        m.apply(&[W(8, m.ld(m.dmod(0, 2)))]);
+        m.apply(&[W(0, m.ld(m.plain(0, 0)))]);
+        m.apply(&[W(8, m.ld(m.plain(0, 2)))]);
         m.apply(&[Di(4, m.x[13])]);
         m.apply(&[Di(6, m.rd(m.a(3, -0x7)))]);
         m.apply(&[W(6, m.r(0))]);
@@ -98,10 +98,10 @@ pub(super) fn run(m: &mut Pe<ChorusMem<'_>>) {
         m.apply(&[W(1, m.ld(m.a(3, 0x5)))]);
         m.apply(&[W(0, fadd(m.r(0), m.r(1))), W(9, m.ld(m.a(3, 0x7)))]);
         m.apply(&[W(8, fadd(m.r(8), m.r(9)))]);
-        m.apply(&[St(m.dmod(6, 6), m.r(0))]);
+        m.apply(&[St(m.plain(6, 6), m.r(0))]);
         m.apply(&[Wx(0, m.y[0]), Wy(0, m.x[0])]);
         m.apply(&[St(m.a(6, 0), m.r(0)), Di(6, m.dmod(6, 1))]);
-        m.apply(&[St(m.dmod(6, 6), m.r(8))]);
+        m.apply(&[St(m.plain(6, 6), m.r(8))]);
         m.apply(&[Wx(8, m.y[8]), Wy(8, m.x[8])]);
         m.apply(&[St(m.a(6, 0), m.r(8)), Di(6, m.dmod(6, 1))]);
         m.apply(&[W(1, imm(m.i[6]))]);
@@ -109,7 +109,7 @@ pub(super) fn run(m: &mut Pe<ChorusMem<'_>>) {
         m.apply(&[W(0, m.ld(m.a(4, 0))), Di(4, m.dmod(4, 5))]);
         m.apply(&[St(m.a(4, 0), m.r(0)), Di(4, m.dmod(4, 2))]);
         m.apply(&[W(0, m.ld(m.a(4, 0))), Di(4, m.dmod(4, 5))]);
-        m.apply(&[St(m.dmod(4, 0), m.r(0))]);
+        m.apply(&[St(m.plain(4, 0), m.r(0))]);
         m.apply(&[W(1, m.ld(m.a(3, -0x15)))]);
         m.apply(&[Dm(3, m.x[1])]);
         m.apply(&[Dm(4, m.y[1])]);
@@ -119,13 +119,13 @@ pub(super) fn run(m: &mut Pe<ChorusMem<'_>>) {
         m.apply(&[W(3, m.ld(m.a(3, -0x13)))]);
         m.apply(&[W(4, m.ld(m.a(3, -0x11)))]);
         m.apply(&[W(0, m.ld(m.a(4, 0))), Di(4, m.dmod(4, 1))]);
-        m.apply(&[W(8, m.ld(m.dmod(4, 0)))]);
+        m.apply(&[W(8, m.ld(m.plain(4, 0)))]);
         m.apply(&[
             W(0, fmul(m.r(3), m.r(0))),
             W(1, m.ld(m.a(5, 0))),
             Di(5, m.dmod(5, 1)),
         ]);
-        m.apply(&[W(8, fmul(m.r(3), m.r(8))), W(9, m.ld(m.dmod(5, 0)))]);
+        m.apply(&[W(8, fmul(m.r(3), m.r(8))), W(9, m.ld(m.plain(5, 0)))]);
         m.apply(&[W(1, fmul(m.r(4), m.r(1))), W(3, m.ldb(m.a(1, 0x2)))]);
         m.apply(&[W(9, fmul(m.r(4), m.r(9)))]);
         m.apply(&[W(6, fmul(m.r(6), m.r(3))), Wx(1, m.y[0]), Wy(0, m.x[1])]);
@@ -140,13 +140,13 @@ pub(super) fn run(m: &mut Pe<ChorusMem<'_>>) {
         m.apply(&[Di(4, m.dmod(4, 6))]);
         m.apply(&[Di(5, m.dmod(6, 4))]);
         m.apply(&[W(0, m.ld(m.a(4, 0))), Di(4, m.dmod(4, 1))]);
-        m.apply(&[W(8, m.ld(m.dmod(4, 0)))]);
+        m.apply(&[W(8, m.ld(m.plain(4, 0)))]);
         m.apply(&[
             W(0, fmul(m.r(11), m.r(0))),
             W(1, m.ld(m.a(5, 0))),
             Di(5, m.dmod(5, 1)),
         ]);
-        m.apply(&[W(8, fmul(m.r(11), m.r(8))), W(9, m.ld(m.dmod(5, 0)))]);
+        m.apply(&[W(8, fmul(m.r(11), m.r(8))), W(9, m.ld(m.plain(5, 0)))]);
         m.apply(&[W(1, fmul(m.r(12), m.r(1)))]);
         m.apply(&[W(9, fmul(m.r(12), m.r(9)))]);
         m.apply(&[Wx(1, m.y[0]), Wy(0, m.x[1])]);

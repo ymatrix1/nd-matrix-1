@@ -74,6 +74,12 @@ impl FwMod2Stage {
         st
     }
 
+    /// The delay ring words (tests).
+    #[cfg(test)]
+    pub(super) fn ring_for_test(&self) -> &[u32; super::fw_chorus::RING_N] {
+        self.core.ring()
+    }
+
     /// Whether the stage runs the variation routine.
     pub(super) fn variation(&self) -> bool {
         self.core.kind() == ChorusKind::Variation

@@ -17,6 +17,7 @@
 //!                          0xC0458 on core 1); with --wav the tap goes to FILE.tap.wav
 //! --rate R                 frame rate of generated input and the output WAV (default 43402)
 //! --wav FILE               write the stereo output as a float WAV
+//! --calls-at PC            after the run: one more pass, print how often PC is reached (stage calls)
 //! --regs-at PC             after the run: one more pass, print the M and I registers where PC is
 //!                          first executed (the entry registers of a stage routine)
 //! --dump ADDR:COUNT        print data words after the last pass
@@ -26,7 +27,7 @@
 use nord_sharc::core::Core;
 use nord_sharc::runner::audio::wav_bytes;
 use nord_sharc::runner::fx_run::{
-    fx_live_run, read_wav, regs_at, write_block, FxCore, FRAMES_PER_PASS, FX1, FX2,
+    calls_at, fx_live_run, read_wav, regs_at, write_block, FxCore, FRAMES_PER_PASS, FX1, FX2,
 };
 use nord_sharc::runner::msg::{parse_msg, parse_script, Msg};
 use nord_sharc::runner::parse_number;
@@ -58,6 +59,7 @@ struct Options {
     wav: Option<String>,
     dumps: Vec<(u32, u32)>,
     regs_at: Option<u32>,
+    calls_at: Option<u32>,
     periph: PeriphOpts,
 }
 
@@ -76,6 +78,7 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
         wav: None,
         dumps: Vec::new(),
         regs_at: None,
+        calls_at: None,
         periph: PeriphOpts::default(),
     };
     let mut it = args.iter();
@@ -118,6 +121,7 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
             "--tap" => o.tap = Some(num(val()?)?),
             "--wav" => o.wav = Some(val()?),
             "--regs-at" => o.regs_at = Some(num(val()?)?),
+            "--calls-at" => o.calls_at = Some(num(val()?)?),
             "--dump" => {
                 let s = val()?;
                 let (x, n) = s.split_once(':').ok_or("--dump needs ADDR:COUNT")?;
@@ -216,6 +220,11 @@ fn run(args: &[String]) -> Result<String, String> {
         out,
         "output L peak {pk:.6} rms {rms:.6}; R peak {pkr:.6} rms {rmsr:.6}"
     );
+    if let Some(pc) = o.calls_at {
+        let _ = core.dm_write(o.core.ping_select, 0);
+        let n = calls_at(&mut core, &o.core.config(), pc);
+        let _ = writeln!(out, "calls of 0x{pc:x} in one pass: {n}");
+    }
     if let Some(pc) = o.regs_at {
         let _ = core.dm_write(o.core.ping_select, 0);
         match regs_at(&mut core, &o.core.config(), pc) {
@@ -278,6 +287,13 @@ mod tests {
 
     fn args(v: &[&str]) -> Vec<String> {
         v.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn calls_at_parses() {
+        let o = parse_args(&args(&["img", "--calls-at", "0x124AF2"])).unwrap();
+        assert_eq!(o.calls_at, Some(0x12_4AF2));
+        assert!(parse_args(&args(&["img", "--calls-at"])).is_err());
     }
 
     #[test]

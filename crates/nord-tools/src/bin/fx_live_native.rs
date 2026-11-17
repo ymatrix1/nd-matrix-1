@@ -53,14 +53,14 @@ fn render(
                 }
             }
         }
-        "chor4" | "off" => {
+        "chor4" | "chor5" | "off" => {
             let mut fx = LayerFxChain::new(FRAME_RATE);
             fx.firmware_fx = FirmwareFx::OFF;
             fx.bypass_reverb = true;
-            if family == "chor4" {
+            if family != "off" {
                 fx.firmware_fx.mod2 = true;
                 fx.mod2_type = Mod2Type::Chorus;
-                fx.mod2_type_raw = Some(4);
+                fx.mod2_type_raw = Some(if family == "chor5" { 5 } else { 4 });
                 fx.mod2_rate_raw = Some(opt(args, "--rate", 64u8)?);
                 fx.mod2_amount = opt(args, "--amount", 64.0f32)? / 127.0;
             }

@@ -114,3 +114,22 @@ def test_centroid_of_a_tone_is_its_frequency():
     tone = np.sin(2 * np.pi * 1000 * t / fo.FRAME_RATE)
     assert abs(fo.centroid(tone, fo.FRAME_RATE) - 1000) < 20
     assert fo.centroid(np.zeros(64), fo.FRAME_RATE) == 0.0
+
+
+def test_null_chain_points_head_link_and_later_headers_at_one_stub_record():
+    words = dict(fo.null_chain())
+    s = fo.NULL_REC + 0x20
+    assert words[fo.HEAD_LINK] == s
+    assert all(words[h] == s for h in fo.GROUP_HEADERS[1:])
+    assert fo.GROUP_HEADERS[0] not in words
+    assert words[fo.NULL_REC] == fo.NULL_STUB
+    assert words[fo.NULL_REC + 3] == s  # the stub links to itself
+
+
+def test_chor5_words_install_the_variation_routine_and_zero_the_ring():
+    words = fo.chor5_words()
+    d = dict(words)
+    assert d[fo.REC["fn"]] == fo.ROUTINE["chor5"]
+    assert d[fo.REC["state"]] == fo.CHOR_I1
+    assert all(d[fo.CHOR_RING + k] == 0 for k in range(0x410))
+    assert d[fo.CHOR_I1 + 6] == fo.CHOR5_CTX[6]

@@ -36,15 +36,37 @@ INPUT = 0xC01BC  # ping input block of FX Core1 (PNO 2D block, section 0, bus 0)
 REC = {"fn": 0xB62CE, "input": 0xB62CF, "state": 0xB62D0, "step": 0xB62D2, "level": 0xB62D3}
 MASTER = 0xB6518  # master level word (0 in the image = muted output)
 F_ONE, F_HALF = 0x3F800000, 0x3F000000
+# The dispatcher walks 10 groups (5, 2, 5, 2, ... stages, 35 in all). Each group starts at the
+# pointer DM(header) and every record continues with the link at S - 0x1D; in the image every
+# header and the head record's link point back to the head record 0xB62EE, so an installed head
+# stage would run once per group (10 calls per pass) and once per following stage of its group
+# (35 calls per pass in total): `docs/research/fx-reverb0-chor-oracle-diff.md` s2.
+GROUP_HEADERS = (
+    0xB63EC,
+    0xB6416,
+    0xB6428,
+    0xB6452,
+    0xB6464,
+    0xB648E,
+    0xB64A0,
+    0xB64CA,
+    0xB64DC,
+    0xB6506,
+)
+HEAD_LINK = 0xB62D1  # link of the head record (S - 0x1D, S = 0xB62EE)
+NULL_REC = (
+    0xB6600  # 8 words of free data RAM (zero in the v1.66 image): a copy of the null stub record
+)
+NULL_STUB = 0x125346
 
 # Routine pcs on FX Core1 (core 2 pc + 0x974 after the pass routine): VERIFIED against
 # `docs/research/fx-chain-install.md` s2 (runs 21 and 24).
-ROUTINE = {"identity": 0x1231CB, "reverb0": 0x124AF2, "chor4": 0x123798}
+ROUTINE = {"identity": 0x1231CB, "reverb0": 0x124AF2, "chor4": 0x123798, "chor5": 0x1238EB}
 REVERB_I1 = 0xB27E8  # context of the Spring reverb instance (fx-rvb-words: ctx 0xB27E8)
 # Buffers the reverb clear routine zeroes (`fw_rvb_core.rs`: LINE_LEN 5008, AP_LEN 3200, STATE_LEN
 # 0x200); the image holds other data there at boot.
 REVERB_REGIONS = ((0x8013000, 5008), (0x8014388, 5008), (0xE24E7, 3200), (0xB2849, 0x200))
-CHOR_I1 = 0xC13A4  # piano unit CHOR context (docs/research/data/fx-type-words.csv)
+CHOR_I1 = 0xB2040  # piano unit CHOR context (docs/research/data/fx-type-words.csv)
 CHOR_RING = 0xB4000  # free data RAM for the 0x410 word delay ring (same address as the port)
 POLY = (0x3FC90069, 0xBF245655, 0x3D92AA8A)
 K = 0x3F7DA3C2
@@ -55,9 +77,19 @@ def f32(x: float) -> int:
     return struct.unpack("<I", struct.pack("<f", x))[0]
 
 
+def null_chain() -> list[tuple[int, int]]:
+    """Words that make the pass call stage 0 once: a null stub record (a copy of the image's own)
+    that the head record's link and the nine later group headers point at."""
+    s = NULL_REC + 0x20
+    rec = (NULL_STUB, 0xB62AA, 0, s, 0xBC23D70A, 0xBF000000, 0xBF000000, F_HALF)
+    words = [(NULL_REC + k, w) for k, w in enumerate(rec)]
+    words += [(h, s) for h in GROUP_HEADERS[1:]]
+    return words + [(HEAD_LINK, s)]
+
+
 def install(family: str, state: int) -> list[tuple[int, int]]:
     """Stage 0 record: routine, input bus, state block, level (gain = clip(level+step) + 0.5)."""
-    return [
+    return null_chain() + [
         (MASTER, F_ONE),
         (REC["fn"], ROUTINE[family]),
         (REC["input"], BUS),
@@ -109,6 +141,25 @@ def chor4_words(rate: int = 64, amount: int = 64) -> list[tuple[int, int]]:
     words = [(CHOR_I1 + o, w) for o, w in sorted(c.items())]
     words += [(CHOR_RING + k, 0) for k in range(0x410)]
     return words + install("chor4", CHOR_I1)
+
+
+#: Context words of the CHOR variation (type 5) at rate 64, amount 64, relative to `I1`: the words
+#: `FwMod2Stage::new(true, 64, 64, ..)` builds (`fw_mod2.rs`; the rate / amount laws are VERIFIED
+#: there against the ARM words). The block count word `c[2]` is set per call by the port.
+CHOR5_CTX = {
+    -0x1E: 0x3F7F966C, -0x1D: 0x00074308, -0x1C: 0x42969FAC, -0x1B: 0x42C6C0A9,
+    -0x1A: 0x42969FAC, -0x19: 0x42C6C0A9, -0x16: CHOR_I1 - 0x18, -0xF: CHOR_RING, -0xD: CHOR_RING,
+    -9: 0x3F800000, -8: 0x3F800000, 2: 2, 3: 0x3F800000, 4: 0xBF800000, 5: 0x3F000000,
+    6: K, 7: 0x3F7A8EEC, 8: 0x3DB09D72, 9: 0x3F751DD9, 10: 0xBF53D8A3, 15: 0x3F69EC52,
+    16: 0x3F53D8A3, 19: 0x3CAE2280, 20: 0xBF751DD9,
+}  # fmt: skip
+
+
+def chor5_words() -> list[tuple[int, int]]:
+    c = {o: 0 for o in range(-0x20, 0x26)} | CHOR5_CTX
+    words = [(CHOR_I1 + o, w) for o, w in sorted(c.items())]
+    words += [(CHOR_RING + k, 0) for k in range(0x410)]
+    return words + install("chor5", CHOR_I1)
 
 
 def script_text(words: list[tuple[int, int]]) -> str:
@@ -237,6 +288,8 @@ def family_run(args: argparse.Namespace) -> dict:
         words = reverb0_words(text)
     elif args.family == "chor4":
         words = chor4_words(args.rate, args.amount)
+    elif args.family == "chor5":
+        words = chor5_words()
     elif args.family == "identity":
         words = install("identity", REVERB_I1)
     else:
@@ -254,7 +307,9 @@ def family_run(args: argparse.Namespace) -> dict:
     )  # fmt: skip
     nat_family = "off" if args.family == "identity" else args.family
     extra = (
-        ["--rate", str(args.rate), "--amount", str(args.amount)] if args.family == "chor4" else []
+        ["--rate", str(args.rate), "--amount", str(args.amount)]
+        if args.family in ("chor4", "chor5")
+        else []
     )
     run([args.native, nat_family, str(in_wav), str(nat_wav), *extra])
     res = compare(
@@ -266,7 +321,7 @@ def family_run(args: argparse.Namespace) -> dict:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("family", choices=["identity", "reverb0", "chor4"])
+    ap.add_argument("family", choices=["identity", "reverb0", "chor4", "chor5"])
     ap.add_argument(
         "--image", required=True, help="FX core1_sram.bin (tools/ns4_dsp_ldr.py --sram)"
     )
