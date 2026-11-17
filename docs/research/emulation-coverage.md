@@ -96,6 +96,7 @@ Lane E beans (`ns4-36hw`, `ns4-doy1`, `ns4-vnp2`, `ns4-qll9`, `ns4-ca0i`, `ns4-a
 | Reverb tails | 7b.4 "FX wiring ... reverb tables" (open); tail clip: proposed in this PR |
 | Touch default | 7b.5 Touch tick; flip: proposed in this PR |
 | Piano extra voices | closed: already played by default (D23), pedal-down list opt-in (D123, [piano-extra-voices](piano-extra-voices.md)) |
+| DSP to ARM reads (voice mask, note-on peeks) | opt-in return source `tools/arm_dsp_return.py` (D147, [dsp-to-arm-return](dsp-to-arm-return.md)); SY release mask and stealing need a live SY |
 | Sample pitch entry `e` | 7b.6 "SAMPLES remainder" (open); SY external-port chain model `epchain` (opt-in, D141, [dsp-flash-dma-model](dsp-flash-dma-model.md)): 0 window writes, no SPI flash |
 | B3 processor, Leslie | 7b.3 "B3 / Vox presence", "Real time firmware organ stages", "Organ unit EQ routines, Leslie rotor" (open) |
 | Mod 1 PUMP clock | proposed in this PR |

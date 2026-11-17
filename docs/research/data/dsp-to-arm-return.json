@@ -1,0 +1,487 @@
+{
+ "tool": "tools/arm_dsp_return_run.py",
+ "keys": [
+  60,
+  64,
+  67
+ ],
+ "programs": {
+  "Acoustic Guitar": {
+   "flagged_layers": [
+    0
+   ],
+   "modes": {
+    "legacy": {
+     "sy_messages": 17,
+     "key_down_delay_ticks": [
+      1,
+      null,
+      null
+     ],
+     "prepare": 1,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 1,
+     "spi_word": 1,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "answer_layers": {},
+     "busy_voices_end": 1
+    },
+    "neutral": {
+     "sy_messages": 17,
+     "key_down_delay_ticks": [
+      1,
+      null,
+      null
+     ],
+     "prepare": 1,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 1,
+     "spi_word": 1,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "answer_layers": {},
+     "busy_voices_end": 1
+    },
+    "return": {
+     "messages_by_chip": {
+      "PNO": 8,
+      "SY": 17
+     },
+     "sy_messages": 17,
+     "key_down_delay_ticks": [
+      1,
+      null,
+      null
+     ],
+     "prepare": 1,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 1,
+     "spi_word": null,
+     "peek_addresses": [
+      "0x28307770",
+      "0x28b07770"
+     ],
+     "peek_calls": 3,
+     "status_reads": 40683,
+     "first_calls": [
+      [
+       "0xc00119a4",
+       "0x1",
+       "0x28b07770",
+       "0x4",
+       "0x1"
+      ],
+      [
+       "0xc00119a4",
+       "0x2",
+       "0x28307770",
+       "0x4",
+       "0x1"
+      ],
+      [
+       "0xc00119a4",
+       "0x2",
+       "0x28b07770",
+       "0x4",
+       "0x1"
+      ],
+      [
+       "0xc0066e64",
+       "0x3",
+       "0x92196",
+       "0x2",
+       "0x1"
+      ],
+      [
+       "0xc0066e64",
+       "0x3",
+       "0x9219a",
+       "0x2",
+       "0x1"
+      ],
+      [
+       "0xc0066e64",
+       "0x3",
+       "0x9219a",
+       "0x2",
+       "0x1"
+      ],
+      [
+       "0xc0066e64",
+       "0x3",
+       "0x9219a",
+       "0x2",
+       "0x1"
+      ],
+      [
+       "0xc0066e64",
+       "0x3",
+       "0x9219a",
+       "0x2",
+       "0x1"
+      ]
+     ],
+     "answer_layers": {
+      "zero": 12,
+      "sy_mask": 81366
+     },
+     "busy_voices_end": 1
+    }
+   }
+  },
+  "Crunch Synth": {
+   "flagged_layers": [],
+   "modes": {
+    "legacy": {
+     "sy_messages": 0,
+     "key_down_delay_ticks": [
+      null,
+      null,
+      null
+     ],
+     "prepare": 0,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 0,
+     "spi_word": null,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "answer_layers": {},
+     "busy_voices_end": 0
+    },
+    "neutral": {
+     "sy_messages": 0,
+     "key_down_delay_ticks": [
+      null,
+      null,
+      null
+     ],
+     "prepare": 0,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 0,
+     "spi_word": null,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "answer_layers": {},
+     "busy_voices_end": 0
+    },
+    "return": {
+     "sy_messages": 0,
+     "key_down_delay_ticks": [
+      null,
+      null,
+      null
+     ],
+     "prepare": 0,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 0,
+     "spi_word": null,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "answer_layers": {},
+     "busy_voices_end": 0
+    }
+   }
+  },
+  "String Quintet": {
+   "flagged_layers": [
+    0
+   ],
+   "modes": {
+    "legacy": {
+     "sy_messages": 19,
+     "key_down_delay_ticks": [
+      1,
+      1,
+      1
+     ],
+     "prepare": 1,
+     "go": 0,
+     "free_after_off_ticks": 383,
+     "frees": 1,
+     "voice_updates": 1,
+     "spi_word": 3,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "answer_layers": {},
+     "busy_voices_end": 1
+    },
+    "neutral": {
+     "sy_messages": 17,
+     "key_down_delay_ticks": [
+      1,
+      null,
+      null
+     ],
+     "prepare": 1,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 1,
+     "spi_word": 4294967295,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "answer_layers": {},
+     "busy_voices_end": 1
+    },
+    "return": {
+     "messages_by_chip": {
+      "PNO": 8,
+      "SY": 17
+     },
+     "sy_messages": 17,
+     "key_down_delay_ticks": [
+      1,
+      null,
+      null
+     ],
+     "prepare": 1,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 1,
+     "spi_word": null,
+     "peek_addresses": [
+      "0x28307770",
+      "0x28b07770"
+     ],
+     "peek_calls": 3,
+     "status_reads": 40683,
+     "first_calls": [
+      [
+       "0xc00119a4",
+       "0x1",
+       "0x28b07770",
+       "0x4",
+       "0x1"
+      ],
+      [
+       "0xc00119a4",
+       "0x2",
+       "0x28307770",
+       "0x4",
+       "0x1"
+      ],
+      [
+       "0xc00119a4",
+       "0x2",
+       "0x28b07770",
+       "0x4",
+       "0x1"
+      ],
+      [
+       "0xc0066e64",
+       "0x3",
+       "0x92196",
+       "0x2",
+       "0x1"
+      ],
+      [
+       "0xc0066e64",
+       "0x3",
+       "0x9219a",
+       "0x2",
+       "0x1"
+      ],
+      [
+       "0xc0066e64",
+       "0x3",
+       "0x9219a",
+       "0x2",
+       "0x1"
+      ],
+      [
+       "0xc0066e64",
+       "0x3",
+       "0x9219a",
+       "0x2",
+       "0x1"
+      ],
+      [
+       "0xc0066e64",
+       "0x3",
+       "0x9219a",
+       "0x2",
+       "0x1"
+      ]
+     ],
+     "answer_layers": {
+      "zero": 12,
+      "sy_mask": 81366
+     },
+     "busy_voices_end": 1
+    }
+   }
+  },
+  "4 Osc Funk Bass": {
+   "flagged_layers": [],
+   "modes": {
+    "legacy": {
+     "messages_by_chip": {
+      "ORG": 12,
+      "PNO": 12
+     },
+     "sy_messages": 0,
+     "key_down_delay_ticks": [
+      null,
+      null,
+      null
+     ],
+     "prepare": 0,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 0,
+     "spi_word": null,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "first_calls": [],
+     "answer_layers": {},
+     "busy_voices_end": 0
+    },
+    "neutral": {
+     "messages_by_chip": {
+      "ORG": 12,
+      "PNO": 12
+     },
+     "sy_messages": 0,
+     "key_down_delay_ticks": [
+      null,
+      null,
+      null
+     ],
+     "prepare": 0,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 0,
+     "spi_word": null,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "first_calls": [],
+     "answer_layers": {},
+     "busy_voices_end": 0
+    },
+    "return": {
+     "messages_by_chip": {
+      "ORG": 12,
+      "PNO": 12
+     },
+     "sy_messages": 0,
+     "key_down_delay_ticks": [
+      null,
+      null,
+      null
+     ],
+     "prepare": 0,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 0,
+     "spi_word": null,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "first_calls": [],
+     "answer_layers": {},
+     "busy_voices_end": 0
+    }
+   }
+  },
+  "Grand Pad": {
+   "flagged_layers": [],
+   "modes": {
+    "legacy": {
+     "messages_by_chip": {
+      "PNO": 12
+     },
+     "sy_messages": 0,
+     "key_down_delay_ticks": [
+      null,
+      null,
+      null
+     ],
+     "prepare": 0,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 0,
+     "spi_word": null,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "first_calls": [],
+     "answer_layers": {},
+     "busy_voices_end": 0
+    },
+    "neutral": {
+     "messages_by_chip": {
+      "PNO": 12
+     },
+     "sy_messages": 0,
+     "key_down_delay_ticks": [
+      null,
+      null,
+      null
+     ],
+     "prepare": 0,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 0,
+     "spi_word": null,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "first_calls": [],
+     "answer_layers": {},
+     "busy_voices_end": 0
+    },
+    "return": {
+     "messages_by_chip": {
+      "PNO": 12
+     },
+     "sy_messages": 0,
+     "key_down_delay_ticks": [
+      null,
+      null,
+      null
+     ],
+     "prepare": 0,
+     "go": 0,
+     "free_after_off_ticks": null,
+     "frees": 0,
+     "voice_updates": 0,
+     "spi_word": null,
+     "peek_addresses": [],
+     "peek_calls": 0,
+     "status_reads": 0,
+     "first_calls": [],
+     "answer_layers": {},
+     "busy_voices_end": 0
+    }
+   }
+  }
+ }
+}

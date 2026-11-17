@@ -36,6 +36,7 @@ import time
 from pathlib import Path
 
 import arm_dsp_link as dl
+import arm_dsp_return as rtn
 import arm_dsp_route as rt
 
 LOAD_TICKS, IDLE_TICKS, KEY_TICKS, OFF_TICKS = 800, 100, 1500, 300
@@ -78,10 +79,11 @@ def phase_delta(before: dict[str, object], after: dict[str, object]) -> dict[str
 class Feeder:
     """Moves the new port stores of the emulator through the grouper to the router."""
 
-    def __init__(self, emu, router: rt.Router) -> None:  # noqa: ANN001
+    def __init__(self, emu, router: rt.Router, observer=None) -> None:  # noqa: ANN001
         import arm_emu as ae
 
         self.emu, self.router, self.ae = emu, router, ae
+        self.observer = observer  # called with every grouped message (return path shadow, D147)
         self.grouper = dl.PortGrouper(
             dl.port_table(ae.PORT2_BASE, ae.PORT1_BASE, ae.COMM_COUNT, emu.pad)
         )
@@ -91,7 +93,37 @@ class Feeder:
         self.emu.port_writes.clear()
         for path, comm, w1, w2, pc in self.grouper.feed(writes):
             m = self.ae.Message(path, comm, w1, w2, pc)
+            if self.observer:
+                self.observer(m)
             self.router.dispatch(path, comm, m.core, m.dm_word, w2)
+
+
+def return_observer(source):  # noqa: ANN001, ANN201
+    """Feeder callback that mirrors every grouped ARM message into the return source."""
+    if source is None:
+        return None
+    return lambda m: source.observe(m.comm, m.core, m.path, m.word1, m.word2)
+
+
+def return_source(items, images: Path | None) -> rtn.ReturnSource:  # noqa: ANN001
+    """Return source with every live chip registered as a live layer (D147)."""
+    source = rtn.ReturnSource(images=rtn.load_images(images, {1: "PNO", 2: "ORG"}))
+    for spec, link in items:
+        source.live[(spec.comm, spec.core)] = link.dump
+    return source
+
+
+def return_report(source: rtn.ReturnSource, log: rtn.ReadLog) -> dict[str, object]:
+    """Numbers of the return path: reads per chip and address, answering layers."""
+    reads = {
+        f"{rtn.CHIPS[c]}:{core}:{dm:#x}": n for (c, core, dm), n in sorted(source.reads.items())
+    }
+    return {
+        "reads": reads,
+        "answered_by": dict(source.layer),
+        "calls": len(log.calls),
+        "busy_voices": rtn.VOICES - bin(source.sy.idle).count("1"),
+    }
 
 
 class Chips:
@@ -155,7 +187,7 @@ def run_ticks(rig, feeder: Feeder, clock: dl.Clock, chips: Chips, ticks: int, in
             chips.run(owed)
 
 
-def drive(ns, chips: Chips, router: rt.Router) -> dict[str, object]:  # noqa: ANN001  # pragma: no cover
+def drive(ns, chips: Chips, router: rt.Router, source=None) -> dict[str, object]:  # noqa: ANN001  # pragma: no cover
     """The whole experiment; returns the result record."""
     import arm_dsp_capture as cap
     import arm_keydown as kd
@@ -169,13 +201,17 @@ def drive(ns, chips: Chips, router: rt.Router) -> dict[str, object]:  # noqa: AN
     session.load_eeproms(apl.build_image(ns.eeprom.read_bytes(), program, ns.program.stem[:23]))
     kd.install_board_present(session.emu)
     real_port_capture(session.emu)
-    feeder = Feeder(session.emu, router)
+    feeder = Feeder(session.emu, router, return_observer(source))
     pc, insns = boot_live(session, feeder, chips)
     result: dict[str, object] = {"boot_pc": f"{pc:#x}", "boot_insns": insns}
     result["boot"] = {s.name: snapshot(link, t0) for s, link in chips.items}
     rig = kd.Rig(session.emu, kd.Uart2().install(session.emu))
     session.emu.install_dsp_ports()
-    cap.install_dsp_ack(session.emu)
+    read_log = rtn.ReadLog()
+    if source:
+        rtn.install(session.emu, source, read_log)
+    else:
+        cap.install_dsp_ack(session.emu)
     feeder.grouper.pending.clear()
     clock, phases = dl.Clock(), {}
     prev = {s.name: snapshot(link, t0) for s, link in chips.items}
@@ -200,6 +236,8 @@ def drive(ns, chips: Chips, router: rt.Router) -> dict[str, object]:  # noqa: AN
         skipped_out_of_window=router.skipped,
     )
     result["ticks"], result["clock_passes"] = clock.ticks, clock.passes
+    if source:
+        result["return_path"] = return_report(source, read_log)
     return result
 
 
@@ -265,6 +303,9 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
     ap.add_argument("--insns-per-tick", type=int, default=200_000)
     ap.add_argument("--old-replay", metavar="RECALL,KEY", help="chip names, e.g. ORG2,PNO2: the "
                     "D132 way: RECALL chip stream + the KEY chip's key and off words")  # fmt: skip
+    ap.add_argument("--return-path", action="store_true",
+                    help="serve the ARM SPI reads from the DSP side (D147)")  # fmt: skip
+    ap.add_argument("--images", type=Path, help="dir with PNO ORG core<N>_sram.bin")
     ap.add_argument("--log", type=Path, help="directory for one msg-script per chip")
     ap.add_argument("--out", type=Path)
     ns = ap.parse_args(argv)
@@ -277,7 +318,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
         items.append((s, link))
     chips = Chips(items)
     try:
-        result = drive(ns, chips, router)
+        source = return_source(items, ns.images) if ns.return_path else None
+        result = drive(ns, chips, router, source)
         result["chips"] = {s.name: " ".join(s.flags()) for s in specs}
         if ns.log:
             ns.log.mkdir(parents=True, exist_ok=True)

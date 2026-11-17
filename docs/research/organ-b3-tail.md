@@ -1,4 +1,4 @@
-# B3 processor tail `0x121E2B`: the frequency response seen from the ring words
+# B3 processor tail `0x121E2B`: the frequency response seen from the ring words
 
 > **Superseded (2026-11-13):** the table, chord and hardware numbers below were measured on an oracle state that lacked the ARM boot messages. The tail is now the table of [b3-tail-bootstate](b3-tail-bootstate.md) (7 to 26 dB higher, smooth); this note keeps the method and the earlier results for the record.
 

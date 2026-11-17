@@ -1,0 +1,113 @@
+{
+ "program": "String Quintet",
+ "chips": [
+  "PNO:2=org",
+  "ORG:2=org"
+ ],
+ "result": {
+  "return_path": {
+   "reads": {
+    "PNO:2:0xc1ddc": 1,
+    "PNO:2:0xc1ddd": 1,
+    "PNO:2:0xc1dde": 1,
+    "PNO:2:0xc1ddf": 1,
+    "ORG:1:0xc1ddc": 1,
+    "ORG:1:0xc1ddd": 1,
+    "ORG:1:0xc1dde": 1,
+    "ORG:1:0xc1ddf": 1,
+    "ORG:2:0xc1ddc": 1,
+    "ORG:2:0xc1ddd": 1,
+    "ORG:2:0xc1dde": 1,
+    "ORG:2:0xc1ddf": 1
+   },
+   "answered_by": {
+    "live": 8,
+    "zero": 4
+   },
+   "calls": 3,
+   "busy_voices": 0
+  },
+  "phases": {
+   "load": {
+    "ticks": 800,
+    "PNO2": {
+     "messages_sent": 900,
+     "distinct_words": 810,
+     "passes": 723,
+     "idle_passes": 723,
+     "probe_hits": {}
+    },
+    "ORG2": {
+     "messages_sent": 900,
+     "distinct_words": 810,
+     "passes": 723,
+     "idle_passes": 723,
+     "probe_hits": {}
+    }
+   },
+   "idle": {
+    "ticks": 100,
+    "PNO2": {
+     "messages_sent": 0,
+     "distinct_words": 0,
+     "passes": 90,
+     "idle_passes": 90,
+     "probe_hits": {}
+    },
+    "ORG2": {
+     "messages_sent": 0,
+     "distinct_words": 0,
+     "passes": 90,
+     "idle_passes": 90,
+     "probe_hits": {}
+    }
+   },
+   "key": {
+    "ticks": 1500,
+    "PNO2": {
+     "messages_sent": 1,
+     "distinct_words": 0,
+     "passes": 1357,
+     "idle_passes": 1357,
+     "probe_hits": {}
+    },
+    "ORG2": {
+     "messages_sent": 0,
+     "distinct_words": 0,
+     "passes": 1357,
+     "idle_passes": 1357,
+     "probe_hits": {}
+    }
+   },
+   "off": {
+    "ticks": 300,
+    "PNO2": {
+     "messages_sent": 1,
+     "distinct_words": 0,
+     "passes": 271,
+     "idle_passes": 271,
+     "probe_hits": {}
+    },
+    "ORG2": {
+     "messages_sent": 0,
+     "distinct_words": 0,
+     "passes": 271,
+     "idle_passes": 271,
+     "probe_hits": {}
+    }
+   }
+  },
+  "arm_messages": {
+   "FX1p2": 3505,
+   "FX2p2": 2765,
+   "ORG1p2": 25059,
+   "ORG2p2": 13239,
+   "PNO1p2": 35694,
+   "PNO2p2": 13241,
+   "SMP0p1": 1540,
+   "SY0p1": 290
+  },
+  "ticks": 2700,
+  "clock_passes": 2441
+ }
+}
