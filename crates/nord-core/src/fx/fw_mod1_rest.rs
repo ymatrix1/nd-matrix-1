@@ -19,10 +19,11 @@ use super::fw_mod1_data as d;
 use super::fw_mod1_dense as dense;
 use super::fw_mod2_data::{Law, SAMPLES};
 use super::fw_mod2_run::{process, Mod2State, Routine};
-use super::fw_pump_clock::{sync_increment, MasterClockTick};
+use super::fw_pump_clock::{multiplier, ClockWord, CLOCK_ADDRESS, CLOCK_WORD};
 
-/// PUMP counter word `c[-0x15]` (Master Clock tick, `fw_pump_clock`).
-const PUMP_COUNTER: i32 = -0x15;
+/// PUMP position pointer `c[-29]` and phase multiplier `c[-28]` (rewritten by the ARM under MST CLK).
+const PUMP_POINTER: i32 = -29;
+const PUMP_MULTIPLIER: i32 = -28;
 
 /// One wired type: routine, instance row (and its `I1`), type words, laws, phase words.
 struct Spec {
@@ -161,9 +162,11 @@ pub(super) struct FwMod1Rest {
     input: [[f32; 2]; 2],
     output: [[f32; 2]; 2],
     pos: usize,
-    /// PUMP only: Master Clock division period in engine frames (`None`: free run, counter untouched).
+    /// PUMP only: Master Clock division period in engine frames (`None`: free run).
     clock_period: Option<f64>,
-    clock: MasterClockTick,
+    /// Phase multiplier `N` written to `c[-28]` under the clock (`fw_pump_clock`).
+    clock_n: u32,
+    clock: ClockWord,
 }
 
 impl FwMod1Rest {
@@ -196,7 +199,8 @@ impl FwMod1Rest {
             output: [[0.0; 2]; 2],
             pos: 0,
             clock_period: None,
-            clock: MasterClockTick::default(),
+            clock_n: 1,
+            clock: ClockWord::default(),
         };
         me.set_params(rate, amount);
         Some(me)
@@ -214,15 +218,27 @@ impl FwMod1Rest {
         self.ty
     }
 
-    /// Follows the Master Clock (PUMP types 10, 11 only): `Some(period)` drives the counter
-    /// `c[-0x15]` once per `period` engine frames, `None` leaves it alone (free run). Other types
-    /// ignore it.
-    pub(super) fn set_clock_period(&mut self, period: Option<f64>) {
-        let period = period.filter(|_| matches!(self.ty, 10 | 11));
-        if period.is_none() != self.clock_period.is_none() {
+    /// Follows the Master Clock (PUMP types 10, 11 only): `Some((period, beats))` is the division
+    /// of `beats` beats lasting `period` engine frames; it points `c[-29]` at the clock word and
+    /// sets `c[-28]` to `N = 32 / beats` like the ARM (`fw_pump_clock`). `None` is free run (own
+    /// phase, `N` = 1). Other types ignore it.
+    pub(super) fn set_clock_period(&mut self, clock: Option<(f64, f32)>) {
+        let clock = clock.filter(|_| matches!(self.ty, 10 | 11));
+        let was_synced = self.clock_period.is_some();
+        if clock.is_some() != was_synced {
             self.clock.restart();
         }
-        self.clock_period = period;
+        self.clock_period = clock.map(|c| c.0);
+        self.clock_n = clock.map_or(1, |c| multiplier(c.1));
+        // Free run that was never synced keeps its boot words untouched.
+        if clock.is_some() || was_synced {
+            self.st.ctx[index(PUMP_POINTER)] = if clock.is_some() {
+                CLOCK_ADDRESS
+            } else {
+                CTX_I1 - 31
+            };
+            self.st.ctx[index(PUMP_MULTIPLIER)] = self.clock_n;
+        }
     }
 
     /// Writes the targets of `kFx1RateClkDiv` and `kFx1Amt`.
@@ -242,10 +258,6 @@ impl FwMod1Rest {
                 self.st.ctx[index(law.off)] = to_word(law, x);
             }
         }
-        if let Some(period) = self.clock_period {
-            // Under the Master Clock one cycle is one division (`fw_pump_clock`).
-            self.st.ctx[index(-32)] = sync_increment(period);
-        }
     }
 
     /// Pushes one frame and returns the frame of the previous block at the same position.
@@ -258,9 +270,9 @@ impl FwMod1Rest {
             self.pos = 0;
             let routine = spec(self.ty).map_or(Routine::Rm, |s| s.routine);
             if let Some(period) = self.clock_period {
-                if let Some(counter) = self.clock.advance(2.0, period) {
-                    self.st.ctx[index(PUMP_COUNTER)] = counter;
-                }
+                // The clock word wraps every `N` divisions; one call is two frames.
+                self.st.ctx[index(CLOCK_WORD)] =
+                    self.clock.advance(2.0, period * f64::from(self.clock_n));
             }
             let mut block: [f32; 4] = std::array::from_fn(|i| self.input[i / 2][i % 2]);
             process(routine, &mut self.st, &mut block);
@@ -370,24 +382,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn a_counter_change_resets_the_pump_phase_and_a_constant_counter_does_not() {
-        let gain_after = |tick: bool| {
-            let mut st = FwMod1Rest::new(10, 73, 127, 48_000.0).unwrap();
-            st.set_clock_period(Some(22_857.0));
-            st.set_params(73, 127); // writes the division increment
-            let mut g = 0.0;
-            for i in 0..11_000 {
-                if tick && i == 10_000 {
-                    st.clock.restart(); // the next block changes `c[-0x15]`
-                }
-                g = st.process_frame([1.0, 1.0])[0];
-            }
-            g
-        };
-        // 11,000 frames into a 22,857 frame cycle the gain has recovered (>0.9); a tick at
-        // frame 10,000 restarts the cycle 1,000 frames earlier (gain < 0.4).
-        assert!(gain_after(false) > 0.9, "{}", gain_after(false));
-        assert!(gain_after(true) < 0.4, "{}", gain_after(true));
-    }
+    // PUMP sync tests (counter, clock word, `c[0x2A]`): `fw_mod1_rest/sync_tests.rs`.
 }
+
+#[cfg(test)]
+mod sync_tests;

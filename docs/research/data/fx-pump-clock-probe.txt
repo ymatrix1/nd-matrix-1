@@ -1,0 +1,14 @@
+# python tools/fx_pump_clock_probe.py CODE SRAM --cache SNAP --rate R (firmware v1.66, unit 0, kFx1Type 10, kFx1ClkEnable 0 then 1); numbers only
+# pointer_dm = c[-29] of one PUMP instance, free_target = its free-run value (own phase c[-31]), sync_target = value under MST CLK, n_dm = c[-28], n = N(v)
+rate 73: pointer_dm 0xc15a1
+rate 73: free_target 0xc159f
+rate 73: sync_target 0xc0c70
+rate 73: n_dm 0xc15a2
+rate 73: n 0x20
+rate 73: free_n 0x1
+rate 40: pointer_dm 0xc15a1
+rate 40: free_target 0xc159f
+rate 40: sync_target 0xc0c70
+rate 40: n_dm 0xc15a2
+rate 40: n 0x8
+rate 40: free_n 0x1

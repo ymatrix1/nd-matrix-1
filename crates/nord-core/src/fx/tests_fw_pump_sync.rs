@@ -1,4 +1,4 @@
-//! Firmware PUMP (`FirmwareFx::mod1`, `kFx1Type` 10, 11) driven by the Master Clock counter.
+//! Firmware PUMP (`FirmwareFx::mod1`, `kFx1Type` 10, 11) driven by the Master Clock word.
 
 use super::*;
 

@@ -1,25 +1,65 @@
-//! Master Clock tick generator for the firmware PUMP (`kFx1Type` 10, 11, routine `0x122D2C`).
+//! Master Clock input of the firmware PUMP (`kFx1Type` 10, 11, routine `0x122D2C`).
 //!
-//! The routine compares the counter word `c[-0x15]` with its copy `c[-0x14]` (`fl_icomp`, signed
-//! integer compare, `fw_pump.rs`): **any change** resets the phase `c[-0x1F]` to `0x80000000`
-//! and stores the new value in the copy; the counter's value and rate carry no other meaning.
-//! One change per Master Clock division therefore gives one duck per division, and the cycle
-//! period is the division period (`60 / bpm * beats` s) whatever the counter step is.
+//! **How the hardware follows the beat (ARM run + routine, D149).** The routine reads its LFO
+//! position through the pointer `c[-29]`: `g = f(imul([c[-29]], c[-28]) + c[-18])`. Free run
+//! points `c[-29]` at its own phase word `c[-31]` with `c[-28] = 1`. With `kFx1ClkEnable` = 1 the
+//! ARM handler of `kFx1RateClkDiv` rewrites **both**: `c[-29]` becomes the address `0xC0C70` (a
+//! word of the FX core 1 pass, copied every pass from `DM(0xC0230)`, the head of the SMP serial
+//! frame buffer) and `c[-28]` becomes `N(v)`. The own phase, its increment `c[-32]` and the
+//! counter `c[-0x15]` then no longer reach the output: the gain is a function of the clock word
+//! times `N`, so the duck repeats `N` times per wrap of the clock word. The word is filled on the
+//! DSP side (DMA), not by an ARM message: the ARM never writes it (boot log, harness).
 //!
-//! VERIFIED (DSP side): reset on any change of `c[-0x15]`, none while it is constant, by the
-//! oracle-verified port (`fw_pump::run`, 500/500 against `sharc-fxlive`) and the tests below and
-//! in `tests_fw_pump_sync.rs`. ASSUMED: that the hardware's writer advances the counter once per
-//! division, and its alignment to the beat grid (the writer is unknown, OQ36); the only evidence
-//! is the 2.11 Hz of one A:25 clip at 126 BPM (`docs/research/arm-tick-timers.md` s4).
+//! VERIFIED: pointer, `N` and the unchanged `c[-18]`, `c[-22]` under MST CLK = ARM run
+//! (`docs/research/fx-mod-types.md` s7.2, `tools/fx_pump_clock_probe.py`, output `docs/research/data/fx-pump-clock-probe.txt`); `c[-29]` is the only
+//! read of the position (the oracle verified port `fw_pump`, 500/500). ASSUMED: the clock word
+//! wraps once per 32 beats (what makes A:25, `N` = 32, one duck per beat, EMPIRICAL 2.11 Hz at
+//! 126 BPM against 2.10 Hz) and is 0 at the clock start, so the duck falls on the beat
+//! (`imul(0, N) + c[-18]` crosses the sign boundary). The writer of the clock word is open (OQ36).
 
-/// Phase increment per call `c[-32]` that makes one phase cycle (`2^32`) last one division of
-/// `period` engine frames at two frames per call: `floor(2^33 / period)`, rounded down so the
-/// natural wrap never lands before the tick (no double duck). ASSUMED (the hardware's value under
-/// Master Clock is not captured, OQ36); the free-run law is ignored in sync because the same
-/// `kFx1RateClkDiv` value is the division index there.
-pub(super) fn sync_increment(period: f64) -> u32 {
-    let inc = (8_589_934_592.0 / period.max(4.0)).floor();
-    inc.clamp(1.0, f64::from(i32::MAX)) as u32
+use super::fw_chorus::CTX_I1;
+
+/// Spare context word `c[0x2A]` that holds the engine's clock word; `c[-29]` points at it under
+/// the Master Clock (the hardware points at `0xC0C70`).
+pub(super) const CLOCK_WORD: i32 = 0x2A;
+
+/// Address of [`CLOCK_WORD`] in the context of the port (the value of `c[-29]` under sync).
+pub(super) const CLOCK_ADDRESS: u32 = CTX_I1 + CLOCK_WORD as u32;
+
+/// Span of the clock word in beats (one wrap of 2^32). ASSUMED (see the module note).
+const SPAN_BEATS: f32 = 32.0;
+
+/// Phase multiplier `N` for a division of `beats`: `32 / beats` rounded, at least 1. Equals the
+/// ARM's `N(v)` for the stored rates (`sync_beats(v) = 32 / N`).
+pub(super) fn multiplier(beats: f32) -> u32 {
+    if beats.is_finite() && beats > 0.0 {
+        (SPAN_BEATS / beats).round().clamp(1.0, 4096.0) as u32
+    } else {
+        1
+    }
+}
+
+/// Clock word generator: a 32 bit saw that wraps once every `span` engine frames.
+#[derive(Debug, Clone, Default)]
+pub(super) struct ClockWord {
+    frac: f64,
+}
+
+impl ClockWord {
+    /// Restarts at word 0 (the clock start).
+    pub(super) fn restart(&mut self) {
+        self.frac = 0.0;
+    }
+
+    /// Advances by `frames` engine frames over a wrap of `span` frames and returns the word
+    /// before the step. A bad span holds the word.
+    pub(super) fn advance(&mut self, frames: f64, span: f64) -> u32 {
+        let word = (self.frac * 4_294_967_296.0) as u32;
+        if span.is_finite() && span > 0.0 {
+            self.frac = (self.frac + frames / span).fract();
+        }
+        word
+    }
 }
 
 /// First rate value `v` (7 bit `kFx1RateClkDiv`) of each of the 15 steps of the PUMP phase
@@ -58,98 +98,45 @@ pub(crate) fn sync_beats(v: u32) -> f32 {
     32.0 / n
 }
 
-/// Counter generator: one new counter value every `period` engine frames.
-#[derive(Debug, Clone, Default)]
-pub(super) struct MasterClockTick {
-    started: bool,
-    acc: f64,
-    counter: u32,
-}
-
-impl MasterClockTick {
-    /// Restarts the generator: the next [`Self::advance`] ticks at once (a clock that has just
-    /// been enabled starts a duck, like the first beat).
-    pub(super) fn restart(&mut self) {
-        self.started = false;
-        self.acc = 0.0;
-    }
-
-    /// Advances by `frames` engine frames with a tick every `period` frames. Returns the new
-    /// counter word when a tick happened (at most one per call), else `None`. The counter
-    /// increments by 1 and wraps; it is never 0 after the first tick so it differs from the boot
-    /// value of the copy word.
-    pub(super) fn advance(&mut self, frames: f64, period: f64) -> Option<u32> {
-        if !(period.is_finite() && period > 0.0) {
-            return None;
-        }
-        let tick = if self.started {
-            self.acc += frames;
-            if self.acc >= period {
-                self.acc %= period;
-                true
-            } else {
-                false
-            }
-        } else {
-            self.started = true;
-            true
-        };
-        tick.then(|| {
-            self.counter = self.counter.wrapping_add(1);
-            self.counter
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn the_first_call_ticks_then_one_tick_per_period() {
-        let mut c = MasterClockTick::default();
-        assert_eq!(c.advance(2.0, 100.0), Some(1));
-        let ticks = (0..1000).filter_map(|_| c.advance(2.0, 100.0)).count();
-        assert_eq!(ticks, 20, "2000 frames at a period of 100 frames");
-    }
-
-    #[test]
-    fn the_counter_changes_on_every_tick() {
-        let mut c = MasterClockTick::default();
+    fn the_clock_word_wraps_once_per_span_and_restarts_at_zero() {
+        let mut c = ClockWord::default();
+        assert_eq!(c.advance(2.0, 1000.0), 0);
         let mut last = 0;
-        for _ in 0..50 {
-            if let Some(v) = c.advance(2.0, 10.0) {
-                assert_ne!(v, last);
-                last = v;
+        let mut wraps = 0;
+        for _ in 0..999 {
+            let w = c.advance(2.0, 1000.0);
+            if w < last {
+                wraps += 1;
             }
+            last = w;
         }
-        assert!(last >= 9);
+        assert_eq!(wraps, 1, "2000 frames over a 1000 frame span");
+        assert!((f64::from(last) / 4_294_967_296.0 - 0.998).abs() < 1.0e-3);
+        c.restart();
+        assert_eq!(c.advance(2.0, 1000.0), 0);
+        let held = c.advance(2.0, 0.0);
+        assert_eq!(c.advance(2.0, f64::NAN), held, "a bad span holds the word");
     }
 
     #[test]
-    fn a_fractional_period_keeps_its_long_term_rate() {
-        let mut c = MasterClockTick::default();
-        let period = 22_857.142_857; // 126 BPM at 48 kHz, quarter note
-        let n = (0..470_000).filter_map(|_| c.advance(2.0, period)).count();
-        // 470,000 calls x 2 frames = 940,000 frames = 41.1 periods, plus the first tick.
-        assert_eq!(n, 42);
-    }
-
-    #[test]
-    fn the_sync_increment_spans_one_division() {
-        // 126 BPM quarter note at 48 kHz: 11,428.57 calls of two frames per cycle.
-        let inc = f64::from(sync_increment(22_857.142_857));
-        let calls = 4_294_967_296.0 / inc;
-        assert!((calls - 11_428.57).abs() < 0.5, "{calls}");
-        assert!(
-            calls * 2.0 >= 22_857.142_857 - 1.0e-6,
-            "wrap never before the tick"
-        );
-        // Half the division is twice the increment; absurd periods stay in range.
-        let ratio = f64::from(sync_increment(11_428.571_428)) / inc;
-        assert!((ratio - 2.0).abs() < 1.0e-3, "{ratio}");
-        assert_eq!(sync_increment(0.0), i32::MAX as u32);
-        assert_eq!(sync_increment(f64::MAX), 1);
+    fn the_multiplier_is_the_arm_n_for_the_stored_rates() {
+        assert_eq!(multiplier(1.0), 32);
+        assert_eq!(multiplier(0.125), 256);
+        assert_eq!(multiplier(16.0), 2);
+        assert_eq!(multiplier(0.0), 1);
+        assert_eq!(multiplier(f32::NAN), 1);
+        for v in 0..128 {
+            assert_eq!(
+                multiplier(sync_beats(v)) as f32,
+                32.0 / sync_beats(v),
+                "v {v}"
+            );
+        }
     }
 
     #[test]
@@ -165,18 +152,6 @@ mod tests {
             let (v, n) = line.split_once(',').unwrap();
             let (v, n): (u32, f32) = (v.parse().unwrap(), n.parse().unwrap());
             assert_eq!(sync_beats(v), 32.0 / n, "v {v}");
-        }
-    }
-
-    #[test]
-    fn restart_ticks_again_and_a_bad_period_never_ticks() {
-        let mut c = MasterClockTick::default();
-        assert!(c.advance(2.0, 100.0).is_some());
-        assert!(c.advance(2.0, 100.0).is_none());
-        c.restart();
-        assert!(c.advance(2.0, 100.0).is_some());
-        for p in [0.0, -1.0, f64::NAN, f64::INFINITY] {
-            assert!(c.advance(2.0, p).is_none(), "{p}");
         }
     }
 }
