@@ -261,7 +261,7 @@ Use-weighted: a path used by two layers counts twice. A `verified` row means the
 - `default`: 384 of 384 rendered without panic; non-finite 0, silent 0, any clipped sample 24, clipping >= 0.1%: 5.
 - `firmware`: 384 of 384 rendered without panic; non-finite 0, silent 0, any clipped sample 30, clipping >= 0.1%: 6.
 
-Level difference firmware minus default (RMS, dB) over 384 programs: min -8.95, p10 -1.47, median 0.44, p90 3.51, max 9.61, mean 0.69.
+Level difference firmware minus default (RMS, dB) over 384 programs: min -8.95, p10 -1.43, median 0.44, p90 3.51, max 9.61, mean 0.69.
 
 ### Outliers
 

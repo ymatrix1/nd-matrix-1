@@ -27,18 +27,16 @@ impl Stage4Engine {
         } else {
             0.0
         };
-        // MST CLK of the PUMP (types 10, 11): the stored `mod1_clock_sync` switches the Master
-        // Clock on and the 7 bit rate selects one of the 17 divisions. ASSUMED: the same 17
-        // divisions and index law as the delay (`delay_sync_beats_from_index`); the A:25 clip
-        // (rate 73 -> 0.375 beats = 5.6 Hz at 126 BPM against the measured 2.11 Hz) does not
-        // agree, so the rate -> division law is open (OQ36). Only PUMP is loaded: the other
-        // Mod 1 types keep their engine models free running as before.
+        // MST CLK of the PUMP (types 10, 11): the stored MST CLK flag switches the Master Clock
+        // on; the 7 bit rate selects the phase multiplier `N` the ARM writes to `c[-28]`, which
+        // is `N / 32` ducks per beat (`fx::sync_beats`, VERIFIED ARM run, EMPIRICAL on A:25). Only
+        // PUMP is loaded: the other Mod 1 types keep their engine models free running.
         fx.mod1_sync_beats = (dec.mod1_enabled
             && dec.mod1_clock_sync
             && matches!(dec.mod1_type_raw, 10 | 11))
         .then(|| {
-            let raw = (dec.mod1_rate.clamp(0.0, 1.0) * 127.0).round() as usize;
-            crate::fx::delay_sync_beats_from_index(raw)
+            let raw = (dec.mod1_rate.clamp(0.0, 1.0) * 127.0).round() as u32;
+            crate::fx::pump_sync_beats(raw)
         });
         fx.mod2_type_raw = Some(dec.mod2_type_raw);
         fx.mod2_rate_raw = Some((dec.mod2_rate.clamp(0.0, 1.0) * 127.0).round() as u8);

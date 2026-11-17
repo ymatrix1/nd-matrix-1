@@ -1503,13 +1503,13 @@
   },
   {
    "entry": "Program/Bank A/Boxxx.ns4p",
-   "rms_delta_db": 0.679395318031311,
+   "rms_delta_db": 0.8225432634353638,
    "default": {
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.5051,
-    "rms": 0.10744,
+    "peak": 0.45,
+    "rms": 0.10656,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -1518,8 +1518,8 @@
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.5391,
-    "rms": 0.11619,
+    "peak": 0.5874,
+    "rms": 0.11715,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -2223,13 +2223,13 @@
   },
   {
    "entry": "Program/Bank A/Shoreline Whl.ns4p",
-   "rms_delta_db": -1.4703477621078491,
+   "rms_delta_db": -1.1720070838928223,
    "default": {
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.5683,
-    "rms": 0.10413,
+    "peak": 0.5844,
+    "rms": 0.1019,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -2238,8 +2238,8 @@
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.4134,
-    "rms": 0.08791,
+    "peak": 0.3808,
+    "rms": 0.08904,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -2247,13 +2247,13 @@
   },
   {
    "entry": "Program/Bank A/Sidechain Whl II.ns4p",
-   "rms_delta_db": 4.511974334716797,
+   "rms_delta_db": 4.80601167678833,
    "default": {
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.6161,
-    "rms": 0.07025,
+    "peak": 0.655,
+    "rms": 0.06867,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -2262,8 +2262,8 @@
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.9054,
-    "rms": 0.1181,
+    "peak": 0.905,
+    "rms": 0.11942,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -4503,13 +4503,13 @@
   },
   {
    "entry": "Program/Bank C/Dance Lead.ns4p",
-   "rms_delta_db": -0.4535492956638336,
+   "rms_delta_db": -0.08928031474351883,
    "default": {
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.176,
-    "rms": 0.03299,
+    "peak": 0.1295,
+    "rms": 0.03261,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -4518,8 +4518,8 @@
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.1328,
-    "rms": 0.03132,
+    "peak": 0.1504,
+    "rms": 0.03227,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -6039,13 +6039,13 @@
   },
   {
    "entry": "Program/Bank D/Calling Whl.ns4p",
-   "rms_delta_db": 1.2997565269470215,
+   "rms_delta_db": 1.291593313217163,
    "default": {
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.5411,
-    "rms": 0.08329,
+    "peak": 0.5413,
+    "rms": 0.08335,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -6054,8 +6054,8 @@
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.6405,
-    "rms": 0.09674,
+    "peak": 0.6404,
+    "rms": 0.09671,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -6927,13 +6927,13 @@
   },
   {
    "entry": "Program/Bank D/Sidechain String.ns4p",
-   "rms_delta_db": -0.921485185623169,
+   "rms_delta_db": -0.7414040565490723,
    "default": {
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.3106,
-    "rms": 0.055,
+    "peak": 0.318,
+    "rms": 0.05468,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -6942,8 +6942,8 @@
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.3191,
-    "rms": 0.04946,
+    "peak": 0.3494,
+    "rms": 0.05021,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -8079,13 +8079,13 @@
   },
   {
    "entry": "Program/Bank E/J3 Super Sawz.ns4p",
-   "rms_delta_db": -2.088648796081543,
+   "rms_delta_db": -2.9541876316070557,
    "default": {
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.3161,
-    "rms": 0.04933,
+    "peak": 0.3257,
+    "rms": 0.05291,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -8094,8 +8094,8 @@
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.2726,
-    "rms": 0.03879,
+    "peak": 0.2407,
+    "rms": 0.03766,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -9975,13 +9975,13 @@
   },
   {
    "entry": "Program/Bank F/ScissorSplit Whl.ns4p",
-   "rms_delta_db": -1.6783411502838135,
+   "rms_delta_db": -1.4052598476409912,
    "default": {
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.149,
-    "rms": 0.01315,
+    "peak": 0.1481,
+    "rms": 0.01314,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -9990,8 +9990,8 @@
     "finite": true,
     "nan": 0,
     "inf": 0,
-    "peak": 0.0846,
-    "rms": 0.01084,
+    "peak": 0.0929,
+    "rms": 0.01118,
     "clipped": 0,
     "clip_fraction": 0.0,
     "silent": false
@@ -10544,7 +10544,7 @@
  "level_delta_db": {
   "n": 384,
   "min": -8.95,
-  "p10": -1.47,
+  "p10": -1.43,
   "median": 0.44,
   "p90": 3.51,
   "max": 9.61,

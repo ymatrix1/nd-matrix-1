@@ -22,6 +22,42 @@ pub(super) fn sync_increment(period: f64) -> u32 {
     inc.clamp(1.0, f64::from(i32::MAX)) as u32
 }
 
+/// First rate value `v` (7 bit `kFx1RateClkDiv`) of each of the 15 steps of the PUMP phase
+/// multiplier `c[-28]` the ARM writes under MST CLK, and that multiplier `N`.
+///
+/// VERIFIED: harness run (`tools/fx_clients.py` unit 0, type 10, `kFx1ClkEnable` 1, `kFx1RateClkDiv`
+/// 0..=127, word `c[-28]`, `docs/research/data/fx-pump-sync-n.csv`): 128 of 128 values; without sync
+/// `c[-28]` is 1. ASSUMED: that the phase spans 32 beats, so `N` cycles per 32 beats = `N / 32`
+/// ducks per beat; it reproduces the one hardware clip (A:25 rate 73: `N` = 32, one beat, 2.11 Hz
+/// measured at 126 BPM, EMPIRICAL).
+const SYNC_STEPS: [(u32, f32); 15] = [
+    (0, 2.0),
+    (9, 3.0),
+    (18, 4.0),
+    (26, 6.0),
+    (35, 8.0),
+    (43, 12.0),
+    (52, 16.0),
+    (60, 24.0),
+    (69, 32.0),
+    (77, 48.0),
+    (86, 64.0),
+    (94, 96.0),
+    (103, 128.0),
+    (111, 192.0),
+    (120, 256.0),
+];
+
+/// Beats per PUMP cycle under MST CLK for the stored 7 bit rate `v`: `32 / N(v)`.
+pub(crate) fn sync_beats(v: u32) -> f32 {
+    let n = SYNC_STEPS
+        .iter()
+        .rev()
+        .find(|(from, _)| v >= *from)
+        .map_or(2.0, |s| s.1);
+    32.0 / n
+}
+
 /// Counter generator: one new counter value every `period` engine frames.
 #[derive(Debug, Clone, Default)]
 pub(super) struct MasterClockTick {
@@ -114,6 +150,22 @@ mod tests {
         assert!((ratio - 2.0).abs() < 1.0e-3, "{ratio}");
         assert_eq!(sync_increment(0.0), i32::MAX as u32);
         assert_eq!(sync_increment(f64::MAX), 1);
+    }
+
+    #[test]
+    fn the_sync_law_matches_the_captured_steps() {
+        assert_eq!(sync_beats(73), 1.0, "A:25: one duck per beat");
+        assert_eq!(sync_beats(0), 16.0);
+        assert_eq!(sync_beats(8), 16.0);
+        assert_eq!(sync_beats(9), 32.0 / 3.0);
+        assert_eq!(sync_beats(68), 32.0 / 24.0);
+        assert_eq!(sync_beats(127), 0.125);
+        let csv = include_str!("../../../../docs/research/data/fx-pump-sync-n.csv");
+        for line in csv.lines().skip(1) {
+            let (v, n) = line.split_once(',').unwrap();
+            let (v, n): (u32, f32) = (v.parse().unwrap(), n.parse().unwrap());
+            assert_eq!(sync_beats(v), 32.0 / n, "v {v}");
+        }
     }
 
     #[test]

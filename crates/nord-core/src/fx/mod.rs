@@ -66,6 +66,7 @@ mod fw_phas0;
 mod fw_phas1;
 mod fw_pump;
 mod fw_pump_clock;
+pub(crate) use fw_pump_clock::sync_beats as pump_sync_beats;
 mod fw_reverb;
 mod fw_rm;
 mod fw_rvb_core;

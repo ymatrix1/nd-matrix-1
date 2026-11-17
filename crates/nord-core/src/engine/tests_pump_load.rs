@@ -51,8 +51,8 @@ fn duck_hz(fx: &mut LayerFxChain, bpm: f32, secs: usize) -> f64 {
 
 #[test]
 fn a_synced_pump_program_follows_the_clock_at_the_program_bpm() {
-    // Rate 33 selects division 4 of the 17 (1 beat): 126 BPM -> 2.10 Hz (hardware A:25: 2.11 Hz).
-    let mut fx = loaded(&program(33, true, true, 126.0));
+    // Rate 73 (A:25) is the step with N = 32: one duck per beat, 126 BPM -> 2.10 Hz (hardware 2.11 Hz).
+    let mut fx = loaded(&program(73, true, true, 126.0));
     assert_eq!(fx.mod1_sync_beats, Some(1.0));
     let hz = duck_hz(&mut fx, 126.0, 20);
     assert!((hz - 2.10).abs() < 0.1, "{hz}");
@@ -61,7 +61,7 @@ fn a_synced_pump_program_follows_the_clock_at_the_program_bpm() {
 #[test]
 fn without_mst_clk_or_when_disabled_the_pump_free_runs() {
     for (sync, enabled) in [(false, true), (true, false)] {
-        let fx = loaded(&program(33, sync, enabled, 126.0));
+        let fx = loaded(&program(73, sync, enabled, 126.0));
         assert_eq!(fx.mod1_sync_beats, None, "sync {sync} enabled {enabled}");
     }
     let mut free = loaded(&program(73, false, true, 126.0));
@@ -71,7 +71,7 @@ fn without_mst_clk_or_when_disabled_the_pump_free_runs() {
 
 #[test]
 fn only_the_pump_types_load_the_clock() {
-    let mut prog = program(33, true, true, 126.0);
+    let mut prog = program(73, true, true, 126.0);
     prog.synth.fx_a.mod1_type_raw = 0; // A-PAN keeps its free running engine model
     let mut engine = Stage4Engine::new(48_000.0);
     engine.apply_program(&prog);
@@ -79,9 +79,16 @@ fn only_the_pump_types_load_the_clock() {
 }
 
 #[test]
-fn the_rate_to_division_law_of_the_a25_pump_is_the_assumed_delay_law() {
-    // A:25 Sidechain Whl II stores rate 73 with MST CLK on. The delay law gives 0.375 beats
-    // (5.6 Hz at 126 BPM) where the clip shows 2.11 Hz (one beat): the law is ASSUMED and open.
-    let fx = loaded(&program(73, true, true, 126.0));
-    assert_eq!(fx.mod1_sync_beats, Some(0.375));
+fn the_stored_rate_selects_the_captured_division() {
+    // 15 steps of the ARM's phase multiplier N (`fx-pump-sync-n.csv`): beats = 32 / N.
+    for (rate, beats) in [
+        (0, 16.0),
+        (35, 4.0),
+        (73, 1.0),
+        (100, 1.0 / 3.0),
+        (127, 0.125),
+    ] {
+        let fx = loaded(&program(rate, true, true, 126.0));
+        assert_eq!(fx.mod1_sync_beats, Some(beats), "rate {rate}");
+    }
 }
