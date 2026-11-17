@@ -7,6 +7,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 | # | Date | Decision | Status |
 |---|---|---|---|
 | [D153](#d153-the-sy-chip-runs-live-behind-sharc-live-interrupt-driven-opt-in-the-stub-never-sent-go-because-the-arm-polls-inside-one-tick-with-the-poll-fed-go-is-sent-choir-reaches-playing-past-first-ring-is-not-shown) | 2026-11-17 | SY chip live on the ARM-DSP link, opt-in `--sy`; wait at `0xC01E26FC` explained | proposed |
+| [D152](#d152-pump-clock-word-dm0xc0230-is-not-in-the-smp-frame-no-arm-or-smp-writer-found-in-the-paths-run-span-and-zero-point-stay-assumed) | 2026-11-17 | PUMP clock word `DM(0xC0230)` is outside the SMP frame; no ARM or SMP writer found in the paths run; span and zero point stay ASSUMED | proposed |
 | [D147](#d147-the-dsp-to-arm-return-path-is-spi-reads-of-dsp-memory-sample-ring-refill-is-not-an-arm-signal-an-opt-in-return-source-answers-them) | 2026-11-17 | The DSP to ARM return path is SPI reads of DSP memory; sample ring refill is not an ARM signal; an opt-in return source answers them | proposed |
 | [D145](#d145-the-firmware-multi-tap-reverb-equals-the-oracle-over-its-whole-tail-and-adds-no-gain-the-by-ear-gap-is-level-tail-and-colour-not-a-port-bug-the-21-26-36-db-excess-is-consistent-with-the-packed-word-noise-floor) | 2026-11-17 | Firmware multi-tap reverb equals the oracle over 30,000 calls and adds no gain; the by-ear gap is wet level (-15 dB at knob 3), tail (1.2 s) and darkness; the +21 / +26 / +36 dB is consistent with the packed-word noise floor; opt-in stays | proposed |
 | [D142](#d142-the-synth-velocity-default-flips-to-the-firmware-law-on-owner-approval-the-file-bits-are-verified-four-of-16-distinct-synth-clips-are-marginally-worse) | 2026-11-17 | The synth velocity default flips to the firmware law on owner approval; the file bits are verified, four of 16 distinct synth clips are marginally worse | accepted |
@@ -1583,6 +1584,17 @@ Opt-in `mod2` ENS audio follows knob words; opt-in `mod1` RM A-WAH rate follow o
 - **Impact:** `tools/arm_voice_gate.py` (+ test), `tools/arm_dsp_capture.py` (+ test), `docs/research/sample-voice-gate.md`, `docs/research/data/voice-gate-*.json`; [arm-dsp-capture](research/arm-dsp-capture.md) follow-up 2 answered; [audio-remaining](research/audio-remaining.md) row 2; OQ22 note; no engine change. Limit: the hardware value of the SPI read is ASSUMED neutral (0).
 
 
+### D150. SAMPLE audio comes out of the SY oracle through a decoded-PCM ring feed (`pcm`); the real packed stream still desyncs, pitch entry `e` stays modelled
+
+- **Status:** proposed 2026-11-17
+- **Decided by:** pending the user (task from the parent session; evidence [sample-stream-audio](research/sample-stream-audio.md)). D150 chosen: D144 to D149 are on main or in open PRs (#500, #502, #504, #505, #503).
+- **Context:** D143 showed 110 of 119 SAMPLE programs voice; nothing measured the audio. D112 left the real stream stalling after the first block.
+- **Decision:** (1) Add `smp_stream` (resolve, extract packed stream and decoded PCM per program, modelled `e`), the `sharc-ref` `pcm` command (decoded PCM into the source ring ahead of the read position) and `tools/sample_stream_*.py`. (2) Report oracle audio for 10 programs: 5 valid (prepare in the k60 window) are non-silent, f0 within about 5 cents of native for 4, Finger Bass about +2290 c by its f0 pair (octave not in `e`), 20 to 23 dB under native. (3) Coverage of 119: prepare at k60 for 50, only at other keys 51, none 18.
+- **Why:** The SY resampler, step word and ring read run as firmware; only the unpacker is bypassed, so level, spectrum and duration of the resampled voice can be compared to native.
+- **Alternatives:** Wait for the unpacker desync fix (blocks all measurement); synthesise audio natively only (does not touch the oracle).
+- **Impact:** New tools and tests, docs only otherwise. No default, golden or `render_hash` changes; `--sample-pitch fw` stays opt-in. Pitch agreement is by construction of the modelled `e`.
+
+
 ### D151. The SHARC oracle census-diff open list is closed except the MR2F read-back
 
 - **Status:** accepted 2026-11-17
@@ -1621,3 +1633,13 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Why:** The port is correct against the oracle and the oracle is the firmware routine, so the gap is in the data around it (type words of the synth unit instance, the reverb stage input gain, the second module routine `0x1211C1`) or in the engine's ASSUMED tails, not in a transliteration error.
 - **Alternatives:** Scale the firmware wet or lengthen its tail to match the FDN (rejected: no hardware measurement, would hide the cause); flip the default (rejected: owner verdict against it); keep the 3,600 call window only (rejected: it cannot see tails).
 - **Impact:** `crates/nord-core/src/fx/tests_fw_rvbm_long.rs`, `tests_fw_rvbm_levels.rs`, `tests_fw_rvbm_long_data.rs`, `crates/nord-tools/src/reverb_measure.rs`, `bin/fx_reverb_types.rs`, `docs/research/reverb-fw-vs-hw.md`, `docs/research/data/fx-rvbmulti-golden-long.csv`; OQ21c, ROADMAP 7b.4, [firmware-flag-audit](research/firmware-flag-audit.md) updated; no audio change. Open: the stage gain word and the second routine of the reverb module in the real dispatcher, a hardware recording with a clean release.
+
+### D152. PUMP clock word: `DM(0xC0230)` is not in the SMP frame, no ARM or SMP writer found in the paths run; span and zero point stay ASSUMED
+
+- **Status:** proposed 2026-11-17
+- **Decided by:** pending the user (task from the parent session; evidence [pump-dsp-source](research/pump-dsp-source.md))
+- **Context:** OQ36 / D149: the PUMP reads `DM(0xC0C70)`, a copy of `DM(0xC0230)`; D149 called it the head of the SMP serial frame and assumed a 32 beat span and a zero at the clock start.
+- **Decision:** (1) Record that `0xC0230` lies 4 words before SMP frame A (`0xC0234`), inside the FX strip filled by three 2D receive DMA blocks. (2) Record the negatives: no SMP image store to ring words 4 to 9, no tempo word from the ARM to any DSP in a 30,000 tick A:25 run (not found in the paths run). (3) Keep span and zero point ASSUMED; add two engine tests pinning the native duck rate at 60 / 90 / 126 / 150 BPM and the duck on the clock start. No engine change, no default change, PR #491 untouched.
+- **Why:** The writer was not found, so a firmware-derived span does not exist; claiming one would be a guess.
+- **Alternatives:** Derive the span from 2.10 Hz (rejected: circular). Flip the default (rejected: open writer, one clip).
+- **Impact:** [pump-dsp-source](research/pump-dsp-source.md), [fx-mod-types](research/fx-mod-types.md) s7.2, OQ36, ROADMAP 7b, `fx/tests_fw_pump_sync.rs`.

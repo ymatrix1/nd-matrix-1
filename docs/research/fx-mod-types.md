@@ -178,3 +178,5 @@ python tools/fx_models.py check apan SRAM/core2_sram.bin --scenarios 500
 uv run pytest tools/tests/test_fx_model_apan.py tools/tests/test_fx_mod_words.py tools/tests/test_fx_golden.py
 cargo test -p nord-core --lib fx::
 ```
+
+**Update D152 (2026-11-17, [pump-dsp-source](pump-dsp-source.md)).** `DM(0xC0230)` is not the head of the SMP frame (frame A is `0xC0234`); the word sits in the FX strip filled by 2D receive DMA. No SMP image store and no ARM tempo word to any DSP was found in the paths run; the 32 beat span and the zero at the clock start stay ASSUMED.

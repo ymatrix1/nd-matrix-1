@@ -1,0 +1,742 @@
+[
+ {
+  "program": "Bank_A__Acoustic_Guitar",
+  "layers": {
+   "synth_a": "Samp Lib/Guitar_Plucked/Ac Guitar Finger_ST Mart 4.1.nsmp4",
+   "synth_b": null,
+   "synth_c": null
+  },
+  "member": "Samp Lib/Guitar_Plucked/Ac Guitar Finger_ST Mart 4.1.nsmp4",
+  "arm_prepare": true,
+  "entry_index": 54,
+  "stroke": {
+   "stroke_id": 50,
+   "root_key": 60,
+   "sample_rate": 35012,
+   "channels": 2,
+   "frames": 105926,
+   "loop_start": null,
+   "loop_end": null,
+   "gain_db": 0.0,
+   "words": 39964,
+   "zone_key_low": 60,
+   "zone_key_high": 60,
+   "zone_root": 60
+  },
+  "model_entry": {
+   "entry": 790,
+   "zone_word_bits": 1014290944,
+   "step": 0.80661116
+  },
+  "pcm": {
+   "nonsilent": true,
+   "peak": 0.0122627475,
+   "peak_dbfs": -38.228244282475096,
+   "rms_dbfs": -55.46719300339953,
+   "duration_s": 1.4975919359193592,
+   "centroid_hz": 1286.6527815828827,
+   "f0_hz": 263.04450757575756,
+   "cents": 9.364083436280465,
+   "step_ratio": 0.8066111207008362,
+   "vs_native_cents": 0.0
+  },
+  "pcm_noentry": {
+   "nonsilent": true,
+   "peak": 0.0001169377875,
+   "peak_dbfs": -78.64090254820476,
+   "rms_dbfs": null,
+   "duration_s": 0.09213788137881379,
+   "centroid_hz": 7.962510722129934,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.0
+  },
+  "stream": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "ring_nonzero": 0,
+   "ring_len": 128
+  },
+  "native": {
+   "nonsilent": true,
+   "peak": 0.11824123561382294,
+   "peak_dbfs": -18.544620811484783,
+   "rms_dbfs": -36.22578590371491,
+   "duration_s": 1.4999791666666666,
+   "centroid_hz": 1897.674991883915,
+   "f0_hz": 263.7362637362637,
+   "cents": 13.910917991864856
+  }
+ },
+ {
+  "program": "Bank_A__Hybrid_Str_Whl",
+  "layers": {
+   "synth_a": "Samp Lib/Strings Ensemble/SymphStr Legato Amb_ProjectSAM 4.12.nsmp4",
+   "synth_b": "Samp Lib/Strings Ensemble/Pop Strings_KG 4.1.nsmp4",
+   "synth_c": null
+  },
+  "member": "Samp Lib/Strings Ensemble/SymphStr Legato Amb_ProjectSAM 4.12.nsmp4",
+  "arm_prepare": false,
+  "entry_index": 0,
+  "stroke": {
+   "stroke_id": 330,
+   "root_key": 60,
+   "sample_rate": 35002,
+   "channels": 2,
+   "frames": 119952,
+   "loop_start": 32534,
+   "loop_end": 119952,
+   "gain_db": 0.0,
+   "words": 75335,
+   "zone_key_low": 60,
+   "zone_key_high": 61,
+   "zone_root": 60
+  },
+  "model_entry": {
+   "entry": 790,
+   "zone_word_bits": 1014294528,
+   "step": 0.806431044
+  },
+  "pcm": {
+   "nonsilent": true,
+   "peak": 0.0065249507499999995,
+   "peak_dbfs": -43.708455240204216,
+   "rms_dbfs": -56.719911483044626,
+   "duration_s": 1.4975919359193592,
+   "centroid_hz": 3909.995982093009,
+   "f0_hz": 323.8980876865672,
+   "cents": 369.64371198193237,
+   "step_ratio": 0.9998912215232849,
+   "vs_native_cents": 375.0
+  },
+  "pcm_noentry": {
+   "nonsilent": true,
+   "peak": 9.5428099e-07,
+   "peak_dbfs": -120.40647455123549,
+   "rms_dbfs": null,
+   "duration_s": 0.09213788137881379,
+   "centroid_hz": 7.962510722129851,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.0
+  },
+  "stream": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "ring_nonzero": 0,
+   "ring_len": 128
+  },
+  "native": {
+   "nonsilent": true,
+   "peak": 0.11766844987869263,
+   "peak_dbfs": -18.586799354918707,
+   "rms_dbfs": -28.513065225536405,
+   "duration_s": 1.4999791666666666,
+   "centroid_hz": 1566.1526461293872,
+   "f0_hz": 262.2950819672131,
+   "cents": 4.424680289449375
+  }
+ },
+ {
+  "program": "Bank_A__NS4_Palette",
+  "layers": {
+   "synth_a": null,
+   "synth_b": "Samp Lib/Strings Ensemble/SwingStr Legato Cls_ProjectSAM 4.1.nsmp4",
+   "synth_c": null
+  },
+  "member": "Samp Lib/Strings Ensemble/SwingStr Legato Cls_ProjectSAM 4.1.nsmp4",
+  "arm_prepare": false,
+  "entry_index": 1,
+  "stroke": {
+   "stroke_id": 105,
+   "root_key": 60,
+   "sample_rate": 35002,
+   "channels": 2,
+   "frames": 116242,
+   "loop_start": 43566,
+   "loop_end": 116242,
+   "gain_db": -0.824,
+   "words": 74743,
+   "zone_key_low": 60,
+   "zone_key_high": 61,
+   "zone_root": 60
+  },
+  "model_entry": {
+   "entry": 790,
+   "zone_word_bits": 1014294528,
+   "step": 0.806431044
+  },
+  "pcm": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.9998912215232849
+  },
+  "pcm_noentry": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.0
+  },
+  "stream": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "ring_nonzero": 0,
+   "ring_len": 128
+  },
+  "native": {
+   "nonsilent": true,
+   "peak": 0.23104067146778107,
+   "peak_dbfs": -12.726231238586491,
+   "rms_dbfs": -25.907787708720388,
+   "duration_s": 1.4999791666666666,
+   "centroid_hz": 1194.99837315488,
+   "f0_hz": 262.2950819672131,
+   "cents": 4.424680289449375
+  }
+ },
+ {
+  "program": "Bank_A__Mm-Oh_Choir_Whl",
+  "layers": {
+   "synth_a": "Samp Lib/Choir/Men+Women Mm_SI 4.1.nsmp4",
+   "synth_b": "Samp Lib/Choir/Men+Women Oh Soft_SI 4.1.nsmp4",
+   "synth_c": null
+  },
+  "member": "Samp Lib/Choir/Men+Women Mm_SI 4.1.nsmp4",
+  "arm_prepare": true,
+  "entry_index": 54,
+  "stroke": {
+   "stroke_id": 30,
+   "root_key": 59,
+   "sample_rate": 35002,
+   "channels": 2,
+   "frames": 86712,
+   "loop_start": 22402,
+   "loop_end": 86712,
+   "gain_db": 0.0,
+   "words": 45433,
+   "zone_key_low": 59,
+   "zone_key_high": 60,
+   "zone_root": 59
+  },
+  "model_entry": {
+   "entry": 790,
+   "zone_word_bits": 1013393792,
+   "step": 0.854378788
+  },
+  "pcm": {
+   "nonsilent": true,
+   "peak": 0.008828674500000001,
+   "peak_dbfs": -41.08208989344746,
+   "rms_dbfs": -52.01790351742587,
+   "duration_s": 1.4975919359193592,
+   "centroid_hz": 959.8110071959015,
+   "f0_hz": 261.4599021084337,
+   "cents": -1.0965770850505594,
+   "step_ratio": 0.8543787598609924,
+   "vs_native_cents": 0.0
+  },
+  "pcm_noentry": {
+   "nonsilent": true,
+   "peak": 6.9460777e-07,
+   "peak_dbfs": -123.16520725813108,
+   "rms_dbfs": null,
+   "duration_s": 0.09213788137881379,
+   "centroid_hz": 7.962510722128894,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.0
+  },
+  "stream": {
+   "error": "interrupt 17 trap at pc 0x1c12dd"
+  },
+  "native": {
+   "nonsilent": true,
+   "peak": 0.08530962467193604,
+   "peak_dbfs": -21.38003937521658,
+   "rms_dbfs": -33.482274781214954,
+   "duration_s": 1.4999791666666666,
+   "centroid_hz": 1637.1297528330767,
+   "f0_hz": 260.8695652173913,
+   "cents": -5.009861038115047
+  }
+ },
+ {
+  "program": "Bank_C__Pop_Brass_3",
+  "layers": {
+   "synth_a": "Samp Lib/Brass Ensemble/Brass Section Pop 3_BR 4.1.nsmp4",
+   "synth_b": null,
+   "synth_c": null
+  },
+  "member": "Samp Lib/Brass Ensemble/Brass Section Pop 3_BR 4.1.nsmp4",
+  "arm_prepare": false,
+  "entry_index": 0,
+  "stroke": {
+   "stroke_id": 23,
+   "root_key": 60,
+   "sample_rate": 35002,
+   "channels": 2,
+   "frames": 120614,
+   "loop_start": 54040,
+   "loop_end": 120614,
+   "gain_db": 2.2,
+   "words": 77376,
+   "zone_key_low": 59,
+   "zone_key_high": 61,
+   "zone_root": 60
+  },
+  "model_entry": {
+   "entry": 790,
+   "zone_word_bits": 1014294528,
+   "step": 0.806431044
+  },
+  "pcm": {
+   "nonsilent": true,
+   "peak": 0.008181002,
+   "peak_dbfs": -41.7438700233446,
+   "rms_dbfs": -57.36604463539674,
+   "duration_s": 1.4975919359193592,
+   "centroid_hz": 5401.964772826551,
+   "f0_hz": 323.8980876865672,
+   "cents": 369.64371198193237,
+   "step_ratio": 0.9998912215232849,
+   "vs_native_cents": 375.0
+  },
+  "pcm_noentry": {
+   "nonsilent": true,
+   "peak": 1.45364595e-05,
+   "peak_dbfs": -96.75082714718653,
+   "rms_dbfs": null,
+   "duration_s": 0.09213788137881379,
+   "centroid_hz": 7.9625107221298475,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.0
+  },
+  "stream": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "ring_nonzero": 0,
+   "ring_len": 128
+  },
+  "native": {
+   "nonsilent": true,
+   "peak": 0.14355120062828064,
+   "peak_dbfs": -16.859863416319683,
+   "rms_dbfs": -31.941584325223438,
+   "duration_s": 1.4999791666666666,
+   "centroid_hz": 4685.735925973019,
+   "f0_hz": 260.8695652173913,
+   "cents": -5.009861038115047
+  }
+ },
+ {
+  "program": "Bank_D__Finger_Bass",
+  "layers": {
+   "synth_a": "Samp Lib/Bass/Finger Bass P 58_ST 4.1.nsmp4",
+   "synth_b": null,
+   "synth_c": null
+  },
+  "member": "Samp Lib/Bass/Finger Bass P 58_ST 4.1.nsmp4",
+  "arm_prepare": true,
+  "entry_index": 54,
+  "stroke": {
+   "stroke_id": 235,
+   "root_key": 60,
+   "sample_rate": 35032,
+   "channels": 1,
+   "frames": 135443,
+   "loop_start": null,
+   "loop_end": null,
+   "gain_db": 0.0,
+   "words": 15362,
+   "zone_key_low": 60,
+   "zone_key_high": 60,
+   "zone_root": 60
+  },
+  "model_entry": {
+   "entry": 790,
+   "zone_word_bits": 1014280064,
+   "step": 0.807158434
+  },
+  "pcm": {
+   "nonsilent": true,
+   "peak": 0.011815931,
+   "peak_dbfs": -38.5506410756668,
+   "rms_dbfs": -51.837948631387334,
+   "duration_s": 1.4975919359193592,
+   "centroid_hz": 772.5818190268482,
+   "f0_hz": 493.20845170454544,
+   "cents": 1097.6327981665027,
+   "step_ratio": 1.5233732461929321,
+   "vs_native_cents": 1100.0
+  },
+  "pcm_noentry": {
+   "nonsilent": true,
+   "peak": 0.00034753265,
+   "peak_dbfs": -69.18008776111849,
+   "rms_dbfs": null,
+   "duration_s": 0.09213788137881379,
+   "centroid_hz": 7.96251072212992,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.0
+  },
+  "stream": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "ring_nonzero": 0,
+   "ring_len": 128
+  },
+  "native": {
+   "nonsilent": true,
+   "peak": 0.16304826736450195,
+   "peak_dbfs": -15.753676237440647,
+   "rms_dbfs": -27.24811926892576,
+   "duration_s": 1.4999791666666666,
+   "centroid_hz": 299.8495210256274,
+   "f0_hz": 131.14754098360655,
+   "cents": -1195.5753197105507
+  }
+ },
+ {
+  "program": "Bank_B__Cathedral_Pipes",
+  "layers": {
+   "synth_a": "Samp Lib/Organ/Cathedral Organ_SR 4.1.nsmp4",
+   "synth_b": null,
+   "synth_c": null
+  },
+  "member": "Samp Lib/Organ/Cathedral Organ_SR 4.1.nsmp4",
+  "arm_prepare": false,
+  "entry_index": 0,
+  "stroke": {
+   "stroke_id": 7,
+   "root_key": 59,
+   "sample_rate": 35002,
+   "channels": 2,
+   "frames": 98794,
+   "loop_start": 35072,
+   "loop_end": 98794,
+   "gain_db": 0.0,
+   "words": 69448,
+   "zone_key_low": 59,
+   "zone_key_high": 60,
+   "zone_root": 59
+  },
+  "model_entry": {
+   "entry": 790,
+   "zone_word_bits": 1013393792,
+   "step": 0.854378788
+  },
+  "pcm": {
+   "nonsilent": true,
+   "peak": 0.013276497,
+   "peak_dbfs": -37.53832996661029,
+   "rms_dbfs": -48.653245272310556,
+   "duration_s": 1.4975919359193592,
+   "centroid_hz": 2752.488543277441,
+   "f0_hz": 323.8980876865672,
+   "cents": 369.64371198193237,
+   "step_ratio": 1.0593472719192505,
+   "vs_native_cents": 375.0
+  },
+  "pcm_noentry": {
+   "nonsilent": false,
+   "peak": 5.468021e-10,
+   "peak_dbfs": -185.2433965237573,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.0
+  },
+  "stream": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "ring_nonzero": 0,
+   "ring_len": 128
+  },
+  "native": {
+   "nonsilent": true,
+   "peak": 0.16969938576221466,
+   "peak_dbfs": -15.406394592722917,
+   "rms_dbfs": -27.80369205515399,
+   "duration_s": 1.4999791666666666,
+   "centroid_hz": 1588.3255003828385,
+   "f0_hz": 130.43478260869566,
+   "cents": -1205.009861038115
+  }
+ },
+ {
+  "program": "Bank_D__3_Vlns_Mellotron",
+  "layers": {
+   "synth_a": "Samp Lib/Mellotron/3 Violins Mellotron_MKII 4.1.nsmp4",
+   "synth_b": null,
+   "synth_c": null
+  },
+  "member": "Samp Lib/Mellotron/3 Violins Mellotron_MKII 4.1.nsmp4",
+  "arm_prepare": false,
+  "entry_index": 0,
+  "stroke": {
+   "stroke_id": 6,
+   "root_key": 60,
+   "sample_rate": 35002,
+   "channels": 1,
+   "frames": 137005,
+   "loop_start": 42690,
+   "loop_end": 137005,
+   "gain_db": 0.0,
+   "words": 47693,
+   "zone_key_low": 60,
+   "zone_key_high": 60,
+   "zone_root": 60
+  },
+  "model_entry": {
+   "entry": 790,
+   "zone_word_bits": 1014294528,
+   "step": 0.806431044
+  },
+  "pcm": {
+   "nonsilent": true,
+   "peak": 0.010631247,
+   "peak_dbfs": -39.46831583191216,
+   "rms_dbfs": -53.392126568334845,
+   "duration_s": 1.4975919359193592,
+   "centroid_hz": 4071.8223146575906,
+   "f0_hz": 323.8980876865672,
+   "cents": 369.64371198193237,
+   "step_ratio": 0.9998912215232849,
+   "vs_native_cents": 375.0
+  },
+  "pcm_noentry": {
+   "nonsilent": true,
+   "peak": 2.4181685e-05,
+   "peak_dbfs": -92.33026880837535,
+   "rms_dbfs": null,
+   "duration_s": 0.09213788137881379,
+   "centroid_hz": 7.9625107221302684,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.0
+  },
+  "stream": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "ring_nonzero": 0,
+   "ring_len": 128
+  },
+  "native": {
+   "nonsilent": true,
+   "peak": 0.07034748792648315,
+   "peak_dbfs": -23.05502812781014,
+   "rms_dbfs": -37.21274465298726,
+   "duration_s": 1.4999791666666666,
+   "centroid_hz": 2865.3611083063042,
+   "f0_hz": 262.2950819672131,
+   "cents": 4.424680289449375
+  }
+ },
+ {
+  "program": "Bank_E__Solo_Flute",
+  "layers": {
+   "synth_a": "Samp Lib/Wind Solo/Flute Multi_ST 4.1.nsmp4",
+   "synth_b": null,
+   "synth_c": null
+  },
+  "member": "Samp Lib/Wind Solo/Flute Multi_ST 4.1.nsmp4",
+  "arm_prepare": true,
+  "entry_index": 54,
+  "stroke": {
+   "stroke_id": 148,
+   "root_key": 61,
+   "sample_rate": 35002,
+   "channels": 2,
+   "frames": 96175,
+   "loop_start": 27358,
+   "loop_end": 96175,
+   "gain_db": 0.0,
+   "words": 56221,
+   "zone_key_low": 60,
+   "zone_key_high": 62,
+   "zone_root": 61
+  },
+  "model_entry": {
+   "entry": 790,
+   "zone_word_bits": 1015135296,
+   "step": 0.761164943
+  },
+  "pcm": {
+   "nonsilent": true,
+   "peak": 0.011966335,
+   "peak_dbfs": -38.44077686321569,
+   "rms_dbfs": -46.00405192121463,
+   "duration_s": 1.4975919359193592,
+   "centroid_hz": 994.8283789214015,
+   "f0_hz": 261.4599021084337,
+   "cents": -1.0965770850505594,
+   "step_ratio": 0.7611649036407471,
+   "vs_native_cents": 0.0
+  },
+  "pcm_noentry": {
+   "nonsilent": false,
+   "peak": 3.7199229e-08,
+   "peak_dbfs": -148.58932122629514,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.0
+  },
+  "stream": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "ring_nonzero": 0,
+   "ring_len": 128
+  },
+  "native": {
+   "nonsilent": true,
+   "peak": 0.15722835063934326,
+   "peak_dbfs": -16.069382828007086,
+   "rms_dbfs": -24.53417063473426,
+   "duration_s": 1.4999791666666666,
+   "centroid_hz": 1451.526185665166,
+   "f0_hz": 260.8695652173913,
+   "cents": -5.009861038115047
+  }
+ },
+ {
+  "program": "Bank_F__Bell_Pad",
+  "layers": {
+   "synth_a": "Samp Lib/Percussion Tuned/Metallophone_DV 4.1.nsmp4",
+   "synth_b": null,
+   "synth_c": null
+  },
+  "member": "Samp Lib/Percussion Tuned/Metallophone_DV 4.1.nsmp4",
+  "arm_prepare": true,
+  "entry_index": 54,
+  "stroke": {
+   "stroke_id": 19,
+   "root_key": 60,
+   "sample_rate": 35132,
+   "channels": 1,
+   "frames": 63119,
+   "loop_start": null,
+   "loop_end": null,
+   "gain_db": -1.6,
+   "words": 9959,
+   "zone_key_low": 0,
+   "zone_key_high": 61,
+   "zone_root": 60
+  },
+  "model_entry": {
+   "entry": 790,
+   "zone_word_bits": 1014233088,
+   "step": 0.809529921
+  },
+  "pcm": {
+   "nonsilent": true,
+   "peak": 0.008833339,
+   "peak_dbfs": -41.07750204357873,
+   "rms_dbfs": -48.737720149161234,
+   "duration_s": 1.4975919359193592,
+   "centroid_hz": 442.1726298592551,
+   "f0_hz": 263.04450757575756,
+   "cents": 9.364083436280465,
+   "step_ratio": 0.8095299005508423,
+   "vs_native_cents": 0.0
+  },
+  "pcm_noentry": {
+   "nonsilent": true,
+   "peak": 0.00070427003,
+   "peak_dbfs": -63.04521584971863,
+   "rms_dbfs": null,
+   "duration_s": 0.09213788137881379,
+   "centroid_hz": 7.962510722128675,
+   "f0_hz": null,
+   "cents": null,
+   "step_ratio": 0.0
+  },
+  "stream": {
+   "nonsilent": false,
+   "peak": 0.0,
+   "peak_dbfs": -240.0,
+   "rms_dbfs": null,
+   "duration_s": 0.0,
+   "centroid_hz": null,
+   "f0_hz": null,
+   "cents": null,
+   "ring_nonzero": 0,
+   "ring_len": 128
+  },
+  "native": {
+   "nonsilent": true,
+   "peak": 0.10693223774433136,
+   "peak_dbfs": -19.417826894176066,
+   "rms_dbfs": -26.043758046597706,
+   "duration_s": 1.4999791666666666,
+   "centroid_hz": 427.5718545163773,
+   "f0_hz": 262.2950819672131,
+   "cents": 4.424680289449375
+  }
+ }
+]

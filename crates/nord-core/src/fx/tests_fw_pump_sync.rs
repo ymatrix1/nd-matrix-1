@@ -171,3 +171,30 @@ fn the_default_switches_run_the_firmware_pump_in_sync_and_legacy_pump_does_not()
         "RM follows `mod1`, off by default"
     );
 }
+
+#[test]
+fn the_duck_rate_is_bpm_over_60_per_division_at_the_four_check_tempos() {
+    // D152: native duck rate for the tempos and divisions of docs/research/pump-dsp-source.md
+    // s5. This pins the engine's own law (`N / 32` ducks per beat, span ASSUMED 32 beats); it is
+    // not a firmware measurement, the clock word writer is still open (OQ36).
+    for bpm in [60.0_f32, 90.0, 126.0, 150.0] {
+        for beats in [2.0_f32, 1.0, 0.5] {
+            let got = hz(10, Some(beats), bpm, 8);
+            let want = f64::from(bpm) / 60.0 / f64::from(beats);
+            assert!(
+                (got - want).abs() < want * 0.03 + 0.15,
+                "{bpm} BPM, {beats} beats: {got} vs {want}"
+            );
+        }
+    }
+}
+
+#[test]
+fn the_first_duck_falls_on_the_clock_start() {
+    // Clock word 0 at the start: the duck begins within the first beat's first 5 ms (latency of
+    // 2 frames plus the ramp), not half a division later (the D134 counter model).
+    let mut fx = pump(10, Some(1.0), 120.0);
+    let g = gains(&mut fx, 48_000);
+    let first_low = g.iter().position(|x| *x < 0.5).expect("a duck in 1 s");
+    assert!(first_low < 240, "first duck at frame {first_low}");
+}

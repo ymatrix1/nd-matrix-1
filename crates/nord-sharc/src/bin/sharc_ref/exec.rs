@@ -1,4 +1,5 @@
 //! Scenario executor: drives a [`Core`] and collects the captured series.
+use crate::pcm_ring::PcmRingState;
 use crate::script::{parse_line, substitute, Cmd};
 use crate::signal::generate;
 use crate::stream::StreamState;
@@ -34,6 +35,8 @@ pub struct Runner {
     pub refill: Vec<(u32, u32)>,
     /// Voices fed by the external-port DMA stream model (`stream.rs`).
     pub streams: Vec<StreamState>,
+    /// Voices whose source ring the decoded PCM model keeps full (`pcm_ring.rs`).
+    pub pcm_rings: Vec<PcmRingState>,
 }
 
 impl Runner {
@@ -48,6 +51,7 @@ impl Runner {
             irq_pending: None,
             refill: Vec::new(),
             streams: Vec::new(),
+            pcm_rings: Vec::new(),
         }
     }
 
@@ -141,6 +145,10 @@ impl Runner {
             Cmd::Stream { voice, path, skip } => {
                 let st = StreamState::from_file(*voice, std::path::Path::new(path), *skip)?;
                 self.streams.push(st);
+            }
+            Cmd::PcmRing { voice, path, skip } => {
+                let st = PcmRingState::from_file(*voice, std::path::Path::new(path), *skip)?;
+                self.pcm_rings.push(st);
             }
             Cmd::EpChain { path, base } => self.enable_epchain(path.as_deref(), *base)?,
             Cmd::Dump { addr, count } => self.dump(*addr, *count)?,

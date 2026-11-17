@@ -95,6 +95,7 @@ impl Runner {
         let start = self.core.steps;
         self.run_refill()?;
         self.run_stream()?;
+        self.run_pcm_ring()?;
         // vectors 0..16 are IMASK bits; the firmware unmasks the FIFO-reset vector itself only
         // once the ARM DMA runs, so the harness unmasks it for the call (restored afterwards)
         let saved_imask = self.core.imask;

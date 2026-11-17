@@ -16,6 +16,8 @@ mod exec;
 mod isr;
 #[path = "sharc_ref/out.rs"]
 mod out;
+#[path = "sharc_ref/pcm_ring.rs"]
+mod pcm_ring;
 #[path = "sharc_ref/refill.rs"]
 mod refill;
 #[path = "sharc_ref/script.rs"]
