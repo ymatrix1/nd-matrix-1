@@ -49,7 +49,7 @@ mod fw_sync6;
 mod fw_sync_table;
 mod fw_velocity;
 mod fw_wave;
-mod fw_wave_tables;
+pub(crate) mod fw_wave_tables;
 mod gain_dezip;
 mod hw_saw;
 mod key_velocity;
@@ -96,7 +96,9 @@ pub use fw_velocity::{
 };
 pub use fw_wave::{install_wave_tables, prepare_wave_bank, wave_table, WaveBankState};
 pub use fw_wave_tables::{tables_from_code, tables_from_file, WAVE_TABLES};
-pub use gain_dezip::{gain_pole_for, CONTROL_TICK_HZ, SY_FRAME_RATE_HZ, SY_GAIN_POLE};
+pub use gain_dezip::{
+    gain_pole_for, CONTROL_TICK_HZ, LEGACY_CONTROL_TICK_HZ, SY_FRAME_RATE_HZ, SY_GAIN_POLE,
+};
 pub use hw_saw::{firmware_blep_step, firmware_saw, firmware_saw_fade, SawModel};
 pub use key_velocity::{
     key_velocity_g, key_velocity_g_fit, key_velocity_gain, KEY_CURVE_SATURATION, KEY_VELOCITY_G,
@@ -260,6 +262,10 @@ pub struct SynthLayer {
     pub saw_model: SawModel,
     /// Smooth the voice gain like the SY DSP (default off, see `gain_dezip.rs`).
     pub gain_dezipper: bool,
+    /// Gain targets latch at the measured 24 kHz ARM timer tick (default `true`, D131); `false`
+    /// is the legacy 1 kHz tick (`--legacy-1khz-tick`). Only read when the de-zipper or the strip
+    /// chain is on.
+    pub measured_tick: bool,
     /// The decoded oscillator is in the ANALOG SHAPE category (`osc_category == 3`); only the
     /// strip chain reads it (`render.rs`).
     pub osc_shape_category: bool,
@@ -462,6 +468,7 @@ impl SynthLayer {
             waveform: VaWaveform::Saw,
             saw_model: SawModel::Classic,
             gain_dezipper: false,
+            measured_tick: true,
             chain: SynthChain::FirmwareStrip,
             strip_key_velocity: true,
             firmware_velocity: false,

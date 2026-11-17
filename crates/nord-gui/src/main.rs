@@ -92,6 +92,7 @@ struct Stage4App {
     frame_count: u32,
     headless_load: nord_gui::headless_load::HeadlessLoad,
     firmware: FirmwarePanelState,
+    os_update: nord_gui::os_update_panel::OsUpdatePanel,
 }
 
 impl Stage4App {
@@ -114,6 +115,10 @@ impl Stage4App {
             frame_count: 0,
             headless_load: nord_gui::headless_load::HeadlessLoad::new(cli.initial_slot.as_deref()),
             firmware: FirmwarePanelState::new(cli.firmware),
+            os_update: nord_gui::os_update_panel::OsUpdatePanel::new(
+                nord_core::user_config::default_config_path(),
+                std::env::var("NS4_WAVE_TABLES").ok().as_deref(),
+            ),
         };
         app.firmware.push(&app.audio_handle);
         if let Some(plan) = &app.shot {
@@ -177,6 +182,10 @@ impl Stage4App {
 }
 
 impl eframe::App for Stage4App {
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        eprintln!("[Audio] {}", self.audio_handle.meter().snapshot().summary());
+    }
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.frame_count += 1;
         self.library
@@ -245,6 +254,10 @@ impl eframe::App for Stage4App {
             egui::TopBottomPanel::top("ns4_firmware_bar").show(ctx, |ui| {
                 self.firmware.show_bar(ui, &self.audio_handle);
             });
+            egui::TopBottomPanel::top("ns4_os_update_bar").show(ctx, |ui| {
+                self.os_update.show_bar(ui);
+            });
+            self.os_update.show_window(ctx);
             if before != self.firmware.opts {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Title(firmware_panel::window_title(
                     &self.firmware.opts,
@@ -256,6 +269,7 @@ impl eframe::App for Stage4App {
                 if let Some(ports) = self.audio_handle.midi_ports() {
                     nord_gui::audio::midi_ports::show(ui, ports);
                 }
+                nord_gui::audio::meter_ui::show(ui, self.audio_handle.meter());
             });
 
             self.library.handle_keys(ctx);
@@ -337,6 +351,8 @@ impl eframe::App for Stage4App {
 
 fn main() -> eframe::Result<()> {
     let argv: Vec<String> = std::env::args().collect();
+    // the saved Nord OS update file fills NS4_WAVE_TABLES (env and flags still win), before any thread
+    nord_core::user_config::apply_saved_default();
     let firmware = match nord_core::render_opts::FirmwareOptions::from_args(&argv) {
         Ok(f) => f,
         Err(e) => {

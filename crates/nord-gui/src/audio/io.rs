@@ -1,13 +1,16 @@
 //! CPAL audio output stream and MIDIR MIDI input listener.
 
+use super::buffer::{buffer_frames_from_args, clamp_buffer, stream_config, with_buffer_fallback};
+use super::callback::AudioCallback;
 use super::control::ControlLink;
 use super::frame::{render_frame_to_f32, render_frame_to_i16};
+use super::meter::AudioMeter;
 use super::midi_ports::{midi_ports, pick_port, MidiChoice, MidiCtl, MidiPortsWorker};
-use super::{apply_audio_command, standalone_engine, AudioCommand, AudioHandle};
+use super::{standalone_engine, AudioCommand, AudioHandle};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use crossbeam_channel::{Receiver, Sender};
 use midir::{Ignore, MidiInput, MidiInputConnection};
-use nord_core::engine::{Stage4Engine, TelemetryCell};
+use nord_core::engine::TelemetryCell;
 use nord_core::midi::MidiEvent;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -23,8 +26,10 @@ pub fn start_audio_and_midi(active_keys: Arc<[AtomicBool; 128]>) -> AudioHandle 
     let control = handle.control().cloned();
     let to_audio = handle.cmd_sender.clone();
     let telemetry = handle.telemetry().cell();
+    let meter = Arc::clone(handle.meter());
+    let buffer = buffer_frames_from_args(&std::env::args().collect::<Vec<_>>());
     std::thread::spawn(move || {
-        run_cpal_audio(audio_rx, control, to_audio, telemetry);
+        run_cpal_audio(audio_rx, control, to_audio, telemetry, meter, buffer);
     });
 
     // 2. Spawn MIDI In Listener
@@ -42,6 +47,8 @@ fn run_cpal_audio(
     control: Option<Arc<ControlLink>>,
     to_audio: Sender<AudioCommand>,
     telemetry: Arc<TelemetryCell>,
+    meter: Arc<AudioMeter>,
+    buffer_frames: Option<u32>,
 ) {
     let host = cpal::default_host();
     let device = match host.default_output_device() {
@@ -62,81 +69,72 @@ fn run_cpal_audio(
 
     let sample_rate = config.sample_rate().0 as f32;
     let channels = config.channels() as usize;
-
-    let mut engine = standalone_engine(sample_rate);
-    // From here on the control thread keeps a shadow of this engine and runs every allocating
-    // program edit itself (TD-12); the callback below only swaps prepared state in.
-    engine.attach_telemetry(telemetry);
-    if let Some(link) = &control {
-        link.attach(sample_rate, to_audio);
-    }
-
-    let mut master_vol: f32 = 0.85;
-
-    let err_fn = |err| eprintln!("[Audio] Stream error: {}", err);
-
-    let stream = match config.sample_format() {
-        cpal::SampleFormat::F32 => device.build_output_stream(
-            &config.into(),
-            move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                while let Ok(cmd) = rx.try_recv() {
-                    apply_realtime(cmd, &mut engine, &mut master_vol);
-                }
-
-                for frame in data.chunks_mut(channels) {
-                    let [l, r] = engine.render_frame();
-                    render_frame_to_f32(channels, l * master_vol, r * master_vol, frame);
-                }
-                engine.publish_telemetry();
-            },
-            err_fn,
-            None,
-        ),
-        cpal::SampleFormat::I16 => device.build_output_stream(
-            &config.into(),
-            move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
-                while let Ok(cmd) = rx.try_recv() {
-                    apply_realtime(cmd, &mut engine, &mut master_vol);
-                }
-
-                for frame in data.chunks_mut(channels) {
-                    let [l, r] = engine.render_frame();
-                    render_frame_to_i16(channels, l * master_vol, r * master_vol, frame);
-                }
-                engine.publish_telemetry();
-            },
-            err_fn,
-            None,
-        ),
-        _ => {
-            eprintln!(
-                "[Audio] Unsupported sample format: {:?}",
-                config.sample_format()
-            );
-            return;
+    meter.set_sample_rate(sample_rate as u32);
+    eprintln!(
+        "[Audio] {} Hz, {channels} ch, {:?}, device buffer {}",
+        sample_rate as u32,
+        config.sample_format(),
+        match buffer_frames {
+            Some(n) => format!("{n} frames (--audio-buffer)"),
+            None => format!("driver default (supported {:?})", config.buffer_size()),
         }
+    );
+
+    let supported = *config.buffer_size();
+    let requested = buffer_frames.map(|n| clamp_buffer(n, &supported));
+    if requested != buffer_frames {
+        eprintln!(
+            "[Audio] --audio-buffer {} is outside the device range {:?}, using {:?}",
+            buffer_frames.unwrap_or(0),
+            supported,
+            requested
+        );
+    }
+    let sample_format = config.sample_format();
+    let base_config: cpal::StreamConfig = config.into();
+    // The callback owns the engine, so every attempt builds its own (a rejected size drops it).
+    let build = |frames: Option<u32>| -> Result<cpal::Stream, String> {
+        let mut engine = standalone_engine(sample_rate);
+        // From here on the control thread keeps a shadow of this engine and runs every allocating
+        // program edit itself (TD-12); the callback below only swaps prepared state in.
+        engine.attach_telemetry(Arc::clone(&telemetry));
+        if let Some(link) = &control {
+            link.attach(sample_rate, to_audio.clone());
+        }
+        let mut cb = AudioCallback::new(engine, rx.clone(), channels, Arc::clone(&meter));
+        let err_fn = |err| eprintln!("[Audio] Stream error: {}", err);
+        let cfg = stream_config(base_config.clone(), frames);
+        match sample_format {
+            cpal::SampleFormat::F32 => device.build_output_stream(
+                &cfg,
+                move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                    cb.run(data, render_frame_to_f32);
+                },
+                err_fn,
+                None,
+            ),
+            cpal::SampleFormat::I16 => device.build_output_stream(
+                &cfg,
+                move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
+                    cb.run(data, render_frame_to_i16);
+                },
+                err_fn,
+                None,
+            ),
+            other => return Err(format!("unsupported sample format {other:?}")),
+        }
+        .map_err(|e| e.to_string())
     };
 
-    if let Ok(s) = stream {
-        if let Err(e) = s.play() {
-            eprintln!("[Audio] Playback failed: {}", e);
-        } else {
-            loop {
+    match with_buffer_fallback(requested, build) {
+        Ok(s) => match s.play() {
+            Ok(()) => loop {
                 std::thread::park();
-            }
-        }
+            },
+            Err(e) => eprintln!("[Audio] Playback failed: {}", e),
+        },
+        Err(e) => eprintln!("[Audio] Could not open the output stream: {e}"),
     }
-}
-
-/// Applies one command inside the audio callback. A control operation (allocating) that reached
-/// this thread despite the control link is dropped and counted, never executed here.
-fn apply_realtime(cmd: AudioCommand, engine: &mut Stage4Engine, master_vol: &mut f32) {
-    if matches!(&cmd, AudioCommand::Program(e) if e.is_control_op()) {
-        engine.note_retire_overflow();
-        std::mem::forget(cmd);
-        return;
-    }
-    apply_audio_command(cmd, engine, master_vol);
 }
 
 /// MIDI-in thread: owns the `midir` connection, follows the GUI's port choice and rescans on

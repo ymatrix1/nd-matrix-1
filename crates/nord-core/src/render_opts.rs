@@ -330,6 +330,11 @@ pub struct FirmwareOptions {
     /// The synth layer faders follow `(v / 127)^2` (default on, VERIFIED: the handler `0xC011BB48`
     /// run in the ARM harness, D87); `--legacy-synth-layer-law` turns it off.
     pub synth_layer_law: bool,
+    /// The Vox key timeline and the synth gain de-zipper run on the measured 24 kHz ARM timer tick
+    /// (default on, VERIFIED: `docs/research/arm-tick-timers.md`, D131);
+    /// `--legacy-1khz-tick` restores the 1 ms tick. The arp gate (OQ32) and PUMP (OQ36) are not
+    /// part of this switch.
+    pub measured_tick: bool,
     /// `--synth-sustain-pedal`: the sustain pedal (CC 64) also holds the three synth layers
     /// (`PedalState::sustped`, opt-in; ASSUMED, the SUSTPED default of the hardware synth layers
     /// is not decoded, `docs/research/grand-pad-leftovers.md`).
@@ -424,6 +429,7 @@ impl Default for FirmwareOptions {
             piano_layer_law: false,
             fx_defaults: false,
             synth_layer_law: true,
+            measured_tick: true,
             synth_sustain_pedal: false,
             measured_laws: false,
             synth_shape_milli: None,
@@ -463,6 +469,7 @@ impl FirmwareOptions {
             synth_knob_laws: false,
             piano_firmware_level: false,
             synth_layer_law: false,
+            measured_tick: false,
             synth_sustain_pedal: false,
             sample_kernel_key: false,
             firmware_routing: false,
@@ -490,6 +497,7 @@ impl FirmwareOptions {
             piano_layer_law: false,
             fx_defaults: false,
             synth_layer_law: true,
+            measured_tick: true,
             synth_sustain_pedal: false,
             measured_laws: false,
             synth_shape_milli: None,
@@ -574,6 +582,9 @@ impl FirmwareOptions {
         o.fx_defaults |= has("--fx-defaults-firmware");
         o.synth_layer_law |= has("--firmware-synth-layer-law");
         o.synth_sustain_pedal |= has("--synth-sustain-pedal");
+        if has("--legacy-1khz-tick") {
+            o.measured_tick = false;
+        }
         if has("--legacy-synth-layer-law") {
             o.synth_layer_law = false;
         }
@@ -720,6 +731,7 @@ impl FirmwareOptions {
         engine.piano_a.firmware_layer_law = self.piano_layer_law;
         engine.piano_b.firmware_layer_law = self.piano_layer_law;
         engine.synth_layer_law = self.synth_layer_law;
+        crate::render_opts_tick::apply_measured_tick(engine, self.measured_tick);
         apply_synth_sustain(engine, self.synth_sustain_pedal);
         if self.fx_defaults {
             for c in engine.fx_chains.iter_mut() {
@@ -796,6 +808,7 @@ impl FirmwareOptions {
         engine.piano_a.firmware_layer_law = self.piano_layer_law;
         engine.piano_b.firmware_layer_law = self.piano_layer_law;
         engine.synth_layer_law = self.synth_layer_law;
+        crate::render_opts_tick::apply_measured_tick(engine, self.measured_tick);
         apply_synth_sustain(engine, self.synth_sustain_pedal);
         if self.fx_defaults {
             for c in engine.fx_chains.iter_mut() {
@@ -989,6 +1002,9 @@ impl FirmwareOptions {
         }
         if !self.synth_layer_law {
             parts.push("legacy-synth-layer".into());
+        }
+        if !self.measured_tick {
+            parts.push("legacy-1khz-tick".into());
         }
         if self.synth_sustain_pedal {
             parts.push("synth-sustain-pedal".into());

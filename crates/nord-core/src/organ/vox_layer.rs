@@ -130,6 +130,21 @@ mod tests {
     }
 
     #[test]
+    fn measured_tick_sends_the_footages_within_3_ms_and_the_legacy_tick_has_sent_none() {
+        // Energy of samples 100..144 (2.1 to 3.0 ms after the key): the measured timeline has
+        // sent all four footages by 1.96 ms, the legacy 1 ms tick only the 16' (at 3 ms).
+        let energy = |measured: bool| {
+            let mut o = vox_layer();
+            o.set_measured_tick(measured);
+            o.note_on(60);
+            let x: Vec<f32> = (0..144).map(|_| o.render_frame()[0]).collect();
+            x[100..].iter().map(|v| v * v).sum::<f32>()
+        };
+        let (m, l) = (energy(true), energy(false));
+        assert!(m > 0.0 && l == 0.0, "measured {m}, legacy {l}");
+    }
+
+    #[test]
     fn octave_shift_moves_the_oscillator_and_vibrato_follows_the_scanner_setting() {
         let render = |shift: i8, mode: ScannerMode| {
             let mut o = vox_layer();
@@ -170,19 +185,25 @@ mod tests {
 
     #[test]
     fn drawbars_add_footages_and_the_attack_is_the_weight_timeline_not_a_click() {
-        let render = |db: [u8; 9]| {
+        let render = |db: [u8; 9], measured: bool| {
             let mut o = vox_layer();
+            o.set_measured_tick(measured);
             o.drawbars = db;
             o.note_on(48);
             (0..4800).map(|_| o.render_frame()[0]).collect::<Vec<_>>()
         };
-        let base = render([8, 8, 8, 8, 0, 0, 0, 0, 0]);
-        let more = render([8, 8, 8, 8, 8, 8, 8, 0, 0]);
+        let base = render([8, 8, 8, 8, 0, 0, 0, 0, 0], true);
+        let more = render([8, 8, 8, 8, 8, 8, 8, 0, 0], true);
         let diff: f32 = base.iter().zip(&more).map(|(a, b)| (a - b).abs()).sum();
         assert!(diff > 0.5, "{diff}");
-        // nothing sounds before the first tick: the 16' arrives at 3 ms (144 samples)
-        assert!(base[..100].iter().all(|&v| v == 0.0));
-        assert!(base[300..].iter().any(|&v| v != 0.0));
+        // measured tick: nothing sounds before the first tick, the 16' arrives at 3 interrupts
+        // (0.125 ms, 6 samples), so the key sounds well inside the first 100 samples
+        assert!(base[..4].iter().all(|&v| v == 0.0));
+        assert!(base[..100].iter().any(|&v| v != 0.0));
+        // legacy 1 ms tick: the 16' arrives at 3 ms (144 samples)
+        let legacy = render([8, 8, 8, 8, 0, 0, 0, 0, 0], false);
+        assert!(legacy[..100].iter().all(|&v| v == 0.0));
+        assert!(legacy[300..].iter().any(|&v| v != 0.0));
     }
 
     #[test]

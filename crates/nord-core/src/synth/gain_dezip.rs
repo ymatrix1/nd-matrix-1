@@ -1,5 +1,5 @@
 //! Voice gain de-zipper of the synth DSP (`SY1SY2`): one pole per output frame toward a target
-//! that the ARM writes at its 1 kHz control tick.
+//! that the ARM writes at its control tick (the measured 24 kHz timer, or the legacy 1 kHz).
 //!
 //! Spec: `docs/specs/synth-engine.md` section 3.2; evidence `docs/research/synth-voice-control.md`
 //! section 4 (series `docs/research/data/synth-sy-gain-slew.csv`).
@@ -23,11 +23,17 @@ pub const SY_GAIN_POLE: f32 = 0.979;
 /// 47.1 frames are 1.09 ms.
 pub const SY_FRAME_RATE_HZ: f32 = crate::organ::FIRMWARE_FRAME_RATE_HZ as f32;
 
-/// ASSUMED: the ARM writes gain targets at a 1 kHz tick. The ARM timer (irq 22) is **24 kHz** and
-/// no firmware task runs at 1 kHz (`docs/research/arm-tick-timers.md`, D130); the synth voice words
-/// are event driven, so the real update instants are unknown. The tick phase relative to notes is
-/// unknown too.
-pub const CONTROL_TICK_HZ: f32 = 1_000.0;
+/// VERIFIED: the ARM timer (irq 22) runs at 24 kHz: Timer0 `PRD34 = 1000` at 24 MHz, checked by
+/// `arm_tick_probe.py timers` (`docs/research/data/arm-tick-timers.json`). The gain target is
+/// latched at this tick (default since D131, owner approved). ASSUMED: that the ARM writes the
+/// target at each timer interrupt; the synth voice words are event driven (once per note-on in the
+/// D124 capture) and no firmware task runs at 1 kHz, so the real update instants are unknown, and
+/// the tick phase relative to notes is unknown too (`docs/research/arm-tick-timers.md` s5).
+pub const CONTROL_TICK_HZ: f32 = 24_000.0;
+
+/// ASSUMED: the pre-D131 1 kHz control tick (the "1 ms" of the capture script, no firmware
+/// counterpart), kept behind `--legacy-1khz-tick`.
+pub const LEGACY_CONTROL_TICK_HZ: f32 = 1_000.0;
 
 /// Per-frame pole at engine rate `fs`: the hardware pole stretched to the same time constant,
 /// `0.979^(43402.34 / fs)` (`0.979` at the SY frame rate).
@@ -50,7 +56,12 @@ impl SynthLayer {
     #[inline]
     pub(super) fn control_tick(&mut self) {
         self.ctrl_counter += 1;
-        let period = (self.sample_rate / CONTROL_TICK_HZ).round().max(1.0) as u32;
+        let hz = if self.measured_tick {
+            CONTROL_TICK_HZ
+        } else {
+            LEGACY_CONTROL_TICK_HZ
+        };
+        let period = (self.sample_rate / hz).round().max(1.0) as u32;
         if self.ctrl_counter >= period {
             self.ctrl_counter = 0;
             for v in &mut self.voices {
@@ -124,15 +135,17 @@ mod tests {
                 }
             }
             let t_ms = n_e.expect("gain must fall below 1/e") as f32 / fs * 1000.0;
-            // 1.08 ms time constant plus up to one 1 ms control tick of latency
-            assert!((0.9..2.3).contains(&t_ms), "fs {fs}: 1/e after {t_ms} ms");
+            // 1.08 ms time constant plus up to one control tick of latency
+            // (42 us measured, 1 ms legacy)
+            assert!((0.9..1.3).contains(&t_ms), "fs {fs}: 1/e after {t_ms} ms");
         }
     }
 
     #[test]
-    fn target_waits_for_the_control_tick() {
+    fn target_waits_for_the_legacy_1_khz_tick() {
         let mut s = SynthLayer::new(48_000.0);
         s.gain_dezipper = true;
+        s.measured_tick = false;
         s.note_on(60, 100);
         s.set_voice_gain(60, 0.25);
         let i = s.voices.iter().position(|v| v.active).unwrap();
@@ -140,6 +153,40 @@ mod tests {
         for _ in 0..48 {
             s.render_frame();
         }
+        assert_eq!(s.voices[i].gain_target, 0.25);
+    }
+
+    #[test]
+    fn target_latches_within_two_samples_on_the_measured_24_khz_tick() {
+        assert_eq!(CONTROL_TICK_HZ, 24_000.0);
+        for (fs, period) in [(48_000.0f32, 2usize), (96_000.0, 4)] {
+            let mut s = SynthLayer::new(fs);
+            assert!(s.measured_tick);
+            s.gain_dezipper = true;
+            s.note_on(60, 100);
+            s.set_voice_gain(60, 0.25);
+            let i = s.voices.iter().position(|v| v.active).unwrap();
+            assert_eq!(s.voices[i].gain_target, 1.0);
+            for _ in 0..period {
+                s.render_frame();
+            }
+            assert_eq!(s.voices[i].gain_target, 0.25, "fs {fs}");
+        }
+    }
+
+    #[test]
+    fn legacy_tick_needs_the_full_millisecond() {
+        let mut s = SynthLayer::new(48_000.0);
+        s.gain_dezipper = true;
+        s.measured_tick = false;
+        s.note_on(60, 100);
+        s.set_voice_gain(60, 0.25);
+        let i = s.voices.iter().position(|v| v.active).unwrap();
+        for _ in 0..47 {
+            s.render_frame();
+        }
+        assert_eq!(s.voices[i].gain_target, 1.0);
+        s.render_frame();
         assert_eq!(s.voices[i].gain_target, 0.25);
     }
 

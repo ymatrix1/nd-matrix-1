@@ -81,7 +81,7 @@ The `--firmware-fx` render of A:25 measured **6.11 Hz** ([synth-super-lp24-clips
 
 **Audible effect (ASSUMED, not measured against hardware):** the Vox key-down timeline is the only non-opt-in path that moves: the firmware's slot weights arrive within 2 ms instead of 47 ms, so the Vox attack gets its 2' content 45 ms earlier (a faster, brighter edge). That assumes the ARM completes the key-down work inside the timer delays, which at 12,500 cycles per tick for the 3-tick first group is not certain: the real delay is at least the timer count, possibly longer. No hardware Vox attack recording was compared. The gain de-zipper moves by under 1 ms, inaudible. Envelope and LFO rates do not change. The arpeggiator gate moves the note length by a sixth of a step (2/3 against 1/2), audible as a longer staccato.
 
-**No engine change in this PR** (D22, the effect of the Vox delays is ASSUMED); the constants are documented with this note and tagged in their source comments. A later opt-in could carry `TICK_SECONDS = 1 / 24,000` once a hardware Vox clip or a measurement of the ARM's key-down work time exists.
+**Superseded by D131:** the owner approved the flip, `TICK_SECONDS` and `CONTROL_TICK_HZ` use the measured tick by default (`--legacy-1khz-tick` restores 1 ms); arp gate and PUMP unchanged. The text below is the D130 state: **No engine change in D130** (D22, the effect of the Vox delays is ASSUMED); the constants are documented with this note and tagged in their source comments. A later opt-in could carry `TICK_SECONDS = 1 / 24,000` once a hardware Vox clip or a measurement of the ARM's key-down work time exists.
 
 ## 6. Arpeggiator gate (OQ32)
 

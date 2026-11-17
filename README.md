@@ -47,6 +47,8 @@ Read the full specification suite in [`docs/`](docs/README.md):
 
 Tagged releases ship `ns4` (CLI), `nord-stage4` (GUI), the standalone plugin host, and the CLAP + VST3 plugin for Windows x86_64, Linux x86_64 and macOS arm64, with SHA256 files. Install paths per OS are in the `README.txt` inside each archive. The plugin has **not** been verified in any DAW yet ([docs/HOST_COMPATIBILITY.md](docs/HOST_COMPATIBILITY.md)); builds are unsigned. Maintainers: see [docs/RELEASING.md](docs/RELEASING.md).
 
+**Real WAVE sounds (optional, one time):** the WAVE wavetables are Nord firmware and are not in this repository. Download the official Nord OS update and give that file to the app (`nord-stage4`: button "Nord OS update file", or `ns4 firmware set <file>`); see [Where to get the Nord OS update](docs/guides/nord-os-update.md). Without it a placeholder wavetable plays. Only `nord-stage4` and `ns4` use the saved file; the plugin (CLAP/VST3) and `nord-tools` do not read it; they keep the placeholder wavetable.
+
 ---
 
 ## Quick Start

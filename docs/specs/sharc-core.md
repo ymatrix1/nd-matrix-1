@@ -67,6 +67,7 @@ The oracle can act as the DSP half of a small system run: the ARM firmware runs 
 | External-port range registers `DM(0x3E000..0x3E03F)` | opt-in `--epdma` (`core::periph::epdma`): a range opens when `DM(0x3E010)` is written with `DM(0x3E002)` bits 1:0 set, `DM(0x3E021)` returns the opened count and clears it (ASSUMED, D120); replaces `--pre 0x3E021=1`, 0 differing words |
 | Peripheral census | opt-in `--census` (`core::periph::access_log`): every access outside SRAM with counts and last value |
 | Leslie history-ring restart | opt-in `--ring-dma` (`core::periph::ringdma`, D126 placeholder): `DM(0x310C3000)` `7` then `0x107` copies the first record (`0x40` words) of chains `0xE31E8` and `0xE35E0` in `0x0A00_0000` DMA view into `c[-8]` (`0xE31A6` / `0xE359E`); `sharc-ring` (`runner/ring_trace.rs`) traces load/store windows per pass |
+| Data tap | `--tap ADDR:COUNT` (repeatable) with `--tap-out FILE`: those `DM` words after every pass, little-endian `u32`, pass-major (`runner/tap_run.rs`); reads stage records that reach no lane (D132) |
 | PNO output lane | `--lane SET:PAIR`, `--wav`: reads the output pointer set after each pass (stands in for the SPORT transmit DMA); needs the boot message log |
 | Interrupts, other cores, SPI/SPORT | not modelled |
 

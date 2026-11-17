@@ -1,6 +1,7 @@
 //! `AudioHandle`: UI-side sender for audio commands and MIDI events.
 
 use super::control::ControlLink;
+use super::meter::AudioMeter;
 use super::midi_ports::MidiPorts;
 use super::AudioCommand;
 use crate::telemetry::TelemetryHandle;
@@ -19,6 +20,8 @@ pub struct AudioHandle {
     control: Option<Arc<ControlLink>>,
     /// Lock-free engine to GUI telemetry; the audio thread publishes into it.
     pub telemetry: TelemetryHandle,
+    /// Lock-free callback timing / level meter the audio thread writes (spec `gui-audio.md`).
+    meter: Arc<AudioMeter>,
     /// Counts the sound edits sent (see `AudioCommand::is_program_edit`); the Program display
     /// compares it with the value at the last load / store to show the boxed `E`.
     edits: Arc<AtomicU32>,
@@ -38,6 +41,7 @@ impl AudioHandle {
                 cmd_sender: tx,
                 control: None,
                 telemetry: TelemetryHandle::new(),
+                meter: Arc::new(AudioMeter::default()),
                 edits: Arc::new(AtomicU32::new(0)),
                 midi_ports: None,
             },
@@ -51,6 +55,11 @@ impl AudioHandle {
         let (mut handle, rx) = Self::new();
         handle.control = Some(Arc::new(ControlLink::new()));
         (handle, rx)
+    }
+
+    /// The audio callback meter (late blocks, worst block time, output peak).
+    pub fn meter(&self) -> &Arc<AudioMeter> {
+        &self.meter
     }
 
     /// Attaches the MIDI input port list (the standalone start-up does this once).

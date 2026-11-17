@@ -144,6 +144,8 @@ Where the time went, from a sampling profile of `ns4 bench` (a helper that suspe
 
 Output hashes (FNV-1a of every output sample bit, Windows/UCRT, 2000 blocks, 4 outputs), identical for the source before the perf task and after it: worst `0xc7ee671ec250785e`, typical `0x64043873f4f68dd0`, idle `0xf65ba453b6c42325` (all zero samples, peak 0). They are a pure function of the engine state (`bench::tests::the_hash_is_deterministic_and_the_output_finite_and_audible`), so an optimisation is checked by comparing the hash before and after; they depend on the C library's `sin`, `exp`, `tan` and `powf`, so another platform prints other values. A quick budget guard runs in `cargo test` (`bench::tests::a_block_stays_within_a_generous_budget`: 20 ms in release, 500 ms in debug); it catches order-of-magnitude regressions only.
 
+GUI callback path (`ns4 bench --gui [--layers 3|7] [--keys N] [--frames N] [--churn N] [--breakdown]`, `render_frame` per frame with the GUI start-up options, timed from block 0), same host, 4000 blocks of 128 frames: 7 layers / 88 keys mean 1.2 to 1.4 ms, p99 2.0 to 2.5, max 3 to 5, 7 to 21 blocks over the 2.667 ms deadline; 3 layers / 20 keys mean 0.5 to 0.65, p99 0.9 to 1.0, max 1.4 to 2.1, none late. Flush-to-zero and first-block costs were measured and do not explain the tail, and key presses add no visible mean cost (small sample, noisy host) (details in [gui-audio.md](specs/gui-audio.md)); the GUI bottom bar now shows late blocks, worst block time and output peak from a lock-free meter, and `--audio-buffer <frames>` fixes the device buffer.
+
 ### 7.2 Zero allocations in the audio path
 
 Counting `#[global_allocator]` tests (alloc, free and realloc all count; armed only around the audio call; setup and warm-up unarmed):

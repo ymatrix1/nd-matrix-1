@@ -1,9 +1,12 @@
 //! Real-Time Audio Engine Host Thread & CPAL Output Callback & MIDIR Input.
 //!
 //! Submodules: `command` (message enum), `handle` (UI-side sender), `frame` (sample-format
-//! helpers), `apply` (command dispatch on the DSP thread), `io` (CPAL output + MIDIR input).
+//! helpers), `callback` (the metered output callback body), `meter` (lock-free underrun meter), `apply` (command dispatch on the DSP thread), `io` (CPAL output + MIDIR input).
 
 mod apply;
+#[cfg(feature = "app")]
+mod buffer;
+mod callback;
 mod command;
 pub mod control;
 mod edits;
@@ -11,6 +14,8 @@ mod frame;
 mod handle;
 #[cfg(feature = "app")]
 mod io;
+pub mod meter;
+pub mod meter_ui;
 pub mod midi_ports;
 mod standalone;
 
@@ -25,6 +30,7 @@ pub use frame::{f32_to_i16, render_frame_to_f32, render_frame_to_i16};
 pub use handle::AudioHandle;
 #[cfg(feature = "app")]
 pub use io::{handle_midi_bytes, start_audio_and_midi};
+pub use meter::{AudioMeter, MeterSnapshot};
 pub use standalone::standalone_engine;
 
 #[cfg(test)]

@@ -21,6 +21,11 @@ pub const BLOCK_FRAMES: usize = 128;
 pub const SAMPLE_RATE: f32 = 48_000.0;
 /// Lowest and highest key of an 88-key keybed.
 pub const KEY_RANGE: std::ops::RangeInclusive<u8> = 21..=108;
+/// Master volume of the standalone GUI callback; the GUI's `AudioCallback` and `ns4 bench --gui`
+/// both scale by it so the bench renders what the GUI renders.
+/// ASSUMED: inherited start-up value of the standalone (`audio/apply.rs` tests use the same 0.85);
+/// no firmware source. Confirm against the hardware's output level before relying on it.
+pub const STANDALONE_MASTER_VOL: f32 = 0.85;
 /// PRD section 5 budget: CPU time of one 128-frame block at 48 kHz with all layers and FX active.
 pub const PRD_BLOCK_BUDGET_MS: f64 = 0.8;
 

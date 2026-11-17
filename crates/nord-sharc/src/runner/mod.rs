@@ -14,6 +14,7 @@ pub mod periph_run;
 pub mod ring_trace;
 pub mod system;
 pub mod system_diff;
+pub mod tap_run;
 
 /// Parses `0x` hex or decimal.
 pub fn parse_number(s: &str) -> Option<u32> {

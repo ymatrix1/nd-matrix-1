@@ -6,6 +6,7 @@ pub mod audio;
 pub mod firmware_panel;
 pub mod headless_load;
 pub mod library;
+pub mod os_update_panel;
 pub mod panel;
 pub mod screenshot;
 pub mod style;

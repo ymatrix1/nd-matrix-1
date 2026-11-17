@@ -26,6 +26,7 @@
 //!                           (needs `--features jit`): full state + SRAM every --chunk steps
 //!                           (default 1000), `--strict` adds the PEy/float/STKY/latch state
 //! --epdma                   serve the DM(0x3E000..) range-transfer registers (replaces --pre 0x3e021=1)
+//! --tap ADDR:COUNT          (repeatable) with --tap-out F: append those DM words after every pass (LE u32, pass-major)
 //! --lane SET:PAIR --wav F   record output pointer set SET (0..5) pair PAIR (0..2) of every pass to a
 //!                           float WAV (--rate R, default 48000; untimed extra run)
 //! --sec-id ID               start Core1-style passes through the SEC model (CSID/END), source ID
@@ -41,6 +42,7 @@ use nord_sharc::runner::system::{
     pass_period_s, probe_pass, region_hash, run_system, series, set_ping_pong, stats, PassTiming,
     FRAME_RATE, PNO_PING_PONG,
 };
+use nord_sharc::runner::tap_run::{parse_tap, tap_run};
 use nord_sharc::runner::{parse_number, parse_value};
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
@@ -84,6 +86,8 @@ struct Options {
     strict: bool,
     periph: PeriphOpts,
     lane: Option<(u32, u32)>,
+    taps: Vec<(u32, u32)>,
+    tap_out: Option<String>,
     wav: Option<String>,
     rate: u32,
 }
@@ -204,6 +208,8 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
                 }
                 o.lane = Some((a, b));
             }
+            "--tap" => o.taps.push(parse_tap(&val()?)?),
+            "--tap-out" => o.tap_out = Some(val()?),
             "--wav" => o.wav = Some(val()?),
             "--rate" => o.rate = num(val()?)?,
             "--state-out" => o.state_out = Some(val()?),
@@ -496,6 +502,13 @@ fn run(args: &[String]) -> Result<String, String> {
                 .map_err(|e| format!("{f}: {e}"))?;
             let _ = writeln!(out, "wrote {f}");
         }
+    }
+    if let (false, Some(f)) = (o.taps.is_empty(), &o.tap_out) {
+        let mut c = boot(&o, &data)?;
+        let (words, n) = tap_run(&mut c, &cfg, &o.msgs, total, o.ping_pong, &o.taps)?;
+        let bytes: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
+        std::fs::write(f, bytes).map_err(|e| format!("{f}: {e}"))?;
+        let _ = writeln!(out, "tap: {n} passes, {} words written to {f}", words.len());
     }
     if o.periph.census {
         let mut c = boot(&o, &data)?;

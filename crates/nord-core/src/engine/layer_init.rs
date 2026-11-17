@@ -67,14 +67,26 @@ impl Stage4Engine {
 
     fn init_layer(&mut self, layer: LayerId, fx: &FxParams) {
         let fs = self.sample_rate;
+        // The ARM tick choice (`--legacy-1khz-tick`, D131) is a run option, not program state:
+        // a fresh layer keeps the one the engine was set to.
+        let organ = |old: &OrganLayer| {
+            let mut o = OrganLayer::new(fs);
+            o.set_measured_tick(old.measured_tick());
+            o
+        };
+        let synth = |old: &SynthLayer| {
+            let mut s = SynthLayer::new(fs);
+            s.measured_tick = old.measured_tick;
+            s
+        };
         match layer {
-            LayerId::OrganA => *self.organ_a = OrganLayer::new(fs),
-            LayerId::OrganB => *self.organ_b = OrganLayer::new(fs),
+            LayerId::OrganA => *self.organ_a = organ(&self.organ_a),
+            LayerId::OrganB => *self.organ_b = organ(&self.organ_b),
             LayerId::PianoA => Self::reset_piano(&mut self.piano_a, fs),
             LayerId::PianoB => Self::reset_piano(&mut self.piano_b, fs),
-            LayerId::SynthA => *self.synth_a = SynthLayer::new(fs),
-            LayerId::SynthB => *self.synth_b = SynthLayer::new(fs),
-            LayerId::SynthC => *self.synth_c = SynthLayer::new(fs),
+            LayerId::SynthA => *self.synth_a = synth(&self.synth_a),
+            LayerId::SynthB => *self.synth_b = synth(&self.synth_b),
+            LayerId::SynthC => *self.synth_c = synth(&self.synth_c),
         }
         if let Some(i) = (layer as usize).checked_sub(LayerId::SynthA as usize) {
             self.synth_cutoff_morph[i] = MorphParameter::new(DEFAULT_CUTOFF_NORM);
@@ -111,6 +123,25 @@ mod tests {
         assert_eq!(e.undo(), Some(UndoOp::LayerInit));
         assert_eq!(e.synth_b.cutoff_hz, 777.0);
         assert!(e.fx_chains[5].delay_enabled);
+    }
+
+    #[test]
+    fn layer_init_keeps_the_legacy_1khz_tick_opt_out() {
+        let mut e = Stage4Engine::new(48_000.0);
+        crate::render_opts::FirmwareOptions::legacy_all().apply_to(&mut e);
+        assert!(!e.organ_a.measured_tick() && !e.synth_a.measured_tick);
+        e.layer_init(LayerInitTarget::All);
+        for o in [&e.organ_a, &e.organ_b] {
+            assert!(!o.measured_tick());
+        }
+        for s in [&e.synth_a, &e.synth_b, &e.synth_c] {
+            assert!(!s.measured_tick);
+        }
+        // and the default stays measured
+        let mut e = Stage4Engine::new(48_000.0);
+        e.layer_init(LayerInitTarget::OrganAb);
+        e.layer_init(LayerInitTarget::SynthA);
+        assert!(e.organ_a.measured_tick() && e.synth_a.measured_tick);
     }
 
     #[test]

@@ -93,22 +93,38 @@ pub fn tables_from_code(code: &[u8], boot: &Super24Tables) -> Result<Vec<Super24
     (0..WAVE_TABLES).map(|k| build(code, k, boot)).collect()
 }
 
-/// All 46 tables from a file: the OS update container (its `CODE` segment of bank 0) or a raw
-/// `bank0_CODE` image.
+/// All 46 tables from a file: the official OS update (`.exe`, `.dmg`, or a `.zip` holding one),
+/// the extracted OS container, or a raw `bank0_CODE` image (D129). Read at run time, never stored.
 pub fn tables_from_file(
     path: &std::path::Path,
     boot: &Super24Tables,
 ) -> Result<Vec<Super24Tables>, String> {
-    let raw = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let code = match FirmwareContainer::parse(&raw) {
-        Ok(fw) => fw.extract_segment(0, "CODE", &raw)?,
-        Err(_) => raw,
+    let raw = crate::os_update::read_capped(path)?;
+    let code = match crate::os_update::extract_firmware_container(&raw) {
+        Ok(container) => {
+            let fw = FirmwareContainer::parse(&container)?;
+            fw.extract_segment(0, "CODE", &container)?
+        }
+        Err(why) => {
+            // not an update file: accept a raw bank0_CODE image, else explain what was expected
+            return tables_from_code(&raw, boot).map_err(|_| {
+                format!(
+                    "{}: {why}; it is not a bank0_CODE image either",
+                    path.display()
+                )
+            });
+        }
     };
-    tables_from_code(&code, boot)
+    tables_from_code(&code, boot).map_err(|e| {
+        format!(
+            "{}: unsupported Nord OS version, WAVE registry not found ({e})",
+            path.display()
+        )
+    })
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     fn boot() -> Super24Tables {
@@ -121,7 +137,7 @@ mod tests {
     }
 
     /// A code image whose registry holds `WAVE_TABLES` copies of one two-band table.
-    fn image() -> Vec<u8> {
+    pub(crate) fn image() -> Vec<u8> {
         let mut img = vec![0u8; 0x40_0000];
         let put = |img: &mut Vec<u8>, addr: u32, w: u32| {
             let o = (addr - LOAD_BASE) as usize;

@@ -182,6 +182,12 @@ fn main() -> Result<(), String> {
             o.synth_velocity_fw = true;
         }
     }
+    if args.iter().any(|a| a == "--legacy-1khz-tick") {
+        // the pre-D131 1 ms ARM tick, to compare a sweep before and after the flip
+        for (_, o) in &mut modes {
+            o.measured_tick = false;
+        }
+    }
     for name in names {
         let bytes = archive
             .read_entry(&mut file, &name)

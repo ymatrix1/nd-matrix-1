@@ -349,8 +349,16 @@ pub const ROUTING: SwitchInfo = sw(
     "Section/layer enables, the loader's empty-mask rule and per-layer KB zones as the program stores them (on by default; --legacy-routing turns it off).",
 );
 
+pub const TICK: SwitchInfo = sw(
+    "Global",
+    "--legacy-1khz-tick",
+    "24 kHz ARM tick",
+    Mixed,
+    "Vox key timeline and synth gain de-zipper on the measured 24 kHz ARM timer (on by default since D131; --legacy-1khz-tick turns it off and restores 1 ms). Timer rate VERIFIED, the delays are lower bounds in real time (ASSUMED).",
+);
+
 /// All switches in bar order.
-pub const ALL: [SwitchInfo; 35] = [
+pub const ALL: [SwitchInfo; 36] = [
     TONE,
     B3_TAIL,
     FARFISA,
@@ -386,6 +394,7 @@ pub const ALL: [SwitchInfo; 35] = [
     FX_MOD2,
     FX_EQ,
     ROUTING,
+    TICK,
 ];
 
 #[cfg(test)]
