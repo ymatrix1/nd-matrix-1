@@ -1,0 +1,2055 @@
+/* ==========================================================================
+   Nord Stage 4 HA88 — 1:1 Hardware Visual Prototype Stylesheet
+   Tokens aligned with docs/specs/visual-style-and-panel.md for clean Rust/egui porting.
+   ========================================================================== */
+
+:root {
+  /* Core Surface Tokens */
+  --chassis-red-light: #a8222a;
+  --chassis-red-primary: #8f1922;
+  --chassis-red-dark: #5e0d13;
+  --chassis-red-deep: #3d070b;
+
+  --module-slate-top: #3d4855;
+  --module-slate-bg: #323c47;
+  --module-slate-dark: #262e38;
+  --module-header-bar: #aab5c1;
+  --module-header-hi: #c4ced8;
+  --module-header-lo: #8c98a5;
+  --group-frame-border: #9da9b5;
+
+  /* Hardware Control Surfaces */
+  --btn-black-cap: #23262a;
+  --btn-black-hi: #3a3f46;
+  --btn-black-well: #0c0e10;
+  --btn-grey-cap: #91979d;
+  --btn-grey-hi: #b5bbc2;
+  --btn-red-cap: #b8292e;
+  --btn-red-hi: #d44247;
+
+  /* LEDs */
+  --led-off: #3a3e44;
+  --led-red: #ff3128;
+  --led-red-glow: rgba(255, 49, 40, 0.75);
+  --led-green: #7ce826;
+  --led-green-glow: rgba(124, 232, 38, 0.72);
+  --led-amber: #ffbc24;
+  --led-amber-glow: rgba(255, 188, 36, 0.75);
+
+  /* OLED */
+  --oled-bg: #07090d;
+  --oled-fg: #d9ecff;
+  --oled-accent: #8cb7d9;
+
+  /* Drawbars */
+  --drawbar-white: #eae9e4;
+  --drawbar-white-side: #bfbdb6;
+  --drawbar-black: #22252a;
+  --drawbar-black-side: #0e1013;
+
+  /* Silkscreen */
+  --ink-white: #eef2f6;
+  --ink-muted: #c2ccd6;
+  --ink-dark: #161a1e;
+  --badge-red: #9f222a;
+
+  /* Fonts */
+  --font-silk: "Bahnschrift", "DIN Alternate", "Arial Narrow", "Segoe UI", system-ui, sans-serif;
+  --font-oled: "Cascadia Mono", "Consolas", "Courier New", monospace;
+
+  /* Subtle Realistic Nord Powder-Coat Micro-Grain (fine high-freq stipple, soft-light blend) */
+  --tex-powder-strong: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110'%3E%3Cfilter id='p' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' seed='7' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' lighting-color='%23ffffff' surfaceScale='1.05' diffuseConstant='1.0' result='l'%3E%3CfeDistantLight azimuth='225' elevation='55'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='110' height='110' filter='url(%23p)' opacity='0.22'/%3E%3C/svg%3E");
+  --tex-powder-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110'%3E%3Cfilter id='p' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='11' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' lighting-color='%23ffffff' surfaceScale='0.8' diffuseConstant='1.0' result='l'%3E%3CfeDistantLight azimuth='225' elevation='58'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='110' height='110' filter='url(%23p)' opacity='0.14'/%3E%3C/svg%3E");
+  --tex-stone-wheel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='s' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' seed='3' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' lighting-color='%23ffffff' surfaceScale='1.6' diffuseConstant='1.1' result='l'%3E%3CfeDistantLight azimuth='215' elevation='45'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='80' height='80' filter='url(%23s)' opacity='0.42'/%3E%3C/svg%3E");
+}
+
+* {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #121417;
+  color: #e8edf2;
+  font-family: var(--font-silk);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================================================
+   Prototype Top Toolbar (not part of the hardware)
+   ========================================================================== */
+.proto-toolbar {
+  height: 44px;
+  background: #1a1e24;
+  border-bottom: 1px solid #2b323c;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 50;
+}
+
+.proto-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.proto-badge {
+  background: #8f1922;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.proto-sub {
+  color: #8c98a6;
+  font-size: 12px;
+}
+
+.proto-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.proto-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #111418;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid #282f38;
+}
+
+.tb-btn {
+  background: transparent;
+  color: #b7c2ce;
+  border: none;
+  padding: 4px 9px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.tb-btn:hover {
+  background: #252c35;
+  color: #fff;
+}
+
+.tb-btn.active {
+  background: #8f1922;
+  color: #fff;
+}
+
+.zoom-readout {
+  font-size: 11px;
+  color: #d0dae4;
+  min-width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   Viewport & Scaler
+   ========================================================================== */
+.viewport {
+  flex: 1;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 35%, #20252c 0%, #0d0f12 85%);
+  padding: 20px;
+}
+
+.stage-bounds {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.stage-scaler {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  transition: transform 0.14s ease-out;
+}
+
+/* ==========================================================================
+   Nord Stage 4 Outer Chassis (Continuous Full-Height Wooden End Cheeks)
+   ========================================================================== */
+.ns4-chassis {
+  width: fit-content;
+  display: flex;
+  align-items: stretch;
+  border-radius: 16px 16px 8px 8px;
+  background: #4e0a10;
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.84),
+    0 6px 20px rgba(0, 0, 0, 0.58);
+  border: 1px solid #3c060a;
+  position: relative;
+  overflow: hidden;
+}
+
+.wood-cheek {
+  width: 44px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 6;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(35, 3, 6, 0.14) 0px,
+      rgba(35, 3, 6, 0.14) 1px,
+      transparent 1px,
+      transparent 4px,
+      rgba(255, 175, 175, 0.045) 4px,
+      rgba(255, 175, 175, 0.045) 5px
+    ),
+    linear-gradient(180deg, #b92c36 0%, #981b24 4%, #87151e 35%, #7d121b 82%, #680d15 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 195, 200, 0.3),
+    inset 0 -3px 5px rgba(30, 3, 5, 0.65);
+}
+
+.wood-cheek.left {
+  border-radius: 15px 0 0 7px;
+  border-right: 2px solid #380509;
+  box-shadow:
+    inset 4px 0 6px rgba(48, 5, 9, 0.5),
+    inset -3px 0 4px rgba(255, 175, 180, 0.14),
+    inset 0 2px 3px rgba(255, 195, 200, 0.3),
+    2px 0 6px rgba(25, 2, 4, 0.55);
+}
+
+.wood-cheek.right {
+  border-radius: 0 15px 7px 0;
+  border-left: 2px solid #380509;
+  box-shadow:
+    inset -4px 0 6px rgba(48, 5, 9, 0.5),
+    inset 3px 0 4px rgba(255, 175, 180, 0.14),
+    inset 0 2px 3px rgba(255, 195, 200, 0.3),
+    -2px 0 6px rgba(25, 2, 4, 0.55);
+}
+
+.chassis-center {
+  display: flex;
+  flex-direction: column;
+  background-image:
+    var(--tex-powder-strong),
+    linear-gradient(180deg, #9b1d26 0%, #8c1720 14%, #82151d 84%, #75121a 100%);
+  background-size: 110px 110px, 100% 100%;
+  background-blend-mode: soft-light, normal;
+  position: relative;
+}
+
+.chassis-top-lip {
+  height: 24px;
+  background: linear-gradient(180deg, rgba(255, 195, 200, 0.22) 0%, rgba(255, 180, 185, 0.08) 45%, rgba(0, 0, 0, 0) 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 330px 0 400px;
+}
+
+.rear-jack-labels {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 6.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(240, 232, 232, 0.78);
+  white-space: nowrap;
+}
+
+.rear-jack-labels .gap {
+  width: 60px;
+}
+
+.chassis-deck {
+  display: flex;
+  align-items: stretch;
+  height: 386px;
+  position: relative;
+}
+
+.end-cheek {
+  width: 28px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, #650e14 0%, #9c1e27 32%, #86161e 72%, #520a0f 100%);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.45);
+}
+
+.end-cheek.left-cheek {
+  border-right: 1px solid rgba(40, 4, 7, 0.6);
+}
+
+.end-cheek.right-cheek {
+  border-left: 1px solid rgba(40, 4, 7, 0.6);
+}
+
+/* ==========================================================================
+   Left Pitch Stick & Mod Wheel Zone
+   ========================================================================== */
+.zone-pitch-mod {
+  width: 295px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.pitch-stick-well {
+  position: absolute;
+  left: 145px;
+  top: 76px;
+  width: 58px;
+  height: 30px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #060708 0%, #141619 100%);
+  box-shadow:
+    inset 0 4px 8px rgba(0, 0, 0, 0.95),
+    0 1px 0 rgba(255, 190, 195, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ew-resize;
+  transform: rotate(-10deg);
+}
+
+.pitch-stick-wood {
+  width: 34px;
+  height: 22px;
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(90deg, rgba(95, 52, 18, 0.22) 0 2px, transparent 2px 5px),
+    linear-gradient(180deg, #d7a66a 0%, #b57c42 42%, #8e5a28 78%, #6c4119 100%);
+  box-shadow:
+    0 5px 10px rgba(0, 0, 0, 0.72),
+    inset 0 2px 3px rgba(255, 232, 195, 0.48),
+    inset 0 -3px 4px rgba(58, 28, 8, 0.6);
+  position: relative;
+  transition: transform 0.08s ease-out;
+}
+
+.pitch-stick-wood::after {
+  content: "";
+  position: absolute;
+  inset: 3px 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(0,0,0,0.16), rgba(255,255,255,0.12));
+}
+
+.mod-wheel-well {
+  position: absolute;
+  left: 224px;
+  top: 132px;
+  width: 24px;
+  height: 98px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #040506 0%, #141619 52%, #050607 100%);
+  box-shadow:
+    inset 0 4px 10px rgba(0, 0, 0, 0.96),
+    0 1px 0 rgba(255, 190, 195, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  transform: rotate(-10deg);
+}
+
+/* Authentic Nord pebbled cast-stone Mod Wheel with single concave finger dimple */
+.mod-wheel-drum {
+  width: 15px;
+  height: 86px;
+  border-radius: 8px;
+  background-image:
+    linear-gradient(180deg, rgba(8,8,10,0.78) 0%, rgba(16,18,22,0.18) 20%, rgba(255,255,255,0.22) 48%, rgba(18,20,24,0.22) 78%, rgba(8,8,10,0.82) 100%),
+    var(--tex-stone-wheel),
+    linear-gradient(90deg, #5d181e 0%, #7d7e82 22%, #c9cdd4 48%, #e4e7ec 62%, #8e9299 84%, #44474d 100%);
+  background-size: 100% 100%, 80px 80px, 100% 100%;
+  background-blend-mode: normal, overlay, normal;
+  background-position: 0 0, 0 0, 0 0;
+  box-shadow:
+    -2px 2px 6px rgba(0, 0, 0, 0.85),
+    inset 1px 0 2px rgba(155, 30, 40, 0.45);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Sculpted concave finger dimple on the stone wheel edge */
+.mod-wheel-drum::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  right: 2px;
+  top: var(--mod-notch-top, 74%);
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 58% 35%, rgba(255, 255, 255, 0.45) 0%, rgba(130, 134, 140, 0.3) 38%, rgba(24, 26, 30, 0.78) 78%, rgba(255, 255, 255, 0.35) 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(0, 0, 0, 0.72),
+    0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+/* ==========================================================================
+   Right Brand Zone ("nord stage 4")
+   ========================================================================== */
+.zone-brand {
+  flex: 1;
+  min-width: 250px;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 34px;
+}
+
+.brand-lockup {
+  text-align: center;
+  color: rgba(247, 245, 245, 0.94);
+  text-shadow: 0 1px 1px rgba(45, 4, 8, 0.55);
+}
+
+.nord-wordmark {
+  font-family: "Century Gothic", "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: 38px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.nord-n {
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.nord-stage {
+  font-weight: 300;
+}
+
+.nord-sub {
+  margin-top: 8px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: rgba(242, 232, 232, 0.8);
+}
+
+/* ==========================================================================
+   6 Horizontal Panel Bays Container
+   ========================================================================== */
+.panel-bays {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 6px 0 8px;
+}
+
+/* Shared Bay Surfaces */
+.bay {
+  position: relative;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.bay-slate {
+  background: transparent;
+}
+
+.organ-body,
+.piano-body,
+.synth-body {
+  background-image:
+    var(--tex-powder-strong),
+    linear-gradient(180deg, #3b4652 0%, #333d49 52%, #2d3642 100%);
+  background-size: 110px 110px, 100% 100%;
+  background-blend-mode: soft-light, normal;
+  border-radius: 0 0 5px 5px;
+}
+
+.bay-red {
+  background: transparent;
+}
+
+/* Silver-Blue Section Header Bar (painted flush on metal deck; notch is real transparent cutout) */
+.bay-header {
+  height: 30px;
+  background-image:
+    var(--tex-powder-soft),
+    linear-gradient(180deg, #bcc6d1 0%, #aab6c2 55%, #9faab6 100%);
+  background-size: 110px 110px, 100% 100%;
+  background-blend-mode: soft-light, normal;
+  color: var(--ink-dark);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 8px;
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 5px 5px 0 0;
+}
+
+/* Stepped header cutout: smooth rounded S-curve SVG background so real red chassis shows through */
+.bay-header.has-notch {
+  background: transparent;
+}
+
+.bay-header-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bay-header.has-notch > *:not(.bay-header-svg) {
+  position: relative;
+  z-index: 1;
+}
+
+.header-red-notch {
+  display: none;
+}
+
+.bay-header-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 0.95;
+}
+
+.bay-header-title .h-main {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.bay-header-title .h-sub {
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+/* Red top-right stepped notch on Organ, Synth, FX headers */
+.header-red-notch {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 15px;
+  background: linear-gradient(180deg, #981c25 0%, #881720 100%);
+  border-bottom-left-radius: 3px;
+  box-shadow: inset 1px -1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.header-fx-focus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+.header-on-solo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+}
+
+.header-on-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ==========================================================================
+   Typography & Silkscreen Labels
+   ========================================================================== */
+.lbl {
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-white);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.lbl-dark {
+  color: var(--ink-dark);
+}
+
+.lbl-xs {
+  font-size: 6.5px;
+}
+
+.lbl-sm {
+  font-size: 8.5px;
+}
+
+.lbl-muted {
+  color: var(--ink-muted);
+}
+
+.lbl-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  padding: 1.5px 3px 1px;
+  line-height: 1;
+  font-size: 6.5px;
+  font-weight: 700;
+}
+
+.lbl-pill-white {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: linear-gradient(180deg, #d7dfe7 0%, #b5c0cb 100%);
+  color: #161a1e;
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-size: 6.8px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.lbl-pill-red {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: linear-gradient(180deg, #b82931 0%, #8f1a21 100%);
+  color: #fff;
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.lbl-pill-blue {
+  display: inline-flex;
+  align-items: center;
+  background: #b6c2ce;
+  color: #161a1e;
+  border-radius: 2px;
+  padding: 0.5px 3.5px;
+  font-size: 6.5px;
+  font-weight: 800;
+}
+
+/* Outlined Group Box (transparent title + real SVG border with top gap) */
+.group-box {
+  border: none;
+  border-radius: 5px;
+  position: relative;
+  padding: 8px 6px 5px;
+}
+
+.group-box-border-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 0;
+}
+
+.group-box-title {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: transparent;
+  padding: 0 5px;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 0.95;
+  text-align: center;
+  color: var(--ink-white);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.group-box-title.two-line {
+  top: -8px;
+  white-space: normal;
+}
+
+/* Light Silver-Blue Sub-Panel (flush painted silkscreen zone, no floating shadow) */
+.silver-subpanel {
+  background-image:
+    var(--tex-powder-soft),
+    linear-gradient(180deg, #b5c0cc 0%, #a7b3bf 100%);
+  background-size: 110px 110px, 100% 100%;
+  background-blend-mode: soft-light, normal;
+  border-radius: 4px;
+  color: var(--ink-dark);
+  position: relative;
+}
+
+.silver-subpanel .lbl {
+  color: var(--ink-dark);
+}
+
+/* ==========================================================================
+   Hardware Widgets: Pill Buttons, LEDs, Triangle Matrices, Faders, Drawbars, Knobs
+   ========================================================================== */
+
+/* --- Pill Button (Authentic Nord rectangular collar + raised stadium boss) --- */
+.pill-btn {
+  width: 34px;
+  height: 17px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #2d3137 0%, #1d2024 45%, #121417 100%);
+  border: 1px solid #090a0c;
+  padding: 2.5px 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.65);
+  position: relative;
+  flex-shrink: 0;
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+
+.pill-btn::after {
+  content: "";
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #3c4148 0%, #262a2f 42%, #1a1d21 100%);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.85),
+    0 0 0 0.8px rgba(0, 0, 0, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.22),
+    inset 0 -1px 1.5px rgba(0, 0, 0, 0.75);
+  transition: transform 0.05s, filter 0.08s;
+}
+
+.pill-btn:hover::after {
+  filter: brightness(1.16);
+}
+
+.pill-btn:active,
+.pill-btn.pressed {
+  transform: translateY(0.8px);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.75),
+    inset 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.pill-btn:active::after,
+.pill-btn.pressed::after {
+  transform: scale(0.96);
+  filter: brightness(0.92);
+}
+
+.pill-btn.grey {
+  background: linear-gradient(180deg, #adb3ba 0%, #8e949b 50%, #737980 100%);
+  border-color: #2c3036;
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    inset 0 -1px 1px rgba(20, 24, 28, 0.5);
+}
+
+.pill-btn.grey::after {
+  background: linear-gradient(180deg, #c6ccd2 0%, #9fa5ac 45%, #848a91 100%);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.45),
+    0 0 0 0.7px rgba(40, 45, 50, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.62),
+    inset 0 -1px 1.5px rgba(35, 40, 46, 0.5);
+}
+
+.pill-btn.red {
+  background: linear-gradient(180deg, #c7353b 0%, #a52227 52%, #7d1519 100%);
+  border-color: #46090c;
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.68),
+    inset 0 1px 0 rgba(255, 195, 195, 0.35),
+    inset 0 -1px 1px rgba(40, 4, 6, 0.6);
+}
+
+.pill-btn.red::after {
+  background: linear-gradient(180deg, #dc4a50 0%, #bd2d33 48%, #961c21 100%);
+  box-shadow:
+    0 1px 2px rgba(45, 4, 6, 0.65),
+    0 0 0 0.7px rgba(65, 8, 10, 0.45),
+    inset 0 1px 1px rgba(255, 200, 200, 0.48),
+    inset 0 -1px 1.5px rgba(55, 6, 9, 0.65);
+}
+
+.pill-btn.sm {
+  width: 28px;
+  height: 15px;
+  padding: 2px 3.5px;
+}
+
+.pill-btn.lg {
+  width: 38px;
+  height: 18px;
+}
+
+.pill-btn.vert {
+  width: 17px;
+  height: 34px;
+  padding: 4px 2.5px;
+}
+
+/* Solid printed crimson collar behind red-framed Synth buttons */
+.pill-btn.red-frame {
+  margin: 3.5px 2.5px;
+  box-shadow:
+    0 0 0 2.5px #981c25,
+    0 2px 3px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* --- Round LED --- */
+.led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #5b616a 0%, #32363c 65%, #1d2024 100%);
+  border: 1px solid #16181b;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.16);
+  display: inline-block;
+  flex-shrink: 0;
+  transition: background 0.1s, box-shadow 0.1s;
+}
+
+.led.on.red {
+  background: radial-gradient(circle at 38% 35%, #ffaca4 0%, #ff3328 48%, #c9120c 100%);
+  box-shadow: 0 0 6px var(--led-red-glow), 0 0 2px #ff5a52;
+  border-color: #7c0c08;
+}
+
+.led.on.green {
+  background: radial-gradient(circle at 38% 35%, #e5ffc2 0%, #7ce826 50%, #44a60d 100%);
+  box-shadow: 0 0 6px var(--led-green-glow), 0 0 2px #a4ff54;
+  border-color: #296208;
+}
+
+.led.on.amber {
+  background: radial-gradient(circle at 38% 35%, #fff0b8 0%, #ffbc24 52%, #cc7b00 100%);
+  box-shadow: 0 0 6px var(--led-amber-glow), 0 0 2px #ffd363;
+  border-color: #7a4800;
+}
+
+.led.sm {
+  width: 5.5px;
+  height: 5.5px;
+}
+
+/* --- Triangular LED Matrix Window (dead-centered symmetric columns) --- */
+.tri-matrix {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 5px;
+  width: 100%;
+}
+
+.tri-col-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 2px;
+  height: 100%;
+}
+
+.tri-col-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: flex-start;
+  gap: 3px;
+  height: 100%;
+}
+
+.tri-window {
+  background: linear-gradient(180deg, #1b1f24 0%, #262b32 100%);
+  border: 1px solid #0e1013;
+  border-radius: 2px;
+  padding: 3px 3.5px;
+  display: grid;
+  gap: 5px 5px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.tri-window.cols-2 {
+  grid-template-columns: 7px 7px;
+}
+
+.tri-window.cols-3 {
+  grid-template-columns: 7px 7px 7px;
+}
+
+.tri {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  opacity: 0.25;
+  transition: opacity 0.1s, filter 0.1s;
+}
+
+.tri.left {
+  border-width: 3.5px 6px 3.5px 0;
+  border-color: transparent #7e858e transparent transparent;
+}
+
+.tri.right {
+  border-width: 3.5px 0 3.5px 6px;
+  border-color: transparent transparent transparent #7e858e;
+}
+
+.tri.up {
+  border-width: 0 3.5px 6px 3.5px;
+  border-color: transparent transparent #7e858e transparent;
+}
+
+.tri.down {
+  border-width: 6px 3.5px 0 3.5px;
+  border-color: #7e858e transparent transparent transparent;
+}
+
+.tri.on {
+  opacity: 1;
+  filter: drop-shadow(0 0 3px var(--led-red-glow));
+}
+
+.tri.left.on { border-color: transparent var(--led-red) transparent transparent; }
+.tri.right.on { border-color: transparent transparent transparent var(--led-red); }
+.tri.up.on { border-color: transparent transparent var(--led-red) transparent; }
+.tri.down.on { border-color: var(--led-red) transparent transparent transparent; }
+
+/* --- Layer Level Fader + 11-Segment Green LED Ladder --- */
+.fader-strip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fader-track {
+  width: 10px;
+  height: 94px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #060708 0%, #15181c 50%, #070809 100%);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.95),
+    1px 0 0 rgba(255, 255, 255, 0.08);
+  position: relative;
+  cursor: ns-resize;
+}
+
+.fader-track::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  bottom: 6px;
+  width: 4px;
+  background: #030405;
+  border-radius: 2px;
+}
+
+.fader-cap {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 18px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #747a82 0%, #9ba2aa 16%, #b2b8c0 30%, #868d95 72%, #52575e 100%);
+  border: 1px solid #2b2f34;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.72),
+    inset 0 1px 1px rgba(255, 255, 255, 0.42),
+    inset 0 -2px 2px rgba(18, 20, 24, 0.65);
+  pointer-events: none;
+}
+
+/* Raised tapered top plateau matching real pyramidal fader cap */
+.fader-cap::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 3px;
+  bottom: 4px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #c2c8cf 0%, #9ea5ad 55%, #848b93 100%);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.led-ladder {
+  width: 8px;
+  height: 90px;
+  background: #171a1e;
+  border: 1px solid #0b0d0f;
+  border-radius: 2px;
+  padding: 2px 1.5px;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: space-between;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.led-seg {
+  width: 100%;
+  height: 5px;
+  border-radius: 1px;
+  background: #31373e;
+  transition: background 0.06s, box-shadow 0.06s;
+}
+
+.led-seg.on.green {
+  background: linear-gradient(90deg, #6bd61c 0%, #a5ff4c 50%, #6bd61c 100%);
+  box-shadow: 0 0 4px rgba(132, 240, 48, 0.72);
+}
+
+.led-seg.on.red {
+  background: linear-gradient(90deg, #e02820 0%, #ff5c4d 50%, #e02820 100%);
+  box-shadow: 0 0 5px rgba(255, 58, 46, 0.78);
+}
+
+/* --- Physical Organ Drawbars + 8-LED Red Ladders --- */
+.drawbar-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 39px;
+}
+
+.drawbar-top-lbl {
+  height: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 6.5px;
+  font-weight: 700;
+  color: var(--ink-white);
+  line-height: 1.05;
+  margin-bottom: 2px;
+}
+
+.drawbar-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  height: 152px;
+  position: relative;
+}
+
+.drawbar-slot {
+  width: 8px;
+  height: 142px;
+  margin-top: 6px;
+  background: linear-gradient(90deg, #050607, #14171b, #050607);
+  border-radius: 2px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.95);
+  position: relative;
+  cursor: ns-resize;
+}
+
+.drawbar-scale-plate {
+  width: 22px;
+  height: 98px;
+  border: 1px solid #9ba7b4;
+  border-bottom: none;
+  border-radius: 2px 2px 0 0;
+  display: flex;
+  overflow: hidden;
+  background: #232a33;
+}
+
+.drawbar-nums {
+  width: 10px;
+  background: #a5b1bd;
+  color: #161a1e;
+  font-size: 6px;
+  font-weight: 800;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  padding: 1px 0;
+}
+
+.drawbar-leds {
+  flex: 1;
+  background: #14171c;
+  padding: 2px 1.5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.drawbar-leds .led-seg {
+  height: 8.5px;
+}
+
+.drawbar-cap {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 22px;
+  height: 54px;
+  border-radius: 3px 3px 4px 4px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.drawbar-cap.white {
+  background: linear-gradient(180deg, #e5e3db 0%, #d8d6ce 50%, #c0beb5 58%, #f4f3ee 64%, #eae9e2 86%, #bcbab2 100%);
+  border: 1px solid #8c8a82;
+  box-shadow:
+    0 6px 10px rgba(0, 0, 0, 0.72),
+    inset 0 1px 1px rgba(255, 255, 255, 0.75),
+    inset 0 -3px 3px rgba(0, 0, 0, 0.28);
+}
+
+.drawbar-cap.black {
+  background: linear-gradient(180deg, #272a30 0%, #1c1f24 50%, #101215 58%, #363a42 64%, #22252a 86%, #0c0e10 100%);
+  border: 1px solid #090b0d;
+  box-shadow:
+    0 6px 10px rgba(0, 0, 0, 0.8),
+    inset 0 1px 1px rgba(255, 255, 255, 0.14),
+    inset 0 -3px 3px rgba(0, 0, 0, 0.75);
+}
+
+/* Raised L-profile front finger tab matching real Hammond/Nord drawbar cap */
+.drawbar-cap::after {
+  content: "";
+  position: absolute;
+  left: 1.5px;
+  right: 1.5px;
+  top: 62%;
+  bottom: 4px;
+  border-radius: 2px 2px 3px 3px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 45%, rgba(0,0,0,0.22) 100%);
+  box-shadow: 0 -2px 3px rgba(0, 0, 0, 0.35);
+}
+
+.drawbar-foot-lbl {
+  font-size: 7.5px;
+  font-weight: 700;
+  color: var(--ink-white);
+  margin-top: 2px;
+}
+
+/* --- Hardware Rotary Knob (Fluted / Skirted Nord Style) --- */
+.knob-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.knob-dial-area {
+  position: relative;
+  width: 54px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.knob-dial-area.sm {
+  width: 44px;
+  height: 42px;
+}
+
+.knob-dial-area.enc {
+  width: 36px;
+  height: 36px;
+}
+
+.knob-scale-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.knob-body {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from -7deg, rgba(255,255,255,0.1) 0deg 14deg, rgba(0,0,0,0.42) 14deg 30deg),
+    radial-gradient(circle at 32% 28%, #3c4046 0%, #22252a 58%, #101215 100%);
+  border: 1.5px solid #0a0b0d;
+  box-shadow:
+    0 5px 8px rgba(0, 0, 0, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.88),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.18);
+  position: relative;
+  cursor: ns-resize;
+  z-index: 2;
+}
+
+/* Matte rubberized flat top disc matching real 12-flute Nord knob */
+.knob-body::before {
+  content: "";
+  position: absolute;
+  inset: 3.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, #35383e 0%, #23262b 65%, #191b1f 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.14),
+    0 0 0 0.8px rgba(0, 0, 0, 0.45);
+}
+
+/* Crisp wrap-over white indicator bar extending from top disc over outer rim */
+.knob-pointer {
+  position: absolute;
+  left: 50%;
+  top: 0px;
+  width: 3px;
+  height: 12.5px;
+  margin-left: -1.5px;
+  background: linear-gradient(180deg, #d8dde3 0%, #ffffff 28%, #f2f5f8 100%);
+  border-radius: 1px;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.85);
+  z-index: 3;
+}
+
+.knob-body.encoder {
+  width: 26px;
+  height: 26px;
+  box-shadow:
+    0 0 0 3.5px #a8b6c4,
+    0 4px 7px rgba(0, 0, 0, 0.78),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.18);
+}
+
+.knob-body.master-ring {
+  width: 28px;
+  height: 28px;
+  box-shadow:
+    0 5px 9px rgba(0, 0, 0, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.88),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.18);
+}
+
+.knob-dark-inlay {
+  background: #303a45;
+  color: var(--ink-white);
+  border-radius: 28px 28px 4px 4px;
+  padding: 6px 6px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.knob-dark-inlay .lbl {
+  color: var(--ink-white);
+}
+
+/* ==========================================================================
+   OLED Displays
+   ========================================================================== */
+.oled-bezel {
+  background: #06080b;
+  border: 2px solid #1b2026;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.16);
+  font-family: var(--font-oled);
+  color: var(--oled-fg);
+  overflow: hidden;
+  position: relative;
+}
+
+.oled-bezel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(255,255,255,0.06) 0%, transparent 38%);
+  pointer-events: none;
+}
+
+/* Main Program OLED */
+.oled-main {
+  width: 174px;
+  height: 82px;
+  padding: 5px 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.oled-main .prog-num {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+.oled-main .prog-name {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #eef6ff;
+  text-shadow: 0 0 6px rgba(170, 215, 255, 0.35);
+}
+
+.oled-main .prog-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 8.5px;
+  line-height: 1.15;
+  color: #c7e0f6;
+}
+
+.oled-main .prog-layer-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.oled-tag {
+  display: inline-block;
+  background: #b9d9f6;
+  color: #07090d;
+  font-size: 7px;
+  font-weight: 800;
+  padding: 0 2px;
+  border-radius: 1px;
+  margin-right: 3px;
+}
+
+/* Synth OLED */
+.oled-synth {
+  width: 146px;
+  height: 76px;
+  padding: 4px 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.oled-synth-bar {
+  background: #9ac0df;
+  color: #07090d;
+  font-size: 8.5px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.08em;
+  padding: 1px 0;
+  line-height: 1.1;
+}
+
+.oled-synth-mid {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 2px 0;
+}
+
+.oled-synth-wave-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #eef6ff;
+  line-height: 1.1;
+}
+
+.oled-synth-detune {
+  font-size: 8.5px;
+  color: #a9cbe8;
+}
+
+.oled-synth-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  text-align: center;
+  font-size: 7px;
+  line-height: 1.15;
+}
+
+.oled-soft-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.oled-soft-tab .tab-pill {
+  background: #8eb5d6;
+  color: #07090d;
+  font-weight: 800;
+  padding: 0 3px;
+  border-radius: 1px;
+  font-size: 6.5px;
+}
+
+/* ==========================================================================
+   Individual Bay Layouts (Matching Reference Images 1:1)
+   ========================================================================== */
+
+/* --- BAY 1: MASTER LEVEL & ROTARY SPEAKER --- */
+.bay-master {
+  width: 78px;
+  padding: 4px 3px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rotary-box {
+  width: 100%;
+  flex: 1;
+  margin-top: 8px;
+  border: 1px solid rgba(235, 240, 246, 0.72);
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+}
+
+.rotary-hdr {
+  width: 100%;
+  background: linear-gradient(180deg, #c2ccd7 0%, #a5b1bd 100%);
+  color: var(--ink-dark);
+  text-align: center;
+  padding: 2px 2px;
+  font-size: 7px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+}
+
+/* --- BAY 2: ORGAN SECTION --- */
+.bay-organ {
+  width: 492px;
+}
+
+.organ-body {
+  flex: 1;
+  display: flex;
+  padding: 10px 8px 6px;
+  gap: 10px;
+}
+
+.section-left-col {
+  width: 110px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faders-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.layer-btns-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.layer-btn-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.octave-zone-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+}
+
+.organ-right-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.organ-top-groups {
+  display: grid;
+  grid-template-columns: 96px 124px 1fr;
+  gap: 5px;
+  height: 102px;
+}
+
+.drawbars-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: 4px;
+}
+
+/* --- BAY 3: PIANO SECTION --- */
+.bay-piano {
+  width: 244px;
+}
+
+.piano-body {
+  flex: 1;
+  display: flex;
+  padding: 6px 7px 6px;
+  gap: 8px;
+}
+
+.piano-right-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.piano-grid-2x2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 6px;
+}
+
+.piano-ctrl-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.piano-select-box {
+  flex: 1;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px 6px;
+}
+
+/* --- BAY 4: PROGRAM / MORPH SECTION --- */
+.bay-program {
+  width: 326px;
+  padding: 2px 4px 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.prog-top-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  height: 62px;
+}
+
+.morph-box {
+  width: 158px;
+  flex-shrink: 0;
+  background: #2e3743;
+  border: 1px solid rgba(220, 228, 236, 0.55);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.morph-hdr {
+  background: #aeb9c5;
+  color: var(--ink-dark);
+  font-size: 7.5px;
+  font-weight: 800;
+  text-align: center;
+  padding: 1.5px 0;
+  letter-spacing: 0.06em;
+}
+
+.morph-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3px 4px 2px;
+}
+
+.morph-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  align-items: center;
+  justify-items: center;
+}
+
+.morph-grid .lbl-pill-white {
+  padding: 1px 2.5px;
+  font-size: 6px;
+  gap: 2px;
+  width: 100%;
+  justify-content: center;
+}
+
+.prog-top-mini {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1px;
+}
+
+.prog-main-area {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+}
+
+.prog-col-left {
+  width: 82px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.prog-col-mid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.prog-col-right {
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.preset-lib-box {
+  width: 100%;
+  background: #2f3844;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(220, 228, 236, 0.45);
+}
+
+.preset-lib-hdr {
+  background: #b5c0cc;
+  color: var(--ink-dark);
+  font-size: 7px;
+  font-weight: 800;
+  text-align: center;
+  padding: 1px 0;
+}
+
+.program-bank-box {
+  width: 100%;
+  background: #2b333e;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(220, 228, 236, 0.45);
+}
+
+.program-bank-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px 3px;
+  padding: 4px 4px 5px;
+}
+
+.prog-slot-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.shift-exit-box {
+  width: 100%;
+  background: linear-gradient(180deg, #c0cad4 0%, #a4b0bc 100%);
+  border-radius: 4px;
+  padding: 4px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--ink-dark);
+}
+
+/* --- BAY 5: SYNTH SECTION --- */
+.bay-synth {
+  width: 658px;
+}
+
+.synth-body {
+  flex: 1;
+  display: flex;
+  padding: 5px 7px 6px;
+  gap: 8px;
+}
+
+.synth-left-col {
+  width: 136px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.synth-main-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.synth-top-row {
+  display: flex;
+  gap: 6px;
+  height: 180px;
+}
+
+.synth-oled-col {
+  width: 152px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1px 0 2px;
+}
+
+.synth-pointer-svg {
+  width: 146px;
+  height: 30px;
+  display: block;
+}
+
+.synth-encoders-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.synth-mode-col {
+  width: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 2px;
+}
+
+.synth-arp-voice-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 3px;
+}
+
+.synth-bottom-row {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 126px 128px 170px 60px;
+  gap: 5px;
+}
+
+.synth-sub-box {
+  padding: 13px 5px 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3px;
+}
+
+.synth-sub-top {
+  min-height: 54px;
+}
+
+.synth-sub-title {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333d49;
+  color: var(--ink-white);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 0.5px 6px 1.5px;
+  border-radius: 0 0 3px 3px;
+  white-space: nowrap;
+}
+
+/* --- BAY 6: LAYER EFFECTS --- */
+.bay-fx {
+  width: 582px;
+  background: transparent;
+}
+
+.fx-wrapper {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.fx-focus-strip {
+  width: 66px;
+  flex-shrink: 0;
+  padding: 8px 4px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fx-slate-area {
+  flex: 1;
+  background-image:
+    var(--tex-powder-strong),
+    linear-gradient(180deg, #3b4652 0%, #323c48 52%, #2d3642 100%);
+  background-size: 110px 110px, 100% 100%;
+  background-blend-mode: soft-light, normal;
+  border-radius: 0 0 5px 5px;
+  display: flex;
+  padding: 8px 6px 6px;
+  gap: 7px;
+}
+
+.fx-col-left {
+  width: 266px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fx-col-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fx-bottom-right {
+  display: flex;
+  gap: 5px;
+  flex: 1;
+}
+
+/* ==========================================================================
+   Front Red Lip + Split LEDs (100% seamless single metal sheet; zero seam line)
+   ========================================================================== */
+.chassis-front-lip {
+  height: 14px;
+  background: transparent;
+  position: relative;
+  z-index: 5;
+}
+
+.chassis-front-lip::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(20, 1, 2, 0) 0%, rgba(20, 1, 2, 0.06) 45%, rgba(28, 2, 4, 0.38) 78%, rgba(16, 1, 2, 0.82) 100%);
+}
+
+.split-led {
+  position: absolute;
+  top: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #ffdf9a 0%, #ff8a1e 55%, #b83b00 100%);
+  box-shadow: 0 0 6px rgba(255, 140, 30, 0.85);
+  border: 1px solid #4a1700;
+}
+
+.split-led.off {
+  background: radial-gradient(circle at 35% 35%, #5b616a 0%, #32363c 65%, #1d2024 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.16);
+  border-color: #16181b;
+}
+
+/* ==========================================================================
+   88-Key Hammer Action Keybed
+   ========================================================================== */
+.keybed-frame {
+  height: 224px;
+  background: #141518;
+  display: flex;
+  position: relative;
+}
+
+.keybed-frame.hidden {
+  display: none;
+}
+
+.keybed-cheek {
+  width: 34px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, #5e0d13 0%, #8f1922 45%, #711118 85%, #3d060a 100%);
+  box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.55);
+}
+
+.keybed-felt {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(180deg, #1b0305 0%, #3d070b 100%);
+  z-index: 4;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.75);
+}
+
+.keybed-keys {
+  flex: 1;
+  position: relative;
+  display: flex;
+  background: #0a0b0d;
+  padding: 0 3px 6px;
+}
+
+.key-white {
+  flex: 1;
+  height: 100%;
+  background: linear-gradient(180deg, #dedcd5 0%, #f3f2ec 8%, #faf9f5 84%, #e5e3dc 96%, #c9c7be 100%);
+  border-right: 1px solid #9c9a92;
+  border-bottom: 3px solid #bdbbb2;
+  border-radius: 0 0 3px 3px;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.04s, background 0.04s;
+}
+
+.key-white:hover {
+  background: linear-gradient(180deg, #e7e5de 0%, #ffffff 12%, #ffffff 85%, #eceae3 100%);
+}
+
+.key-white.active {
+  background: linear-gradient(180deg, #cfcdc6 0%, #e4e2db 20%, #ebe9e2 88%, #d2d0c8 100%);
+  transform: translateY(2px);
+  border-bottom-width: 1px;
+}
+
+/* Grounded Fatar TP/40 Black Key (anchored skirt + tapered cheeks, no floating shadow) */
+.key-black {
+  position: absolute;
+  top: 0;
+  width: 28px;
+  height: 61%;
+  background:
+    linear-gradient(90deg, #0b0c0e 0%, #23262c 11%, #1b1e23 20%, #15171b 82%, #0a0b0d 92%, #050607 100%);
+  border: 1px solid #07080a;
+  border-top: none;
+  border-radius: 0 0 2.5px 2.5px;
+  box-shadow:
+    1px 2px 2px rgba(0, 0, 0, 0.52),
+    -1px 1px 1px rgba(0, 0, 0, 0.35),
+    inset 0 2px 2px rgba(0, 0, 0, 0.7),
+    inset 0 -14px 0 #1f2228,
+    inset 0 -15px 0 rgba(255, 255, 255, 0.14);
+  z-index: 3;
+  cursor: pointer;
+  transform: translateX(-50%);
+  transition: transform 0.04s, box-shadow 0.04s;
+}
+
+/* Chamfered top ebony plateau sitting above the sloped front & side walls */
+.key-black::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 2px;
+  bottom: 15px;
+  border-radius: 0 0 1.5px 1.5px;
+  background: linear-gradient(180deg, #272b31 0%, #1d2025 18%, #16181c 88%, #2a2e35 100%);
+  box-shadow:
+    inset 1px 0 0 rgba(255, 255, 255, 0.08),
+    inset -1px 0 0 rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.key-black:hover::before {
+  background: linear-gradient(180deg, #32363e 0%, #24282e 20%, #1c1f24 88%, #343942 100%);
+}
+
+.key-black.active {
+  transform: translateX(-50%) translateY(2px);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.55),
+    inset 0 2px 3px rgba(0, 0, 0, 0.8),
+    inset 0 -10px 0 #181a1f,
+    inset 0 -11px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Helpers */
+.row { display: flex; align-items: center; gap: 4px; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.between { justify-content: space-between; }
+.around { justify-content: space-around; }
+.w-full { width: 100%; }
+.mt-2 { margin-top: 2px; }
+.mt-4 { margin-top: 4px; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nd matrix 1 — 1:1 Hardware Panel Prototype</title>
+  <link rel="stylesheet" href="styles.css?v=15" />
+</head>
+<body>
+  <header class="proto-toolbar">
+    <div class="proto-title">
+      <span class="proto-badge">PROTOTYPE</span>
+      <strong>nd matrix 1</strong>
+      <span class="proto-sub">1:1 Hardware Reference Mock (HTML/CSS)</span>
+    </div>
+    <div class="proto-controls">
+      <div class="proto-group" id="focus-tabs">
+        <button class="tb-btn active" data-focus="full">Full Panel</button>
+        <button class="tb-btn" data-focus="organ">Organ</button>
+        <button class="tb-btn" data-focus="piano">Piano</button>
+        <button class="tb-btn" data-focus="program">Program</button>
+        <button class="tb-btn" data-focus="synth">Synth</button>
+        <button class="tb-btn" data-focus="fx">Layer FX</button>
+      </div>
+      <div class="proto-group">
+        <button class="tb-btn" id="btn-fit">Fit</button>
+        <button class="tb-btn" id="btn-zoom-out">−</button>
+        <span class="zoom-readout" id="zoom-readout">100%</span>
+        <button class="tb-btn" id="btn-zoom-in">+</button>
+        <button class="tb-btn active" id="btn-toggle-keys">Keybed</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="viewport" id="viewport">
+    <div class="stage-bounds" id="stage-bounds">
+      <div class="stage-scaler" id="stage-scaler">
+        <div class="ns4-chassis" id="ns4-chassis">
+          <!-- Continuous Full-Height Red-Stained Wood Left End Cheek -->
+          <div class="wood-cheek left"></div>
+
+          <!-- Center Metal Chassis + 88-Key Keybed -->
+          <div class="chassis-center">
+            <!-- Top rear bevel & subtle connector silkscreen -->
+            <div class="chassis-top-lip">
+              <div class="rear-jack-labels">
+                <span>MONITOR IN</span>
+                <span>HEADPHONES</span>
+                <span>OUT 1</span>
+                <span>OUT 2</span>
+                <span>OUT 3</span>
+                <span>OUT 4</span>
+                <span>CONTROL PEDAL</span>
+                <span>SWELL PEDAL</span>
+                <span>SUSTAIN PEDAL</span>
+                <span>TRIPLE PEDAL</span>
+                <span class="gap"></span>
+                <span>MIDI IN</span>
+                <span>MIDI OUT</span>
+                <span>ROTOR PEDAL</span>
+                <span>USB</span>
+                <span>FOOT SWITCH</span>
+                <span class="gap"></span>
+                <span>AC IN</span>
+                <span>POWER ON/OFF</span>
+              </div>
+            </div>
+
+            <!-- Main Red Top Panel Deck -->
+            <div class="chassis-deck">
+              <!-- Left Pitch Stick & Mod Wheel Zone -->
+              <section class="zone-pitch-mod">
+                <div class="pitch-stick-well" id="pitch-stick" title="Drag left/right for Pitch Bend">
+                  <div class="pitch-stick-wood" id="pitch-stick-handle"></div>
+                </div>
+                <div class="mod-wheel-well" id="mod-wheel" title="Drag up/down for Mod Wheel">
+                  <div class="mod-wheel-drum" id="mod-wheel-drum"></div>
+                </div>
+              </section>
+
+              <!-- 6 Horizontal Panel Bays -->
+              <div class="panel-bays" id="panel-bays">
+                <!-- Populated cleanly by panel.js for exact 1:1 widget consistency -->
+              </div>
+
+              <!-- Right Brand Zone -->
+              <section class="zone-brand">
+                <div class="brand-lockup">
+                  <div class="nord-wordmark">
+                    <span class="nord-n">nd</span> <span class="nord-stage">matrix 1</span>
+                  </div>
+                  <div class="nord-sub">H A M M E R &nbsp; A C T I O N &nbsp; 8 8</div>
+                </div>
+              </section>
+            </div>
+
+            <!-- Front Red Lip with Split-Point LEDs (10 hardware split points across HA88) -->
+            <div class="chassis-front-lip">
+              <div class="split-led off" style="left: 17.5%;" title="Split Point F2"></div>
+              <div class="split-led off" style="left: 25.0%;" title="Split Point C3"></div>
+              <div class="split-led" style="left: 33.4%;" title="Split Point F3 (Active)"></div>
+              <div class="split-led off" style="left: 40.6%;" title="Split Point C4"></div>
+              <div class="split-led" style="left: 47.8%;" title="Split Point F4 (Active)"></div>
+              <div class="split-led off" style="left: 55.0%;" title="Split Point C5"></div>
+              <div class="split-led" style="left: 62.2%;" title="Split Point F5 (Active)"></div>
+              <div class="split-led off" style="left: 69.4%;" title="Split Point C6"></div>
+              <div class="split-led off" style="left: 76.6%;" title="Split Point F6"></div>
+              <div class="split-led off" style="left: 83.8%;" title="Split Point C7"></div>
+            </div>
+
+            <!-- 88-Key Hammer Action Keybed -->
+            <div class="keybed-frame" id="keybed-frame">
+              <div class="keybed-felt"></div>
+              <div class="keybed-keys" id="keybed-keys"></div>
+            </div>
+          </div>
+
+          <!-- Continuous Full-Height Red-Stained Wood Right End Cheek -->
+          <div class="wood-cheek right"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="panel.js?v=15"></script>
+</body>
+</html>
