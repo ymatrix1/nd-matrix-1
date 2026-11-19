@@ -53,6 +53,32 @@ def first_member(resolved: dict[str, str | None]) -> str | None:
     return next((resolved[k] for k in ("synth_a", "synth_b", "synth_c") if resolved.get(k)), None)
 
 
+def arm_word_bits(rows: list[dict[str, object]]) -> int | None:
+    """Pitch word bits the ARM sent for voice 0 (`0x921A6`), `None` when it sent none."""
+    for r in rows:
+        if r["chip"] == "SY" and r["path"] == 1 and int(r["dm"]) == scn.PITCH_WORD_ADDR:  # type: ignore[call-overload]
+            return int(r["w2"])  # type: ignore[call-overload]
+    return None
+
+
+def effective_key(
+    zones: list[dict[str, int]], word_bits: int, key: int
+) -> tuple[int, dict[str, int]]:
+    """Zone the ARM chose from its pitch word, and the key it looked it up with.
+
+    The ARM word is `zone_word(root, rate)` of the zone it plays (VERIFIED 8 of 8, D65), so the
+    zone whose modelled word is nearest in value is the zone the ARM used; the key is the played
+    key moved by whole octaves into the zone range (EMPIRICAL, D154: Finger Bass plays key 60
+    through the zone of keys 48 / 49, an octave down) or the nearest edge of the range.
+    """
+    zone = min(zones, key=lambda z: abs(z["word_bits"] - word_bits))
+    lo, hi = zone["key_low"], zone["key_high"]
+    candidates = [key + 12 * n for n in range(-4, 5) if lo <= key + 12 * n <= hi]
+    if candidates:
+        return min(candidates, key=lambda k: abs(k - key)), zone
+    return (lo if key < lo else hi), zone
+
+
 def expected_hz(key: int) -> float:
     """Equal tempered frequency of a MIDI key (A4 = 440 Hz)."""
     return 440.0 * 2.0 ** ((key - 69) / 12.0)
@@ -222,7 +248,7 @@ def program_row(
     row: dict[str, object] = {"program": stem, "layers": resolved, "member": member}
     if member is None:
         return row | {"error": "no resolved sample"}
-    cap = next((work / "cap2" / stem).glob("*.txt.gz"), None)
+    cap = next((Path(str(ctx["cap_dir"])) / stem).glob("*.txt.gz"), None)
     if cap is None:
         return row | {"error": "no capture (run arm_dsp_capture one with --member)"}
     import arm_dsp_capture as ac
@@ -232,6 +258,12 @@ def program_row(
     msgs, index = scn.voice0_messages(rows)
     row["arm_prepare"] = prepare_sent(rows)
     row["entry_index"] = index
+    play_key = KEY
+    word = arm_word_bits(rows)
+    if word is not None:
+        zones = json.loads(run_cmd([exe / "smp_stream.exe", "zones", backup, member]).stdout)
+        play_key, zone = effective_key(zones, word, KEY)
+        row["zone_key"] = {"effective_key": play_key, "zone_root": zone["root_key"]}
     out_dir = work / "runs" / stem
     out_dir.mkdir(parents=True, exist_ok=True)
     info = json.loads(
@@ -241,7 +273,7 @@ def program_row(
                 "stream",
                 backup,
                 member,
-                KEY,
+                play_key,
                 VELOCITY,
                 out_dir / "s.stream",
                 out_dir / "s.f32",
@@ -251,7 +283,7 @@ def program_row(
     row["stroke"] = info
     ent = json.loads(
         run_cmd(
-            [exe / "smp_stream.exe", "entry", KEY, info["zone_root"], info["sample_rate"]]
+            [exe / "smp_stream.exe", "entry", play_key, info["zone_root"], info["sample_rate"]]
         ).stdout
     )
     row["model_entry"] = ent
@@ -318,11 +350,13 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover
     r.add_argument(
         "--scenario", type=Path, default=Path("tools/oracle_scenarios/sy_isr_stream.scn")
     )
+    r.add_argument("--cap-dir", type=Path, help="captures (default WORKDIR/cap2)")
     r.add_argument("--out", type=Path, required=True)
     r.add_argument("--programs", nargs="*", default=list(PROGRAMS))
     r.add_argument("--workers", type=int, default=4)
     ns = ap.parse_args(argv)
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    ns.cap_dir = ns.cap_dir or ns.workdir / "cap2"
     ctx = {k: str(v.resolve()) if isinstance(v, Path) else v for k, v in vars(ns).items()}
     with ThreadPoolExecutor(ns.workers) as pool:
         rows = list(pool.map(lambda s: program_row(s, ctx), ns.programs))

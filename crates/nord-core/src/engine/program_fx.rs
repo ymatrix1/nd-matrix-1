@@ -16,7 +16,9 @@ pub(super) fn feedback_fx_of(raw: u8) -> crate::fx::DelayFeedbackFx {
 }
 
 impl Stage4Engine {
-    pub(super) fn apply_fx_chain(fx: &mut LayerFxChain, dec: &crate::cbin::FxDecoded) {
+    /// Applies a decoded program FX block to a layer chain, exactly as a program load does
+    /// (public for the offline measurement tools, `nord-tools` `fx_engine_vs_fw`).
+    pub fn apply_fx_chain(fx: &mut LayerFxChain, dec: &crate::cbin::FxDecoded) {
         fx.mod1_type = dec.mod1_type();
         fx.mod1_rate_hz = 0.1 + dec.mod1_rate.clamp(0.0, 1.0) * 14.9;
         // 7 bit `kFx1RateClkDiv` value for the opt-in firmware Mod 1 (`FirmwareFx::mod1`).

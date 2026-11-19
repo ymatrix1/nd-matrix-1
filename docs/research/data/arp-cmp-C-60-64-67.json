@@ -1,0 +1,47 @@
+{
+ "layer": "C",
+ "keys": [
+  60,
+  64,
+  67
+ ],
+ "firmware": {
+  "notes_on": 10,
+  "first_on_ms": 149.88,
+  "step_ms": 150.0,
+  "step_spread_ms": 0.0,
+  "gate_ms": 100.0,
+  "gate_fraction": 0.667
+ },
+ "native": {
+  "notes_on": 9,
+  "first_on_ms": 150.0,
+  "step_ms": 150.0,
+  "step_spread_ms": 0.02,
+  "gate_ms": 150.0,
+  "gate_fraction": 1.0
+ },
+ "firmware_notes": [
+  64,
+  67,
+  72,
+  76,
+  79,
+  84,
+  79,
+  76,
+  72,
+  67
+ ],
+ "native_notes": [
+  60,
+  64,
+  67,
+  76,
+  72,
+  76,
+  60,
+  64,
+  67
+ ]
+}

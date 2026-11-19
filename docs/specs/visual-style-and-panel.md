@@ -329,3 +329,7 @@ Measured on `NS4_HA88_TopDown-01_241008.jpg` (0.1195 mm/px both axes, key pitch 
 | Unlabelled green dots under the Synth / Piano / Organ faders | `AUX KB` legend left of each LED (`NS4-Panel-synth` crop) | dots without a name | `aux_flag::aux_legend` prints `AUX KB` for all three strips | `VERIFIED` against the crop |
 
 Still unlabelled: the layer focus LEDs above the A/B/C pads (hardware: amber ON/OFF LED with an `ON/OFF` legend); Synth VIBRATO name lists and the COMP ACTIVE / BRIGHT-DARK ids are not done. `NUMERAL_REACH` of the legibility audit grew from 16 to 20 px (the probe rectangle no longer includes a 5.5 px tick ring). `legibility_allow.txt` stays empty.
+
+## Section headers (GUI styling, 2026-11-19)
+
+Status: accepted (owner request: production-ready look, compared with the Nord editor skin; no art copied). Organ, Piano, Synth, Layer Effects and Program headers use a graphite rim and tab (`style::HEADER_DARK`, edge `HEADER_EDGE`, ink `HEADER_INK`, 13:1) instead of the photographed silver strip, which gave the FX FOCUS and LAYER FX captions about 1.5:1. Synth gets a tab (`SYNTH_TAB_MM`) so ON, its LED and SOLO sit on a plate; the hardware prints them on the red panel (not photo parity). The ON LED sits left of its button inside the tab. The Rotary Speaker tab keeps the verified silver plate.

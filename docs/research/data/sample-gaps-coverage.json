@@ -1,0 +1,2116 @@
+{
+ "summary": {
+  "programs": 119,
+  "classes": {
+   "all layers at key 60": 86,
+   "voices only at other keys": 2,
+   "some layers at key 60": 24,
+   "no scene I sample layer": 6,
+   "no voice queued": 1
+  },
+  "layers": {
+   "1": 51,
+   "2": 36,
+   "3": 26,
+   "0": 6
+  }
+ },
+ "programs": [
+  {
+   "program": "Bank_A__Acoustic_Guitar",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_A__B3_Old_Forest",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2
+    ],
+    "k60": [],
+    "k84": []
+   },
+   "class": "voices only at other keys"
+  },
+  {
+   "program": "Bank_A__Hybrid_Str_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_A__Intense_Score",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_A__Jazz_Guitar_II",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_A__Mm-Oh_Choir_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_A__Momentum_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_A__NS4_Palette",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_A__Oo_Pad_Whl",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_A__Silver_Rush",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_A__Soft_Padding_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2
+    ],
+    "k60": [
+     0,
+     1,
+     2
+    ],
+    "k84": [
+     0,
+     1,
+     2
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_A__Space_Drama_II",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_A__String_Quintet",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_A__Supreme_Mdrn_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_A__Texas_Nights_J3",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__12_Strings_Pad",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Bass_Chorus_Whl",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Cathedral_Pipes",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Choral_Pad",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_B__Chorus_Caster",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Continuo",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Dark_Matter_Mk_I",
+   "layers": 0,
+   "voices": {
+    "k36": [],
+    "k60": [],
+    "k84": []
+   },
+   "class": "no scene I sample layer"
+  },
+  {
+   "program": "Bank_B__Felt_Soft_Str",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Gradient_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Grand_Vibra_Bs",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [],
+    "k84": []
+   },
+   "class": "voices only at other keys"
+  },
+  {
+   "program": "Bank_B__Guitar_Concerto",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_B__Heart_Strings_II",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_B__HiFi_Grand_Str",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Hot_Brass",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_B__Hybrid_Strings_2",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Marcus_Solo_J3",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "k60": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "k84": [
+     0,
+     1,
+     2,
+     3
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Marimba",
+   "layers": 0,
+   "voices": {
+    "k36": [],
+    "k60": [],
+    "k84": []
+   },
+   "class": "no scene I sample layer"
+  },
+  {
+   "program": "Bank_B__Organ_Pipe_Mix",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_B__Soul_Bass_Split",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0,
+     1,
+     2
+    ],
+    "k84": [
+     0,
+     1,
+     2
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Str_Big_Band_II",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Strings_Trem_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Velvet_Strings",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Vintage_Str_Whl",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_B__Wind_Section_1",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "k60": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "k84": [
+     0,
+     1,
+     2,
+     3
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_B__Wormhole_Organ",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_C__Chord_N_Melody",
+   "layers": 0,
+   "voices": {
+    "k36": [],
+    "k60": [],
+    "k84": []
+   },
+   "class": "no scene I sample layer"
+  },
+  {
+   "program": "Bank_C__Farfisa_II",
+   "layers": 0,
+   "voices": {
+    "k36": [],
+    "k60": [],
+    "k84": []
+   },
+   "class": "no scene I sample layer"
+  },
+  {
+   "program": "Bank_C__Flautando_Pad",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Ghost_Melody",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Hangar_Choir",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Horn_Room",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2
+    ],
+    "k60": [
+     0,
+     1,
+     2
+    ],
+    "k84": [
+     0,
+     1,
+     2
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Orchestra_Pd_Whl",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_C__Piano_Soft_Orch",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_C__Piano_Str_Pad",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Pizz_Quintet_Spl",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_C__Pop_Brass_3",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Santoor_Pluck",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2
+    ],
+    "k60": [
+     0,
+     1,
+     2
+    ],
+    "k84": [
+     0,
+     1,
+     2
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Stereo_AnaStr_II",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Supreme_Soul_Fp",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Sweet_Bells",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Sweet_Supreme",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_C__Vista_Layer_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__3_Vlns_Mellotron",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Arctic_Choir_Whl",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_D__Bell_Collection",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_D__Cinematic_Str_II",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Dynamic_Orch",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_D__Fast_Quintet",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Finger_Bass",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Flute_Mellotron_",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Grand_Strings",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Innocense",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Jealous_Upright",
+   "layers": 0,
+   "voices": {
+    "k36": [],
+    "k60": [],
+    "k84": []
+   },
+   "class": "no scene I sample layer"
+  },
+  {
+   "program": "Bank_D__Mellotron_Voices",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "k60": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "k84": [
+     0,
+     1,
+     2,
+     3
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Memory_Glitch",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Nox_Split",
+   "layers": 1,
+   "voices": {
+    "k36": [],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Quintet_Bass_Spl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_D__Rehearsal_Pipes",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Sidechain_String",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Soft_Vocal",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Soul_Str_Layer",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Space_Bass",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Sunrise_Mello",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Upright_Bass",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_D__Vibra_Band",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_E__24_Frames_J3",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Affection_Whl",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_E__Americana_II",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "k60": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "k84": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Babylon_EP_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Big_Band_Saws",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Brass_and_Wind",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_E__Breath_Pad",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Calm_Before_Whl",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_E__English_Horn",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Fast_Octaves",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Forlorn_Whl",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "k60": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "k84": [
+     0,
+     1,
+     2,
+     3
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Helium_Whl",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Horns_n_Strings",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__J3_Grand_Layers",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__J3_Split_Special",
+   "layers": 1,
+   "voices": {
+    "k36": [],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Pillow_Fight",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Slow_Octaves",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_E__Solo_Flute",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Solo_Trumpet",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Spin_Wurly_II",
+   "layers": 0,
+   "voices": {
+    "k36": [],
+    "k60": [],
+    "k84": []
+   },
+   "class": "no scene I sample layer"
+  },
+  {
+   "program": "Bank_E__Vibra-Spin_Whl",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_E__Wind_Section_2",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "k60": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "k84": [
+     0,
+     1,
+     2,
+     3
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__1905_Orchestra",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_F__Aerial_Gaze",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": []
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__B3_Meditation_II",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0,
+     1,
+     2
+    ],
+    "k84": [
+     0,
+     1,
+     2
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Bell_Pad",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Bell_Strings",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Cute_Orchestra",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "some layers at key 60"
+  },
+  {
+   "program": "Bank_F__Dynamic_Trumpet",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Glass_Pad",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__OD_Rock_Bass",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Ostinato_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Pearl_Str_Fl_Whl",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Plucked_EP",
+   "layers": 2,
+   "voices": {
+    "k36": [
+     0,
+     1
+    ],
+    "k60": [
+     0,
+     1
+    ],
+    "k84": [
+     0,
+     1
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Strings_and_Saws",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Symph_Str_Legato",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Taped_Section",
+   "layers": 1,
+   "voices": {
+    "k36": [
+     0
+    ],
+    "k60": [
+     0
+    ],
+    "k84": [
+     0
+    ]
+   },
+   "class": "all layers at key 60"
+  },
+  {
+   "program": "Bank_F__Unclocked_Pad",
+   "layers": 1,
+   "voices": {
+    "k36": [],
+    "k60": [],
+    "k84": []
+   },
+   "class": "no voice queued"
+  },
+  {
+   "program": "Bank_F__Vintage_Strings",
+   "layers": 3,
+   "voices": {
+    "k36": [
+     0,
+     1,
+     2
+    ],
+    "k60": [
+     0,
+     1,
+     2
+    ],
+    "k84": [
+     0,
+     1,
+     2
+    ]
+   },
+   "class": "all layers at key 60"
+  }
+ ]
+}

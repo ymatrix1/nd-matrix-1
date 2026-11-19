@@ -1,0 +1,954 @@
+[
+ {
+  "program": "Bank_A__Acoustic_Guitar",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__B3_Old_Forest",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__Hybrid_Str_Whl",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__Intense_Score",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__Jazz_Guitar_II",
+  "sample_layers": 3,
+  "scene1": 1,
+  "scene2": 3,
+  "scene2_only": 2,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__Mm-Oh_Choir_Whl",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__Momentum_Whl",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__NS4_Palette",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__Oo_Pad_Whl",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 1,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__Silver_Rush",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__Soft_Padding_Whl",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__Space_Drama_II",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 1,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__String_Quintet",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_A__Supreme_Mdrn_Whl",
+  "sample_layers": 3,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 1
+ },
+ {
+  "program": "Bank_A__Texas_Nights_J3",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__12_Strings_Pad",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Bass_Chorus_Whl",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Cathedral_Pipes",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Choral_Pad",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Chorus_Caster",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Continuo",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Dark_Matter_Mk_I",
+  "sample_layers": 2,
+  "scene1": 0,
+  "scene2": 2,
+  "scene2_only": 2,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Felt_Soft_Str",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Gradient_Whl",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 2,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Grand_Vibra_Bs",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Guitar_Concerto",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 1,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Heart_Strings_II",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 3,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__HiFi_Grand_Str",
+  "sample_layers": 3,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 1
+ },
+ {
+  "program": "Bank_B__Hot_Brass",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Hybrid_Strings_2",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Marcus_Solo_J3",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Marimba",
+  "sample_layers": 1,
+  "scene1": 0,
+  "scene2": 1,
+  "scene2_only": 1,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Organ_Pipe_Mix",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 1,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Soul_Bass_Split",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Str_Big_Band_II",
+  "sample_layers": 3,
+  "scene1": 2,
+  "scene2": 2,
+  "scene2_only": 1,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Strings_Trem_Whl",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Velvet_Strings",
+  "sample_layers": 2,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 1
+ },
+ {
+  "program": "Bank_B__Vintage_Str_Whl",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Wind_Section_1",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_B__Wormhole_Organ",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Chord_N_Melody",
+  "sample_layers": 1,
+  "scene1": 0,
+  "scene2": 1,
+  "scene2_only": 1,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Farfisa_II",
+  "sample_layers": 3,
+  "scene1": 0,
+  "scene2": 1,
+  "scene2_only": 1,
+  "neither": 2
+ },
+ {
+  "program": "Bank_C__Flautando_Pad",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Ghost_Melody",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 2,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Hangar_Choir",
+  "sample_layers": 2,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 1
+ },
+ {
+  "program": "Bank_C__Horn_Room",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Orchestra_Pd_Whl",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Piano_Soft_Orch",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Piano_Str_Pad",
+  "sample_layers": 2,
+  "scene1": 1,
+  "scene2": 1,
+  "scene2_only": 1,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Pizz_Quintet_Spl",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Pop_Brass_3",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Santoor_Pluck",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Stereo_AnaStr_II",
+  "sample_layers": 2,
+  "scene1": 1,
+  "scene2": 1,
+  "scene2_only": 0,
+  "neither": 1
+ },
+ {
+  "program": "Bank_C__Supreme_Soul_Fp",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Sweet_Bells",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Sweet_Supreme",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_C__Vista_Layer_Whl",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__3_Vlns_Mellotron",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Arctic_Choir_Whl",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Bell_Collection",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Cinematic_Str_II",
+  "sample_layers": 2,
+  "scene1": 1,
+  "scene2": 2,
+  "scene2_only": 1,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Dynamic_Orch",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Fast_Quintet",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Finger_Bass",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Flute_Mellotron_",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Grand_Strings",
+  "sample_layers": 2,
+  "scene1": 1,
+  "scene2": 1,
+  "scene2_only": 0,
+  "neither": 1
+ },
+ {
+  "program": "Bank_D__Innocense",
+  "sample_layers": 3,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 1
+ },
+ {
+  "program": "Bank_D__Jealous_Upright",
+  "sample_layers": 2,
+  "scene1": 0,
+  "scene2": 1,
+  "scene2_only": 1,
+  "neither": 1
+ },
+ {
+  "program": "Bank_D__Mellotron_Voices",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Memory_Glitch",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Nox_Split",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Quintet_Bass_Spl",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Rehearsal_Pipes",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Sidechain_String",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Soft_Vocal",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Soul_Str_Layer",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Space_Bass",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Sunrise_Mello",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 1,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Upright_Bass",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_D__Vibra_Band",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__24_Frames_J3",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Affection_Whl",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Americana_II",
+  "sample_layers": 3,
+  "scene1": 2,
+  "scene2": 3,
+  "scene2_only": 1,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Babylon_EP_Whl",
+  "sample_layers": 3,
+  "scene1": 2,
+  "scene2": 1,
+  "scene2_only": 1,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Big_Band_Saws",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Brass_and_Wind",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Breath_Pad",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Calm_Before_Whl",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__English_Horn",
+  "sample_layers": 2,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 1
+ },
+ {
+  "program": "Bank_E__Fast_Octaves",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Forlorn_Whl",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Helium_Whl",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Horns_n_Strings",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__J3_Grand_Layers",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__J3_Split_Special",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Pillow_Fight",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Slow_Octaves",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Solo_Flute",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Solo_Trumpet",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Spin_Wurly_II",
+  "sample_layers": 1,
+  "scene1": 0,
+  "scene2": 1,
+  "scene2_only": 1,
+  "neither": 0
+ },
+ {
+  "program": "Bank_E__Vibra-Spin_Whl",
+  "sample_layers": 2,
+  "scene1": 1,
+  "scene2": 1,
+  "scene2_only": 0,
+  "neither": 1
+ },
+ {
+  "program": "Bank_E__Wind_Section_2",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__1905_Orchestra",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Aerial_Gaze",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__B3_Meditation_II",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Bell_Pad",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Bell_Strings",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Cute_Orchestra",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 3,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Dynamic_Trumpet",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Glass_Pad",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__OD_Rock_Bass",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Ostinato_Whl",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Pearl_Str_Fl_Whl",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Plucked_EP",
+  "sample_layers": 2,
+  "scene1": 2,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Strings_and_Saws",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Symph_Str_Legato",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Taped_Section",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Unclocked_Pad",
+  "sample_layers": 1,
+  "scene1": 1,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ },
+ {
+  "program": "Bank_F__Vintage_Strings",
+  "sample_layers": 3,
+  "scene1": 3,
+  "scene2": 0,
+  "scene2_only": 0,
+  "neither": 0
+ }
+]

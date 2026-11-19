@@ -134,6 +134,8 @@ impl LayerFxSelectors {
         fx.mod1_rate_hz = self.mod1_rate_hz.value();
         fx.mod2_type = self.mod2_type.value().into();
         fx.mod2_rate_hz = self.mod2_rate_hz.value();
+        // Host values win over a loaded program; the firmware Mod 2 reads only the raw words (D163).
+        fx.clear_mod2_firmware_words();
         fx.amp_cabinet = self.cabinet.value().into();
         fx.comp_fast = self.comp_fast.value();
         fx.delay_clock_sync = self.delay_sync.value();
@@ -217,6 +219,18 @@ mod tests {
         assert_eq!(e.fx_chains[2].mod2_rate_hz, 5.0);
         assert_eq!(e.fx_chains[1].mod1_type, Mod1Type::Off);
         assert!(!e.fx_chains[1].delay_ping_pong);
+    }
+
+    #[test]
+    fn host_mod2_values_beat_the_words_of_a_loaded_program() {
+        let mut e = Stage4Engine::new(48_000.0);
+        e.fx_chains[2].mod2_type_raw = Some(4);
+        e.fx_chains[2].mod2_rate_raw = Some(80);
+        e.fx_chains[3].mod2_type_raw = Some(4);
+        LayerFxSelectorBank::default().sync_to_engine(&mut e);
+        assert_eq!(e.fx_chains[2].mod2_type_raw, None);
+        assert_eq!(e.fx_chains[2].mod2_rate_raw, None);
+        assert_eq!(e.fx_chains[3].mod2_type_raw, None);
     }
 
     #[test]

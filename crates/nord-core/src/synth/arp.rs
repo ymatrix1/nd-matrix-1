@@ -1,6 +1,7 @@
 //! Arpeggiator / gate engine for `SynthLayer`.
 
 use super::arp_order::pool_position;
+use super::arp_pool::{firmware_pool, firmware_span, PoolNote, POOL_MAX};
 use super::*;
 
 impl SynthLayer {
@@ -41,6 +42,8 @@ impl SynthLayer {
         if self.arp_sample_counter < step_sec {
             if self.perf.pattern_on {
                 self.pattern_release(step_sec);
+            } else {
+                self.plain_gate_release(step_sec);
             }
         } else {
             self.arp_sample_counter -= step_sec;
@@ -73,17 +76,23 @@ impl SynthLayer {
                 return;
             }
 
+            let zig = self.perf.zigzag;
+            if self.firmware_walk_applies() {
+                self.trigger_firmware_walk(&held_list[..count]);
+                return;
+            }
+
             // Pick next note
             let oct_range = self.arp_octave_range.clamp(1, 4) as usize;
             let extra = extra_notes(&held_list[..count], self.perf.range_extra_thirds);
             let pool = count * oct_range + extra;
+            let cycle = pool;
             // ZIG ZAG walks the pool two forward, one back; the step counter then runs over
             // two periods.
-            let zig = self.perf.zigzag;
             let step = if zig {
                 zigzag_index(self.arp_step, pool)
             } else {
-                self.arp_step % pool
+                self.arp_step % cycle
             };
 
             let (note_in_chord, oct_offset) = match self.arp_mode {
@@ -132,7 +141,7 @@ impl SynthLayer {
 
             let next_note = (held_list[note_in_chord] + oct_offset * 12).min(127);
             self.arp_active_notes[0] = Some(next_note);
-            self.arp_step = (self.arp_step + 1) % if zig { pool * 2 } else { pool };
+            self.arp_step = (self.arp_step + 1) % if zig { pool * 2 } else { cycle };
 
             let source_note = held_list[note_in_chord] as usize;
             let velocity = self.accent_velocity(self.held_velocities[source_note]);
@@ -140,6 +149,52 @@ impl SynthLayer {
             self.trigger_voice(next_note, velocity, self.held_gains[source_note]);
             self.perf.voice_pan = 0.0;
         }
+    }
+
+    /// The firmware walk plays this step: UP, DOWN or UP/DOWN without ZIG ZAG (RANDOM, ZIG ZAG and
+    /// Poly were not captured and keep the engine walk).
+    fn firmware_walk_applies(&self) -> bool {
+        self.arp_firmware_walk
+            && !self.perf.zigzag
+            && matches!(self.arp_mode, ArpMode::Up | ArpMode::Down | ArpMode::UpDown)
+    }
+
+    /// Stored RANGE value the firmware span rule reads: the decoded raw while it still projects
+    /// onto the engine's range (octaves and thirds), else the raw of the nearest detent.
+    fn firmware_range_raw(&self) -> f32 {
+        let thirds = u32::from(self.arp_octave_range.clamp(1, 4) - 1) * 3
+            + u32::from(self.perf.range_extra_thirds);
+        let stored = (f32::from(self.arp_range_raw) / 127.0 * 9.0).round() as u32;
+        if stored == thirds {
+            f32::from(self.arp_range_raw)
+        } else {
+            thirds as f32 * 127.0 / 9.0
+        }
+    }
+
+    /// Plays the next note of the firmware walk over the pool of `held` (ascending keys).
+    fn trigger_firmware_walk(&mut self, held: &[u8]) {
+        let mut buf = [PoolNote::default(); POOL_MAX];
+        let span = firmware_span(self.firmware_range_raw());
+        let len = firmware_pool(held, span, &mut buf).max(1);
+        let cycle = if self.arp_mode == ArpMode::UpDown {
+            (len * 2).saturating_sub(2).max(1)
+        } else {
+            len
+        };
+        let step = self.arp_step % cycle;
+        let index = match self.arp_mode {
+            ArpMode::Down => len - 1 - step,
+            ArpMode::UpDown if step >= len => cycle - step,
+            _ => step,
+        };
+        let PoolNote { note, source } = buf[index.min(len - 1)];
+        self.arp_active_notes[0] = Some(note);
+        self.arp_step = (self.arp_step + 1) % cycle;
+        let velocity = self.accent_velocity(self.held_velocities[source as usize]);
+        self.perf.voice_pan = self.step_pan();
+        self.trigger_voice(note, velocity, self.held_gains[source as usize]);
+        self.perf.voice_pan = 0.0;
     }
 
     pub(super) fn release_arp_notes(&mut self) {
@@ -239,5 +294,54 @@ mod tests {
             .voices
             .iter()
             .any(|voice| voice.active && voice.gate && voice.note == 60));
+    }
+
+    /// Notes the arpeggiator picks over `steps` steps at 100 BPM sixteenth steps.
+    fn picked_notes(synth: &mut SynthLayer, steps: usize) -> Vec<u8> {
+        let mut out = Vec::new();
+        let mut last = None;
+        for _ in 0..(steps * 7_300) {
+            synth.render_frame();
+            if synth.arp_active_notes[0] != last {
+                last = synth.arp_active_notes[0];
+                out.extend(last);
+            }
+        }
+        out
+    }
+
+    fn updown_layer(keys: &[u8], firmware_walk: bool) -> SynthLayer {
+        let mut synth = SynthLayer::new(48_000.0);
+        synth.arp_mode = ArpMode::UpDown;
+        synth.arp_octave_range = 2;
+        synth.arp_rate_bpm = 480.0;
+        synth.arp_firmware_walk = firmware_walk;
+        for &k in keys {
+            synth.note_on(k, 100);
+        }
+        synth
+    }
+
+    #[test]
+    fn firmware_walk_mirrors_over_the_whole_pool_with_the_top_root() {
+        // ARM capture (arp-fw-events-a16.json, layer C, 2 octaves): 64 67 72 76 79 84 79 76 72 67.
+        let seq = picked_notes(&mut updown_layer(&[60, 64, 67], true), 14);
+        assert_eq!(
+            seq[..13],
+            [60, 64, 67, 72, 76, 79, 84, 79, 76, 72, 67, 64, 60]
+        );
+    }
+
+    #[test]
+    fn firmware_walk_single_key_visits_three_octaves_and_back() {
+        // ARM capture: single key 60 plays 72 84 72 60 72 84 72 60 (cycle 60 72 84 72).
+        let seq = picked_notes(&mut updown_layer(&[60], true), 8);
+        assert_eq!(seq[..8], [60, 72, 84, 72, 60, 72, 84, 72]);
+    }
+
+    #[test]
+    fn engine_walk_is_unchanged_without_the_flag() {
+        let seq = picked_notes(&mut updown_layer(&[60, 64, 67], false), 7);
+        assert_eq!(seq[..6], [60, 64, 67, 76, 72, 76]);
     }
 }

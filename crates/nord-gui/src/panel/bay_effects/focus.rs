@@ -27,7 +27,8 @@ pub(super) fn focus(f: &mut Fx, st: &mut Stage4PanelState) {
     // LAYER EFFECTS ON: gates every unit of the focused chain at once.
     let on = f.rect("fx.layer_effects_on");
     let all_on = st.fx_ui.chains[slot].all_on;
-    f.led_above(on, all_on, LED_RED, LED_RED_DIM);
+    // Left of the button: the header tab has no room above it.
+    f.led_left(on, all_on, LED_RED, LED_RED_DIM);
     if f.button(
         "fx.layer_effects_on",
         on,
@@ -44,10 +45,10 @@ pub(super) fn focus(f: &mut Fx, st: &mut Stage4PanelState) {
         }
         f.send(edits);
     }
-    // Printed to the left of the button (the panel prints its ON legend there), clear of the MOD 1 box.
+    // Printed to the left of the button's LED (the panel prints its ON legend there).
     label(
         f.p,
-        pos2(on.left() - 5.0, on.center().y),
+        pos2(on.left() - 16.0, on.center().y),
         "LAYER FX",
         6.5,
         CAPTION,

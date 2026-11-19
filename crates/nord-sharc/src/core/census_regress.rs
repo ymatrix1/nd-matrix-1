@@ -81,3 +81,50 @@ fn sharc_plus_system_register_masks_match_the_21571_simulator() {
     let bad = (0..got.len()).filter(|&i| got[i] != want[i]).count();
     assert_eq!(bad, 0, "{bad} of {} cases differ", got.len());
 }
+
+const MR2_CASES: &str = include_str!("../../../../docs/research/sharc-seq/census_mr2_cases.txt");
+const MR2_MEASURED: &str =
+    include_str!("../../../../docs/research/sharc-seq/census_mr2_measured.txt");
+const MR2SEQ_CASES: &str =
+    include_str!("../../../../docs/research/sharc-seq/census_mr2seq_cases.txt");
+const MR2SEQ_MEASURED: &str =
+    include_str!("../../../../docs/research/sharc-seq/census_mr2seq_measured.txt");
+
+/// VERIFIED on the ADSP-21489 simulator (`census_probe.py`, 120 random states): after the
+/// firmware sequence `MR1F = R3, R1 = DM(-30, I0)`, `MR0F = R4, R2 = DM(-28, I0)`,
+/// `MRF = MRF + R1 * R2 (SSF)` (PNO core 1, `0x1211C4`, run every pass) the whole dumped state,
+/// MR2F included, equals the model: the MR2F read-back artefact below is not visible there.
+#[test]
+fn the_firmware_mr1f_sequence_matches_the_simulator() {
+    check(MR2SEQ_CASES, MR2SEQ_MEASURED);
+}
+
+/// VERIFIED (same probe, `MR1F = R3, R1 = DM(-30, I0)` alone, 120 states, 28 differ): a register
+/// read of MR2F right after a negative `MR1F = Rn` gives `0000FFFF` in the simulator when bit 15
+/// of the previous MR2 was clear, `FFFFFFFF` when it was set (positive R3: 0 in both). The model
+/// always sign-extends the 16-bit MR2 on read (`multiplier.rs`, VERIFIED on multiplier results
+/// by `fixed_measured.rs`), so these 28 cases differ in exactly the MR2F word, simulator
+/// `0000FFFF`, model `FFFFFFFF`. The artefact is pinned here; it does not reach any firmware
+/// read (the accumulate that follows takes MR2 as a 16-bit value, test above).
+#[test]
+fn the_single_mr1f_mr2f_readback_artefact_is_exactly_the_documented_one() {
+    let scr = scratch_of(MR2_CASES);
+    let got = run_cases(FIXTURE, MR2_CASES).unwrap();
+    let want: Vec<&str> = MR2_MEASURED.lines().collect();
+    let mut differing = 0;
+    for (g, w) in got.lines().map(|l| compact(l, &scr, N_STATE)).zip(want) {
+        if g == w {
+            continue;
+        }
+        differing += 1;
+        let (gt, wt): (Vec<&str>, Vec<&str>) = (g.split(' ').collect(), w.split(' ').collect());
+        let diff: Vec<(&str, &str)> = gt
+            .iter()
+            .zip(&wt)
+            .filter(|(a, b)| a != b)
+            .map(|(a, b)| (*a, *b))
+            .collect();
+        assert_eq!(diff, vec![("FFFFFFFF", "0000FFFF")], "{g} vs {w}");
+    }
+    assert_eq!(differing, 28);
+}

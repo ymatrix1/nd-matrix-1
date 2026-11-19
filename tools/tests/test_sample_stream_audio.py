@@ -97,3 +97,25 @@ def test_pitch_shift_cents_finds_a_known_shift() -> None:
     got = a.pitch_shift_cents(up, rate, base, rate)
     assert got == pytest.approx(300, abs=50)
     assert a.pitch_shift_cents(np.zeros(100000), rate, base, rate) is None
+
+
+def test_arm_word_bits_and_effective_key() -> None:
+    rows = [
+        {"chip": "SY", "path": 1, "dm": 0x92432, "w2": 5},
+        {"chip": "SY", "path": 1, "dm": a.scn.PITCH_WORD_ADDR, "w2": 0x3C01A580},
+    ]
+    assert a.arm_word_bits(rows) == 0x3C01A580
+    assert a.arm_word_bits(rows[:1]) is None
+    zones = [
+        {"key_low": 48, "key_high": 49, "root_key": 49, "word_bits": 1006740864},
+        {"key_low": 60, "key_high": 60, "root_key": 60, "word_bits": 1014280064},
+    ]
+    # the ARM word of Finger Bass is the zone of keys 48 / 49: key 60 plays it an octave down
+    key, zone = a.effective_key(zones, 0x3C01A580, 60)
+    assert (key, zone["root_key"]) == (48, 49)
+    # a word equal to the key's own zone leaves the key alone
+    key, zone = a.effective_key(zones, 1014280064, 60)
+    assert (key, zone["root_key"]) == (60, 60)
+    # no octave of the key inside the range: the nearest edge
+    far = [{"key_low": 70, "key_high": 71, "root_key": 70, "word_bits": 1}]
+    assert a.effective_key(far, 1, 60)[0] == 70

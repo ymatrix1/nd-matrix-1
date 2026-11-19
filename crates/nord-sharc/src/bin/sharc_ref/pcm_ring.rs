@@ -1,12 +1,16 @@
 //! Decoded PCM refill of the SY source ring (the unpacker bypassed), for sample audio runs (D150).
 //!
 //! ```text
-//! pcm VOICE path=FILE [skip=FRAMES]
+//! pcm VOICE path=FILE [skip=FRAMES] [ahead=FRAMES] [credit=on|off]
 //!                     keeps the 128 frame source ring of the voice (`DM(rec + 0x31)`, interleaved
 //!                     left / right words, `stride 2`) filled ahead of the resampler read position
 //!                     with consecutive stereo frames of FILE (interleaved little-endian float32),
 //!                     applied before each `irq`. Source frame `n` sits in ring frame `n mod 128`;
-//!                     frames past the end of FILE are written as zeros.
+//!                     frames past the end of FILE are written as zeros. `ahead` (default 96)
+//!                     is how many frames stay written past the read position (D154 measures
+//!                     its effect). `credit=on` also adds every frame written to the unpacker
+//!                     credit word `rec + 0x10` (what the real unpacker does), which replaces the
+//!                     script line `poke 0x92410 0x200` per audio interrupt.
 //! ```
 //!
 //! Provenance:
@@ -17,8 +21,9 @@
 //!   Stage B read index is `EMPIRICAL` (the word advances by the step per frame in the runs).
 //! - Source frame 0 at ring frame 0 with the read position starting 3 frames before it
 //!   (`ref.pos_frames -2.5` of `sy_voice_sample.scn`): `VERIFIED` (0 error against the engine).
-//! - Refilling 96 frames ahead of the read position is `ASSUMED` (any value that keeps the
-//!   12 tap kernel inside the window and never overwrites unread frames gives the same output).
+//! - Refilling 96 frames ahead of the read position is the default; `EMPIRICAL` (D154,
+//!   `docs/research/sample-gaps.md`): the output of a voice is the same for `ahead` between the
+//!   kernel window and the ring length, see the table there.
 //! - That the real unpacker delivers the decoded samples (scaled by `2^-6` and the tail filter,
 //!   done host side) is `VERIFIED` only for the first 32 frames ([sy-pitch-entry-writer] s8).
 use crate::exec::Runner;
@@ -28,12 +33,15 @@ use std::path::Path;
 
 /// Ring frames of the SY source ring.
 const RING_FRAMES: i64 = 128;
-/// Frames kept written ahead of the read position (`ASSUMED`, see the module note).
-const AHEAD: i64 = 96;
+/// Default frames kept written ahead of the read position (see the module note).
+pub const DEFAULT_AHEAD: i64 = 96;
 /// Voice record field of the ring base address (`VERIFIED`, prepare state).
 const RING_BASE_FIELD: u32 = 0x31;
 /// Voice record field of the read position word (index in bits 31..25).
 const PHASE_FIELD: u32 = 0x2B;
+/// Voice record field of the decoded-frame credit the unpacker adds to (`VERIFIED`, listing
+/// `0x20A5..0x20AF`: `rec + 0x10 += DM(0x95C68)`; `EMPIRICAL`, D154: minus 128 per ring pass).
+const CREDIT_FIELD: u32 = 0x10;
 
 /// Per-voice state of the `pcm` model.
 #[derive(Debug, Clone)]
@@ -46,6 +54,10 @@ pub struct PcmRingState {
     /// Unwrapped read position in source frames (starts at `index - 128`).
     pub pos: i64,
     pub last_idx: Option<i64>,
+    /// Frames kept written past the read position (`ahead=` option, default [`DEFAULT_AHEAD`]).
+    pub ahead: i64,
+    /// Add every frame written to the unpacker credit `rec + 0x10` (`credit=on`, default off).
+    pub credit: bool,
 }
 
 impl PcmRingState {
@@ -76,6 +88,8 @@ impl PcmRingState {
             written: 0,
             pos: 0,
             last_idx: None,
+            ahead: DEFAULT_AHEAD,
+            credit: false,
         }
     }
 
@@ -88,7 +102,7 @@ impl PcmRingState {
         }
         self.last_idx = Some(idx);
         let from = self.written;
-        let target = (self.pos + AHEAD).max(from);
+        let target = (self.pos + self.ahead).max(from);
         self.written = target;
         from..target
     }
@@ -120,10 +134,24 @@ pub fn parse(cmd: &str, pos: &[String], opts: &Opts) -> Option<Result<Cmd, Strin
             None => return Some(Err(format!("pcm: bad skip {s:?}"))),
         },
     };
+    let ahead = match opts.get("ahead") {
+        None => DEFAULT_AHEAD,
+        Some(s) => match parse_number(s) {
+            Some(n) if (1..RING_FRAMES).contains(&(n as i64)) => n as i64,
+            _ => return Some(Err(format!("pcm: ahead {s:?} must be 1..127"))),
+        },
+    };
+    let credit = match opts.get("credit").map(String::as_str) {
+        None | Some("off") => false,
+        Some("on") => true,
+        Some(v) => return Some(Err(format!("pcm: credit {v:?} must be on or off"))),
+    };
     Some(Ok(Cmd::PcmRing {
         voice,
         path: path.clone(),
         skip,
+        ahead,
+        credit,
     }))
 }
 
@@ -138,11 +166,22 @@ impl Runner {
                 continue;
             }
             let idx = i64::from(self.core.dm_read(rec + PHASE_FIELD).map_err(bad)? >> 25);
-            for n in st.advance(idx) {
+            let new = st.advance(idx);
+            let credit = new.end - new.start;
+            for n in new {
                 let (l, r) = st.frame(n);
                 let slot = base + 2 * (n.rem_euclid(RING_FRAMES) as u32);
                 self.core.dm_write(slot, l.to_bits()).map_err(bad)?;
                 self.core.dm_write(slot + 1, r.to_bits()).map_err(bad)?;
+            }
+            if st.credit && credit > 0 {
+                // The unpacker adds the frames it decodes to `rec + 0x10` (listing `0x20A5`); the
+                // firmware subtracts 128 per ring pass. Without it the voice calls the unpacker.
+                let word = self.core.dm_read(rec + CREDIT_FIELD).map_err(bad)?;
+                let sum = (word as i32).wrapping_add(credit as i32);
+                self.core
+                    .dm_write(rec + CREDIT_FIELD, sum as u32)
+                    .map_err(bad)?;
             }
         }
         Ok(())
@@ -167,9 +206,29 @@ mod tests {
             Some(Ok(Cmd::PcmRing {
                 voice: 1,
                 path: "a.f32".into(),
-                skip: 0
+                skip: 0,
+                ahead: DEFAULT_AHEAD,
+                credit: false
             }))
         );
+        let mut o = opts("a.f32");
+        o.insert("ahead".into(), "40".into());
+        assert!(matches!(
+            parse("pcm", &pos, &o),
+            Some(Ok(Cmd::PcmRing { ahead: 40, .. }))
+        ));
+        o.insert("ahead".into(), "128".into());
+        assert!(parse("pcm", &pos, &o).unwrap().is_err());
+        o.insert("ahead".into(), "40".into());
+        o.insert("credit".into(), "on".into());
+        assert!(matches!(
+            parse("pcm", &pos, &o),
+            Some(Ok(Cmd::PcmRing { credit: true, .. }))
+        ));
+        o.insert("credit".into(), "maybe".into());
+        assert!(parse("pcm", &pos, &o).unwrap().is_err());
+        o.insert("ahead".into(), "0".into());
+        assert!(parse("pcm", &pos, &o).unwrap().is_err());
         assert!(parse("stream", &pos, &opts("a")).is_none());
         assert!(parse("pcm", &["56".into()], &opts("a")).unwrap().is_err());
         assert!(parse("pcm", &pos, &Opts::new()).unwrap().is_err());
@@ -186,6 +245,30 @@ mod tests {
         assert_eq!(st.advance(1), 95..97);
         assert_eq!(st.pos, 1);
         assert_eq!(st.advance(1), 97..97); // no movement, nothing new
+    }
+
+    #[test]
+    fn advance_honours_a_shorter_ahead() {
+        let mut st = PcmRingState::new(0, vec![0.0; 1000]);
+        st.ahead = 40;
+        assert_eq!(st.advance(125), 0..37); // pos -3 + 40
+    }
+
+    #[test]
+    fn credit_adds_the_frames_written_to_the_record_word() {
+        let mut r = Runner::new(&[0u8; 16], false);
+        let mut st = PcmRingState::new(0, vec![1.0; 400]);
+        st.credit = true;
+        r.pcm_rings.push(st);
+        r.core
+            .dm_write(REC_BASE + RING_BASE_FIELD, 0xC0000)
+            .unwrap();
+        r.core.dm_write(REC_BASE + PHASE_FIELD, 125 << 25).unwrap();
+        r.core.dm_write(REC_BASE + CREDIT_FIELD, 5).unwrap();
+        r.run_pcm_ring().unwrap(); // 93 frames written
+        assert_eq!(r.core.dm_read(REC_BASE + CREDIT_FIELD).unwrap(), 5 + 93);
+        r.run_pcm_ring().unwrap(); // nothing new
+        assert_eq!(r.core.dm_read(REC_BASE + CREDIT_FIELD).unwrap(), 98);
     }
 
     #[test]

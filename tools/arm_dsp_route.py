@@ -18,6 +18,10 @@ from dataclasses import dataclass, field
 CHIPS = {"FX": 0, "PNO": 1, "ORG": 2, "SY": 3, "SMP": 4}
 PRESETS = ("pno", "org", "sy")  # `sharc-live` flags (`runner/live_presets.rs`); `sy` is D153
 DM_WORDS = 0x100000  # data word space of one core window (`0x28000000 + 4 w`, w < 2^20)
+# VERIFIED (`synth-stage-models-12.md` s1): the ARM writes the wavetables of the SUPER 2..4 and
+# WAVETABLE stages to the DSP L2 byte window below the core windows; the DSP reads them as data
+# words `byte >> 2` (`0x200C0000` is `DM(0x08030000)`). Both cores of a chip see the same L2.
+L2_LOW, SYS_BASE = 0x20000000, 0x28000000
 
 
 @dataclass
@@ -91,6 +95,7 @@ class Router:
         self.owner: dict[tuple[int, int, int], object] = {}
         self.seen: dict[str, int] = {}
         self.skipped: dict[str, int] = {}
+        self.l2: dict[str, int] = {}  # L2 stores handed to a core 2 chip, by chip name
 
     def add(self, spec: ChipSpec, link: object, path: int | None = None) -> None:
         """`link` receives the messages of `spec`: path 2 (system addresses), path 1 for SY."""
@@ -100,6 +105,8 @@ class Router:
         """Route one message: `sent`, `skipped` (outside the core window) or `counted` (no chip)."""
         name = f"{tuple(CHIPS)[comm]}{core}p{path}"
         self.seen[name] = self.seen.get(name, 0) + 1
+        if path == 2 and core == 1 and dm_word < 0:
+            self.forward_l2(comm, path, SYS_BASE + 4 * dm_word, value)
         link = self.owner.get((comm, core, path))
         if link is None:
             return "counted"
@@ -108,6 +115,18 @@ class Router:
             return "skipped"
         link.send(dm_word, value)  # type: ignore[attr-defined]
         return "sent"
+
+    def forward_l2(self, comm: int, path: int, byte: int, value: int) -> bool:
+        """Hand a path 2 store into the L2 window (`arm_emu.Message` files it under core 1 with a
+        negative data word) to the live core 2 chip of the same comm as `DM(byte >> 2)`, where the
+        synth stages read the wavetables (OQ40). Logged, not counted as an ARM message."""
+        peer = self.owner.get((comm, 2, path))
+        if peer is None or not L2_LOW <= byte < SYS_BASE:
+            return False
+        peer.poke(byte >> 2, value)  # type: ignore[attr-defined]
+        name = f"{tuple(CHIPS)[comm]}2"
+        self.l2[name] = self.l2.get(name, 0) + 1
+        return True
 
 
 @dataclass

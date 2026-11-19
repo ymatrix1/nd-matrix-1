@@ -1,0 +1,83 @@
+entry,touch_a,touch_b,layer_a_on,layer_b_on,rms_legacy,rms_touch,delta_db,peak_legacy,peak_touch,clipped_legacy,clipped_touch
+Program/Bank A/Astoria Grand.ns4p,0,0,1,0,0.129197,0.110429,-1.36,1.0000,0.9502,5,0
+Program/Bank A/Boxxx.ns4p,0,0,1,0,0.106562,0.101217,-0.45,0.4500,0.4184,0,0
+Program/Bank A/Bubbles Mk I.ns4p,2,0,1,0,0.241133,0.261322,0.70,1.0000,1.0000,184,518
+Program/Bank A/Classic Wah Clav.ns4p,2,1,1,0,0.058011,0.064996,0.99,0.4886,0.4983,0,0
+Program/Bank A/Grand Pad.ns4p,0,0,1,0,0.133372,0.115351,-1.26,1.0000,0.9610,5,0
+Program/Bank A/Horizon Whl.ns4p,0,0,1,0,0.037705,0.037705,0.00,0.1583,0.1583,0,0
+Program/Bank A/In Stereo Mk I .ns4p,0,1,1,0,0.104441,0.098646,-0.50,0.6400,0.5446,0,0
+Program/Bank A/J3 Open Sky.ns4p,1,0,1,1,0.153487,0.149639,-0.22,0.9580,0.8575,0,0
+Program/Bank A/Midnight Upright.ns4p,0,1,1,0,0.110058,0.104098,-0.48,0.7142,0.6789,0,0
+Program/Bank A/Momentum Whl.ns4p,0,0,1,0,0.083815,0.075689,-0.89,0.7480,0.6259,0,0
+Program/Bank A/NS4 Palette.ns4p,0,1,1,1,0.160787,0.145111,-0.89,0.8961,0.7680,0,0
+Program/Bank A/Pearl Upright.ns4p,0,1,1,0,0.102295,0.087019,-1.40,0.8811,0.7495,0,0
+Program/Bank A/Shimmer Upright.ns4p,2,1,1,0,0.132487,0.141296,0.56,0.8380,0.9088,0,0
+Program/Bank A/Shoreline Whl.ns4p,0,1,1,1,0.101993,0.100719,-0.11,0.5840,0.5172,0,0
+Program/Bank A/Silver Rush.ns4p,0,0,1,0,0.077294,0.071116,-0.72,0.6872,0.5785,0,0
+Program/Bank A/Spin EP Whl.ns4p,0,0,1,0,0.169055,0.161542,-0.39,0.6542,0.6003,0,0
+Program/Bank A/Stereo Wah Clav.ns4p,2,0,1,0,0.032787,0.036897,1.03,0.2715,0.2887,0,0
+Program/Bank A/Velvet Grand.ns4p,0,0,1,0,0.107921,0.096018,-1.01,0.9527,0.8055,0,0
+Program/Bank B/Ballad Layer Whl.ns4p,0,0,1,1,0.135612,0.132311,-0.21,0.6199,0.5953,0,0
+Program/Bank B/Cinematic Grand.ns4p,1,0,1,1,0.103661,0.104375,0.06,0.6597,0.6405,0,0
+Program/Bank B/Continuo.ns4p,0,0,1,0,0.079166,0.079091,-0.01,0.3355,0.3362,0,0
+Program/Bank B/Frozen Time Whl.ns4p,0,0,1,1,0.076785,0.070314,-0.76,0.6728,0.6232,0,0
+Program/Bank B/Grand EP Whl.ns4p,1,0,1,1,0.094800,0.094800,0.00,0.8121,0.8121,0,0
+Program/Bank B/Grand Vibra Bs.ns4p,0,0,1,1,0.089317,0.078785,-1.09,0.7950,0.6990,0,0
+Program/Bank B/Hi-Fi Grand.ns4p,0,1,1,0,0.119224,0.099324,-1.59,0.9392,0.7915,0,0
+Program/Bank B/HiFi Grand Str.ns4p,0,1,1,0,0.123923,0.104882,-1.45,0.9365,0.7887,0,0
+Program/Bank B/Koln Grand.ns4p,0,0,1,0,0.123421,0.105457,-1.37,1.0000,0.8913,2,0
+Program/Bank B/Live CP Grand.ns4p,2,1,1,0,0.092809,0.095645,0.26,0.6687,0.7499,0,0
+Program/Bank B/Logical Wurly.ns4p,0,0,1,0,0.125447,0.114852,-0.77,0.6216,0.5121,0,0
+Program/Bank B/Marimba.ns4p,0,1,1,0,0.084802,0.074614,-1.11,0.4761,0.4274,0,0
+Program/Bank B/Piano Room.ns4p,0,0,1,1,0.112461,0.098046,-1.19,1.0000,0.8753,1,0
+Program/Bank B/Roto EP Ondre J.ns4p,0,1,1,0,0.150672,0.139149,-0.69,0.6634,0.5716,0,0
+Program/Bank B/Soul Bass Split.ns4p,0,1,1,0,0.142956,0.133462,-0.60,0.8325,0.7755,0,0
+Program/Bank B/Taped Wurly.ns4p,2,1,1,0,0.089577,0.099210,0.89,0.5407,0.6283,0,0
+Program/Bank B/Velvet Strings.ns4p,0,0,1,0,0.118209,0.107663,-0.81,0.9236,0.7810,0,0
+Program/Bank C/Bounce Clav.ns4p,2,0,1,0,0.031033,0.033996,0.79,0.2141,0.2580,0,0
+Program/Bank C/C and G.ns4p,0,0,1,1,0.148124,0.128716,-1.22,1.0000,0.9713,6,0
+Program/Bank C/Chord N Melody.ns4p,0,0,1,1,0.087964,0.081388,-0.67,0.2786,0.2602,0,0
+Program/Bank C/Crackle n Pd Whl.ns4p,1,0,1,1,0.039137,0.039137,0.00,0.3533,0.3533,0,0
+Program/Bank C/Distorted Whl II.ns4p,2,1,1,0,0.090323,0.088925,-0.14,0.3071,0.3040,0,0
+Program/Bank C/Dyno Pan Mk I.ns4p,0,1,1,0,0.140941,0.137051,-0.24,0.8539,0.7750,0,0
+Program/Bank C/Melody Pearls.ns4p,0,0,1,0,0.083943,0.079581,-0.46,0.4865,0.4658,0,0
+Program/Bank C/Phased Out Wurly.ns4p,2,0,1,0,0.090744,0.097689,0.64,0.5397,0.6518,0,0
+Program/Bank C/Piano Str Pad.ns4p,0,0,1,0,0.109495,0.093397,-1.38,0.9255,0.7872,0,0
+Program/Bank C/Stereo AnaStr II.ns4p,0,0,1,1,0.040650,0.040650,0.00,0.1670,0.1670,0,0
+Program/Bank C/Vintage Pan Mk I.ns4p,0,1,1,0,0.147028,0.139505,-0.46,0.9605,0.7740,0,0
+Program/Bank C/Vintage Wurly.ns4p,2,1,1,0,0.090795,0.096719,0.55,0.4594,0.4938,0,0
+Program/Bank C/Vista Layer Whl.ns4p,0,0,1,1,0.142456,0.131011,-0.73,1.0000,1.0000,19,2
+Program/Bank D/Amber Upright.ns4p,0,0,1,0,0.102156,0.088873,-1.21,0.8892,0.7565,0,0
+Program/Bank D/Amped Phase Clav.ns4p,2,1,1,0,0.036377,0.041486,1.14,0.1806,0.2363,0,0
+Program/Bank D/Dyno Chorus Mk I.ns4p,0,1,1,0,0.143855,0.130233,-0.86,0.7253,0.6375,0,0
+Program/Bank D/Jealous Upright.ns4p,0,0,1,0,0.104300,0.090236,-1.26,0.7493,0.6662,0,0
+Program/Bank D/Marimba Pad Whl.ns4p,0,0,1,0,0.114681,0.103611,-0.88,0.5894,0.5277,0,0
+Program/Bank D/Rotor Clav.ns4p,2,1,1,0,0.070475,0.079521,1.05,0.4194,0.4846,0,0
+Program/Bank D/Vibra Band.ns4p,0,1,1,0,0.071017,0.066615,-0.56,0.3630,0.3481,0,0
+Program/Bank E/24 Frames J3.ns4p,2,0,1,0,0.081762,0.084698,0.31,0.5689,0.5930,0,0
+Program/Bank E/Americana II.ns4p,0,1,1,0,0.096429,0.088553,-0.74,0.8053,0.7260,0,0
+Program/Bank E/Babylon EP Whl.ns4p,0,0,1,1,0.148573,0.142231,-0.38,0.5158,0.5155,0,0
+Program/Bank E/Big Felt Pad Whl.ns4p,0,0,1,1,0.106680,0.101182,-0.46,0.6628,0.6313,0,0
+Program/Bank E/Felt Clouds.ns4p,1,0,1,1,0.087145,0.086920,-0.02,0.5145,0.5109,0,0
+Program/Bank E/Forlorn Whl.ns4p,0,0,1,0,0.052159,0.052186,0.00,0.3694,0.3694,0,0
+Program/Bank E/Gospel 1993.ns4p,0,0,1,0,0.076027,0.065153,-1.34,0.4552,0.3885,0,0
+Program/Bank E/Hybrid Knock EP.ns4p,0,0,1,0,0.126844,0.129879,0.21,0.5344,0.5042,0,0
+Program/Bank E/J3 E Pno Pad.ns4p,2,0,1,1,0.106158,0.121525,1.17,0.6554,0.8113,0,0
+Program/Bank E/J3 Electric Pno.ns4p,2,0,1,0,0.097321,0.112159,1.23,0.5818,0.7394,0,0
+Program/Bank E/J3 Grand Layers.ns4p,0,0,1,1,0.088482,0.075275,-1.40,0.8111,0.6900,0,0
+Program/Bank E/J3 Split Special.ns4p,0,0,1,0,0.066310,0.062699,-0.49,0.4935,0.4399,0,0
+Program/Bank E/J3 White Grand.ns4p,0,0,1,0,0.085273,0.077219,-0.86,0.6786,0.6217,0,0
+Program/Bank E/Lost Cause EP.ns4p,0,0,1,1,0.138070,0.133121,-0.32,0.7269,0.6218,0,0
+Program/Bank E/Simple Tune.ns4p,0,0,0,1,0.138480,0.133236,-0.34,0.7242,0.6444,0,0
+Program/Bank E/Snappy D6.ns4p,2,2,1,0,0.026465,0.030277,1.17,0.1583,0.1980,0,0
+Program/Bank E/Steam Piano.ns4p,0,1,1,0,0.058515,0.054911,-0.55,0.4708,0.4684,0,0
+Program/Bank E/Sub Surface.ns4p,0,0,1,1,0.134318,0.124668,-0.65,0.8886,0.8164,0,0
+Program/Bank E/Velour Uprights.ns4p,0,0,1,1,0.140722,0.129148,-0.75,0.9354,0.8579,0,0
+Program/Bank E/Wah EP Ondre J.ns4p,0,1,1,0,0.136989,0.117795,-1.31,0.9391,0.8597,0,0
+Program/Bank F/Chamber Upright.ns4p,2,1,1,0,0.074666,0.085701,1.20,0.7276,0.8256,0,0
+Program/Bank F/DistantGrand.ns4p,2,1,1,0,0.129937,0.140833,0.70,1.0000,1.0000,2,14
+Program/Bank F/Long EP Ondre J.ns4p,0,1,1,0,0.128368,0.115127,-0.95,0.6113,0.5400,0,0
+Program/Bank F/Rich Velvet.ns4p,0,1,1,0,0.062727,0.058260,-0.64,0.6983,0.6162,0,0
+Program/Bank F/Rudiments.ns4p,0,0,1,1,0.073356,0.071177,-0.26,0.5675,0.5273,0,0
+Program/Bank F/Silent Upright.ns4p,0,0,1,0,0.041856,0.038675,-0.69,0.4587,0.4187,0,0
+Program/Bank F/Unstable CP.ns4p,0,1,1,0,0.074780,0.073117,-0.20,0.5051,0.4483,0,0

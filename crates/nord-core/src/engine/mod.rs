@@ -70,9 +70,13 @@ mod telemetry_cell;
 #[cfg(test)]
 mod tests_extern;
 #[cfg(test)]
+mod tests_firmware_morph;
+#[cfg(test)]
 mod tests_firmware_routing;
 #[cfg(test)]
 mod tests_midix;
+#[cfg(test)]
+mod tests_mod2_default;
 #[cfg(test)]
 mod tests_pedals;
 #[cfg(test)]
@@ -138,6 +142,12 @@ pub struct Stage4Engine {
     rotary_bus: Box<OrganLayer>,
     pub layer_levels: [MorphParameter; 7],
     pub synth_cutoff_morph: [MorphParameter; 3],
+    /// Osc Ctrl / resonance / LFO / filter-env morph slots of the three Synth layers; they act only
+    /// while `firmware_morph` is on (`synth_morph.rs`, D159).
+    pub synth_morph: [crate::synth_morph::SynthMorphSet; 3],
+    /// Controller weights follow the ARM law `v / 128` (full at 127) and the five extra synth
+    /// morph targets play (D159). Default on since D166; `--legacy-morph` restores `v / 127`.
+    pub firmware_morph: bool,
     pub morph_controllers: MorphControllers,
     pub scene: LayerSceneState,
     pub split_router: KeybedSplitRouter,
@@ -231,6 +241,8 @@ impl Stage4Engine {
             rotary_bus: heap(|| OrganLayer::new(fs)),
             layer_levels: [MorphParameter::new(0.8); 7],
             synth_cutoff_morph: [MorphParameter::new(0.5); 3],
+            synth_morph: [crate::synth_morph::SynthMorphSet::default(); 3],
+            firmware_morph: true,
             morph_controllers: MorphControllers::default(),
             scene: LayerSceneState::default(),
             split_router: KeybedSplitRouter::default(),

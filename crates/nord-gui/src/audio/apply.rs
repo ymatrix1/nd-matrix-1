@@ -102,6 +102,7 @@ pub fn apply_audio_command(cmd: AudioCommand, engine: &mut Stage4Engine, master_
                 fx.mod2_type = kind;
                 fx.mod2_rate_hz = rate;
                 fx.mod2_amount = amount;
+                fx.clear_mod2_firmware_words();
             }
         }
         AudioCommand::SetFxEq {
@@ -210,6 +211,28 @@ mod tests {
         assert_eq!(peak(AudioCommand::Keyboard(note), false), 0.0);
         assert!(peak(AudioCommand::Keyboard(note), true) > 1e-4);
         assert!(peak(AudioCommand::Midi(note), false) > 1e-4);
+    }
+
+    #[test]
+    fn set_fx_mod2_drops_the_loaded_firmware_words() {
+        use nord_core::fx::Mod2Type;
+        let mut engine = Stage4Engine::new(48_000.0);
+        let mut prog = nord_core::cbin::ProgramDecoded::default();
+        prog.synth.fx_a.mod2_enabled = true;
+        prog.synth.fx_a.mod2_type_raw = 4;
+        engine.apply_program(&prog);
+        assert_eq!(engine.fx_chains[4].mod2_type_raw, Some(4));
+        let mut master = 0.85;
+        let cmd = AudioCommand::SetFxMod2 {
+            kind: Mod2Type::Vibe,
+            rate: 3.0,
+            amount: 0.5,
+        };
+        apply_audio_command(cmd, &mut engine, &mut master);
+        for c in &engine.fx_chains {
+            assert_eq!((c.mod2_type_raw, c.mod2_rate_raw), (None, None));
+            assert_eq!(c.mod2_type, Mod2Type::Vibe);
+        }
     }
 
     #[test]

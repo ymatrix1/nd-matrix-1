@@ -24,6 +24,11 @@
 //! program recalls (`tools/arm_program_load.py`, D99, `docs/research/piano-touch-curves.md` s4);
 //! the factory set reads 156 / 208 / 20 for 0 / 1 / 2 (`piano_touch_census`, no value 3).
 //!
+//! VERIFIED: the firmware recall of every factory program holds the Touch the decoder reads, both
+//! layers: 384 of 384 programs, 768 of 768 layer values (332 / 414 / 22 for 0 / 1 / 2),
+//! `tools/arm_program_touch_bits.py batch` (data `docs/research/data/piano-touch-recall.json`,
+//! unit test `test_committed_recall_equals_the_decoder_census_for_every_factory_program`), D165.
+//!
 //! EMPIRICAL: the name of each edit value follows the monotone order of the curves (value 0 needs
 //! the most force: `T` is largest) and the `ns4decode` map (`0 heavy, 1 med, 2 light`).
 //!

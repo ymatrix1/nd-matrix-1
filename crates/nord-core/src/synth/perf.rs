@@ -276,7 +276,7 @@ impl SynthLayer {
 
     /// Arp/Poly with a pattern: ends the note after the step's gate length.
     pub(super) fn pattern_release(&mut self, step_sec: f32) {
-        if self.arp_sample_counter / step_sec >= f32::from(self.perf.cur_len) / 8.0 {
+        if self.arp_sample_counter / step_sec >= self.arp_gate_fraction(self.perf.cur_len) {
             self.release_arp_notes();
         }
     }

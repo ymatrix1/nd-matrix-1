@@ -130,13 +130,11 @@ impl FwChorus {
     }
 
     /// The context words including the written-back state.
-    #[cfg(test)]
     pub(super) fn words(&self) -> &[u32; CTX_N] {
         &self.ctx
     }
 
     /// The delay ring words.
-    #[cfg(test)]
     pub(super) fn ring(&self) -> &[u32; RING_N] {
         &self.ring
     }

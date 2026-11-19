@@ -30,6 +30,8 @@ pub struct GuiBenchConfig {
     pub blocks: usize,
     /// Every this many blocks release the oldest key and press a new one (`0`: static chord).
     pub churn_every: usize,
+    /// Repeat the run and keep each block's fastest time (`1`: single run).
+    pub repeats: usize,
     /// Firmware options, applied like the GUI's `SetFirmwareOptions`.
     pub options: FirmwareOptions,
 }
@@ -43,6 +45,7 @@ impl Default for GuiBenchConfig {
             warmup_blocks: 0,
             blocks: 3000,
             churn_every: 0,
+            repeats: 1,
             options: FirmwareOptions::default(),
         }
     }
@@ -143,8 +146,18 @@ fn mean(v: &[f64]) -> f64 {
     v.iter().sum::<f64>() / v.len().max(1) as f64
 }
 
-/// Renders `cfg` on the engine `setup` leaves and times every block.
-pub fn run_with(cfg: GuiBenchConfig, setup: impl FnOnce(&mut Stage4Engine)) -> GuiBenchReport {
+/// Raw per-block result of one run.
+pub struct Timed {
+    /// Wall time of every timed block, milliseconds.
+    pub times: Vec<f64>,
+    /// Whether the block carried a key press (churn runs).
+    pub pressed: Vec<bool>,
+    pub hash: u64,
+    pub peak: f32,
+}
+
+/// Renders `cfg` once on the engine `setup` leaves and times every block.
+pub fn time_blocks(cfg: GuiBenchConfig, setup: impl FnOnce(&mut Stage4Engine)) -> Timed {
     let mut e = engine(&cfg);
     setup(&mut e);
     let mut chord = Chord::new(cfg.keys);
@@ -178,6 +191,36 @@ pub fn run_with(cfg: GuiBenchConfig, setup: impl FnOnce(&mut Stage4Engine)) -> G
             peak = buf.as_flattened().iter().fold(peak, |p, s| p.max(s.abs()));
         }
     }
+    Timed {
+        times,
+        pressed,
+        hash,
+        peak,
+    }
+}
+
+/// Renders `cfg` on the engine `setup` leaves and times every block. With `cfg.repeats > 1` the
+/// run is repeated (the render is deterministic) and every block keeps its fastest time, which
+/// removes scheduler and other-process noise and leaves the cost the engine itself causes.
+pub fn run_with(cfg: GuiBenchConfig, setup: impl Fn(&mut Stage4Engine)) -> GuiBenchReport {
+    let mut t = time_blocks(cfg, &setup);
+    for _ in 1..cfg.repeats {
+        let again = time_blocks(cfg, &setup);
+        for (a, b) in t.times.iter_mut().zip(&again.times) {
+            *a = a.min(*b);
+        }
+    }
+    report(cfg, t)
+}
+
+/// Statistics of one [`Timed`] run.
+pub fn report(cfg: GuiBenchConfig, t: Timed) -> GuiBenchReport {
+    let Timed {
+        times,
+        pressed,
+        hash,
+        peak,
+    } = t;
     let deadline_ms = cfg.frames as f64 / f64::from(SAMPLE_RATE) * 1000.0;
     let (worst_index, max_ms) =
         times
@@ -226,44 +269,7 @@ pub fn format_row(label: &str, r: &GuiBenchReport) -> String {
     )
 }
 
-/// Tail figures with parts of the engine switched off, to find what the spikes come from. The
-/// rows are the full engine, FX racks off, no keys, and each layer alone (FX off).
-pub fn breakdown(cfg: GuiBenchConfig) -> Vec<(String, GuiBenchReport)> {
-    use crate::fx::{LayerFxChain, ReverbModel};
-    let fx_off = |e: &mut Stage4Engine| {
-        for chain in e.fx_chains.iter_mut() {
-            *chain = LayerFxChain::new(SAMPLE_RATE);
-            chain.reverb_model = ReverbModel::Off;
-        }
-        e.master_bus.compressor_amount = 0.0;
-    };
-    let mut rows = vec![("full".to_string(), run(cfg))];
-    rows.push(("FX racks + master comp off".into(), run_with(cfg, fx_off)));
-    rows.push((
-        "no keys held".into(),
-        run(GuiBenchConfig { keys: 0, ..cfg }),
-    ));
-    let names = [
-        "Organ A", "Organ B", "Piano A", "Piano B", "Synth A", "Synth B", "Synth C",
-    ];
-    let count = usize::from(cfg.layers.min(7));
-    let all: [usize; 7] = [0, 1, 2, 3, 4, 5, 6];
-    // Scene I plays Organ A, Piano A, Synth A; Scene II all seven.
-    let in_scene: Vec<usize> = if count > 3 {
-        all.to_vec()
-    } else {
-        vec![0, 2, 4]
-    };
-    for i in in_scene {
-        let only = move |e: &mut Stage4Engine| {
-            fx_off(e);
-            e.scene.scene_2_mask = 1 << i;
-            e.scene.scene_1_mask = 1 << i;
-        };
-        rows.push((format!("{} only, FX off", names[i]), run_with(cfg, only)));
-    }
-    rows
-}
+pub use crate::bench_gui_breakdown::{breakdown, breakdown_with};
 
 #[cfg(test)]
 mod tests {
@@ -342,23 +348,5 @@ mod tests {
             ..quick()
         });
         assert_eq!(r.blocks, 40);
-    }
-
-    #[test]
-    fn breakdown_names_the_rows_for_both_scenes() {
-        let rows = breakdown(GuiBenchConfig {
-            blocks: 8,
-            keys: 4,
-            ..GuiBenchConfig::default()
-        });
-        assert_eq!(rows.len(), 3 + 7);
-        let rows3 = breakdown(GuiBenchConfig {
-            layers: 3,
-            blocks: 8,
-            keys: 4,
-            ..GuiBenchConfig::default()
-        });
-        assert_eq!(rows3.len(), 3 + 3);
-        assert!(format_row(&rows3[0].0, &rows3[0].1).contains("full"));
     }
 }

@@ -1,0 +1,61 @@
+scenario,store,client,kind,id,name,value
+wheel:1,dsp,2,ORG,0xe02e9,synth A cutoff word,0x00140000
+wheel:1,dsp,2,ORG,0xe0329,synth C cutoff word,0xee1a0000
+wheel:1,0x90fbc790,-1,?,0xa6,Edt_SynCom_kLayerLevelSynC,60.2344
+wheel:1,0x90fbc790,-1,?,0xb7,Edt_PnoCom_kLayerLevelPnoA,0.9922
+wheel:1,0x91050fe0,2,piano,0xb7,Edt_PnoCom_kLayerLevelPnoA,0.9922
+wheel:1,0x910734b0,3,piano,0xb7,Edt_PnoCom_kLayerLevelPnoA,0.9922
+wheel:1,0x91097560,4,synth,0x134,Edt_Syn_kFltFreq,52.0781
+wheel:1,0x910bf020,5,synth,0x138,Edt_Syn_kFltEnvAmt,32.1797
+wheel:1,0x910e6ae0,6,synth,0xa6,Edt_SynCom_kLayerLevelSynC,60.2344
+wheel:1,0x910e6ae0,6,synth,0x134,Edt_Syn_kFltFreq,34.1016
+wheel:1,0x911ae6a0,-1,?,0x1b1,Edt_Effects_kDlyMix,0.2969
+wheel:1,0x911c2ca0,-1,?,0x1b1,Edt_Effects_kDlyMix,0.2969
+wheel:32,dsp,2,ORG,0xe02e9,synth A cutoff word,0x01800000
+wheel:32,dsp,2,ORG,0xe0329,synth C cutoff word,0xf1400000
+wheel:32,0x90fbc790,-1,?,0xa6,Edt_SynCom_kLayerLevelSynC,67.5000
+wheel:32,0x90fbc790,-1,?,0xb7,Edt_PnoCom_kLayerLevelPnoA,31.7500
+wheel:32,0x91050fe0,2,piano,0xb7,Edt_PnoCom_kLayerLevelPnoA,31.7500
+wheel:32,0x910734b0,3,piano,0xb7,Edt_PnoCom_kLayerLevelPnoA,31.7500
+wheel:32,0x91097560,4,synth,0x134,Edt_Syn_kFltFreq,54.5000
+wheel:32,0x910bf020,5,synth,0x138,Edt_Syn_kFltEnvAmt,37.7500
+wheel:32,0x910e6ae0,6,synth,0xa6,Edt_SynCom_kLayerLevelSynC,67.5000
+wheel:32,0x910e6ae0,6,synth,0x134,Edt_Syn_kFltFreq,37.2500
+wheel:32,0x911ae6a0,-1,?,0x1b1,Edt_Effects_kDlyMix,9.5000
+wheel:32,0x911c2ca0,-1,?,0x1b1,Edt_Effects_kDlyMix,9.5000
+wheel:64,dsp,2,ORG,0xe02e9,synth A cutoff word,0x05000000
+wheel:64,dsp,2,ORG,0xe0329,synth C cutoff word,0xf3800000
+wheel:64,0x90fbc790,-1,?,0xa6,Edt_SynCom_kLayerLevelSynC,75.0000
+wheel:64,0x90fbc790,-1,?,0xb7,Edt_PnoCom_kLayerLevelPnoA,63.5000
+wheel:64,0x91050fe0,2,piano,0xb7,Edt_PnoCom_kLayerLevelPnoA,63.5000
+wheel:64,0x910734b0,3,piano,0xb7,Edt_PnoCom_kLayerLevelPnoA,63.5000
+wheel:64,0x91097560,4,synth,0x134,Edt_Syn_kFltFreq,57.0000
+wheel:64,0x910bf020,5,synth,0x138,Edt_Syn_kFltEnvAmt,43.5000
+wheel:64,0x910e6ae0,6,synth,0xa6,Edt_SynCom_kLayerLevelSynC,75.0000
+wheel:64,0x910e6ae0,6,synth,0x134,Edt_Syn_kFltFreq,40.5000
+wheel:64,0x911ae6a0,-1,?,0x1b1,Edt_Effects_kDlyMix,19.0000
+wheel:64,0x911c2ca0,-1,?,0x1b1,Edt_Effects_kDlyMix,19.0000
+wheel:96,dsp,2,ORG,0xe02e9,synth A cutoff word,0x06800000
+wheel:96,dsp,2,ORG,0xe0329,synth C cutoff word,0xf6c00000
+wheel:96,0x90fbc790,-1,?,0xa6,Edt_SynCom_kLayerLevelSynC,82.5000
+wheel:96,0x90fbc790,-1,?,0xb7,Edt_PnoCom_kLayerLevelPnoA,95.2500
+wheel:96,0x91050fe0,2,piano,0xb7,Edt_PnoCom_kLayerLevelPnoA,95.2500
+wheel:96,0x910734b0,3,piano,0xb7,Edt_PnoCom_kLayerLevelPnoA,95.2500
+wheel:96,0x91097560,4,synth,0x134,Edt_Syn_kFltFreq,59.5000
+wheel:96,0x910bf020,5,synth,0x138,Edt_Syn_kFltEnvAmt,49.2500
+wheel:96,0x910e6ae0,6,synth,0xa6,Edt_SynCom_kLayerLevelSynC,82.5000
+wheel:96,0x910e6ae0,6,synth,0x134,Edt_Syn_kFltFreq,43.7500
+wheel:96,0x911ae6a0,-1,?,0x1b1,Edt_Effects_kDlyMix,28.5000
+wheel:96,0x911c2ca0,-1,?,0x1b1,Edt_Effects_kDlyMix,28.5000
+wheel:127,dsp,2,ORG,0xe02e9,synth A cutoff word,0x0a000000
+wheel:127,dsp,2,ORG,0xe0329,synth C cutoff word,0xfb000000
+wheel:127,0x90fbc790,-1,?,0xa6,Edt_SynCom_kLayerLevelSynC,90.0000
+wheel:127,0x90fbc790,-1,?,0xb7,Edt_PnoCom_kLayerLevelPnoA,127.0000
+wheel:127,0x91050fe0,2,piano,0xb7,Edt_PnoCom_kLayerLevelPnoA,127.0000
+wheel:127,0x910734b0,3,piano,0xb7,Edt_PnoCom_kLayerLevelPnoA,127.0000
+wheel:127,0x91097560,4,synth,0x134,Edt_Syn_kFltFreq,62.0000
+wheel:127,0x910bf020,5,synth,0x138,Edt_Syn_kFltEnvAmt,55.0000
+wheel:127,0x910e6ae0,6,synth,0xa6,Edt_SynCom_kLayerLevelSynC,90.0000
+wheel:127,0x910e6ae0,6,synth,0x134,Edt_Syn_kFltFreq,47.0000
+wheel:127,0x911ae6a0,-1,?,0x1b1,Edt_Effects_kDlyMix,38.0000
+wheel:127,0x911c2ca0,-1,?,0x1b1,Edt_Effects_kDlyMix,38.0000

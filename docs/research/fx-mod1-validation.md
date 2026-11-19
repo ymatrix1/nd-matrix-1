@@ -44,7 +44,7 @@ D95 said the ARM writes no ENS amount or rate word: wrong, the generator did not
 
 ## Implications
 
-* Defaults unchanged (D22): `mod1` and `mod2` stay opt-in; `render_hash` untouched.
+* Defaults unchanged (D22): `mod1` and `mod2` stayed opt-in (`mod2` is the default since D163); `render_hash` untouched.
 * Mod 1 types 4 to 7 follow the ARM rate word between the old samples.
 * ENS follows the amount and rate words.
 

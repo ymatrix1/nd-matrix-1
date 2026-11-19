@@ -197,3 +197,13 @@ def test_sy_counters_of_a_pass_reply_are_parsed_and_the_last_ones_kept() -> None
     s.add(r, 0)
     s.add(dl.PassReport(), 2)  # a reply without counters keeps the last ones
     assert s.sy["isrs"] == 4
+
+
+def test_poke_is_queued_and_logged_but_not_counted_as_an_arm_message() -> None:
+    proc = FakeProc(["READY"])
+    link = dl.Link(proc)
+    link.poke(0x08030000, 0x1234)
+    link.send(0xC1DCC, 7)
+    assert link._buf == ["M 0x8030000 0x1234\n", "M 0xc1dcc 0x7\n"]
+    assert link.log == [(0, 0x08030000, 0x1234), (0, 0xC1DCC, 7)]
+    assert link.stats.messages == 1 and link.stats.words == {0xC1DCC}

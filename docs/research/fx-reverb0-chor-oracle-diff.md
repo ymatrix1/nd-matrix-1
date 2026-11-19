@@ -38,7 +38,7 @@ Two CHOR routines exist in the port, `0x122E24` (kind Soft, type 4) and `0x122F7
 ## Implications
 
 - Reverb type 0 and CHOR 4 / 5 (at rate 64, amount 64) match the oracle through the real dispatcher (`tools/fx_oracle_live.py`: reverb0, chor4, chor5). CHOR 5 at other contexts is untested.
-- CHOR on the `FirmwareFx::mod2` path (opt-in, D22) changes in the left wet channel (section 4); defaults and `render_hash` are unchanged.
+- CHOR on the `FirmwareFx::mod2` path (opt-in at the time, D22; default since D163) changes in the left wet channel (section 4); defaults and `render_hash` are unchanged.
 
 ## Follow-ups
 

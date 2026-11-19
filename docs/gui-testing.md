@@ -184,6 +184,10 @@ live in `panel/layout_tweaks.rs`, never in the `ASSUMED` photo tables (one excep
 | Round 6 content added (VIB/CHORUS type names, Rotary tab) | yes | 10 first run, 4 then 0 |
 | After round 4 (names below numerals, 3 px smaller knobs, frame pads, nudges) | yes | 0 |
 
+## Header tab checks (Organ, Layer Effects)
+
+The raised header tab carries the title, FX FOCUS, ON and SOLO. Rules kept by tests: the plate outline is painted before the tab so no line runs through the title or the ON button (`widgets/plate.rs`, `tab_is_painted_over_the_body_outline`); the ON LED sits left of its button, inside the tab, never above it on the red panel (`Face::led_left`, `bay_effects/focus.rs`); the SOLO legend ends at least 3 px inside the tab edge (`organ_strip.rs`, `on_button_led_and_solo_legend_stay_inside_the_header_tab`, with the `organ.on` / `organ.solo` nudge in `layout_tweaks.rs`). Look at it with `python tools/gui_shots.py --sections organ,effects` (top 90 px of each PNG). Mod 1 / Mod 2 AMOUNT knobs send only the amount (`mod_amount_knob_sends_only_the_amount_and_keeps_a_loaded_mod2`). Known unfixed panel bugs: TD-19 (Organ / Synth SOLO), TD-20 (Mod 2 variation not mirrored).
+
 ## What each switch changes
 
 | Switch (flag / bar control) | Changes | Status |
@@ -200,6 +204,9 @@ live in `panel/layout_tweaks.rs`, never in the `ASSUMED` photo tables (one excep
 | `--synth-chain legacy\|strip` (Synth: Chain) | Per-voice chain: firmware strip (default since D22, `docs/research/synth-validation.md`) or the classic engine chain; `--legacy-all` selects the classic chain | MIXED (partly VERIFIED) |
 | `--synth-knob-laws` / `--no-synth-knob-laws` (Synth: Knob envelope laws) | Strip envelope rate indices straight from the stored knobs (`index = knob - 64`); on by default since D57, off in the Classic preset | VERIFIED (run, [synth-knob-laws](research/synth-knob-laws.md)) |
 | `--firmware-synth-velocity` / `--legacy-synth-velocity` (Synth: Firmware velocity) | Amp gain `V` and filter-envelope factor `F` of the ORG core 2 pass instead of the linear velocity blend; on by default since D142 (owner approval, 4 of 16 distinct synth clips marginally worse at replay velocity 100), off in the Classic preset | MIXED (laws and file bits VERIFIED, multiply inside the voice ASSUMED)
+| `--legacy-arp` (Synth: Firmware arpeggiator, checked = firmware) | Up / Down / Up-Down walk the whole octave pool and a single held key retriggers every step like the ARM pattern player; on by default since D166 (owner approval 2026-11-18), unchecking restores the engine walk (and turns the gate off). 30 A:16 ARM replays, range law fitted to 14 raw values | MIXED |
+| `--arp-fw-gate` (Synth: Arp gate 2/3 step, opt-in) | `E` steps and the plain arpeggio end at 2/3 of the step; off by default (D166): the 2/3 is the replayed boot state of the pattern grid, flag writer unknown, no hardware clip (OQ32, D130) | ASSUMED |
+| `--firmware-morph` / `--legacy-morph` (Synth: Firmware morph, checked = firmware) | Wheel, A.T. and Control Pedal weigh `v / 128` (full at 127), clamp on the sum, cutoff sender step drop, five more synth targets play; on by default since D166 (owner approval 2026-11-18), unchecking restores `v / 127` | VERIFIED (245 ARM series) |
 | `--synth-stages` / `--no-synth-stages` (Synth: Stage oscillators) | Bit-exact firmware oscillator stages on the strip chain (noise, Shape Square, SUPER, MULTI, SHAPE SINE); on by default | MIXED (stages VERIFIED, voice weights ASSUMED) |
 | `--synth-p table\|verified\|fitted\|off\|g,w2,r2,shape,cutoff` (Synth: P table, dropdown entries "Per-wave table", "ARM words (verified)", "Smooth Lead fit", "Off") | Per-wave oscillator level, cutoff factor and SHAPE word law fitted to hardware clips (`synth/p_table.rs`); `verified` = the words the ARM writes per wave type, read by the single-oscillator rows and the SUPER / MULTI stages (`synth/p_words.rs`, `p_stage_words.rs`) | MIXED (words VERIFIED, cutoff factors and level constant EMPIRICAL) |
 | `--sample-kernel key\|ratio` (Synth: Sample kernel) | `SAMPLES` oscillator 12-tap kernel pick: firmware key rule (default, D46) or the ratio rule | MIXED (run VERIFIED, key field ASSUMED) |
@@ -211,7 +218,7 @@ live in `panel/layout_tweaks.rs`, never in the `ASSUMED` photo tables (one excep
 | `--piano-slew-fw` (Piano: SMP gain slew) | `.npno` voices use the firmware slew: hold gain 0.21875 x level with a 2 to 5 s decay, 44 ms release, no extra voice (opt-in; the rate table is EMPIRICAL) | MIXED |
 | `--firmware-piano-chain` (Piano: FX path scale) | Sample path scaled 0.7464, the verified FX receiver path (engine unit = DAC fraction ASSUMED; Velvet Grand clip +10 to +12 dB over) | MIXED |
 | `--firmware-piano-layer-law` (Piano: Layer law) | Piano layer fader follows `(v / 127)^2` | ASSUMED |
-| `--firmware-piano-touch` (Piano: Touch curves) | KB TOUCH plays the firmware velocity curves (ids 10 / 11 / 13, VERIFIED by ARM run); the program file bits are unverified (opt-in) | MIXED |
+| `--firmware-piano-touch` / `--legacy-piano-touch` (Piano: Touch curves) | KB TOUCH plays the firmware velocity curves (ids 10 / 11 / 13, VERIFIED by ARM run); the Touch bits of every factory program equal the firmware recall (D165); on by default since D165 (owner approval), no Heavy or Light hardware clip, sounds without a level model scale the Medium response (ASSUMED); `--legacy-piano-touch` plays Medium | MIXED |
 | `--firmware-piano-bus` (Piano: SMP bus scale) | Sample path scaled 0.5 instead of 0.55 (Q31 receiver convention) | ASSUMED |
 | `--firmware-piano-chain` (Piano: FX path scale) | Sample path scaled 0.7464, the verified FX receiver path (engine unit = DAC fraction ASSUMED; Velvet Grand clip +10 to +12 dB over) | MIXED |
 | `--amp-path engine\|firmware` (FX: Amp path) | Firmware drive stage (engine default) or engine tanh drive and RBJ cabinet; 4 frames latency | VERIFIED (`tests_amp_golden.rs`) |
@@ -226,6 +233,7 @@ live in `panel/layout_tweaks.rs`, never in the `ASSUMED` photo tables (one excep
 | `--firmware-fx-ports eq` (FX: Amp EQ) | Firmware tone stack `0x1243F4` instead of the engine's three biquads, 2 frames latency | MIXED |
 | `--firmware-routing` (Global: Firmware routing) | Section/layer enables (a mask of 0 reads as layer A, as the loader does) and per-layer KB zones as stored; on by default since D73, `--legacy-routing` turns it off | VERIFIED |
 | `--legacy-1khz-tick` (Global: 24 kHz ARM tick, checked = measured) | Vox key timeline and synth gain de-zipper on the measured 24 kHz ARM timer; on by default since D131, unchecking restores the 1 ms tick. Timer rate VERIFIED, real-time delays are lower bounds (ASSUMED) | MIXED |
+| `--fx-idle-skip` (Global: Skip idle FX racks) | Stops the FX rack of a layer silent for 4 s until it gets input again; saves most of the firmware FX CPU in a scene that uses few layers. Not a firmware path; a woken rack resumes from frozen state, 4 s and -140 dBFS are ASSUMED (D161) | ASSUMED |
 | `--firmware-all` / `--legacy-all` | Presets: verified paths on (not measured laws, Vox/Farfisa/B3) / all defaults | - |
 
 Defaults are unchanged: with no flag the engine and the `render_hash` stay as before. The same flags

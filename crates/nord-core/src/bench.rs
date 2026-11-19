@@ -8,6 +8,7 @@
 //! optimisation left the sound bit-identical. Timing is wall clock and therefore machine
 //! dependent; only the hash is deterministic.
 
+use crate::bench_fw_mod2::{fw_mod2_engine, RAW_CHORUS, RAW_SPIN};
 use crate::engine::Stage4Engine;
 use crate::fx::{
     AmpCabinet, DelayFeedbackFx, DelayFilterMode, Mod1Type, Mod2Type, ReverbColor, ReverbModel,
@@ -39,6 +40,10 @@ pub enum Scenario {
     Typical,
     /// The worst-case engine with no key held (every FX rack still runs).
     Idle,
+    /// `worst` with the firmware Mod 2 chorus (raw type 4) on every chain (D163).
+    FwChorus,
+    /// `worst` with the firmware Mod 2 SPIN (raw type 10) on every chain (D163).
+    FwSpin,
 }
 
 impl Scenario {
@@ -48,14 +53,22 @@ impl Scenario {
             Self::Worst => "worst",
             Self::Typical => "typical",
             Self::Idle => "idle",
+            Self::FwChorus => "worst-fw-chorus",
+            Self::FwSpin => "worst-fw-spin",
         }
     }
 
     /// Scenario of a command line name.
     pub fn parse(name: &str) -> Option<Self> {
-        [Self::Worst, Self::Typical, Self::Idle]
-            .into_iter()
-            .find(|s| s.name() == name)
+        [
+            Self::Worst,
+            Self::Typical,
+            Self::Idle,
+            Self::FwChorus,
+            Self::FwSpin,
+        ]
+        .into_iter()
+        .find(|s| s.name() == name)
     }
 
     /// The engine of this scenario, keys already pressed.
@@ -68,6 +81,8 @@ impl Scenario {
             }
             Self::Typical => typical_engine(sample_rate),
             Self::Idle => worst_case_engine(sample_rate),
+            Self::FwChorus => fw_mod2_engine(sample_rate, RAW_CHORUS, Mod2Type::Chorus),
+            Self::FwSpin => fw_mod2_engine(sample_rate, RAW_SPIN, Mod2Type::Spin),
         }
     }
 }
@@ -315,6 +330,15 @@ pub fn format_report(cfg: BenchConfig, r: &BenchReport) -> String {
         ),
         Scenario::Idle => "7 layers (Scene II), no key held, 7 FX racks + master comp".to_string(),
         Scenario::Typical => "Scene I (3 layers), 10 keys held, default FX".to_string(),
+        Scenario::FwChorus | Scenario::FwSpin => format!(
+            "7 layers (Scene II), {} keys held, 7 FX racks + master comp, firmware Mod 2 {}",
+            KEY_RANGE.count(),
+            if cfg.scenario == Scenario::FwChorus {
+                "CHOR"
+            } else {
+                "SPIN"
+            }
+        ),
     };
     format!(
         "ns4 bench: {workload}, {} @ {} Hz, {} frame blocks\n\
@@ -416,7 +440,13 @@ mod tests {
 
     #[test]
     fn scenarios_parse_run_and_differ() {
-        for sc in [Scenario::Worst, Scenario::Typical, Scenario::Idle] {
+        for sc in [
+            Scenario::Worst,
+            Scenario::Typical,
+            Scenario::Idle,
+            Scenario::FwChorus,
+            Scenario::FwSpin,
+        ] {
             assert_eq!(Scenario::parse(sc.name()), Some(sc));
         }
         assert_eq!(Scenario::parse("nope"), None);

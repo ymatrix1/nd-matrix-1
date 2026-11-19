@@ -1,18 +1,22 @@
 Nord Stage 4 Emulator - release archive
 =======================================
 
-Open-source software emulator, DSP engine and binary-format toolkit for the
-Nord Stage 4 keyboard. Built for interoperability, research and preservation.
+Source-available (non-commercial) software emulator, DSP engine and
+binary-format toolkit for the Nord Stage 4 keyboard. Built for
+interoperability, research and preservation.
 Source: https://github.com/ymatrix1/nord-stage-4-emulator
 
-Status: early release
----------------------
+Status: early release (AS IS, no warranty or support)
+----------------------------------------------------
+
+This software is provided "AS IS", without warranty or support of any kind.
+There is no technical support, SLA, or guarantee of fitness for any purpose.
 
 The CLAP and VST3 plugin has NOT been verified in any DAW yet. Automated tests
 cover the plugin code and the engine, but nobody has loaded this build in
 Reaper, Bitwig, Ableton Live or another host and checked audio, MIDI routing,
 automation and state recall. Expect rough edges. See HOST_COMPATIBILITY.md in
-this archive for the current matrix, and please report what you find.
+this archive for the current matrix.
 
 The builds are unsigned. The archive contains no firmware, factory sounds or
 sample data from the hardware; sounds come from the built-in engine and from

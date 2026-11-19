@@ -82,7 +82,8 @@ def test_pro_scenario_and_dump(tmp_path: Path) -> None:
     assert pro == ["meta rate 48000", "poke 0x1 0x2", "irq 13"]
     text = s.build_pcm_scenario(pro, Path("r.f32"), [(0x92414, s.STATE_PREPARE)], 0x93580, 790, 5)
     lines = text.splitlines()
-    assert lines[0] == "meta rate 43402" and "pcm 0 path=r.f32" in lines
+    assert lines[0] == "meta rate 43402" and "pcm 0 path=r.f32 credit=on" in lines
+    assert not any(x.startswith("poke 0x92410") for x in lines)
     assert lines.index("msg 0x92414 0x1c07cd") < lines.index("irq 17 400000")
     assert "poke 0x93580 790" in lines and "loop 5" in lines and lines[-1] == "end"
     st = s.build_stream_scenario(pro, Path("s.bin"), [(0x92414, 1)], 0x93580, 790, 3)

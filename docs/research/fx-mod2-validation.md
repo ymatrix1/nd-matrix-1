@@ -21,7 +21,7 @@ The SHARC routines of all six types are ported instruction by instruction and ch
 | 8, 9 ENS | amount `c[-3]`, `c[2]`, `c[3]`, `c[4]`, rate `c[-6]` (D100; D95 had missed them) | wired with ASSUMED circular tap registers (s5, [fx-mod1-validation](fx-mod1-validation.md) s3) |
 | 10, 11 SPIN | rate `c[-16]`, amount words `c[-21]`, ... | dense knots; no shared word |
 
-`FirmwareFx::mod2` stays opt-in ([D90](../DECISIONS.md)): only CHOR has a hardware clip, and it did not close the delay ([fx-chorus-hw-clip](fx-chorus-hw-clip.md)). The ARM plus SHARC check is VERIFIED for the parameter mapping and the algorithm of every wired type.
+`FirmwareFx::mod2` stayed opt-in at the time of [D90](../DECISIONS.md) and is the default since D163: only CHOR has a hardware clip, and it did not close the delay ([fx-chorus-hw-clip](fx-chorus-hw-clip.md)). The ARM plus SHARC check is VERIFIED for the parameter mapping and the algorithm of every wired type.
 
 ## 2. Dense capture and what the 11 samples missed
 

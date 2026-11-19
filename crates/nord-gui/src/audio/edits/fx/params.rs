@@ -54,7 +54,10 @@ impl FxFloat {
             Self::Mod1Rate => fx.mod1_rate_hz = v.clamp(0.1, 20.0),
             Self::Mod1Amount => fx.mod1_amount = v.clamp(0.0, 1.0),
             Self::Mod1PedPos => fx.mod1_ped_pos = v.clamp(0.0, 1.0),
-            Self::Mod2Rate => fx.mod2_rate_hz = v.clamp(0.1, 10.0),
+            Self::Mod2Rate => {
+                fx.mod2_rate_hz = v.clamp(0.1, 10.0);
+                fx.clear_mod2_firmware_words();
+            }
             Self::Mod2Amount => fx.mod2_amount = v.clamp(0.0, 1.0),
             Self::Drive => fx.drive_amount = v.clamp(0.0, 1.0),
             Self::EqBass => fx.eq_bass_db = v.clamp(-16.0, 16.0),
@@ -108,7 +111,10 @@ impl FxFlag {
         match self {
             Self::Mod1Variation => fx.mod1_variation = on,
             Self::Mod1Ped => fx.mod1_ped = on,
-            Self::Mod2Variation => fx.mod2_variation = on,
+            Self::Mod2Variation => {
+                fx.mod2_variation = on;
+                fx.clear_mod2_firmware_words();
+            }
             Self::AmpVariation => fx.amp_variation = on,
             Self::CompEnabled => fx.comp_enabled = on,
             Self::CompFast => fx.comp_fast = on,

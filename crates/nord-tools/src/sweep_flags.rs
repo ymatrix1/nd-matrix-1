@@ -1,0 +1,107 @@
+//! Flags and controller messages of `program_sweep` (D166): `--legacy-arp`, `--legacy-morph`,
+//! `--arp-fw-gate`, and the Mod Wheel / Control Pedal / aftertouch values sent before the notes.
+
+use nord_core::midi::MidiEvent;
+use nord_core::render::TimedEvent;
+use nord_core::render_opts::FirmwareOptions;
+
+/// Controller messages sent before the notes: Mod Wheel (CC 1), the Control Pedal (CC 11) and
+/// channel aftertouch, each only when its value is given.
+pub fn controller_events(
+    wheel: Option<u8>,
+    aftertouch: Option<u8>,
+    pedal: Option<u8>,
+) -> Vec<TimedEvent> {
+    let cc = |controller, value: u8| TimedEvent {
+        frame: 0,
+        event: MidiEvent::ControlChange {
+            channel: 0,
+            controller,
+            value: value.min(127),
+        },
+    };
+    let mut v = Vec::new();
+    v.extend(wheel.map(|x| cc(1, x)));
+    v.extend(pedal.map(|x| cc(11, x)));
+    v.extend(aftertouch.map(|x| TimedEvent {
+        frame: 0,
+        event: MidiEvent::ChannelAftertouch {
+            channel: 0,
+            pressure: x.min(127),
+        },
+    }));
+    v
+}
+
+/// `--legacy-arp` / `--legacy-morph` restore the pre-D166 arpeggiator walk and morph law;
+/// `--arp-fw-gate` turns the opt-in 2/3 gate on (`--legacy-arp` wins and turns it off too).
+pub fn apply_legacy_flags(o: &mut FirmwareOptions, args: &[String]) {
+    let has = |name: &str| args.iter().any(|a| a == name);
+    if has("--arp-fw-gate") {
+        o.arp_firmware_gate = true;
+    }
+    if has("--legacy-arp") {
+        o.arp_firmware = false;
+        o.arp_firmware_gate = false;
+    }
+    if has("--legacy-morph") {
+        o.firmware_morph = false;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn legacy_flags_turn_the_arp_and_morph_defaults_off_in_both_modes() {
+        let mut o = FirmwareOptions::default();
+        apply_legacy_flags(&mut o, &args(&[]));
+        assert!(o.arp_firmware && o.firmware_morph && !o.arp_firmware_gate);
+        apply_legacy_flags(&mut o, &args(&["--legacy-arp"]));
+        assert!(!o.arp_firmware && o.firmware_morph);
+        apply_legacy_flags(&mut o, &args(&["--legacy-morph"]));
+        assert!(!o.firmware_morph);
+    }
+
+    #[test]
+    fn the_gate_is_opt_in_and_legacy_arp_wins() {
+        let mut o = FirmwareOptions::default();
+        apply_legacy_flags(&mut o, &args(&["--arp-fw-gate"]));
+        assert!(o.arp_firmware && o.arp_firmware_gate);
+        apply_legacy_flags(&mut o, &args(&["--arp-fw-gate", "--legacy-arp"]));
+        assert!(!o.arp_firmware && !o.arp_firmware_gate);
+    }
+
+    #[test]
+    fn controller_events_send_only_the_given_controllers() {
+        assert!(controller_events(None, None, None).is_empty());
+        let ev = controller_events(Some(127), Some(64), Some(200));
+        assert_eq!(ev.len(), 3);
+        assert!(ev.iter().all(|e| e.frame == 0));
+        assert!(matches!(
+            ev[0].event,
+            MidiEvent::ControlChange {
+                controller: 1,
+                value: 127,
+                ..
+            }
+        ));
+        assert!(matches!(
+            ev[1].event,
+            MidiEvent::ControlChange {
+                controller: 11,
+                value: 127,
+                ..
+            }
+        ));
+        assert!(matches!(
+            ev[2].event,
+            MidiEvent::ChannelAftertouch { pressure: 64, .. }
+        ));
+    }
+}

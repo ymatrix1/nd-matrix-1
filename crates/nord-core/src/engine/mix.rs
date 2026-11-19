@@ -17,6 +17,12 @@ impl Stage4Engine {
         self.tick_organ_trigger();
         self.sync_synth_clock();
 
+        // Opt-in firmware weights `v / 128` (D159); the default keeps `v / 127`.
+        let ctrl = if self.firmware_morph {
+            self.morph_controllers.firmware_weighted()
+        } else {
+            self.morph_controllers
+        };
         // Apply Morphing Matrix to Synth filter cutoffs via OS v1.66 14 Hz .. 32 kHz curve
         for i in 0..3 {
             let m = &self.synth_cutoff_morph[i];
@@ -24,13 +30,25 @@ impl Stage4Engine {
                 || m.delta_pedal.abs() > 1e-5
                 || m.delta_aftertouch.abs() > 1e-5
             {
-                let cut = crate::cbin::cutoff_norm_to_hz(m.evaluate(&self.morph_controllers));
+                let norm = m.evaluate(&ctrl);
+                let norm = if self.firmware_morph {
+                    crate::synth_morph::sender_norm(norm)
+                } else {
+                    norm
+                };
+                let cut = crate::cbin::cutoff_norm_to_hz(norm);
                 match i {
                     0 => self.synth_a.cutoff_hz = cut,
                     1 => self.synth_b.cutoff_hz = cut,
                     _ => self.synth_c.cutoff_hz = cut,
                 }
             }
+        }
+
+        if self.firmware_morph {
+            self.synth_morph[0].apply(&ctrl, &mut self.synth_a);
+            self.synth_morph[1].apply(&ctrl, &mut self.synth_b);
+            self.synth_morph[2].apply(&ctrl, &mut self.synth_c);
         }
 
         let mut raw_layers = [
@@ -45,11 +63,11 @@ impl Stage4Engine {
             self.synth_c.render_frame(),
         ];
         self.apply_organ_swell(&mut raw_layers);
-        self.mix_outputs(raw_layers)
+        self.mix_outputs(raw_layers, &ctrl)
     }
 
     /// FX racks, faders, rotary bus, routing, shared reverb, volume pedal and the Main master bus.
-    fn mix_outputs(&mut self, raw_layers: [[f32; 2]; 7]) -> [f32; 4] {
+    fn mix_outputs(&mut self, raw_layers: [[f32; 2]; 7], ctrl: &MorphControllers) -> [f32; 4] {
         let dest = self
             .output_routing
             .destinations(self.rotary_follow_source());
@@ -58,9 +76,9 @@ impl Stage4Engine {
         let mut rot_used = false;
 
         for (i, raw) in raw_layers.into_iter().enumerate() {
-            self.fx_chains[i].apply_morph(&self.morph_controllers);
+            self.fx_chains[i].apply_morph(ctrl);
             let [fx_l, fx_r] = self.fx_chains[i].process_frame_with_bpm(raw, self.master_clock.bpm);
-            let level = self.layer_levels[i].evaluate(&self.morph_controllers);
+            let level = self.layer_levels[i].evaluate(ctrl);
             // organ layers follow the firmware level law `(v / 127)^2` when it is selected
             let level = match i {
                 0 => self.organ_a.level_law().layer_gain(level),
@@ -84,7 +102,7 @@ impl Stage4Engine {
             dest[super::output_routing::SRC_ROTARY].add(&mut acc, rl, rr);
         }
         if self.fx_sharing.reverb_global.is_some() {
-            self.global_reverb.apply_morph(&self.morph_controllers);
+            self.global_reverb.apply_morph(ctrl);
             [acc[0], acc[1]] = self.global_reverb.process_reverb_frame([acc[0], acc[1]]);
         }
 

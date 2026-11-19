@@ -59,6 +59,25 @@ impl ProgramTouch {
     }
 }
 
+/// Header of the per-program CSV (`piano_touch_census --csv`), read by
+/// `tools/arm_program_touch_bits.py`.
+pub const CSV_HEADER: &str = "entry,slot,name,touch_a,touch_b,layer_a_on,layer_b_on,section_on";
+
+/// CSV row of a program: archive entry, slot, name, the decoded layer Touch as the edit value
+/// (0 heavy, 1 medium, 2 light, the value the firmware recall holds) and the in-use flags.
+pub fn csv_row(entry: &str, r: &ProgramTouch) -> String {
+    format!(
+        "{entry},{},{},{},{},{},{},{}",
+        r.slot,
+        r.name.replace(',', " "),
+        index(r.touch_a),
+        index(r.touch_b),
+        u8::from(r.layer_a_on),
+        u8::from(r.layer_b_on),
+        u8::from(r.piano_section_on)
+    )
+}
+
 fn index(t: VelocityTouch) -> usize {
     match t {
         VelocityTouch::Heavy => 0,
@@ -170,6 +189,17 @@ mod tests {
             (88, 74),
             "the row header comes from the curve"
         );
+    }
+
+    #[test]
+    fn csv_row_writes_edit_values_and_flags() {
+        let mut r = row("Pearl, Upright", VelocityTouch::Heavy, true);
+        r.touch_b = VelocityTouch::Light;
+        assert_eq!(
+            csv_row("Program/Bank A/Pearl Upright.ns4p", &r),
+            "Program/Bank A/Pearl Upright.ns4p,A:1,Pearl  Upright,0,2,1,0,1"
+        );
+        assert_eq!(CSV_HEADER.split(',').count(), 8);
     }
 
     #[test]

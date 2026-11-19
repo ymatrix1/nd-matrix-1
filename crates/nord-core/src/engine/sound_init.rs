@@ -19,6 +19,7 @@ impl Stage4Engine {
             _ => self.synth_c.sound_init(),
         }
         self.synth_cutoff_morph[synth] = MorphParameter::new(0.5);
+        self.synth_morph[synth] = Default::default();
     }
 }
 

@@ -203,6 +203,7 @@ fn piano_row(ui: &mut egui::Ui, o: &mut FirmwareOptions) {
         group(ui, "Global", false, false, |ui| {
             checkbox(ui, &info::ROUTING, &mut o.firmware_routing);
             checkbox(ui, &info::TICK, &mut o.measured_tick);
+            checkbox(ui, &info::IDLE_SKIP, &mut o.fx_idle_skip);
         });
     });
 }
@@ -214,6 +215,9 @@ fn synth_row(ui: &mut egui::Ui, o: &mut FirmwareOptions) {
             checkbox(ui, &info::STAGES, &mut next.synth_stages);
             checkbox(ui, &info::KNOB_LAWS, &mut next.synth_knob_laws);
             checkbox(ui, &info::SYNTH_VELOCITY, &mut next.synth_velocity_fw);
+            checkbox(ui, &info::ARP, &mut next.arp_firmware);
+            checkbox(ui, &info::ARP_GATE, &mut next.arp_firmware_gate);
+            checkbox(ui, &info::MORPH, &mut next.firmware_morph);
             dropdown(ui, &info::P_TABLE, &mut next.synth_p, &P_TABLES);
             dropdown(ui, &info::FILTER, &mut next.filter_engine, &FILTERS);
             checkbox(ui, &info::MEASURED, &mut next.measured_laws);
@@ -293,7 +297,8 @@ mod tests {
             assert!(fx.port_mut(n).is_some(), "{n}");
         }
         fx = FirmwareFx::DEFAULT;
-        assert_eq!(fx.ports_on().len(), 0);
+        assert_eq!(fx.ports_on(), ["mod2"], "Mod 2 is the default since D163");
+        assert!(FirmwareFx::LEGACY.ports_on().is_empty());
     }
 
     #[test]
@@ -301,6 +306,15 @@ mod tests {
         let p = presets::classic();
         assert_eq!(p.amp_path, Some(false));
         assert!(!p.piano_firmware_level && p.tone_source.is_none());
+    }
+
+    #[test]
+    fn classic_preset_restores_every_default_flip() {
+        // Mod 2 (D163), the arpeggiator walk and the morph weights (D166) are on by default.
+        let d = FirmwareOptions::default();
+        assert!(d.fx.mod2 && d.arp_firmware && d.firmware_morph);
+        let p = presets::classic();
+        assert!(!p.fx.mod2 && !p.arp_firmware && !p.firmware_morph);
     }
 
     #[test]

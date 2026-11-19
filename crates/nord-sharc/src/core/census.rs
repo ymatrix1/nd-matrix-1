@@ -31,14 +31,25 @@ struct Setup {
     plus: bool,
 }
 
-fn one_case(
+/// Which executor runs a census case.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Engine {
+    /// [`Core::step`] (the oracle).
+    Interp,
+    /// Level-2 Cranelift JIT ([`Core::run_jit`]) for the same number of steps the interpreter took.
+    #[cfg(feature = "jit")]
+    Jit,
+}
+
+fn case_run(
+    engine: Engine,
     f: &Fixture,
     scr: &[u32],
     setup: &Setup,
     parcels: &str,
     state: &[u32],
     chunks: &[(u32, Vec<u32>)],
-) -> Result<String, String> {
+) -> Result<(String, u64), String> {
     let sym = |n: &str| f.sym(n).ok_or_else(|| format!("fixture lacks sym {n}"));
     let (slot, st, res, scr_a) = (sym("_slot")?, sym("_st")?, sym("_res")?, sym("_scr")?);
     let mut c = Core::new(&[]);
@@ -94,15 +105,29 @@ fn one_case(
             steps += 1;
         }
         let regs = c.r.iter().chain(&c.s).chain(&c.i).chain(&c.m);
-        return Ok(format!(
-            "{:x} {}",
-            c.pc,
-            regs.map(|w| format!("{w:08X}"))
-                .collect::<Vec<_>>()
-                .join(" ")
+        return Ok((
+            format!(
+                "{:x} {}",
+                c.pc,
+                regs.map(|w| format!("{w:08X}"))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            ),
+            steps as u64,
         ));
     }
-    while c.pc != f.exit {
+    #[cfg(feature = "jit")]
+    if engine == Engine::Jit {
+        // the interpreter run of the same case gives the step count; the JIT then runs exactly that
+        let n = case_run(Engine::Interp, f, scr, setup, parcels, state, chunks)?.1;
+        if let Some(fault) = c.run_jit(n) {
+            return Err(format!("jit fault {fault:?}"));
+        }
+        if c.pc != f.exit {
+            return Err(format!("jit stopped at pc {:x}, not the exit", c.pc));
+        }
+    }
+    while engine == Engine::Interp && c.pc != f.exit {
         c.step()
             .map_err(|e| format!("pc {:x} after {steps} steps: {e:?}", c.pc))?;
         steps += 1;
@@ -119,7 +144,19 @@ fn one_case(
         let w = c.dm_read(a).map_err(|e| format!("read {e:x}"))?;
         out.push(format!("{w:08X}"));
     }
-    Ok(out.join(" "))
+    Ok((out.join(" "), steps as u64))
+}
+
+fn one_case(
+    engine: Engine,
+    f: &Fixture,
+    scr: &[u32],
+    setup: &Setup,
+    parcels: &str,
+    state: &[u32],
+    chunks: &[(u32, Vec<u32>)],
+) -> Result<String, String> {
+    case_run(engine, f, scr, setup, parcels, state, chunks).map(|r| r.0)
 }
 
 /// Compact form of an output line for the committed regression fixtures: the dumped state words,
@@ -150,6 +187,11 @@ pub fn scratch_of(cases: &str) -> Vec<u32> {
 
 /// Runs every case of `cases` and returns one output line per case.
 pub fn run_cases(fixture: &str, cases: &str) -> Result<String, String> {
+    run_cases_on(Engine::Interp, fixture, cases)
+}
+
+/// [`run_cases`] on the chosen executor.
+pub fn run_cases_on(engine: Engine, fixture: &str, cases: &str) -> Result<String, String> {
     let f = Fixture::parse(fixture);
     let mut scr = vec![0u32; SCR_WORDS];
     let mut setup = Setup::default();
@@ -184,7 +226,7 @@ pub fn run_cases(fixture: &str, cases: &str) -> Result<String, String> {
                 n.parse().unwrap_or(0),
             )),
             [parcels, rest @ ..] => {
-                let line = one_case(&f, &scr, &setup, parcels, &words(rest), &chunks)
+                let line = one_case(engine, &f, &scr, &setup, parcels, &words(rest), &chunks)
                     .unwrap_or_else(|e| format!("FAULT {e}"));
                 out.push_str(&line);
                 out.push('\n');

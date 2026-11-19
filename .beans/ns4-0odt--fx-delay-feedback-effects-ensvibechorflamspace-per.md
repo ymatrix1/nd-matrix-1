@@ -23,3 +23,6 @@ Exact SHARC algorithms (not in the firmware image).
 
 
 - [x] Delay feedback effects implemented per manual (structure); parameters ASSUMED. Width gap NOT explained by them (see research doc).
+
+## Progress 2026-11-18
+Progress (D163, `docs/research/program-ranking-fx.md`): the delay ports (`delay_laws`, `delay_time`) stay opt-in; they are in `FirmwareFx::PARITY` and carry the gap of 2 of the worst 20 programs together with other groups. The delay has no oracle chain and no hardware clip (D136), so it is not flipped.

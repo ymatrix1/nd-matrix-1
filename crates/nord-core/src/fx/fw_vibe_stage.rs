@@ -1,6 +1,6 @@
 //! Frame-by-frame adapter around the firmware `VIBE` routine ([`super::fw_vibe`], `kFx2Type`
 //! 6 and 7, `0x123C84`) with the words of the FX image and the laws of `kFx2Amt` / `kFx2Rate`
-//! (opt-in, `FirmwareFx::mod2`).
+//! (`FirmwareFx::mod2`, the default since D163).
 //!
 //! The routine runs once per pass on 2 blocks of two stereo frames, so the stage collects 4
 //! frames and releases them one call later: **latency 4 frames (83 us at 48 kHz)**. The phase
@@ -57,6 +57,13 @@ pub(super) struct FwVibeStage {
 
 fn index(offset: i32) -> usize {
     (offset + 0x20) as usize
+}
+
+impl FwVibeStage {
+    /// The context and rings (live install export).
+    pub(super) fn state(&self) -> &Mod2State {
+        &self.st
+    }
 }
 
 /// `c[-2]`, the depth: `v / 128`, the captured word `0x3F7FFFFE` at `v = 127` (VERIFIED at the 11

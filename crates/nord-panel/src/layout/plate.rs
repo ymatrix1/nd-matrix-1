@@ -13,6 +13,8 @@ use crate::types::Section;
 
 /// Plate top edge (mm) beside a header tab.
 const PLATE_TOP_MM: f32 = 30.8;
+/// Width (mm) of the Synth header tab (GUI styling): holds FX FOCUS, ON and SOLO.
+pub const SYNTH_TAB_MM: f32 = 108.0;
 /// Height (mm) of the light rim along the plate's top edge.
 pub const RIM_MM: f32 = 4.3;
 
@@ -43,9 +45,12 @@ pub fn plate_of(section: Section) -> Option<Plate> {
             top: PLATE_TOP_MM,
             tab: Some(tab(85.4)),
         },
+        // The hardware prints no tab here (ON / SOLO / FX FOCUS sit on the red panel); the GUI
+        // gives Synth one like Organ and Layer Effects so the header reads the same everywhere
+        // and the ON button, its LED and SOLO stay on a plate (production look, not photo parity).
         Section::Synth => Plate {
             top: PLATE_TOP_MM,
-            tab: None,
+            tab: Some(tab(SYNTH_TAB_MM)),
         },
         Section::Master | Section::Keybed => return None,
     })
@@ -63,7 +68,10 @@ mod tests {
         assert!((t.y - 25.0).abs() < 1e-3 && (t.right() - 324.7).abs() < 0.5);
         let e = plate_of(Section::Effects).unwrap().tab.unwrap();
         assert!((e.right() - 1008.8).abs() < 1.5, "{}", e.right());
-        assert!(plate_of(Section::Synth).unwrap().tab.is_none());
+        assert!(
+            plate_of(Section::Synth).unwrap().tab.is_some(),
+            "GUI styling: Synth has a tab"
+        );
     }
 
     #[test]

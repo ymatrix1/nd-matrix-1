@@ -48,6 +48,7 @@ mod fw_leslie_main_d;
 mod fw_leslie_main_e;
 mod fw_leslie_ops;
 mod fw_leslie_ring;
+mod fw_live;
 pub mod fw_map;
 mod fw_mod1;
 mod fw_mod1_data;
@@ -67,6 +68,7 @@ mod fw_phas1;
 mod fw_pump;
 mod fw_pump_clock;
 mod fw_rate_match;
+mod idle_skip;
 pub(crate) use fw_pump_clock::sync_beats as pump_sync_beats;
 mod fw_reverb;
 mod fw_rm;
@@ -148,11 +150,15 @@ mod tests_fw_reverb_chain;
 #[cfg(test)]
 mod tests_fw_reverb_mix;
 #[cfg(test)]
+mod tests_fw_reverb_pinned;
+#[cfg(test)]
 mod tests_fw_rvb_golden;
 #[cfg(test)]
 mod tests_fw_rvb_golden_data;
 #[cfg(test)]
 mod tests_fw_rvbm_color;
+#[cfg(test)]
+mod tests_fw_rvbm_floor;
 #[cfg(test)]
 mod tests_fw_rvbm_golden;
 #[cfg(test)]
@@ -194,6 +200,7 @@ pub use fw_delay::{ctx as fw_delay_ctx, DelayIo, FwDelay};
 pub use fw_ext40::{Fp, E40};
 pub use fw_leslie::{FwLeslie, FwLeslieE40};
 pub use fw_leslie_ring::RingAdvance;
+pub use fw_live::{live_install, LiveInstall};
 pub use fw_map::AllpassType;
 pub use fw_params::{
     compressor_for_amount, set_allpass, set_amp_drive, set_compressor_amount, set_delay,
@@ -304,7 +311,8 @@ pub struct LayerFxChain {
     /// Skips this chain's reverb (the engine sets it while Reverb GLOBAL mode is active, manual p.52).
     pub bypass_reverb: bool,
     pub morph: FxMorphSet,
-    /// Opt-in firmware closed forms (delay mix law, firmware compressor). Default all off.
+    /// Firmware stages of the chain (`FirmwareFx::DEFAULT`: amp and Mod 2; the delay, compressor,
+    /// reverb, Mod 1 and EQ ports are opt-in). Mod 2 runs only for chains with the raw words.
     pub firmware_fx: FirmwareFx,
     /// 14 bit `kDlyRateClkDiv` value (`0..=16383`) of the program; read only with
     /// `firmware_fx.delay_time` (the engine sets it from the preset). `None`: engine time.
@@ -323,6 +331,9 @@ pub struct LayerFxChain {
     /// The firmware RM / A-WAH / WAH / PUMP stages (`firmware_fx.mod1`, types 4 to 11), boxed:
     /// the context, ring and scratch arrays are several KB.
     fw_mod1_rest: Option<Box<fw_mod1_rest::FwMod1Rest>>,
+    /// Frames per call of the firmware RM / A-WAH / WAH / PUMP stage: 2 (default) or 4 (the live
+    /// oracle pass, `fx_live_native --pass-frames 4`).
+    pub mod1_rest_frames: usize,
     /// The firmware chorus (`firmware_fx.mod2`), boxed: the ring is 4 KB.
     fw_mod2: Option<Box<fw_mod2::FwMod2Stage>>,
     fw_vibe: Option<Box<fw_vibe_stage::FwVibeStage>>,
@@ -341,6 +352,8 @@ pub struct LayerFxChain {
     fw_reverb_multi: Option<Box<FwReverbMulti>>,
     fw_comp_amount: f32,
     clock_bpm: f32,
+    /// Opt-in skip of the rack while its layer is silent (`set_idle_skip`), default off.
+    idle: idle_skip::IdleSkip,
     dyn1: mod1_dynamic::Mod1Dyn,
     spin: mod2_spin::SpinState,
     mod1_phase: f32,
@@ -444,6 +457,7 @@ impl LayerFxChain {
             mod2_type_raw: None,
             fw_mod1: None,
             fw_mod1_rest: None,
+            mod1_rest_frames: 2,
             fw_mod2: None,
             fw_vibe: None,
             fw_law: None,
@@ -455,6 +469,7 @@ impl LayerFxChain {
             fw_reverb_multi: None,
             fw_comp_amount: 0.0,
             clock_bpm: 120.0,
+            idle: idle_skip::IdleSkip::default(),
             dyn1: mod1_dynamic::Mod1Dyn::new(),
             spin: mod2_spin::SpinState::new(),
             mod1_phase: 0.0,
@@ -514,7 +529,12 @@ impl LayerFxChain {
             self.mod1_amount = m.mod1_amount.evaluate(ctrl);
         }
         if morph_active(&m.mod2_rate) {
-            self.mod2_rate_hz = 0.1 + m.mod2_rate.evaluate(ctrl) * 9.9;
+            let v = m.mod2_rate.evaluate(ctrl);
+            self.mod2_rate_hz = 0.1 + v * 9.9;
+            // The firmware Mod 2 reads the 7 bit rate word, not `mod2_rate_hz` (D163).
+            if self.mod2_rate_raw.is_some() {
+                self.mod2_rate_raw = Some((v.clamp(0.0, 1.0) * 127.0).round() as u8);
+            }
         }
         if morph_active(&m.mod2_amount) {
             self.mod2_amount = m.mod2_amount.evaluate(ctrl);
@@ -545,6 +565,17 @@ impl LayerFxChain {
         self.fw_rate_match = on.then(|| Box::new(RateMatch::new(self.sample_rate)));
     }
 
+    /// Switches the idle skip (`--fx-idle-skip`, D161) on or off: a rack whose input has been
+    /// silent for a while and whose output has died away returns silence without running.
+    pub fn set_idle_skip(&mut self, on: bool) {
+        self.idle.set(on, self.sample_rate);
+    }
+
+    /// Whether [`Self::set_idle_skip`] is on.
+    pub fn idle_skip(&self) -> bool {
+        self.idle.enabled()
+    }
+
     /// Whether [`Self::set_fx_rate_match`] is on.
     pub fn fx_rate_match(&self) -> bool {
         self.fw_rate_match.is_some()
@@ -552,6 +583,15 @@ impl LayerFxChain {
 
     /// Processes a single stereo frame `[left, right]` through all 5 layer FX stages at `bpm`.
     pub fn process_frame_with_bpm(&mut self, frame: [f32; 2], bpm: f32) -> [f32; 2] {
+        if self.idle.skips(frame) {
+            return [0.0, 0.0];
+        }
+        let out = self.process_frame_stages(frame, bpm);
+        self.idle.observe(frame, out);
+        out
+    }
+
+    fn process_frame_stages(&mut self, frame: [f32; 2], bpm: f32) -> [f32; 2] {
         let inv_fs = 1.0 / self.sample_rate;
         self.clock_bpm = bpm;
         let [l1, r1] = self.process_mod1(frame[0], frame[1], inv_fs);

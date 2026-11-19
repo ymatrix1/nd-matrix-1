@@ -11,7 +11,7 @@ Tags: **VERIFIED** = matches firmware or oracle by a reproducible check, **EMPIR
 | Question | Answer |
 |---|---|
 | Is the emulation complete? | **No.** Every engine family sounds; the oracle runs a large part of the firmware; both have named gaps below. |
-| Oracle instruction level | 8,287 distinct firmware instructions run on the model and on the ADSP-21489 simulator: 49,722 cases, **18 differed** in 6 shapes; closed 2026-11-17 except 2 cases of one shape (MR2F read-back, [sharc-census-diff](sharc-census-diff.md)). The census is not yet run on the 21571 (SHARC+) simulator. |
+| Oracle instruction level | 8,287 distinct firmware instructions run on the model and on the ADSP-21489 simulator: 49,722 cases, **18 differed** in 6 shapes; closed 2026-11-17 except 2 cases of one shape (MR2F read-back, a simulator artefact the firmware does not read, D156; [sharc-census-diff](sharc-census-diff.md)). The census is not yet run on the 21571 (SHARC+) simulator. |
 | Oracle routine level | PNO bank `0x122620` and mix `0x12268F` bit-exact on the 21571 simulator; output stage `0x1229B3` and post stage `0x12272D` DM compared in session notes (PRs #131). SY1SY2 resampler `0x1C10EE` and SMP voice loop bit-exact against the Rust engine. |
 | ARM harness | Boots the real firmware to the main loop in **433 M instructions (36 s)**; full settle 3.0 B instructions in 201 s. The DSP side is absent except for the live chips (D138, D144): PNO core 1, PNO core 2 and ORG core 2 run against the real ARM stream (`tools/arm_dsp_live.py`, one direction); the other chips (FX, ORG core 1, SY, SMP) and every DSP answer are still stubs (`DspAck`). |
 | Factory programs (384) | Path uses classified: default **1,015 verified (15 %), 5,677 assumed (83 %), 119 unmodelled (2 %)**; `--firmware-all` **2,634 / 4,058 / 119** (39 % / 60 % / 2 %). Render health 384 of 384 without panic, NaN or silence. |
@@ -121,7 +121,7 @@ Lane E beans (`ns4-36hw`, `ns4-doy1`, `ns4-vnp2`, `ns4-qll9`, `ns4-ca0i`, `ns4-a
 | Speed | long passes and the 21571 census need a faster step loop before CI use | ROADMAP line 221 | open |
 | Unit tests | 353 `#[test]` functions in `crates/nord-sharc/src` | `grep -c "#\[test\]"` | counted |
 
-Effort to close the 18 census cases: done 2026-11-17 for 16 (5 of 6 shapes), 2 cases (MR2F) open. Effort to run the 21571 census: medium (machine time, no new code). Audible impact: none measured (old and new oracle give identical output on PNO bank/mix/post, PNO and ORG passes; 54 occurrences in 65,343, 15 sites); it only widens the trust base.
+Effort to close the 18 census cases: done 2026-11-17 for 16 (5 of 6 shapes), 2 cases (MR2F) open. Effort to run the 21571 census: medium (machine time, no new code). Audible impact: none measured (old and new oracle give identical output on PNO bank/mix/post, PNO and ORG passes; 54 occurrences in 65,343, 15 sites); it only widens the trust base. D156: of the 15 sites 2 run every PNO pass (MR2F) and 3 run in the FX ENS routine, old and new model bit-identical in both; JIT and AOT share the five semantics (1,580 cases replayed).
 
 ### 3.2 Which images, cores and firmware paths run
 
@@ -219,7 +219,7 @@ Status columns: **Fw** = verified against firmware or oracle, **Clip** = fitted 
 | Compressor | 117 (204) | Fw routine, parameters and bus position Asm | opt-in (`--firmware-fx`) | | | medium | low |
 | EQ | 265 (503) | Asm (RBJ biquads, gain step and Q) | default | FREQ2 `20 * 1000^(v/1e6)` Hz EMPIRICAL (6 %) | | low | low |
 | Mod 1 | 90 (124) | laws captured at 44 values (D100); engine models, constants Asm; PUMP is a verified module (`0x122D2C`, [fx-mod-types](fx-mod-types.md) s7) but its clock: hardware 2.11 Hz against 6.1 Hz free-run is reported by the coordinating session and **not recorded in a repo file** (unverified here) | default | | PUMP clock source, RM and A-WAH hardware clips | medium | medium (PUMP 9 programs, A-PAN 50) |
-| Mod 2 | 158 (260): CHOR 93, VIBE 45, PHAS 12, SPIN 11, FLANG 10, ENS 3 | CHOR, VIBE, FLANG, PHAS 0 run the firmware routines behind `FirmwareFx::mod2`; SPIN and ENS wired through the law stage; ENS tap model bug fixed (D114, PR #438 open) | opt-in | laws on a dense ARM grid (D90); chorus clip `fx-chorus-hw-clip` | only chorus has a clip; per-layer-kind words | medium | medium |
+| Mod 2 | 158 (260): CHOR 93, VIBE 45, PHAS 12, SPIN 11, FLANG 10, ENS 3 | CHOR, VIBE, FLANG, PHAS 0 run the firmware routines behind `FirmwareFx::mod2`; SPIN and ENS wired through the law stage; ENS tap model bug fixed (D114, PR #438 open) | default (D163; raw words of a loaded program) | laws on a dense ARM grid (D90); chorus clip `fx-chorus-hw-clip` | only chorus has a clip; per-layer-kind words | medium | medium |
 | Delay | 155 (252); feedback FX 68 | Fw time and mix words; loop is the engine's | opt-in `delay_laws` | | feedback FX approximated | medium | low |
 | Reverb | 358 (756): BOOTH 195, ROOM 150, SPRING 57 | engine FDN default; per-type colour words decoded and ported (D91); firmware tails 0.5 to 1.35 s | opt-in `--firmware-reverb` | `fx_reverb` clip | hardware tail clip (Hall, Cathedral), type 6, Spring colour (OQ21c) | medium | high (all reverbs) |
 | FX defaults | | words derived (D101) | opt-in `--fx-defaults firmware` | only chorus has a clip | init-patch clip (OQ34) | low | low |
@@ -231,7 +231,7 @@ Status columns: **Fw** = verified against firmware or oracle, **Clip** = fitted 
 |---|---|---|---|---|---|---|
 | Layer routing, zones | Fw: zone code to key range map equals the ARM zone objects for 384 of 384; empty layer mask reads as layer A | **default** since D73; splits in 48 programs | [zone-key-ranges](zone-key-ranges.md), [engine-routing](engine-routing.md) | OQ33 (organ heard in piano programs): audit finds no routing cause | low | medium |
 | Morph slots, split crossfade | Asm / partial | default | [morph-and-zones](../specs/morph-and-zones.md) | morph slots unmodelled | medium | low |
-| Piano Touch curves | Fw curves (D88, D99) | **opt-in** `--firmware-piano-touch` | ARM run | default stays off: the program file bits are not verified | low | high (key force changes the piano a lot) |
+| Piano Touch curves | Fw curves (D88, D99) | **default** since D165 (`--legacy-piano-touch` opts out) | ARM run; file bits recalled for 384 of 384 programs | no Heavy or Light hardware clip, System-menu MIDI velocity curves, ASSUMED fallback for sounds without a level model | low | high (key force changes the piano a lot) |
 | Mouse velocity | position along the key, 20 to 127, ASSUMED (D84) | default in the GUI | none | listening check | low | low |
 | MIDI | note, CC, pedals, bend; queue `bounded(1024)` | default | [midi-and-control](../specs/midi-and-control.md) | | | |
 | GUI | 6 panel bays partly drawn; ROADMAP section B items open | | [ROADMAP](../ROADMAP.md) | panel renderer B6 to B13 | high | none for audio |

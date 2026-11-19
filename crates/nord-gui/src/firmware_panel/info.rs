@@ -163,6 +163,30 @@ pub const SYNTH_VELOCITY: SwitchInfo = sw(
     Mixed,
     "Amp gain V and filter-envelope factor F from the ORG core 2 pass (768 of 768 oracle words within 1 ulp, file bits recalled); the multiply inside the voice is ASSUMED; on by default since D142 (owner approval; 4 of 16 distinct synth clips marginally worse at replay velocity 100); --legacy-synth-velocity restores the linear blend.",
 );
+/// Synth arpeggiator (`--legacy-arp`).
+pub const ARP: SwitchInfo = sw(
+    "Synth",
+    "--legacy-arp",
+    "Firmware arpeggiator",
+    Mixed,
+    "Up / Down / Up-Down walk the whole octave pool and a single held key retriggers every step, as the ARM pattern player does (30 A:16 replays, range law fitted to 14 raw values); on by default since D166 (owner approval 2026-11-18). --legacy-arp restores the engine walk (and turns the gate switch off).",
+);
+/// Synth arpeggiator gate (`--arp-fw-gate`, opt-in).
+pub const ARP_GATE: SwitchInfo = sw(
+    "Synth",
+    "--arp-fw-gate",
+    "Arp gate 2/3 step",
+    Assumed,
+    "E steps and the plain arpeggio end at 2/3 of the step (A:16 replay: gate 100 of 150 ms in 30 of 30 captures). Opt-in: the 2/3 is the replayed boot state of the pattern grid, the flag writer is unknown and no hardware clip exists (OQ32, D130), so it is not verified on the instrument. Off keeps the engine gate (E = 4/8 of a step, a plain arpeggio note held to the next step)."
+);
+/// Synth morph (`--firmware-morph` / `--legacy-morph`).
+pub const MORPH: SwitchInfo = sw(
+    "Synth",
+    "--legacy-morph",
+    "Firmware morph",
+    Verified,
+    "Wheel, A.T. and Control Pedal weigh v / 128 (full at 127), the sum clamps like the ARM, the cutoff sender drops a step from frac 0.5 and five more synth targets play (245 ARM series, fit residual 0.0001 steps); on by default since D166 (owner approval 2026-11-18); --legacy-morph restores v / 127.",
+);
 /// Piano level (`--firmware-piano-level` / `--legacy-piano-level`).
 pub const PIANO_LEVEL: SwitchInfo = sw(
     "Piano",
@@ -179,13 +203,13 @@ pub const PIANO_BUS: SwitchInfo = sw(
     Assumed,
     "Sample path scaled by the SMP bus convention 0.5 instead of 0.55 (Q31 receiver ASSUMED).",
 );
-/// Piano program Touch curves (`--firmware-piano-touch`).
+/// Piano program Touch curves (`--firmware-piano-touch` / `--legacy-piano-touch`).
 pub const PIANO_TOUCH: SwitchInfo = sw(
     "Piano",
-    "--firmware-piano-touch",
+    "--legacy-piano-touch",
     "Touch curves",
     Mixed,
-    "KB TOUCH plays the firmware velocity curves (curve ids 10 / 11 / 13, verified against the ARM); the program file bits are not verified.",
+    "KB TOUCH plays the firmware velocity curves (curve ids 10 / 11 / 13, verified against the ARM; the Touch bits of every factory program equal the firmware recall, 384 of 384); on by default since D165, no hardware clip of Heavy or Light exists, sounds without a level model scale the Medium response (ASSUMED); --legacy-piano-touch plays Medium for every .npno note.",
 );
 /// Piano SMP voice-gain slew (`--piano-slew-fw`).
 pub const PIANO_SLEW: SwitchInfo = sw(
@@ -329,7 +353,7 @@ pub const FX_MOD2: SwitchInfo = sw(
     "--firmware-fx-ports mod2",
     "Mod 2",
     Mixed,
-    "Firmware CHOR, PHAS, FLANG, ENS and SPIN stages with the kFx2 words (docs/research/fx-mod-types.md).",
+    "Firmware CHOR, PHAS, FLANG, ENS and SPIN stages with the kFx2 words (docs/research/fx-mod-types.md). On by default since D163; --legacy-mod2 turns it off.",
 );
 /// Firmware FX port: Amp EQ.
 pub const FX_EQ: SwitchInfo = sw(
@@ -365,8 +389,17 @@ pub const TICK: SwitchInfo = sw(
     "Vox key timeline and synth gain de-zipper on the measured 24 kHz ARM timer (on by default since D131; --legacy-1khz-tick turns it off and restores 1 ms). Timer rate VERIFIED, the delays are lower bounds in real time (ASSUMED).",
 );
 
+/// Idle skip of the FX racks (D161), not a firmware path: a CPU saving.
+pub const IDLE_SKIP: SwitchInfo = sw(
+    "Global",
+    "--fx-idle-skip",
+    "Skip idle FX racks",
+    Assumed,
+    "Stops the FX rack of a layer that has been silent for 4 s (the other scene, an unused layer) until it gets input again; saves most of the firmware FX CPU when a scene uses few layers (D161). Not firmware-derived: a woken rack resumes from frozen state; 4 s and -140 dBFS are ASSUMED.",
+);
+
 /// All switches in bar order.
-pub const ALL: [SwitchInfo; 37] = [
+pub const ALL: [SwitchInfo; 41] = [
     TONE,
     B3_TAIL,
     FARFISA,
@@ -386,6 +419,9 @@ pub const ALL: [SwitchInfo; 37] = [
     STAGES,
     KNOB_LAWS,
     SYNTH_VELOCITY,
+    ARP,
+    ARP_GATE,
+    MORPH,
     P_TABLE,
     FILTER,
     MEASURED,
@@ -404,6 +440,7 @@ pub const ALL: [SwitchInfo; 37] = [
     FX_EQ,
     ROUTING,
     TICK,
+    IDLE_SKIP,
 ];
 
 #[cfg(test)]

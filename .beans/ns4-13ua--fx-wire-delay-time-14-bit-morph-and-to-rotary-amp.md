@@ -17,3 +17,6 @@ delay_rate morph and Amp mode To Rotary are decoded but not applied.
 
 ## Out of Scope
 Firmware table work.
+
+## Progress 2026-11-18
+Progress (D163, `docs/research/program-ranking-fx.md`): the delay time law (`delay_time`, with `delay_laws`) is in `FirmwareFx::PARITY` (opt-in); the 264 words match the oracle but the delay role has no hardware clip, so it is not flipped.

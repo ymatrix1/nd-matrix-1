@@ -79,6 +79,8 @@ Hardware clip band deltas are in [audio-remaining](audio-remaining.md) row 9 and
 
 ## 6. Follow-ups
 
+> **Update (D155, [leslie-paths](leslie-paths.md)):** follow-up 1 is answered as far as the harness reaches: the routing ids have no value cell and send nothing, and FX type, Leslie and routing edits on 7 programs install nothing; follow-up 2 (the part command consumer) stays open.
+
 1. Drive the System routing ids (`0x4e`, `0x59`) and `0x96` / `0xdf` through the system store (`arm_edit_capture` store of domain `0x8` / `0x9`), then re-run the row 6 watch; the routing of the organ to a Leslie bus is the remaining candidate gate.
 2. Run the part command consumer (`[part + 0xC8]` list, node handler `0xC010E774`) with the read-back stub answered from the oracle (D139 follow-up 1); the live ARM link of D138 / D144 is the way to do it.
 3. Phase / Doppler measure of the stage (instantaneous frequency of a sine through `leslie_probe`) to give the drum rate and its depth, and a second hardware clip with a held fast speed for the physical rate ratio.

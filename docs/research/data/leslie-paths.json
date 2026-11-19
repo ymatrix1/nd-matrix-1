@@ -1,0 +1,896 @@
+{
+ "note": "numbers only; produced by tools/arm_leslie_paths.py (ARM harness, 7 programs) and tools/arm_dsp_live.py (live link)",
+ "arm": {
+  "A/B3_Chords_n_Solo": {
+   "rows": 24593,
+   "ticks": {
+    "load": 6000,
+    "idle": 200,
+    "edit": 40
+   },
+   "edit_phases": {
+    "leslie": 160,
+    "routing": 2574,
+    "type": 232
+   },
+   "edit_messages": {
+    "leslie": {
+     "PNO/c1/p2": 89
+    },
+    "routing": {
+     "PNO/c1/p2": 1221
+    },
+    "type": {
+     "FX/c1/p2": 4622,
+     "PNO/c1/p2": 3258
+    }
+   },
+   "load_messages": {
+    "PNO/c2/p2": 912,
+    "ORG/c1/p2": 912,
+    "ORG/c2/p2": 912,
+    "SMP/c0/p1": 1516,
+    "PNO/c1/p2": 7403,
+    "FX/c2/p2": 1905,
+    "FX/c1/p2": 1840
+   },
+   "literal_hits": {
+    "leslie": 0,
+    "stage_1257b2": 0,
+    "leslie_b": 0
+   },
+   "control_hits": {
+    "amp_first": 21,
+    "amp_drive": 8,
+    "amp_cab_a": 13,
+    "amp_cab_b": 13,
+    "b3_processor": 2
+   },
+   "l2_code_stores": 0,
+   "hooked_calls": {
+    "boot:dsp_image_download": 1,
+    "boot:spi_download_block": 4,
+    "boot:bulk_sender": 2
+   }
+  },
+  "A/B3_Old_Forest": {
+   "rows": 24403,
+   "ticks": {
+    "load": 6000,
+    "idle": 200,
+    "edit": 40
+   },
+   "edit_phases": {
+    "leslie": 160,
+    "routing": 2574,
+    "type": 232
+   },
+   "edit_messages": {
+    "leslie": {
+     "PNO/c1/p2": 115
+    },
+    "routing": {
+     "PNO/c1/p2": 1221
+    },
+    "type": {
+     "FX/c1/p2": 4622,
+     "PNO/c1/p2": 3131
+    }
+   },
+   "load_messages": {
+    "PNO/c2/p2": 900,
+    "ORG/c1/p2": 900,
+    "ORG/c2/p2": 900,
+    "SMP/c0/p1": 1516,
+    "PNO/c1/p2": 7340,
+    "FX/c2/p2": 1905,
+    "FX/c1/p2": 1850
+   },
+   "literal_hits": {
+    "leslie": 0,
+    "stage_1257b2": 0,
+    "leslie_b": 0
+   },
+   "control_hits": {
+    "amp_first": 23,
+    "amp_cab_a": 15,
+    "amp_cab_b": 15,
+    "b3_processor": 2,
+    "amp_drive": 8
+   },
+   "l2_code_stores": 0,
+   "hooked_calls": {
+    "boot:dsp_image_download": 1,
+    "boot:spi_download_block": 4,
+    "boot:bulk_sender": 2
+   }
+  },
+  "A/B3_Shade": {
+   "rows": 24597,
+   "ticks": {
+    "load": 6000,
+    "idle": 200,
+    "edit": 40
+   },
+   "edit_phases": {
+    "leslie": 160,
+    "routing": 2574,
+    "type": 232
+   },
+   "edit_messages": {
+    "leslie": {
+     "PNO/c1/p2": 89
+    },
+    "routing": {
+     "PNO/c1/p2": 1221
+    },
+    "type": {
+     "FX/c1/p2": 4622,
+     "PNO/c1/p2": 3258
+    }
+   },
+   "load_messages": {
+    "PNO/c2/p2": 912,
+    "ORG/c1/p2": 912,
+    "ORG/c2/p2": 912,
+    "SMP/c0/p1": 1516,
+    "PNO/c1/p2": 7403,
+    "FX/c2/p2": 1905,
+    "FX/c1/p2": 1844
+   },
+   "literal_hits": {
+    "leslie": 0,
+    "stage_1257b2": 0,
+    "leslie_b": 0
+   },
+   "control_hits": {
+    "amp_first": 21,
+    "amp_drive": 8,
+    "amp_cab_a": 13,
+    "amp_cab_b": 13,
+    "b3_processor": 2
+   },
+   "l2_code_stores": 0,
+   "hooked_calls": {
+    "boot:dsp_image_download": 1,
+    "boot:spi_download_block": 4,
+    "boot:bulk_sender": 2
+   }
+  },
+  "A/Vintage_Vox_J3": {
+   "rows": 24247,
+   "ticks": {
+    "load": 6000,
+    "idle": 200,
+    "edit": 40
+   },
+   "edit_phases": {
+    "leslie": 160,
+    "routing": 2574,
+    "type": 232
+   },
+   "edit_messages": {
+    "leslie": {
+     "PNO/c1/p2": 81
+    },
+    "routing": {
+     "PNO/c1/p2": 1221
+    },
+    "type": {
+     "FX/c1/p2": 4622,
+     "PNO/c1/p2": 3158
+    }
+   },
+   "load_messages": {
+    "PNO/c2/p2": 912,
+    "ORG/c1/p2": 912,
+    "ORG/c2/p2": 912,
+    "SMP/c0/p1": 1516,
+    "PNO/c1/p2": 7165,
+    "FX/c2/p2": 1905,
+    "FX/c1/p2": 1840
+   },
+   "literal_hits": {
+    "leslie": 0,
+    "stage_1257b2": 0,
+    "leslie_b": 0
+   },
+   "control_hits": {
+    "amp_first": 22,
+    "amp_cab_a": 14,
+    "amp_cab_b": 14,
+    "b3_processor": 1,
+    "amp_drive": 8
+   },
+   "l2_code_stores": 0,
+   "hooked_calls": {
+    "boot:dsp_image_download": 1,
+    "boot:spi_download_block": 4,
+    "boot:bulk_sender": 2
+   }
+  },
+  "B/B3_Dual_Samba": {
+   "rows": 24597,
+   "ticks": {
+    "load": 6000,
+    "idle": 200,
+    "edit": 40
+   },
+   "edit_phases": {
+    "leslie": 160,
+    "routing": 2574,
+    "type": 232
+   },
+   "edit_messages": {
+    "leslie": {
+     "PNO/c1/p2": 89
+    },
+    "routing": {
+     "PNO/c1/p2": 1221
+    },
+    "type": {
+     "FX/c1/p2": 4622,
+     "PNO/c1/p2": 3258
+    }
+   },
+   "load_messages": {
+    "PNO/c2/p2": 912,
+    "ORG/c1/p2": 912,
+    "ORG/c2/p2": 912,
+    "SMP/c0/p1": 1516,
+    "PNO/c1/p2": 7403,
+    "FX/c2/p2": 1905,
+    "FX/c1/p2": 1844
+   },
+   "literal_hits": {
+    "leslie": 0,
+    "stage_1257b2": 0,
+    "leslie_b": 0
+   },
+   "control_hits": {
+    "amp_first": 21,
+    "amp_drive": 8,
+    "amp_cab_a": 13,
+    "amp_cab_b": 13,
+    "b3_processor": 2
+   },
+   "l2_code_stores": 0,
+   "hooked_calls": {
+    "boot:dsp_image_download": 1,
+    "boot:spi_download_block": 4,
+    "boot:bulk_sender": 2
+   }
+  },
+  "B/Solo_n_Walk_B3": {
+   "rows": 24563,
+   "ticks": {
+    "load": 6000,
+    "idle": 200,
+    "edit": 40
+   },
+   "edit_phases": {
+    "leslie": 160,
+    "routing": 2574,
+    "type": 232
+   },
+   "edit_messages": {
+    "leslie": {
+     "PNO/c1/p2": 91
+    },
+    "routing": {
+     "PNO/c1/p2": 1221
+    },
+    "type": {
+     "FX/c1/p2": 4622,
+     "PNO/c1/p2": 3260
+    }
+   },
+   "load_messages": {
+    "PNO/c2/p2": 912,
+    "ORG/c1/p2": 912,
+    "ORG/c2/p2": 912,
+    "SMP/c0/p1": 1516,
+    "PNO/c1/p2": 7369,
+    "FX/c2/p2": 1905,
+    "FX/c1/p2": 1840
+   },
+   "literal_hits": {
+    "leslie": 0,
+    "stage_1257b2": 0,
+    "leslie_b": 0
+   },
+   "control_hits": {
+    "amp_first": 21,
+    "amp_drive": 8,
+    "amp_cab_a": 13,
+    "amp_cab_b": 13,
+    "b3_processor": 1
+   },
+   "l2_code_stores": 0,
+   "hooked_calls": {
+    "boot:dsp_image_download": 1,
+    "boot:spi_download_block": 4,
+    "boot:bulk_sender": 2
+   }
+  },
+  "D/Rotor_Clav": {
+   "rows": 23458,
+   "ticks": {
+    "load": 6000,
+    "idle": 200,
+    "edit": 40
+   },
+   "edit_phases": {
+    "leslie": 160,
+    "routing": 2574,
+    "type": 232
+   },
+   "edit_messages": {
+    "leslie": {
+     "PNO/c1/p2": 8
+    },
+    "routing": {},
+    "type": {
+     "FX/c1/p2": 4566,
+     "PNO/c1/p2": 3290
+    }
+   },
+   "load_messages": {
+    "PNO/c2/p2": 912,
+    "ORG/c1/p2": 912,
+    "ORG/c2/p2": 912,
+    "SMP/c0/p1": 1516,
+    "FX/c2/p2": 1905,
+    "FX/c1/p2": 2152,
+    "PNO/c1/p2": 7285
+   },
+   "literal_hits": {
+    "leslie": 0,
+    "stage_1257b2": 0,
+    "leslie_b": 0
+   },
+   "control_hits": {
+    "amp_first": 21,
+    "amp_drive": 8,
+    "amp_cab_a": 13,
+    "amp_cab_b": 13,
+    "b3_processor": 2
+   },
+   "l2_code_stores": 0,
+   "hooked_calls": {
+    "boot:dsp_image_download": 1,
+    "boot:spi_download_block": 4,
+    "boot:bulk_sender": 2
+   }
+  }
+ },
+ "live": {
+  "chords": {
+   "ticks": 2700,
+   "passes": 2441,
+   "phases": {
+    "load": {
+     "PNO1": {
+      "passes": 723,
+      "messages": 7340,
+      "probe_hits": {
+       "0x121e2b": 425,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "PNO2": {
+      "passes": 723,
+      "messages": 912,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 516,
+       "0x1257b2": 0
+      }
+     },
+     "ORG1": {
+      "passes": 1,
+      "messages": 912,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "ORG2": {
+      "passes": 723,
+      "messages": 912,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 516,
+       "0x1257b2": 0
+      }
+     }
+    },
+    "idle": {
+     "PNO1": {
+      "passes": 90,
+      "messages": 3,
+      "probe_hits": {
+       "0x121e2b": 90,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "PNO2": {
+      "passes": 90,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 90,
+       "0x1257b2": 0
+      }
+     },
+     "ORG1": {
+      "passes": 0,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "ORG2": {
+      "passes": 90,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 90,
+       "0x1257b2": 0
+      }
+     }
+    },
+    "key": {
+     "PNO1": {
+      "passes": 1357,
+      "messages": 180,
+      "probe_hits": {
+       "0x121e2b": 1357,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "PNO2": {
+      "passes": 1357,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 1357,
+       "0x1257b2": 0
+      }
+     },
+     "ORG1": {
+      "passes": 0,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "ORG2": {
+      "passes": 1357,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 1357,
+       "0x1257b2": 0
+      }
+     }
+    },
+    "off": {
+     "PNO1": {
+      "passes": 271,
+      "messages": 155,
+      "probe_hits": {
+       "0x121e2b": 271,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "PNO2": {
+      "passes": 271,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 271,
+       "0x1257b2": 0
+      }
+     },
+     "ORG1": {
+      "passes": 0,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "ORG2": {
+      "passes": 271,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 271,
+       "0x1257b2": 0
+      }
+     }
+    }
+   }
+  },
+  "samba": {
+   "ticks": 2700,
+   "passes": 2441,
+   "phases": {
+    "load": {
+     "PNO1": {
+      "passes": 723,
+      "messages": 7340,
+      "probe_hits": {
+       "0x121e2b": 425,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "PNO2": {
+      "passes": 723,
+      "messages": 912,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 516,
+       "0x1257b2": 0
+      }
+     },
+     "ORG1": {
+      "passes": 1,
+      "messages": 912,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "ORG2": {
+      "passes": 723,
+      "messages": 912,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 516,
+       "0x1257b2": 0
+      }
+     }
+    },
+    "idle": {
+     "PNO1": {
+      "passes": 90,
+      "messages": 3,
+      "probe_hits": {
+       "0x121e2b": 90,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "PNO2": {
+      "passes": 90,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 90,
+       "0x1257b2": 0
+      }
+     },
+     "ORG1": {
+      "passes": 0,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "ORG2": {
+      "passes": 90,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 90,
+       "0x1257b2": 0
+      }
+     }
+    },
+    "key": {
+     "PNO1": {
+      "passes": 1357,
+      "messages": 163,
+      "probe_hits": {
+       "0x121e2b": 1357,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "PNO2": {
+      "passes": 1357,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 1357,
+       "0x1257b2": 0
+      }
+     },
+     "ORG1": {
+      "passes": 0,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "ORG2": {
+      "passes": 1357,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 1357,
+       "0x1257b2": 0
+      }
+     }
+    },
+    "off": {
+     "PNO1": {
+      "passes": 271,
+      "messages": 148,
+      "probe_hits": {
+       "0x121e2b": 271,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "PNO2": {
+      "passes": 271,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 271,
+       "0x1257b2": 0
+      }
+     },
+     "ORG1": {
+      "passes": 0,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 0,
+       "0x1257b2": 0
+      }
+     },
+     "ORG2": {
+      "passes": 271,
+      "messages": 0,
+      "probe_hits": {
+       "0x121e2b": 0,
+       "0x1237f8": 0,
+       "0x1256ad": 271,
+       "0x1257b2": 0
+      }
+     }
+    }
+   }
+  }
+ },
+ "owners_leslie_group": {
+  "Fnc_kRotorSpeed": [
+   "fx3organ",
+   "fx9organ"
+  ],
+  "Edt_Sys_kAudioRoutingDstBusMain": [],
+  "Edt_Sys_kAudioRoutingDstBusSubI": [],
+  "Edt_Sys_kAudioRoutingDstBusSubII": [],
+  "Edt_Sys_kAudioRoutingDstBusSubIII": [],
+  "Edt_Sys_kLeslieHornSpeed": [
+   "fx0synth",
+   "fx3organ",
+   "fx4piano",
+   "fx6synth",
+   "fx9organ",
+   "fx10piano"
+  ],
+  "Edt_Sys_kLeslieHornAcc": [
+   "fx0synth",
+   "fx3organ",
+   "fx4piano",
+   "fx6synth",
+   "fx9organ",
+   "fx10piano"
+  ],
+  "Edt_Sys_kLeslieRotorSpeed": [
+   "fx0synth",
+   "fx3organ",
+   "fx4piano",
+   "fx6synth",
+   "fx9organ",
+   "fx10piano"
+  ],
+  "Edt_Sys_kLeslieRotorAcc": [
+   "fx0synth",
+   "fx3organ",
+   "fx4piano",
+   "fx6synth",
+   "fx9organ",
+   "fx10piano"
+  ],
+  "Edt_Sys_kLeslieMicDistance_revA": [],
+  "Edt_Sys_kLeslieBalance": [
+   "fx0synth",
+   "fx3organ",
+   "fx4piano",
+   "fx6synth",
+   "fx9organ",
+   "fx10piano"
+  ],
+  "Edt_Sys_kAudioRoutingMode": [],
+  "Edt_Sys_kAudioRoutingDstOrg": [],
+  "Edt_Sys_kAudioRoutingDstLeslie": [],
+  "Edt_Sys_kAudioRoutingDstPnoA": [],
+  "Edt_Sys_kAudioRoutingDstPnoB": [],
+  "Edt_Sys_kAudioRoutingDstSynA": [],
+  "Edt_Sys_kAudioRoutingDstSynB": [],
+  "Edt_Sys_kAudioRoutingDstSynC": [],
+  "Edt_Com_kAudioRoutingBusOrg": [],
+  "Edt_Com_kAudioRoutingBusLeslie": [],
+  "Edt_Com_kAudioRoutingBusPnoA": [],
+  "Edt_Com_kAudioRoutingBusPnoB": [],
+  "Edt_Com_kAudioRoutingBusSynA": [],
+  "Edt_Com_kAudioRoutingBusSynB": [],
+  "Edt_Com_kAudioRoutingBusSynC": [],
+  "Edt_OrgCom_kEffectsLeslieEnable": [
+   "fx3organ",
+   "fx9organ"
+  ],
+  "Edt_OrgCom_kEffectsLeslieSpeed_obsolete": [],
+  "Edt_OrgCom_kEffectsLeslieDrv": [
+   "fx3organ",
+   "fx9organ"
+  ],
+  "Edt_OrgCom_kLeslieRotorAngle": [
+   "fx3organ",
+   "fx9organ"
+  ],
+  "Edt_OrgCom_kLeslieHornAngle": [
+   "fx3organ",
+   "fx9organ"
+  ],
+  "Edt_OrgCom_kLeslieStopPreset": [],
+  "Edt_OrgCom_kLeslieMicDistance_revB": [
+   "fx3organ",
+   "fx9organ"
+  ],
+  "Edt_OrgCom_kEffectsLeslieStopMode": [
+   "fx3organ",
+   "fx9organ"
+  ],
+  "Edt_OrgCom_kEffectsLeslieSpeed": [
+   "fx3organ",
+   "fx9organ"
+  ],
+  "Edt_OrgCom_kEffectsLeslieSpeed_MIDI": [],
+  "Edt_Effects_kFx1Type": [
+   "organ0",
+   "organ1",
+   "piano2",
+   "piano3",
+   "synth4",
+   "synth5",
+   "synth6",
+   "fx0synth",
+   "fx1synth",
+   "fx2synth",
+   "fx3organ",
+   "fx4piano",
+   "fx5piano",
+   "fx6synth",
+   "fx7synth",
+   "fx8synth",
+   "fx9organ",
+   "fx10piano",
+   "fx11piano"
+  ],
+  "Edt_Effects_kFx2Type": [
+   "fx0synth",
+   "fx1synth",
+   "fx2synth",
+   "fx3organ",
+   "fx4piano",
+   "fx5piano",
+   "fx6synth",
+   "fx7synth",
+   "fx8synth",
+   "fx9organ",
+   "fx10piano",
+   "fx11piano"
+  ],
+  "Edt_Effects_kDlyFbFxType": [
+   "fx0synth",
+   "fx1synth",
+   "fx2synth",
+   "fx3organ",
+   "fx4piano",
+   "fx5piano",
+   "fx6synth",
+   "fx7synth",
+   "fx8synth",
+   "fx9organ",
+   "fx10piano",
+   "fx11piano"
+  ],
+  "Edt_Effects_kRvbType": [
+   "fx0synth",
+   "fx1synth",
+   "fx2synth",
+   "fx3organ",
+   "fx4piano",
+   "fx5piano",
+   "fx6synth",
+   "fx7synth",
+   "fx8synth",
+   "fx9organ",
+   "fx10piano",
+   "fx11piano"
+  ],
+  "Edt_Effects_kAmpTypeNew": [
+   "piano2",
+   "piano3",
+   "synth4",
+   "synth5",
+   "synth6",
+   "fx0synth",
+   "fx1synth",
+   "fx2synth",
+   "fx3organ",
+   "fx4piano",
+   "fx5piano",
+   "fx6synth",
+   "fx7synth",
+   "fx8synth",
+   "fx9organ",
+   "fx10piano",
+   "fx11piano"
+  ]
+ }
+}

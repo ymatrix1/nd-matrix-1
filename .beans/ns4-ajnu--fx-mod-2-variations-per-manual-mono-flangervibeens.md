@@ -15,3 +15,6 @@ Manual p.50: variation of FLANGER/VIBE/ENS = mono; CHORUS variation = vintage pe
 - [ ] Mod2Type::Ensemble and Spin with variation flag
 - [ ] Mono vs stereo versions distinguishable in tests (L/R coherence)
 - [ ] Tagged constants
+
+## Progress 2026-11-18
+The firmware ports for these FX exist (opt-in `FirmwareFx`). The ranked-distance evidence for flipping them (D163, `docs/research/program-ranking-fx.md`): `FirmwareFx::PARITY` takes the 384-program mean score from 5.35 to 1.66; default flip proposed, owner decision pending.

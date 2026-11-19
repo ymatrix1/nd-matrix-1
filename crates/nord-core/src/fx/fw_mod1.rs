@@ -16,6 +16,7 @@
 
 use super::fw_allpass::{ctx as ap, FwAllpass};
 use super::fw_autopan::{ctx as pan, FwAutoPan};
+use super::fw_chorus::CTX_I1;
 use super::fw_map;
 
 /// Which routine the stage runs.
@@ -80,6 +81,26 @@ impl FwMod1Stage {
         st.set_params(rate, amount);
         st.settle();
         st
+    }
+
+    /// Core 1 pc and the context words `(offset from I1, word)` of the stage with the pass
+    /// pointer pointing at its own phase pair (live install export).
+    pub(super) fn live_words(&self) -> (u32, Vec<(i32, u32)>) {
+        let own_phase = CTX_I1 - 0x1F;
+        match &self.core {
+            Core::Pan(c) => {
+                let mut w: Vec<(i32, u32)> =
+                    (0..).zip(c.words()).map(|(k, &v)| (k - 0x20, v)).collect();
+                w.push((pan::PHASE_PTR, own_phase));
+                (0x123707, w)
+            }
+            Core::Trem(c) => {
+                let mut w: Vec<(i32, u32)> =
+                    (0..).zip(c.words()).map(|(k, &v)| (k - 0x20, v)).collect();
+                w.push((-0x1D, own_phase));
+                (0x1235AD, w)
+            }
+        }
     }
 
     /// The shape this stage runs.

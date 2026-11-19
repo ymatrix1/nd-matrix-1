@@ -69,7 +69,7 @@ Limits: a phone filming a screen (perspective, glare, exposure), 4 frames per se
 
 * The type 4 rate law and the dry plus delayed copy structure (one clean copy, wet 0.86 of dry) agree with the hardware; the engine chorus (9 ms centre) does not (7.7 times too long if the 87.31 Hz calibration holds).
 * The absolute delay of the firmware stage is 1.7 times the clip's. Candidates: the scope frequency differs (a 150 Hz saw would match), the engine-rate rescale of the delay words (`delay_scale = fs / F`, ASSUMED), the hardware layer row (piano words used for every layer, ASSUMED), or the Nord knob state (the swing words come from the amount law between samples).
-* D22 asks for band and modulation metrics with no side worse than 3 dB: the delay misses by a factor 1.7 (swing 2.1) and the clip has neither a dry reference nor an audio comb, so no band metric exists to compare; the flip is not justified. `FirmwareFx::mod2` stays out of `DEFAULT`; `render_hash` and the GUI default are unchanged.
+* D22 asks for band and modulation metrics with no side worse than 3 dB: the delay misses by a factor 1.7 (swing 2.1) and the clip has neither a dry reference nor an audio comb, so no band metric exists to compare; the flip is not justified. `FirmwareFx::mod2` stayed out of `DEFAULT` at that time; **update 2026-11-18 (D163):** the owner's approval, relayed in chat, flipped it on the oracle null (all 12 types) and the ranked distance; the delay miss of 1.7 stays open.
 
 ## 6. Update 2026-11-15: channel roles and the UP2 chorus settings
 

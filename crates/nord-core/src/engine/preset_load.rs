@@ -113,6 +113,7 @@ impl Stage4Engine {
             _ => (&mut self.synth_c, &mut self.synth_cutoff_morph[2]),
         };
         crate::synth_params::apply_decoded_layer(synth, cutoff_morph, dec);
+        self.synth_morph[layer.min(2)] = crate::synth_morph::SynthMorphSet::from_decoded(dec);
         let idx = 4 + layer.min(2);
         Self::apply_fx_chain(&mut self.fx_chains[idx], fx);
         self.set_layer_level(idx, dec.level, dec.level_morph);

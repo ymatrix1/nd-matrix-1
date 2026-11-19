@@ -100,6 +100,7 @@ pub(super) fn render_strip(
         false,
         Face {
             led: Some(section_on),
+            led_left: true,
             tip: "ON: tap switches every Organ layer off, or back on. Hold: SOLO",
             ..Face::black()
         },
@@ -321,5 +322,29 @@ mod tests {
             rx.try_recv(),
             Ok(AudioCommand::SetLayerActive(1, false))
         ));
+    }
+
+    /// Regression (owner screenshot, ORGAN header): the ON LED printed above the button, outside
+    /// the header tab on the red panel, and SOLO ran past the tab's right edge.
+    #[test]
+    fn on_button_led_and_solo_legend_stay_inside_the_header_tab() {
+        use crate::panel::layout_px::to_px;
+        let o = egui::pos2(0.0, 0.0);
+        let tab = to_px(
+            nord_panel::layout::plate_of(nord_panel::Section::Organ)
+                .and_then(|p| p.tab)
+                .expect("organ has a tab"),
+            o,
+        );
+        let on = rect_or_empty("organ.on", o);
+        let led = crate::panel::ctl::led_left_of(on);
+        assert!(tab.contains(led), "ON LED {led:?} outside tab {tab:?}");
+        // SOLO legend: LED + text start right of the button; the text is 19 px wide at the
+        // 7.5 px minimum (measured in the 2x screenshot), and keeps 3 px from the tab edge.
+        let solo_end = on.right() + 7.0 + crate::panel::ctl::LEGEND_LED_GAP + 19.0;
+        assert!(
+            solo_end + 3.0 <= tab.right(),
+            "SOLO ends {solo_end}, tab {tab:?}"
+        );
     }
 }

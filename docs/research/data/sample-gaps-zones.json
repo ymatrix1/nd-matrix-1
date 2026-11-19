@@ -1,0 +1,380 @@
+[
+ {
+  "program": "Bank_A__B3_Old_Forest",
+  "layers": 1,
+  "arm": {
+   "k36": 3,
+   "k60": 0,
+   "k84": 0
+  },
+  "native_layers_sounding": {
+   "k36": 1,
+   "k60": 0,
+   "k84": 0
+  }
+ },
+ {
+  "program": "Bank_A__Intense_Score",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_A__Momentum_Whl",
+  "layers": 2,
+  "arm": {
+   "k36": 5,
+   "k60": 1,
+   "k84": 1
+  },
+  "native_layers_sounding": {
+   "k36": 1,
+   "k60": 1,
+   "k84": 1
+  }
+ },
+ {
+  "program": "Bank_A__Silver_Rush",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_B__Choral_Pad",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 2
+  }
+ },
+ {
+  "program": "Bank_B__Grand_Vibra_Bs",
+  "layers": 1,
+  "arm": {
+   "k36": 1,
+   "k60": 0,
+   "k84": 0
+  },
+  "native_layers_sounding": {
+   "k36": 1,
+   "k60": 0,
+   "k84": 0
+  }
+ },
+ {
+  "program": "Bank_B__Guitar_Concerto",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 2,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_B__Heart_Strings_II",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_B__Hot_Brass",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_B__Organ_Pipe_Mix",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_B__Vintage_Str_Whl",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_B__Wormhole_Organ",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 1
+  },
+  "native_layers_sounding": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 1
+  }
+ },
+ {
+  "program": "Bank_C__Orchestra_Pd_Whl",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_C__Piano_Soft_Orch",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 2,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_C__Pizz_Quintet_Spl",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 1,
+   "k84": 1
+  },
+  "native_layers_sounding": {
+   "k36": 2,
+   "k60": 1,
+   "k84": 1
+  }
+ },
+ {
+  "program": "Bank_D__Arctic_Choir_Whl",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_D__Bell_Collection",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_D__Dynamic_Orch",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_D__Quintet_Bass_Spl",
+  "layers": 2,
+  "arm": {
+   "k36": 1,
+   "k60": 1,
+   "k84": 1
+  },
+  "native_layers_sounding": {
+   "k36": 1,
+   "k60": 1,
+   "k84": 1
+  }
+ },
+ {
+  "program": "Bank_D__Vibra_Band",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_E__Affection_Whl",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_E__Brass_and_Wind",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_E__Calm_Before_Whl",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_E__Slow_Octaves",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 3,
+   "k60": 3,
+   "k84": 3
+  }
+ },
+ {
+  "program": "Bank_F__1905_Orchestra",
+  "layers": 3,
+  "arm": {
+   "k36": 2,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 2,
+   "k60": 3,
+   "k84": 2
+  }
+ },
+ {
+  "program": "Bank_F__Cute_Orchestra",
+  "layers": 3,
+  "arm": {
+   "k36": 1,
+   "k60": 2,
+   "k84": 2
+  },
+  "native_layers_sounding": {
+   "k36": 1,
+   "k60": 3,
+   "k84": 2
+  }
+ },
+ {
+  "program": "Bank_F__Unclocked_Pad",
+  "layers": 1,
+  "arm": {
+   "k36": 0,
+   "k60": 0,
+   "k84": 0
+  },
+  "native_layers_sounding": {
+   "k36": 1,
+   "k60": 1,
+   "k84": 1
+  }
+ }
+]

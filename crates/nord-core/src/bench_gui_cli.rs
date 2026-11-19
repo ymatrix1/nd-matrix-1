@@ -1,6 +1,6 @@
 //! Command line of `ns4 bench --gui` (see [`crate::bench_gui`]).
 
-use crate::bench_gui::{breakdown, format_row, run, GuiBenchConfig};
+use crate::bench_gui::{breakdown_with, format_row, run_with, GuiBenchConfig};
 use crate::render_opts::FirmwareOptions;
 
 fn num<T: std::str::FromStr>(args: &[String], flag: &str) -> Result<Option<T>, String> {
@@ -30,21 +30,34 @@ pub fn parse(args: &[String]) -> Result<GuiBenchConfig, String> {
     cfg.blocks = num(args, "--blocks")?.unwrap_or(cfg.blocks);
     cfg.warmup_blocks = num(args, "--warmup")?.unwrap_or(cfg.warmup_blocks);
     cfg.churn_every = num(args, "--churn")?.unwrap_or(cfg.churn_every);
+    cfg.repeats = num(args, "--repeat")?.unwrap_or(cfg.repeats).max(1);
     Ok(cfg)
 }
 
 /// Runs the bench and returns the report text.
 pub fn cli(args: &[String]) -> Result<String, String> {
     let cfg = parse(args)?;
-    let r = run(cfg);
+    let source = crate::bench_gui_prog::parse(args)?;
+    let base = |e: &mut crate::engine::Stage4Engine| {
+        if let Some(s) = &source {
+            if let Err(err) = s.apply(&cfg, e) {
+                panic!("program setup failed: {err}");
+            }
+        }
+    };
+    let mut probe = crate::bench_gui::engine(&cfg);
+    base(&mut probe);
+    let fx = crate::bench_gui_prog::fx_summary(&probe);
+    let r = run_with(cfg, base);
     let mut out = format!(
-        "ns4 bench --gui: {} layers, {} keys, {} frames @ 48000 Hz (deadline {:.3} ms), churn {}, options {}\n{}\nhash {:#018x} (peak {:.3})",
+        "ns4 bench --gui: {} layers, {} keys, {} frames @ 48000 Hz (deadline {:.3} ms), churn {}, options {}\nFX racks:\n{}\n{}\nhash {:#018x} (peak {:.3})",
         cfg.layers,
         cfg.keys,
         cfg.frames,
         r.deadline_ms,
         cfg.churn_every,
         cfg.options.summary(),
+        fx,
         format_row("render_frame path", &r),
         r.hash,
         r.peak
@@ -57,7 +70,7 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     }
     if args.iter().any(|a| a == "--breakdown") {
         out.push_str("\nbreakdown (ms per block):");
-        for (label, row) in breakdown(cfg) {
+        for (label, row) in breakdown_with(cfg, &base) {
             out.push_str(&format!("\n  {}", format_row(&label, &row)));
         }
     }

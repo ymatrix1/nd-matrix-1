@@ -54,7 +54,7 @@ PHAS 1 (`0x1238FC`, module `0xC02BB2C4`, `I1 = 0xB0432`) never had a tap-registe
 
 ## Implications
 
-* ENS runs on the `FirmwareFx::mod2` path with both voices and no ASSUMED register state; `render_hash` is unchanged (`mod2` is opt-in).
+* ENS runs on the `FirmwareFx::mod2` path with both voices and no ASSUMED register state; `render_hash` was unchanged (`mod2` was opt-in then; default since D163, and the hash scenario does not exercise it).
 * SPIN's golden and output change too (its second ring is read through a register pre-modify with `L7 = 0x26C`).
 * The ENS stage stays opt-in (D22): no hardware clip exists.
 

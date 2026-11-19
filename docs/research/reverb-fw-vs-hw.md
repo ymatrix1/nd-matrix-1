@@ -1,3 +1,5 @@
+> **Update 2026-11-17 (D157, [reverb-stage-gain](reverb-stage-gain.md)):** the stage gain is a dry / wet cross-fade with no gain above unity, the +21 / +26 / +36 dB is a signal-relative floor (verified by test), `0x1211C1` is decoded, the core rate is 21,701 Hz (real tail 1.32 s); the stage level writer is still open.
+
 # Firmware reverb against the engine reverb and the hardware (types 2..11)
 
 - **Checked:** 2026-11-17

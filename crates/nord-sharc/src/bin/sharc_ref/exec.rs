@@ -146,8 +146,16 @@ impl Runner {
                 let st = StreamState::from_file(*voice, std::path::Path::new(path), *skip)?;
                 self.streams.push(st);
             }
-            Cmd::PcmRing { voice, path, skip } => {
-                let st = PcmRingState::from_file(*voice, std::path::Path::new(path), *skip)?;
+            Cmd::PcmRing {
+                voice,
+                path,
+                skip,
+                ahead,
+                credit,
+            } => {
+                let mut st = PcmRingState::from_file(*voice, std::path::Path::new(path), *skip)?;
+                st.ahead = *ahead;
+                st.credit = *credit;
                 self.pcm_rings.push(st);
             }
             Cmd::EpChain { path, base } => self.enable_epchain(path.as_deref(), *base)?,

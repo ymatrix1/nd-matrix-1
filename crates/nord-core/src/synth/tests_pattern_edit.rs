@@ -14,6 +14,9 @@ fn layer() -> SynthLayer {
     s.sustain_level = 1.0;
     s.release_sec = 0.02;
     s.arp_rate_bpm = 480.0;
+    // These tests cover the engine walk (fractional RANGE pool); the firmware walk has its own
+    // tests in `arp_pool.rs` and `arp.rs`.
+    s.arp_firmware_walk = false;
     s
 }
 

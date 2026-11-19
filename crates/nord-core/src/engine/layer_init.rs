@@ -67,7 +67,8 @@ impl Stage4Engine {
 
     fn init_layer(&mut self, layer: LayerId, fx: &FxParams) {
         let fs = self.sample_rate;
-        // The ARM tick choice (`--legacy-1khz-tick`, D131) is a run option, not program state:
+        // The ARM tick choice (`--legacy-1khz-tick`, D131) and the arp switch (`--legacy-arp`, D166)
+        // are run options, not program state:
         // a fresh layer keeps the one the engine was set to.
         let organ = |old: &OrganLayer| {
             let mut o = OrganLayer::new(fs);
@@ -77,6 +78,8 @@ impl Stage4Engine {
         let synth = |old: &SynthLayer| {
             let mut s = SynthLayer::new(fs);
             s.measured_tick = old.measured_tick;
+            s.arp_firmware_walk = old.arp_firmware_walk;
+            s.arp_firmware_gate = old.arp_firmware_gate;
             s
         };
         match layer {
@@ -90,6 +93,7 @@ impl Stage4Engine {
         }
         if let Some(i) = (layer as usize).checked_sub(LayerId::SynthA as usize) {
             self.synth_cutoff_morph[i] = MorphParameter::new(DEFAULT_CUTOFF_NORM);
+            self.synth_morph[i] = Default::default();
         }
         fx.apply(&mut self.fx_chains[layer as usize]);
         self.layer_levels[layer as usize] = MorphParameter::new(DEFAULT_LEVEL);

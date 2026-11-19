@@ -16,10 +16,34 @@ pub fn apply_fx_rate_match(engine: &mut Stage4Engine, on: bool) {
     }
 }
 
+/// Switches the idle skip on or off on all seven FX chains (D161). Plain field writes, so it is
+/// safe between audio blocks; a changed state restarts each rack's quiet count.
+pub fn apply_fx_idle_skip(engine: &mut Stage4Engine, on: bool) {
+    for c in engine.fx_chains.iter_mut() {
+        if c.idle_skip() != on {
+            c.set_idle_skip(on);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::render_opts::FirmwareOptions;
+
+    #[test]
+    fn idle_skip_flag_is_opt_in_parses_describes_and_applies_exactly() {
+        assert!(!FirmwareOptions::default().fx_idle_skip);
+        assert!(!FirmwareOptions::firmware_all().fx_idle_skip);
+        assert!(!FirmwareOptions::legacy_all().fx_idle_skip);
+        let o = FirmwareOptions::from_args(&["--fx-idle-skip".to_string()]).unwrap();
+        assert!(o.fx_idle_skip && o.summary().contains("fx-idle-skip"));
+        let mut e = Stage4Engine::new(48_000.0);
+        o.apply_to(&mut e);
+        assert!(e.fx_chains.iter().all(|c| c.idle_skip()));
+        FirmwareOptions::default().apply_exact(&mut e);
+        assert!(e.fx_chains.iter().all(|c| !c.idle_skip()));
+    }
 
     fn args(a: &[&str]) -> Vec<String> {
         a.iter().map(|s| (*s).to_string()).collect()

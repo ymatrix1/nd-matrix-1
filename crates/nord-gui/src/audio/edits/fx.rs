@@ -83,7 +83,10 @@ impl FxEdit {
             }
             Self::Flag { slot, param, on } => for_slot(engine, slot, |fx| param.set(fx, on)),
             Self::Mod1Type { slot, kind } => for_slot(engine, slot, |fx| fx.mod1_type = kind),
-            Self::Mod2Type { slot, kind } => for_slot(engine, slot, |fx| fx.mod2_type = kind),
+            Self::Mod2Type { slot, kind } => for_slot(engine, slot, |fx| {
+                fx.mod2_type = kind;
+                fx.clear_mod2_firmware_words();
+            }),
             Self::Cabinet { slot, cabinet } => {
                 // TO ROTARY routes Piano / Synth layers only (the Organ is the rotary's own source).
                 let cabinet = if slot == 0 && cabinet == AmpCabinet::ToRotary {
@@ -116,6 +119,7 @@ impl FxEdit {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nord_core::fx::Mod2Type;
 
     fn engine() -> Stage4Engine {
         Stage4Engine::new(48_000.0)
@@ -346,6 +350,90 @@ mod tests {
         }
         .apply(&mut e);
         assert!(e.fx_chains[4].reverb_variation && !e.fx_chains[5].reverb_variation);
+    }
+
+    /// Engine with a program whose Synth A Mod 2 is the firmware chorus (raw type 4): since D163
+    /// the firmware stage is the default and reads only the raw words.
+    fn loaded_chorus() -> Stage4Engine {
+        let mut e = engine();
+        let mut prog = nord_core::cbin::ProgramDecoded::default();
+        prog.synth.fx_a.mod2_enabled = true;
+        prog.synth.fx_a.mod2_type_raw = 4;
+        prog.synth.fx_a.mod2_rate = 0.3;
+        prog.synth.fx_a.mod2_amount = 0.8;
+        e.apply_program(&prog);
+        assert_eq!(e.fx_chains[4].mod2_type_raw, Some(4));
+        e
+    }
+
+    /// 4000 frames of the Synth A chain on a fixed stimulus.
+    fn render(e: &mut Stage4Engine) -> Vec<f32> {
+        (0..4000)
+            .map(|i| {
+                let x = (i as f32 * 0.05).sin() * 0.4;
+                e.fx_chains[4].process_frame([x, x])[0]
+            })
+            .collect()
+    }
+
+    fn differs(a: &[f32], b: &[f32]) -> bool {
+        a.iter().zip(b).any(|(x, y)| (x - y).abs() > 1e-4)
+    }
+
+    #[test]
+    fn mod2_type_rate_and_variation_edits_beat_the_loaded_firmware_words() {
+        // type: the Phaser edit runs the engine Phaser, not the loaded firmware chorus
+        let mut typed = loaded_chorus();
+        let loaded = render(&mut loaded_chorus());
+        FxEdit::Mod2Type {
+            slot: 3,
+            kind: Mod2Type::Phaser,
+        }
+        .apply(&mut typed);
+        assert_eq!(typed.fx_chains[4].mod2_type_raw, None);
+        assert!(
+            differs(&render(&mut typed), &loaded),
+            "type edit is audible"
+        );
+        // rate: 2 Hz and 9 Hz differ (the firmware word would ignore both)
+        let rate = |hz: f32| {
+            let mut e = loaded_chorus();
+            FxEdit::Float {
+                slot: 3,
+                param: FxFloat::Mod2Rate,
+                value: hz,
+            }
+            .apply(&mut e);
+            assert_eq!(e.fx_chains[4].mod2_rate_raw, None);
+            render(&mut e)
+        };
+        assert!(differs(&rate(2.0), &rate(9.0)), "rate edit is audible");
+        // variation
+        let mut var = loaded_chorus();
+        FxEdit::Flag {
+            slot: 3,
+            param: FxFlag::Mod2Variation,
+            on: true,
+        }
+        .apply(&mut var);
+        assert_eq!(var.fx_chains[4].mod2_type_raw, None);
+        // amount is read live and keeps the firmware stage
+        let mut amt = loaded_chorus();
+        FxEdit::Float {
+            slot: 3,
+            param: FxFloat::Mod2Amount,
+            value: 0.5,
+        }
+        .apply(&mut amt);
+        assert_eq!(amt.fx_chains[4].mod2_type_raw, Some(4));
+        // the other slots keep their words
+        let mut other = loaded_chorus();
+        FxEdit::Mod2Type {
+            slot: 0,
+            kind: Mod2Type::Flanger,
+        }
+        .apply(&mut other);
+        assert_eq!(other.fx_chains[4].mod2_type_raw, Some(4));
     }
 
     #[test]

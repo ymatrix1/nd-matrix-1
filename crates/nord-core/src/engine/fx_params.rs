@@ -42,6 +42,7 @@ fx_params! {
     delay_fx: DelayFeedbackFx, delay_fx_variation: bool, delay_feedback: f32, delay_mix: f32,
     reverb_model: ReverbModel, reverb_color: ReverbColor, reverb_variation: bool, reverb_mix: f32,
     morph: FxMorphSet, delay_rate_raw: Option<u16>, mod1_rate_raw: Option<u8>, mod1_type_raw: Option<u8>,
+    mod2_rate_raw: Option<u8>, mod2_type_raw: Option<u8>,
 }
 
 impl FxParams {
@@ -67,6 +68,23 @@ mod tests {
         assert_eq!(b.delay_mix, 0.9);
         assert_eq!(b.reverb_mix, 0.7);
         assert_eq!(b.morph.mod1_rate.delta_wheel, 0.3);
+    }
+
+    #[test]
+    fn the_firmware_mod2_words_follow_snapshots_undo_and_live_slots() {
+        // D163: the Mod 2 stage is chosen from the raw words, so a snapshot that dropped them
+        // would restore the type but keep the stage of the other program.
+        let mut a = LayerFxChain::new(48_000.0);
+        a.mod2_type_raw = Some(4);
+        a.mod2_rate_raw = Some(77);
+        let p = FxParams::capture(&a);
+        let mut b = LayerFxChain::new(48_000.0);
+        b.mod2_type_raw = Some(9);
+        p.apply(&mut b);
+        assert_eq!((b.mod2_type_raw, b.mod2_rate_raw), (Some(4), Some(77)));
+        a.clear_mod2_firmware_words();
+        FxParams::capture(&a).apply(&mut b);
+        assert_eq!((b.mod2_type_raw, b.mod2_rate_raw), (None, None));
     }
 
     #[test]

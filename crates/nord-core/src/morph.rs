@@ -23,6 +23,31 @@ pub struct MorphControllers {
     pub aftertouch: f32,
 }
 
+impl MorphControllers {
+    /// The controllers weighted by the firmware law (the default since D166, `--legacy-morph` opts out; D159).
+    pub fn firmware_weighted(&self) -> Self {
+        Self {
+            mod_wheel: firmware_weight(self.mod_wheel),
+            control_pedal: firmware_weight(self.control_pedal),
+            aftertouch: firmware_weight(self.aftertouch),
+        }
+    }
+}
+
+/// Firmware weight of a controller position `x = v / 127`: `v / 128`, full scale at `v = 127`.
+///
+/// VERIFIED: the ARM run `tools/arm_program_morph.py` reads a +127 depth morph as `127 v / 128`
+/// for `v` up to 126 and exactly 127 at `v = 127`, for the wheel (`B0 01 v`), pedal (`B0 0B v`)
+/// and aftertouch (`D0 v`) alike (`docs/research/data/morph-fw-law.csv`).
+pub fn firmware_weight(x: f32) -> f32 {
+    let x = x.clamp(0.0, 1.0);
+    if x >= 1.0 {
+        1.0
+    } else {
+        x * 127.0 / 128.0
+    }
+}
+
 /// Continuous parameter with a base value (`0.0..=1.0`) and 3 signed morph deltas (`-1.0..=1.0`).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MorphParameter {
@@ -235,6 +260,44 @@ mod tests {
         // Clamping above 1.0
         param.delta_wheel = 0.9;
         assert!((param.evaluate(&ctrl) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn firmware_weight_is_v_over_128_with_full_scale_at_127() {
+        for v in 0u32..=126 {
+            let w = firmware_weight(v as f32 / 127.0);
+            assert!((w - v as f32 / 128.0).abs() < 1e-6, "v {v}: {w}");
+        }
+        assert_eq!(firmware_weight(1.0), 1.0);
+        assert_eq!(firmware_weight(-0.5), 0.0);
+        assert_eq!(firmware_weight(2.0), 1.0);
+    }
+
+    #[test]
+    fn firmware_weighted_maps_all_three_sources() {
+        let c = MorphControllers {
+            mod_wheel: 64.0 / 127.0,
+            control_pedal: 1.0,
+            aftertouch: 0.0,
+        }
+        .firmware_weighted();
+        assert!((c.mod_wheel - 0.5).abs() < 1e-6);
+        assert_eq!((c.control_pedal, c.aftertouch), (1.0, 0.0));
+    }
+
+    #[test]
+    fn firmware_sum_clamps_the_total_not_each_source() {
+        // VERIFIED run: base 64, wheel +50, aftertouch +100, pedal -100 (steps), all at 127.
+        let mut p = MorphParameter::new(64.0 / 127.0);
+        p.delta_wheel = 50.0 / 127.0;
+        p.delta_aftertouch = 100.0 / 127.0;
+        p.delta_pedal = -100.0 / 127.0;
+        let c = MorphControllers {
+            mod_wheel: 1.0,
+            control_pedal: 1.0,
+            aftertouch: 1.0,
+        };
+        assert!((p.evaluate(&c) * 127.0 - 114.0).abs() < 1e-3);
     }
 
     #[test]

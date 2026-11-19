@@ -14,9 +14,13 @@ import arm_dsp_route as r  # noqa: E402
 class FakeLink:
     def __init__(self) -> None:
         self.sent: list[tuple[int, int]] = []
+        self.poked: list[tuple[int, int]] = []
 
     def send(self, w: int, v: int) -> None:
         self.sent.append((w, v))
+
+    def poke(self, w: int, v: int) -> None:
+        self.poked.append((w, v))
 
 
 def test_chip_spec_parses_all_fields_and_builds_flags() -> None:
@@ -50,6 +54,23 @@ def test_router_sends_counts_and_skips() -> None:
     assert org.sent == [(0xC1DCC, 7)] and pno2.sent == [(0xC1DCC, 9)]
     assert rt.seen == {"ORG2p2": 2, "PNO2p2": 1, "PNO1p2": 1, "SY0p1": 1}
     assert rt.skipped == {"ORG2p2": 1}
+
+
+def test_l2_stores_reach_the_core_2_chip_of_the_same_comm_as_data_words() -> None:
+    # `arm_emu.Message` files a store to the L2 byte window under core 1 with a negative data word
+    pno1, pno2 = FakeLink(), FakeLink()
+    rt = r.Router()
+    rt.add(r.parse_chip_spec("PNO:1=pno=i"), pno1)
+    rt.add(r.parse_chip_spec("PNO:2=org=i"), pno2)
+    dm = (0x200C0000 - 0x28000000) // 4  # first byte of the wavetable segment
+    assert rt.dispatch(2, 1, 1, dm, 0xAB) == "skipped"  # core 1 keeps its old behaviour
+    assert rt.dispatch(2, 1, 1, dm + 1, 0xCD) == "skipped"
+    assert pno2.poked == [(0x08030000, 0xAB), (0x08030001, 0xCD)] and pno2.sent == []
+    assert pno1.sent == [] and rt.l2 == {"PNO2": 2} and rt.skipped == {"PNO1p2": 2}
+    # no chip of that comm on core 2 (ORG here), an address below L2 or a core 2 store: no forward
+    assert rt.dispatch(2, 2, 1, dm, 1) == "counted" and rt.dispatch(2, 1, 2, 5, 1) == "sent"
+    assert rt.forward_l2(1, 2, 0x1FFF_FFFC, 1) is False and rt.l2 == {"PNO2": 2}
+    assert pno2.sent == [(5, 1)] and len(pno2.poked) == 2
 
 
 def test_watch_stats_tracks_first_change_range_and_final() -> None:

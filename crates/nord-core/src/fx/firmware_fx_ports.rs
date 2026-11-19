@@ -56,17 +56,20 @@ impl FirmwareFx {
         }
     }
 
-    /// Parses a `--firmware-fx-ports` list (`reverb,mod1,eq`; `all` = every port) and switches
+    /// Parses a `--firmware-fx-ports` list (`reverb,mod1,eq`; `all` = every port, `parity` = every
+    /// port but the reverb ones, [`FirmwareFx::PARITY`]) and switches
     /// those ports on.
     pub fn enable_ports(&mut self, list: &str) -> Result<(), String> {
         for item in list.split(',').map(str::trim).filter(|s| !s.is_empty()) {
             if item == "all" {
                 self.merge_on(&FirmwareFx::ALL);
+            } else if item == "parity" {
+                self.merge_on(&FirmwareFx::PARITY);
             } else if let Some(p) = self.port_mut(item) {
                 *p = true;
             } else {
                 return Err(format!(
-                    "invalid --firmware-fx-ports entry '{item}' (expected all|{})",
+                    "invalid --firmware-fx-ports entry '{item}' (expected all|parity|{})",
                     PORT_NAMES.join("|")
                 ));
             }
@@ -94,16 +97,26 @@ mod tests {
 
     #[test]
     fn list_parsing_merges_and_rejects_unknown() {
-        let mut f = FirmwareFx::DEFAULT;
+        let mut f = FirmwareFx::LEGACY;
         f.enable_ports("reverb, mod2").unwrap();
         assert_eq!(f.ports_on(), ["reverb", "mod2"]);
         assert!(f.amp, "amp untouched");
         f.enable_ports("all").unwrap();
         assert_eq!(f, FirmwareFx::ALL);
+        let mut p = FirmwareFx::OFF;
+        p.enable_ports("parity").unwrap();
+        assert_eq!(p.ports_on().len(), 6);
+        assert!(p.amp && !p.reverb && !p.reverb_mix && p.mod2 && p.eq);
         let mut off = FirmwareFx::OFF;
         assert!(off.enable_ports("nope").is_err());
         let mut g = FirmwareFx::OFF;
         g.merge_on(&FirmwareFx::DEFAULT);
-        assert!(g.amp && g.pump && g.ports_on().is_empty());
+        assert!(
+            g.amp && g.pump && g.ports_on() == ["mod2"],
+            "the default is amp, PUMP and Mod 2 (D163, D134)"
+        );
+        let mut l = FirmwareFx::OFF;
+        l.merge_on(&FirmwareFx::LEGACY);
+        assert!(l.amp && l.pump && l.ports_on().is_empty());
     }
 }

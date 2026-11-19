@@ -881,8 +881,9 @@ pub struct PianoLayer {
     /// Program Touch from the firmware velocity curves ([`touch_curve`], edit `0x159`, curve ids
     /// 10 / 11 / 13, VERIFIED against the ARM): `.npno` sounds with a level model play the
     /// curve of `touch` (stroke layer and level), other sounds scale the Medium response by the
-    /// verified level difference of the curve. Default `false`: Medium for every `.npno` note
-    /// (the factory default) and the ASSUMED power curves for the others (D22, OQ20).
+    /// verified level difference of the curve. Default `true` since D165 (the file bits are
+    /// VERIFIED by recall of every factory program); `false` (`--legacy-piano-touch`): Medium for
+    /// every `.npno` note and the ASSUMED power curves for the others.
     pub firmware_touch: bool,
     /// Voice gain follows the SMP slew of the real firmware (`piano/slew_voice.rs`,
     /// `docs/research/smp-slew.md`): hold gain `0.21875 * level` with the velocity dependent
@@ -989,7 +990,7 @@ impl PianoLayer {
             soft_pedal_down: false,
             sound,
             firmware_velocity_level: true,
-            firmware_touch: false,
+            firmware_touch: true,
             firmware_slew: false,
             firmware_pedal_voices: false,
             firmware_bus_scale: false,

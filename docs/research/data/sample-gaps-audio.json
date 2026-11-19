@@ -1,0 +1,152 @@
+{
+ "ring_vs_native_scale_db": -24.08,
+ "programs": [
+  {
+   "entry": "Program/Bank A/Acoustic Guitar.ns4p",
+   "note": 60,
+   "velocity": 100,
+   "oracle": {
+    "decoded_pcm_mono_peak_db": -1.78,
+    "ring_mono_peak_db": -38.23,
+    "sy_out_mono_peak_db": -38.23
+   },
+   "native": {
+    "voice_mono_db": [
+     -13.91,
+     -240.0,
+     -240.0
+    ],
+    "fx_mono_db": [
+     -14.21,
+     -240.0,
+     -240.0
+    ],
+    "fader_mono_db": [
+     -17.19,
+     -240.0,
+     -240.0
+    ],
+    "out_mono_db": -17.2,
+    "voice_db": [
+     -13.41,
+     -240.0,
+     -240.0
+    ],
+    "fader_db": [
+     -16.53,
+     -240.0,
+     -240.0
+    ],
+    "out_db": -16.54,
+    "layer_gain": [
+     0.7098,
+     1.0,
+     1.0
+    ],
+    "program_level_db": 0.0
+   },
+   "gap_db": {
+    "voice_stage": 24.32,
+    "output": 21.03
+   }
+  },
+  {
+   "entry": "Program/Bank E/Solo Flute.ns4p",
+   "note": 60,
+   "velocity": 100,
+   "oracle": {
+    "decoded_pcm_mono_peak_db": -2.11,
+    "ring_mono_peak_db": -38.44,
+    "sy_out_mono_peak_db": -38.44
+   },
+   "native": {
+    "voice_mono_db": [
+     -14.24,
+     -240.0,
+     -240.0
+    ],
+    "fx_mono_db": [
+     -14.72,
+     -240.0,
+     -240.0
+    ],
+    "fader_mono_db": [
+     -14.72,
+     -240.0,
+     -240.0
+    ],
+    "out_mono_db": -14.72,
+    "voice_db": [
+     -14.15,
+     -240.0,
+     -240.0
+    ],
+    "fader_db": [
+     -13.68,
+     -240.0,
+     -240.0
+    ],
+    "out_db": -13.68,
+    "layer_gain": [
+     1.0,
+     1.0,
+     1.0
+    ],
+    "program_level_db": 0.0
+   },
+   "gap_db": {
+    "voice_stage": 24.2,
+    "output": 23.72
+   }
+  },
+  {
+   "entry": "Program/Bank D/Finger Bass.ns4p",
+   "note": 60,
+   "velocity": 100,
+   "oracle": {
+    "decoded_pcm_mono_peak_db": -1.95,
+    "ring_mono_peak_db": -38.12,
+    "sy_out_mono_peak_db": -38.55
+   },
+   "native": {
+    "voice_mono_db": [
+     -14.09,
+     -240.0,
+     -240.0
+    ],
+    "fx_mono_db": [
+     -14.41,
+     -240.0,
+     -240.0
+    ],
+    "fader_mono_db": [
+     -14.41,
+     -240.0,
+     -240.0
+    ],
+    "out_mono_db": -14.41,
+    "voice_db": [
+     -14.09,
+     -240.0,
+     -240.0
+    ],
+    "fader_db": [
+     -14.41,
+     -240.0,
+     -240.0
+    ],
+    "out_db": -14.41,
+    "layer_gain": [
+     1.0,
+     1.0,
+     1.0
+    ],
+    "program_level_db": 0.0
+   },
+   "gap_db": {
+    "voice_stage": 24.03,
+    "output": 24.14
+   }
+  }
+ ]
+}

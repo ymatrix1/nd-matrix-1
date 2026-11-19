@@ -22,6 +22,17 @@ pub const MODULE_SLATE_DARK: Color32 = Color32::from_rgb(0x27, 0x30, 0x38);
 /// Brushed Silver-Blue Module Header Strip (`#A3AFB9`).
 pub const MODULE_HEADER_BAR: Color32 = Color32::from_rgb(0xA3, 0xAF, 0xB9);
 
+/// Graphite section header (plate rim and tab, `#1D2126`): production look; light header text
+/// ([`HEADER_INK`]) reads at 13:1 where the old silver strip gave the FX FOCUS / LAYER FX
+/// captions only about 1.5:1. The photo-verified Rotary Speaker tab keeps the silver strip.
+pub const HEADER_DARK: Color32 = Color32::from_rgb(0x1D, 0x21, 0x26);
+
+/// Header title and caption ink on [`HEADER_DARK`] (`#E8ECF0`).
+pub const HEADER_INK: Color32 = Color32::from_rgb(0xE8, 0xEC, 0xF0);
+
+/// Hairline edge of the graphite header (`#3C4651`).
+pub const HEADER_EDGE: Color32 = Color32::from_rgb(0x3C, 0x46, 0x51);
+
 /// Silkscreen group outline border (`#9CA8B3`).
 pub const GROUP_BORDER: Color32 = Color32::from_rgb(0x9C, 0xA8, 0xB3);
 

@@ -1,9 +1,9 @@
-//! Program Touch of a [`PianoLayer`]: which velocity curve a note-on plays (opt-in).
+//! Program Touch of a [`PianoLayer`]: which velocity curve a note-on plays.
 //!
-//! `PianoLayer::firmware_touch` (default `false`) selects the firmware curves of
-//! [`super::touch_curve`] for the layer's `touch` setting; off, every `.npno` note plays the
-//! Medium curve (the factory default, VERIFIED) and the other sounds the ASSUMED power curves of
-//! `VelocityTouch::map_velocity`.
+//! `PianoLayer::firmware_touch` (default `true` since D165) selects the firmware curves of
+//! [`super::touch_curve`] for the layer's `touch` setting; off (`--legacy-piano-touch`), every
+//! `.npno` note plays the Medium curve (the factory default, VERIFIED) and the other sounds the
+//! ASSUMED power curves of `VelocityTouch::map_velocity`.
 
 use super::touch_curve::TouchCurve;
 use super::PianoLayer;
@@ -53,21 +53,22 @@ mod tests {
     }
 
     #[test]
-    fn default_is_medium_whatever_the_setting() {
+    fn default_follows_the_setting_and_legacy_is_medium() {
         let mut layer = PianoLayer::new(48_000.0);
-        assert!(!layer.firmware_touch);
+        assert!(layer.firmware_touch, "on by default since D165");
         layer.touch = VelocityTouch::Light;
-        assert_eq!(layer.touch_curve(), TouchCurve::Medium);
-        layer.firmware_touch = true;
         assert_eq!(layer.touch_curve(), TouchCurve::Light);
         layer.touch = VelocityTouch::Heavy;
         assert_eq!(layer.touch_curve(), TouchCurve::Heavy);
+        layer.firmware_touch = false;
+        assert_eq!(layer.touch_curve(), TouchCurve::Medium);
     }
 
     #[test]
     fn fallback_is_the_assumed_power_curve_off_and_medium_scaled_on() {
         let mut layer = PianoLayer::new(48_000.0);
         layer.touch = VelocityTouch::Heavy;
+        layer.firmware_touch = false;
         assert_eq!(
             layer.touch_fallback_amp(64),
             VelocityTouch::Heavy.map_velocity(64)

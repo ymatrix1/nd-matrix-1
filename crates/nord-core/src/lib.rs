@@ -1,7 +1,10 @@
 // Declaration-only crate root exposing all Nord Stage 4 Emulator subsystems.
 pub mod bench;
+pub mod bench_fw_mod2;
 pub mod bench_gui;
+pub mod bench_gui_breakdown;
 pub mod bench_gui_cli;
+pub mod bench_gui_prog;
 pub mod cbin;
 pub mod engine;
 pub mod firmware;
@@ -20,6 +23,7 @@ pub mod preset_cli;
 pub mod program_check;
 pub mod render;
 pub mod render_opts;
+mod render_opts_arp;
 mod render_opts_fx_rate;
 mod render_opts_tick;
 mod render_opts_wave;
@@ -27,6 +31,7 @@ pub mod sinc;
 pub mod store_cli;
 pub mod sweep;
 pub mod synth;
+pub mod synth_morph;
 pub mod synth_params;
 pub mod synth_params_arp;
 pub mod synth_params_export;

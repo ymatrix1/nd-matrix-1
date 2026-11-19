@@ -56,6 +56,8 @@ impl LayerFxChain {
         self.mod2_rate_hz = src.mod2_rate_hz;
         self.mod2_amount = src.mod2_amount;
         self.mod2_variation = src.mod2_variation;
+        self.mod2_type_raw = src.mod2_type_raw;
+        self.mod2_rate_raw = src.mod2_rate_raw;
         self.amp_cabinet = src.amp_cabinet;
         self.amp_variation = src.amp_variation;
         self.amp_fw_coeffs = src.amp_fw_coeffs;
@@ -70,6 +72,16 @@ impl LayerFxChain {
         self.copy_reverb_settings_from(src);
         self.firmware_fx = src.firmware_fx;
         self.morph = src.morph;
+    }
+
+    /// Drops the loaded program's raw Mod 2 words (`kFx2Type`, `kFx2RateClkDiv`) so the engine
+    /// Mod 2 (`mod2_type`, `mod2_rate_hz`, `mod2_variation`) runs again. The firmware stage reads
+    /// only the raw words, so an edit of type, rate or variation that left them in place would be
+    /// ignored (D163: the firmware Mod 2 is the default). Call it from every user edit of those
+    /// three controls; the amount is read live and needs no call.
+    pub fn clear_mod2_firmware_words(&mut self) {
+        self.mod2_type_raw = None;
+        self.mod2_rate_raw = None;
     }
 
     /// Runs only the Reverb stage on a stereo frame (the shared GLOBAL reverb after the layer mix).
@@ -88,6 +100,8 @@ mod tests {
         let mut src = LayerFxChain::new(48_000.0);
         src.mod1_type = Mod1Type::Wah;
         src.mod2_variation = true;
+        src.mod2_type_raw = Some(5);
+        src.mod2_rate_raw = Some(90);
         src.delay_sync_beats = Some(0.375);
         src.reverb_color = ReverbColor::Dark;
         src.comp_amount = 0.7;
@@ -96,6 +110,7 @@ mod tests {
         dst.copy_all_settings_from(&src);
         assert_eq!(dst.mod1_type, Mod1Type::Wah);
         assert!(dst.mod2_variation);
+        assert_eq!((dst.mod2_type_raw, dst.mod2_rate_raw), (Some(5), Some(90)));
         assert_eq!(dst.delay_sync_beats, Some(0.375));
         assert_eq!(dst.reverb_color, ReverbColor::Dark);
         assert_eq!(dst.comp_amount, 0.7);

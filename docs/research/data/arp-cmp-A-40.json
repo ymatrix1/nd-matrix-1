@@ -1,0 +1,37 @@
+{
+ "layer": "A",
+ "keys": [
+  40
+ ],
+ "firmware": {
+  "notes_on": 10,
+  "first_on_ms": 149.88,
+  "step_ms": 150.0,
+  "step_spread_ms": 0.0,
+  "gate_ms": 100.0,
+  "gate_fraction": 0.667
+ },
+ "native": {
+  "notes_on": 1,
+  "first_on_ms": 150.0,
+  "step_ms": null,
+  "step_spread_ms": null,
+  "gate_ms": null,
+  "gate_fraction": null
+ },
+ "firmware_notes": [
+  40,
+  40,
+  40,
+  40,
+  40,
+  40,
+  40,
+  40,
+  40,
+  40
+ ],
+ "native_notes": [
+  40
+ ]
+}

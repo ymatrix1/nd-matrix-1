@@ -44,6 +44,10 @@ LOAD_TICKS, IDLE_TICKS, KEY_TICKS = 800, 100, 40
 KEYS = (36, 60, 84)
 VELOCITY = 100
 SAMPLE_MEMBER = "Samp Lib/Accordion_Harm/Carina Accordion 1_PS 4.1.nsmp4"
+# EMPIRICAL (D154, `sample-gaps.md`): the 4 MiB default serves only the head of a library sample;
+# strokes behind it are missing for the ARM, so voices of those zones are never prepared. A
+# library sample is at most 15.5 MB in the factory backup: 16 MiB serves all of it.
+MEMBER_BYTES = 0x400000
 FIELDS = ("phase", "tick", "chip", "path", "core", "dm", "w2", "pc")
 
 
@@ -215,7 +219,7 @@ def run_one(ns) -> int:  # noqa: ANN001  # pragma: no cover
     if ns.ns4b:
         import arm_piano_load as pl
 
-        sample = pl.read_npno(ns.ns4b, ns.member, 0x400000)
+        sample = pl.read_npno(ns.ns4b, ns.member, ns.member_bytes)
     t0 = time.perf_counter()
     rows = capture(ns.image, ns.sram, ns.eeprom, program, sample, ns.spi_neutral)
     write_rows(out / f"{out_name(program)}.txt.gz", rows)
@@ -229,6 +233,7 @@ def worker_command(ns, program: Path) -> list[str]:
         sys.executable, "-I", str(Path(__file__).resolve()), "one",
         str(ns.image), str(ns.sram), "--eeprom", str(ns.eeprom), "--out", str(ns.out),
         *(["--ns4b", str(ns.ns4b), "--member", ns.member] if ns.ns4b else []),
+        "--member-bytes", hex(ns.member_bytes),
         *([] if ns.spi_neutral else ["--no-spi-neutral"]),
         str(program),
     ]  # fmt: skip
@@ -257,6 +262,12 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
         p.add_argument("--out", type=Path, required=True)
         p.add_argument("--ns4b", type=Path, help="backup archive: bind a library sample (see docs)")
         p.add_argument("--member", default=SAMPLE_MEMBER)
+        p.add_argument(
+            "--member-bytes",
+            type=lambda v: int(v, 0),
+            default=MEMBER_BYTES,
+            help="bytes of the member served to the ARM (default 4 MiB; 0x1000000 serves all)",
+        )
         p.add_argument(
             "--spi-neutral",
             action=argparse.BooleanOptionalAction,

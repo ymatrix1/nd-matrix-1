@@ -1,6 +1,6 @@
 # Census diff: every firmware instruction, model against simulator
 
-Checked: 2026-11-17 (rerun and closure of the Open list; first written 2026-11-12). Sources: CCES 2.12.1 ADSP-21489 simulator (headless, `sim_run.py`/`sim_batch.py`), the five DSP images (`tools/ns4_dsp_images.py`), ADI `elfdump` (`tools/adi_dis.py`).
+Checked: 2026-11-17 (rerun and closure of the Open list; first written 2026-11-12; sites in real passes, MR2F, JIT and AOT added the same day, D156). Sources: CCES 2.12.1 ADSP-21489 simulator (headless, `sim_run.py`/`sim_batch.py`), the five DSP images (`tools/ns4_dsp_images.py`), ADI `elfdump` (`tools/adi_dis.py`).
 Question: does `crates/nord-sharc` execute every distinct instruction the firmware uses exactly like the simulator?
 
 ## Method
@@ -38,7 +38,7 @@ The census was rerun unchanged (same seed, 8,287 instructions, 49,722 cases, 16 
 | `IF cc R<->S` (1) | 9 (3 sites x FX core 1, FX core 2, PNO core 1) | `0x124448`, `0x123AD4`, `0x1247AF` | FX chain and PNO | SIMD swap ran under either element's condition | **fixed** |
 | `STKYx = DM(a) (LW)` (6) | 3 (1 site x 3 cores) | `0x1821C4` | same block | pair partner of STKYx | **fixed** |
 | `IF cc M12 = DM(I0,M0), R0 = FPACK F0` (1) | 1 | PNO core 1, `0x120E01` | PNO | non-data register in SIMD | **fixed** |
-| `MR1F = R3, R1 = DM(..)` (2) | 2 | PNO core 1, `0x1211C4` | PNO | MR2F read-back | **open** |
+| `MR1F = R3, R1 = DM(..)` (2) | 2 | PNO core 1, `0x1211C4` | PNO | MR2F read-back | simulator artefact, not in the firmware sequence (D156) |
 
 Total 54 of 65,343 occurrences (0.08 %), 15 distinct sites. After the fixes the rerun (model only, simulator output reused) leaves **2 differences** (the MR2F shape) plus the 4 simulator `HALT` cases, which agree with the model when rerun.
 
@@ -53,14 +53,49 @@ Measured by `census_probe.py` (a hand-picked instruction on the simulator and th
 
 Regression: `census_extra_cases.txt` / `census_extra_measured.txt` (461 cases, simulator output) replayed by `census_regress.rs::model_matches_the_simulator_on_the_closed_census_diffs`; it fails on 137 cases without the fix. `census_regress.py` now lists only the MR2F shape in `OPEN`, so `census_cases.txt` grew from 1,104 to 1,119 cases.
 
-## Oracle before and after
-Same images, old and new `nord-sharc` binaries (release), outputs hashed: `sharc-organ` PNO core 1 (16 calls, bank + mix + post), `sharc-bank` (8 calls), `sharc-sys --pno` (20 passes), `sharc-sys` ORG core 2 (20 passes). All output files and all pass-buffer / module-state / strip hashes are **identical** (organ output `348a97...`, bank `f8ae9f...`, PNO pass buffers `25cbc883ac8b0dfe`, ORG pass buffers `8d6538289032c3c3`). The census sites above were not instrumented, so this says the audio-path runs above do not reach a changed behaviour, not that the sites are dead.
+## Which census sites run in real passes (D156)
+`NS4_SITE_HITS=<hex short-word pcs>` (`core/site_hits.rs`, off by default, interpreter only) makes every oracle binary print `site_hits pc=0x.. count=N` for the listed pcs when its core is dropped. The 26 pcs of `census_freq.py` were counted over: `sharc-pass` PNO `core1_sram.bin` (Vox and Pipe installs, 3,000 passes each, 1,500 for the count), `sharc-sys --pno` (316 passes incl. warm-up), `sharc-sys` PNO and ORG `core2_sram.bin` (416 passes, 912 messages of the program-load capture, 8 keys), `sharc-fxlive` FX core 1 (boot log, identity, reverb0, chor4, chor5, 3,000 lead passes) and `sharc-fx` on the FX core 2 ENS routine (96 random scenarios). SY1SY2 and SMP contain no census site (`census_freq.py` finds all 15 in the FX, PNO and ORG images), so the SY pass has nothing to count.
+
+| Site (short-word pc) | Image | Shape | Executed | Count | Audio path |
+|---|---|---|---|---|---|
+| `0x1211C4`, `0x1211C7` | PNO `core1_sram` | `MR1F = R3, R1 = DM(..)` / `MR0F = R4, R2 = DM(..)` | **yes, every pass** | 1,500 of 1,500 passes (sharc-pass), 316 of 316 (sharc-sys) | PNO pass, the multiply-accumulate `MRF += R1 * R2` that follows |
+| `0x120E01` | PNO `core1_sram` | `IF cc M12 = DM(), R0 = FPACK F0` | no | 0 | none seen |
+| `0x1247AF`, `0x1247B1`, `0x1247ED` | PNO `core1_sram` | `IF cc R<->S` | no | 0 | none seen |
+| `0x123AD4`, `0x123AD6`, `0x123B12` | FX `core2_sram` | `IF cc R<->S` | **yes**, once per call of the ENS (Mod 2 ensemble) routine `0x123A7B..0x123BCF` | 48 of 48 scenarios (each) | FX Mod 2 ENS |
+| `0x124448`, `0x12444A`, `0x124486` | FX `core1_sram` | `IF cc R<->S` | no: core 1 copy of the ENS routine; no stage installed it in boot log, identity, reverb0, chor4, chor5 | 0 | needs an ARM recall with ENS (not run) |
+| 17 pcs `0x181E60..0x182018`, `0x18253B..0x1825B5`, `0x1821C4` | ORG `core2_sram`, PNO `core2_sram` | MV/MS triple operation, conditional `LSHIFT`, `STKYx = DM (LW)` | no | 0 in boot plus 416 passes | none seen (ORG `core1_sram` was not run in a pass) |
+
+Old against new model, same inputs (old = `main` before D151, new = this branch; release binaries):
+
+| Run | Result |
+|---|---|
+| PNO core 1, Vox and Pipe, 3,000 passes, lane `2:0` WAV and all 18 raw lanes (`--raw`) | SHA-256 identical, 4 of 4 files: **bit-identical, difference 0 (-inf dB)** |
+| ORG core 2, 400 passes, final SRAM data words (`--state-out`, `cmp`) | identical |
+| FX core 2 ENS, 96 random scenarios against the Python model word for word, the 3 sites executed | 0 of 96 differ with the old and with the new model: **bit-identical** |
+| FX core 1, 4 families, 3,000 lead passes | no site reached; new output only (identity `8b07c314`, reverb0 `47a2788d`, chor4 `63532014`, chor5 `a645f1b3`, SHA-256 prefixes) |
+
+So the model fixes do not change a sample of any run that was made, including the runs where sites execute. The MR2F site runs every pass and is the one place where the model and the simulator could still differ; the next section shows that the differing read is not part of the firmware sequence.
+
+## MR2F read-back resolved (D156)
+`census_probe.py` on the simulator, 120 random states, `MR1F = R3, R1 = DM(-30, I0)`:
+
+| R3 | previous MR2 bit 15 | simulator MR2F read | model |
+|---|---|---|---|
+| positive | 0 or 1 | `00000000` (76 cases) | `00000000` |
+| negative | 0 | `0000FFFF` (28 cases) | `FFFFFFFF` |
+| negative | 1 | `FFFFFFFF` (16 cases) | `FFFFFFFF` |
+
+The simulator reads MR2 after an MR1 write with the sign extension of the previous MR2 value, not of the new one; the 16-bit MR2 value is `0xFFFF` in both. The firmware sequence `MR1F = R3 (+load)`, `MR0F = R4 (+load)`, `MRF = MRF + R1 * R2 (SSF)` gives a state identical to the model in **120 of 120** states (MR2F, MR1F, MR0F, flags and sticky bits included), because the accumulate takes MR2 as a 16-bit value. Decision: keep the sign-extending read (what `fixed_measured.rs` measured for multiplier results), pin the artefact in `census_regress.rs` (28 cases differ in exactly the MR2F word, `0000FFFF` against `FFFFFFFF`) and pin the firmware sequence (0 differ). Fixtures `census_mr2_*.txt`, `census_mr2seq_*.txt`. Whether real silicon shows the artefact is not measured (ASSUMED simulator register-image artefact).
+
+## JIT and AOT against the interpreter (D156)
+* `core/census_engines.rs` replays all 1,580 census regression cases (1,119 + 461) on the interpreter and on the Cranelift JIT (`run_jit` for the interpreter's step count): dumped state and scratch words equal in 1,580 of 1,580. The JIT lowers only `cond 31`, `ureg < 16`, non-`LW` moves and compute (`jit.rs`) and falls back to `Core::step` for shift immediates, swaps, MV/MS conditions and long-word moves, so the five semantics have one implementation.
+* AOT (`aot_lower.rs`): native ops are `cond 31` compute, `LoadImm`, `RegMove` of data registers and the bit shifts `0xC0 / 0xC4 / 0xC8` (`Pe::shift`); the rest runs as interpreter items. Of the 475 distinct census instructions 3 lower natively; the 44 that are `RegSwap` or carry condition 5, 6, 21 or 22 are all interpreter items. `Pe::shift` equals the interpreter shifter (result, SZ SV SS, SF bit) for 3 opcodes x 5 operands x 10 bit numbers including 31, 32, 256 and negative ones. Generated AOT blocks come from firmware ranges, so census slot code cannot run as a block: parity is shown by classification plus the `Pe::shift` check, not by a lockstep run.
 
 ## Implications
-The oracle matches the simulator on every firmware instruction form except the 2-case MR2F read-back, so a difference between the oracle and the simulator can no longer come from single-instruction semantics. The census runs on the **21489** simulator only: the SHARC+ (21571) behaviour of the five fixed shapes is not measured (Follow-ups). The results above do not change any audio output of the runs listed.
+The oracle matches the simulator on every firmware instruction form except the MR2F read-back after `MR1F = Rn`, which the firmware sequence never reads (above), so a difference between the oracle and the simulator can no longer come from single-instruction semantics. Of the 15 sites, 2 run every PNO pass (MR2F, no effect) and 3 run in the FX ENS routine (no difference); no available run reaches the others. JIT and AOT share the five semantics with the interpreter. The census runs on the **21489** simulator only: the SHARC+ (21571) behaviour of the five fixed shapes is not measured (Follow-ups). No audio output of the runs listed changes (bit-identical).
 
 ## Follow-ups
-Run the census on the ADSP-21571 cycle-accurate simulator (about 4 h, `census21_fixture.txt`, `gen_census_probe.py --plus`); extend the state generator to circular buffers (L > 0) and hardware loops; resolve `SF` and the MR2F read-back (a probe with a known previous MR2F); instrument which of the 15 sites above execute in a full PNO / ORG pass.
+Run the census on the ADSP-21571 cycle-accurate simulator (about 4 h, `census21_fixture.txt`, `gen_census_probe.py --plus`); extend the state generator to circular buffers (L > 0) and hardware loops; resolve `SF` (no firmware use); reach the 12 sites that no available run executes (FX core 1 ENS needs an ARM recall, `arm_dsp_live.py` has no FX preset; the ORG and PNO `0x18xxxx` block, PNO `0x1247AF`, `0x120E01`) with longer ARM-driven programs; count sites in JIT and AOT runs (the counter is interpreter only).
 
 ## Reproduce
 ```bash

@@ -124,6 +124,7 @@ impl Stage4Engine {
                         &mut self.synth_cutoff_morph[c],
                         &mut s.synth_cutoff_morph[c],
                     );
+                    swap(&mut self.synth_morph[c], &mut s.synth_morph[c]);
                 }
             }
         }

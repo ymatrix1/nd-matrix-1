@@ -54,6 +54,15 @@ pub(crate) fn vibrato_amount_from_cents(cents: f32) -> f32 {
     (cents / VIBRATO_MAX_CENTS).clamp(0.0, 1.0) * 10.0
 }
 
+/// Osc Ctrl `0..=1` (knob `/ 127`) into the fields it drives; shared by the preset load and the
+/// synth morph (`synth_morph.rs`).
+pub(crate) fn set_osc_ctrl(synth: &mut SynthLayer, ctrl_norm: f32, base_pw: f32) {
+    synth.fm_amount = ctrl_norm;
+    synth.supersaw_detune = ctrl_norm;
+    synth.pulse_width = (base_pw - ctrl_norm * 0.45 * base_pw / 0.5).max(0.02);
+    synth.wavetable_position = ctrl_norm;
+}
+
 fn apply_oscillator(synth: &mut SynthLayer, dec: &SynthLayerDecoded) {
     let ctrl_norm = (dec.detune / 10.0).clamp(0.0, 1.0);
     synth.osc_mode = dec.osc_mode;
@@ -70,15 +79,11 @@ fn apply_oscillator(synth: &mut SynthLayer, dec: &SynthLayerDecoded) {
     } else {
         None
     };
-    synth.fm_amount = ctrl_norm;
     synth.fm_ratio = FM_RATIOS[usize::from(dec.wave_id) % FM_RATIOS.len()];
     synth.fm_feedback = if (dec.wave_id & 1) != 0 { 0.25 } else { 0.0 };
     synth.fm_sub_amount = if dec.osc_category > 0 { 0.35 } else { 0.0 };
-    synth.supersaw_detune = ctrl_norm;
-    let base_pw = pulse_base_width(dec);
-    synth.pulse_width = (base_pw - ctrl_norm * 0.45 * base_pw / 0.5).max(0.02);
+    set_osc_ctrl(synth, ctrl_norm, pulse_base_width(dec));
     synth.wavetable_index = dec.wave_id % (NUM_WAVETABLES as u8);
-    synth.wavetable_position = ctrl_norm;
     synth.pitch_cents = f32::from(dec.pitch_fine_cents) + 100.0 * f32::from(dec.pitch_coarse_semi);
 }
 

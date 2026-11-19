@@ -4,6 +4,7 @@
 
 use super::ctx::{from_log, to_log, Fx};
 use super::ids::NO_CLOCK;
+use crate::audio::{FxEdit, FxFloat};
 use crate::panel::param_hint::fmt;
 use crate::panel::prelude::Stage4PanelState;
 use crate::panel::ui_state::fx::{next_supported, ChainUi, Unit, MOD1, MOD2, MST_LABELS};
@@ -74,6 +75,7 @@ fn view(c: &mut ChainUi, unit: Unit) -> View<'_> {
 
 fn unit(f: &mut Fx, st: &mut Stage4PanelState, slot: usize, s: &Spec) {
     let mut changed = false;
+    let amount_only;
     {
         let mut v = view(&mut st.fx_ui.chains[slot], s.unit);
         let on_rect = f.rect(s.on);
@@ -190,11 +192,28 @@ fn unit(f: &mut Fx, st: &mut Stage4PanelState, slot: usize, s: &Spec) {
             }
         }
         let tip = format!("{} AMOUNT ({:.0} %)", s.title, *v.amount * 100.0);
-        changed |= f.knob(s.amount, v.amount, (0.0, 1.0), &tip, None);
+        let amount = f.knob(s.amount, v.amount, (0.0, 1.0), &tip, None);
+        amount_only = amount && !changed;
+        changed |= amount;
         f.name(s.amount, "AMOUNT");
     }
     if changed {
-        let edits = st.fx_ui.after_edit(slot, s.unit);
+        let mut edits = st.fx_ui.after_edit(slot, s.unit);
+        if amount_only {
+            // Only the amount moved. The full unit set would also resend type, rate and
+            // variation: the Mod 2 type edit clears the firmware words of a loaded program and
+            // swaps the firmware stage for the engine one (an audible jump on the first touch),
+            // and a stale view of the variation would overwrite the loaded one.
+            let param = match s.unit {
+                Unit::Mod1 => FxFloat::Mod1Amount,
+                _ => FxFloat::Mod2Amount,
+            };
+            edits.retain(|e| match e {
+                FxEdit::Sharing(_) => true,
+                FxEdit::Float { param: p, .. } => *p == param,
+                _ => false,
+            });
+        }
         f.send(edits);
     }
 }

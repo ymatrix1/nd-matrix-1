@@ -21,6 +21,7 @@ pub struct ProgramState {
     pub(super) fx: [FxParams; 7],
     pub(super) layer_levels: [MorphParameter; 7],
     pub(super) synth_cutoff_morph: [MorphParameter; 3],
+    pub(super) synth_morph: [crate::synth_morph::SynthMorphSet; 3],
     pub(super) scene: LayerSceneState,
     pub(super) split_router: KeybedSplitRouter,
     pub(super) transpose: i8,
@@ -53,6 +54,7 @@ impl Stage4Engine {
             fx: std::array::from_fn(|i| FxParams::capture(&self.fx_chains[i])),
             layer_levels: self.layer_levels,
             synth_cutoff_morph: self.synth_cutoff_morph,
+            synth_morph: self.synth_morph,
             scene: self.scene,
             split_router: self.split_router,
             transpose: self.transpose,
@@ -79,6 +81,10 @@ impl Stage4Engine {
         }
         self.layer_levels = s.layer_levels;
         self.synth_cutoff_morph = s.synth_cutoff_morph;
+        self.synth_morph = s.synth_morph;
+        for set in &mut self.synth_morph {
+            set.forget_fields();
+        }
         self.scene = s.scene;
         self.split_router = s.split_router;
         self.set_transpose(s.transpose);

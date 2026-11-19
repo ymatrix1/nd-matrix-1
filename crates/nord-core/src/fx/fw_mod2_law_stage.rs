@@ -1,5 +1,5 @@
 //! Frame-by-frame adapter around the generated firmware Mod 2 routines that are driven by
-//! tabulated laws: `PHAS` ([`super::fw_phas0`], `kFx2Type` 0, 1), `FLANG` (2, 3), `ENS` (8, 9) and `SPIN` (10, 11), behind `FirmwareFx::mod2` (opt-in, D22).
+//! tabulated laws: `PHAS` ([`super::fw_phas0`], `kFx2Type` 0, 1), `FLANG` (2, 3), `ENS` (8, 9) and `SPIN` (10, 11), behind `FirmwareFx::mod2` (the default since D163; runs only for chains with the raw words).
 //!
 //! The routines run once per pass on 2 blocks of two stereo frames, so the stage collects 4
 //! frames and releases them one call later: **latency 4 frames (83 us at 48 kHz)**. The delay and
@@ -229,6 +229,11 @@ impl FwLawStage {
         me.scale_words(&sp, false);
         me.set_params(rate, amount);
         Some(me)
+    }
+
+    /// The context, rings and routine (live install export).
+    pub(super) fn state(&self) -> (Routine, &Mod2State) {
+        (spec(self.ty).map_or(Routine::Ens, |s| s.routine), &self.st)
     }
 
     /// The `kFx2Type` this stage was built for.

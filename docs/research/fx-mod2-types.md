@@ -21,7 +21,7 @@ Tags follow `.agents/rules/provenance-in-code.md`: **VERIFIED** = reproduced by 
 | 8, 9 ENS | `0x123A7B`, `0x123BD0` | `0xC0441558` | model VERIFIED 500/500, ported; **not wired** (s8.3) | 3 |
 | 10, 11 SPIN | `0x123557`, `0x12377D` | `0xC0278FAC` | model VERIFIED 500/500, ported; **not wired** (s8.3) | 11 |
 
-CHOR is used by **93 of 156 programs with Mod 2 enabled (60 %)** and 153 of 255 occurrences (`program-coverage` s6). The wiring is opt-in (`FirmwareFx::mod2`, D22; D32): `ALL` includes it, `DEFAULT` does not.
+CHOR is used by **93 of 156 programs with Mod 2 enabled (60 %)** and 153 of 255 occurrences (`program-coverage` s6). The wiring (`FirmwareFx::mod2`, D32) is the default since D163 (`--legacy-mod2` opts out); it runs only for chains with the raw words of a loaded program.
 
 ## 2. Models (VERIFIED against the oracle)
 
@@ -71,7 +71,7 @@ Image row of the synth unit L0 (core 1 SRAM, `I1 = 0xC1302` type 4, `0xC1410` ty
 | `fx/fw_chorus4.rs`, `fw_chorus5.rs` | one `apply` per executed instruction of `0x122E24` / `0x122F77` |
 | `fx/fw_chorus.rs` | memory map (context, ring, frame block, scratch pairs), `FwChorus::process`, golden tests (relative `5e-6` on outputs, final context and the 19 written ring words of each type, `tests_chorus_golden.rs`) |
 | `fx/fw_mod2.rs` (`FwMod2Stage`) | 4-frame adapter, image words, the laws of s3, phase increment scaled by `F / fs`; **latency 4 frames** |
-| `FirmwareFx::mod2` | opt-in (`ALL`, not `DEFAULT`); needs `LayerFxChain::mod2_type_raw` and `mod2_rate_raw` (set by `apply_fx_chain`); other types fall back to the engine; tests `tests_fw_mod2_chain.rs` |
+| `FirmwareFx::mod2` | default since D163 (`--legacy-mod2` opts out); needs `LayerFxChain::mod2_type_raw` and `mod2_rate_raw` (set by `apply_fx_chain`); other types fall back to the engine; tests `tests_fw_mod2_chain.rs` |
 
 ## 6. Not verified end to end
 

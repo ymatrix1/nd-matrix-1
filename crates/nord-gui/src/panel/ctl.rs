@@ -59,6 +59,9 @@ pub(super) struct Face<'a> {
     pub grey: bool,
     /// LED above the button: `Some(lit)`.
     pub led: Option<bool>,
+    /// Put the LED left of the button instead of above it: header-tab buttons (Organ and Layer
+    /// Effects ON) have no room above, the LED would print on the red panel outside the tab.
+    pub led_left: bool,
     /// Dimmed with this tooltip: the engine lacks the feature.
     pub dim: Option<&'a str>,
     /// Hover text for working controls (empty = none).
@@ -70,6 +73,7 @@ impl Face<'_> {
         Self {
             grey: false,
             led: None,
+            led_left: false,
             dim: None,
             tip: "",
         }
@@ -92,6 +96,12 @@ pub(super) const TAG_LIFT_LED: f32 = LED_LIFT + LED_ABOVE_R + 1.0 + 0.8;
 /// Centre of the state LED above `button`, clear of its bezel by [`LED_BUTTON_GAP`].
 pub(super) fn led_above(button: Rect) -> egui::Pos2 {
     pos2(button.center().x, button.top() - LED_LIFT)
+}
+
+/// Centre of the state LED left of `button`, clear of its bezel by [`LED_BUTTON_GAP`]: the
+/// header-tab placement ([`Face::led_left`]).
+pub(super) fn led_left_of(button: Rect) -> egui::Pos2 {
+    pos2(button.left() - LED_LIFT, button.center().y)
 }
 
 /// Small LED (no bloom), `r` px radius.
@@ -265,7 +275,12 @@ pub(super) fn gesture_button(
         StrokeKind::Inside,
     );
     if let Some(lit) = face.led {
-        led_small(p, led_above(rect), lit, LED_RED, LED_RED_DIM, LED_ABOVE_R);
+        let at = if face.led_left {
+            led_left_of(rect)
+        } else {
+            led_above(rect)
+        };
+        led_small(p, at, lit, LED_RED, LED_RED_DIM, LED_ABOVE_R);
     }
     mark(ui, id);
     let tip = match face.dim {

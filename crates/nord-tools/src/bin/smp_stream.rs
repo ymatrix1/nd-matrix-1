@@ -6,12 +6,14 @@
 //!   stroke that serves the note (little endian words for `sharc-ref stream`) and prints the
 //!   stroke facts as one JSON line; `PCM_OUT` also gets the decoded stroke as interleaved `f32`
 //!   frames (`nord-core` decoder). The stream stays in a local scratch file, never in git.
+//! * `smp_stream zones BACKUP.ns4b MEMBER` prints the zone table (key / velocity range, root key,
+//!   stroke rate, modelled pair block word) as a JSON array (D154).
 //! * `smp_stream entry KEY ROOT RATE_HZ` prints the modelled pitch entry `e` of the key, the zone
 //!   word of the stroke and the resulting SY step (`step_join`, ASSUMED writer of `e`, D65).
 use nord_core::cbin::{CbinFile, Ns4BackupArchive};
 use nord_core::sinc::pitch_law::{dsp_step, zone_word};
 use nord_core::sinc::step_join::{table_entry_for_key, unpack_ratio};
-use nord_tools::smp_stream::stream_and_pcm;
+use nord_tools::smp_stream::{stream_and_pcm, zone_table};
 use std::fs::File;
 
 fn open(path: &str) -> Result<(Ns4BackupArchive, File), String> {
@@ -67,6 +69,14 @@ fn run(args: &[String]) -> Result<String, String> {
             }
             Ok(info.to_json())
         }
+        [cmd, backup, member] if cmd == "zones" => {
+            let (archive, mut file) = open(backup)?;
+            let bytes = archive
+                .read_entry(&mut file, member)
+                .map_err(|e| e.to_string())?;
+            let rows: Vec<String> = zone_table(&bytes)?.iter().map(|z| z.to_json()).collect();
+            Ok(format!("[{}]", rows.join(",")))
+        }
         [cmd, key, root, rate] if cmd == "entry" => {
             let key: i32 = key.parse().map_err(|_| "bad KEY".to_string())?;
             let root: i32 = root.parse().map_err(|_| "bad ROOT".to_string())?;
@@ -74,7 +84,7 @@ fn run(args: &[String]) -> Result<String, String> {
             Ok(entry_json(key, root, rate))
         }
         _ => Err(
-            "usage: smp_stream resolve BACKUP ENTRY | stream BACKUP MEMBER NOTE VEL OUT [PCM_OUT] | entry KEY ROOT RATE"
+            "usage: smp_stream resolve BACKUP ENTRY | zones BACKUP MEMBER | stream BACKUP MEMBER NOTE VEL OUT [PCM_OUT] | entry KEY ROOT RATE"
                 .into(),
         ),
     }
@@ -100,6 +110,7 @@ mod tests {
         assert!(run(&[]).is_err());
         assert!(run(&["resolve".into(), "/nonexistent.ns4b".into(), "x".into()]).is_err());
         assert!(run(&["entry".into(), "x".into(), "60".into(), "1".into()]).is_err());
+        assert!(run(&["zones".into(), "/nonexistent.ns4b".into(), "m".into()]).is_err());
         assert!(json_opt(&None) == "null" && json_opt(&Some("a".into())) == "\"a\"");
     }
 

@@ -1,0 +1,4613 @@
+{
+ "format": "per program: A / B = Edt_Pno_kKbdTouch (0x159) held by the firmware after it recalls the program (tools/arm_program_touch_bits.py, no poke); curve_ids = handler stores 0xC011AA38 in order; derived numbers only",
+ "programs": {
+  "Program/Bank A/12dB Sweep.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/4 Osc Funk Bass.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/70s Phase Mk I.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/80s Sci-Fi.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Acoustic Guitar.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Aeon Pad Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Astoria Grand.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/B3 Chords n Solo.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/B3 Jazz Split.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank A/B3 Old Forest.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/B3 Praise Split.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/B3 Shade.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Believer.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank A/Boxxx.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Bright Vibe Mk I.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Bubbles Mk I.ns4p": {
+   "A": 2,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    10
+   ]
+  },
+  "Program/Bank A/Classic Wah Clav.ns4p": {
+   "A": 2,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    11
+   ]
+  },
+  "Program/Bank A/Classic Wurly.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Crunch Synth.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Digi Keys Pad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Dual Gates.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Felt Upright.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank A/Filter Bank Ld.ns4p": {
+   "A": 2,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    10
+   ]
+  },
+  "Program/Bank A/Glowing Amber.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank A/Grand Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Horizon Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Hybrid Str Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/In Stereo Mk I .ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank A/Intense Score.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/J3 Open Sky.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank A/Jazz Guitar II.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Leaky Stabs II.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/M Lead Pad Split.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Mega Line Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Midnight Upright.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank A/Mm-Oh Choir Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Momentum Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/NS4 Palette.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank A/Oo Pad Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Pearl Upright.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank A/Phat 3 Osc MiniM.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Pinky Lead.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Shimmer Upright.ns4p": {
+   "A": 2,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    11
+   ]
+  },
+  "Program/Bank A/Shoreline Whl.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank A/Sidechain Whl II.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank A/Silk Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Silver Rush.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Silverface Mk I .ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Sine-Saw Plk Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Smooth Lead.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Soft Padding Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Space Drama II.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Spin EP Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Stereo Wah Clav.ns4p": {
+   "A": 2,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    10
+   ]
+  },
+  "Program/Bank A/String Quintet.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Supreme Mdrn Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Texas Nights J3.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/The Gospel II.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank A/The Long Dark Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Tines Layer.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank A/Tiny Transistor.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Velvet Grand.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/Vintage Vox J3.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank A/White Grand.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank B/12 Strings Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/B3 Bassline.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/B3 Dual Samba.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Ballad Layer Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Bass Chorus Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Blues Amp Mk I .ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Burning Lead.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Cathedral Pipes.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Choral Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Chorus Caster.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Chrome Layer.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Cinematic Grand.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank B/Clav LFO Wah Whl.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank B/Continuo.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Coral Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Dark Matter Mk I.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Detuned Fanfare.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Dyn FM Keys.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/FM Cloud Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Fan Club Piano.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Favorite Video.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Felt Soft Str.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/French Harpsi.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Frozen Time Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Funk Hit Split.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Gradient Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Grand EP Whl.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank B/Grand Vibra Bs.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Guitar Concerto.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Heart Strings II.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Hi-Fi Grand.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank B/HiFi Grand Str.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank B/Hot Brass.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Hybrid Strings 2.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/J3 80 Underscore.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Koln Grand.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Live CP Grand.ns4p": {
+   "A": 2,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    11
+   ]
+  },
+  "Program/Bank B/Logical Wurly.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Lush 12db Pad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Marcus Solo J3.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Marimba.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank B/Newschool Old J3.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Organ Pipe Mix.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/PWM Pan Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Piano Room.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Q and A.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Replica Lead.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Roto EP Ondre J.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank B/Snappy Syn Brass.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Soft Mk I.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank B/Solo n Walk B3.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Soul Bass Split.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank B/Str Big Band II.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Strings Trem Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Studio Keys 1.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank B/Sync Pulse Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Taped Wurly.ns4p": {
+   "A": 2,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    11
+   ]
+  },
+  "Program/Bank B/Unity Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Velvet Strings.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Vintage Str Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Waits Upright.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank B/Warm Syn Brass.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Wind Section 1.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank B/Wormhole Organ.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Allround Lead.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Andromeda.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/B3 70s Rock.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank C/Bounce Clav.ns4p": {
+   "A": 2,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    10
+   ]
+  },
+  "Program/Bank C/C and G.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Chord N Melody.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Clean OB Sawz.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Cool Vibe Mk I .ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Crackle n Pd Whl.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank C/Daft Lead.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Dance Lead.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Digi Heaven.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Distorted Whl II.ns4p": {
+   "A": 2,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    11
+   ]
+  },
+  "Program/Bank C/Dyn Octave Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Dyno Pan Mk I.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank C/EP Chop Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Farfisa II.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Flautando Pad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Ghost Melody.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Gravity Pattern.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Gray Pad Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Hangar Choir.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Horn Room.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Ice Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/J3 Warm 80s Brs.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/LoFi Piano.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank C/LoveBallad Layer.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Lush Pluck Whl.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank C/Lyle Lead J3.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Melody Pearls.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Night Gaunts Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/OB Fanfare.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Orchestra Pd Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/PWM Strings.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Paisley Synth.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Phased Out Wurly.ns4p": {
+   "A": 2,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    10
+   ]
+  },
+  "Program/Bank C/Piano Soft Orch.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Piano Str Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Pizz Quintet Spl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Pop Brass 3.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Powerful Upright.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Rising Sun.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank C/Royal Grand 3D.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Samba Mk II.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank C/Santoor Pluck.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Saw Horn.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Stage Pianos 1.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Stereo AnaStr II.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Superior Sequel.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Supreme Soul Fp.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Sweet Bells.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Sweet Supreme.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Syn Flute.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Synth Saga.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/TapePiano AT.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Ultimate Ballad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Velvet Bop.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank C/Vintage OB Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Vintage Pan Mk I.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank C/Vintage Wurly.ns4p": {
+   "A": 2,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    11
+   ]
+  },
+  "Program/Bank C/Vista Layer Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Vox Like Me.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Vox Rising Sun.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank C/Winter Breeze Db.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/16th Note Bass.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/3 Vlns Mellotron.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/70s CP Strings.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank D/Amber Upright.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Amped Phase Clav.ns4p": {
+   "A": 2,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    11
+   ]
+  },
+  "Program/Bank D/Arctic Choir Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/B3 Reggae.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Bell Collection.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Big Analog Pluck.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Broken Chip.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/CP Chorus Grand.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Calling Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Chip Bass.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Cinematic Str II.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Danceflr Peak MW.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Door Knob.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Dramatic Opening.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Dynamic Orch.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Dyno Chorus Mk I.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank D/Dyno Stone Mk I .ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Fast Quintet.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Finger Bass.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Flute Mellotron .ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Glow Chords Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Grand Strings.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/HP Splash Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Hera Pad Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Ice Grand.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank D/Innocense.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Jealous Upright.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Lush Synth Str.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Marimba Pad Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Mellotron Voices.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Melody Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Memory Glitch.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Mirror Image Pad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Nox Split.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/PWM and Noise.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Perfect Grand.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Phil Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Pno Brass Punch.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Quintet Bass Spl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Rehearsal Pipes.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Rich FM Pad Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Rose Synth Piano.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Rotor Clav.ns4p": {
+   "A": 2,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    11
+   ]
+  },
+  "Program/Bank D/Rotor EP.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank D/Sidechain String.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Slightly Detuned.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Soft Vocal.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Soul Str Layer.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Space Bass.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Studio Keys 2.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Sundae Lead.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Sunrise Mello.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Super Org Punch.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Sweet EP Pad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Trumpet Synth.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/Upright Bass.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Vibra Band.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank D/Vibraphone Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank D/Vox Inna-Gadda.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank D/White Chorus.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank D/Windhoek B3 II.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/24 Frames J3.ns4p": {
+   "A": 2,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    10
+   ]
+  },
+  "Program/Bank E/Affection Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Americana II.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank E/B3 Squabble.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/B3 Synth Layer.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Babylon EP Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Big Band Saws.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Big Felt Pad Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Big White Scape.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Brass and Wind.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Breath Pad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Calm Before Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Church Layer 1.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank E/Cinema Rise.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Classic Syn Bass.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Cut Trough Lead.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/English Horn.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Fast Octaves.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Felt Clouds.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank E/Flammable AT.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Forlorn Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Gospel 1993.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Helium Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Horns n Strings.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Hybrid Knock EP.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/J3 E Pno Pad.ns4p": {
+   "A": 2,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    10
+   ]
+  },
+  "Program/Bank E/J3 Electric Pno.ns4p": {
+   "A": 2,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    10
+   ]
+  },
+  "Program/Bank E/J3 Grand Layers.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/J3 HardPan 80 EP.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank E/J3 Soul Lead.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/J3 Split Special.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/J3 Super Sawz.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/J3 White Grand.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Lost Cause EP.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Modern Descender.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Pillow Fight.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/PineScape Synth.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Pushed Twin Mk I.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Ready ta Scream.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/RoomUpright Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Short Chords.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Simple Tune.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Sine Rain Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Singing Upright.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Slow Octaves.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Snappy D6.ns4p": {
+   "A": 2,
+   "B": 2,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    13
+   ]
+  },
+  "Program/Bank E/Solo Flute.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Solo Trumpet.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Spin Wurly II.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Square Shape Pad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Statement Syn Bs.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Steam Piano.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank E/Sub Surface.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Swell Saws.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Topliner.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank E/Turtle Lead.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Velour Uprights.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Vibra-Spin Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Vox Im Down.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Wah EP Ondre J.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank E/Wet Funk Syn Bs.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank E/Widthh.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Wind Section 2.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank E/Worn Out Poly.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/1905 Orchestra.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/5th Poly Arp.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/90s Organ.ns4p": {
+   "A": 2,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    10
+   ]
+  },
+  "Program/Bank F/Aerial Gaze.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Analog Creature.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Analog PWM.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/Atmos Lead Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/B3 Meditation II.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/B3 Praise Bass.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Bell Pad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Bell Strings.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Big Synth Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Bright Bambino.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Cassette Pad AT.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Chamber Upright.ns4p": {
+   "A": 2,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    11
+   ]
+  },
+  "Program/Bank F/Chop Sync Whl.ns4p": {
+   "A": 1,
+   "B": 2,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    13
+   ]
+  },
+  "Program/Bank F/Circus Box.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Clean Marimba AT.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank F/Concert Grand.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Cute Orchestra.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/DistantGrand.ns4p": {
+   "A": 2,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    13,
+    11
+   ]
+  },
+  "Program/Bank F/Dreamy Syn Tines.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Dynamic Trumpet.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/EP Steps.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank F/Eddie OB.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/FM Harpies.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/FM Keys Pad Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/Fat Wheel.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/Felt Tines.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Forever Split.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank F/Fresh Air Keys.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Glass Pad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Gravity Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/Hip split.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Long EP Ondre J.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank F/Moving Chords.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Necklace Upright.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/OD Rock Bass.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/Old Room Upright.ns4p": {
+   "A": 1,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    10
+   ]
+  },
+  "Program/Bank F/Ostinato Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Patch Fields.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Pearl Str Fl Whl.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Plucked EP.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Resonant Peaks.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Rich Velvet.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank F/Rudiments.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/ScissorSplit Whl.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/Scream Lead AT.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Shiny Synth Keys.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Silent Upright.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/Slow Motion Pad.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Strings and Saws.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Symph Str Legato.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Synth Clarinet.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Synth Engine.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Synth Orchestra.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Taped Section.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Time Warp Saw.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Unclocked Pad.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/Unstable CP.ns4p": {
+   "A": 0,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    11
+   ]
+  },
+  "Program/Bank F/Vintage Strings.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/Vox DC5.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  },
+  "Program/Bank F/Wooden Queen.ns4p": {
+   "A": 1,
+   "B": 1,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    11,
+    11
+   ]
+  },
+  "Program/Bank F/ZigZag Arp J3.ns4p": {
+   "A": 0,
+   "B": 0,
+   "clients": [
+    2,
+    3
+   ],
+   "curve_ids": [
+    10,
+    10
+   ]
+  }
+ }
+}

@@ -71,8 +71,8 @@ pub const TWEAKS: &[(&str, f32, f32)] = &[
     // KB TOUCH / DYN COMP names and titles sit 1.2 mm lower so the PED NOISE legend clears them.
     ("piano.kb_touch", 0.0, 3.0),
     ("piano.dyn_comp", 0.0, 3.0),
-    ("organ.on", 0.0, -1.0),
-    ("organ.solo", 0.0, -1.0),
+    ("organ.on", -5.0, -1.0), // SOLO legend crossed the header tab edge (tab right edge 324.7 mm)
+    ("organ.solo", -5.0, -1.0), // same shift as organ.on (alias of its rect)
 ];
 
 /// `(id prefix, dx, dy)`: shift of every control whose id starts with the prefix, added to its

@@ -288,6 +288,7 @@ def drive(ns, chips: Chips, router: rt.Router, source=None, before=None) -> dict
         watch={n: w.summary() for n, w in chips.watch.items()},
         arm_messages=dict(sorted(router.seen.items())),
         skipped_out_of_window=router.skipped,
+        l2_to_core2=router.l2,
     )
     result["ticks"], result["clock_passes"] = clock.ticks, clock.passes
     if source:

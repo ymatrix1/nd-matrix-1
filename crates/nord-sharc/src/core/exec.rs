@@ -170,6 +170,9 @@ impl Core {
         if self.trace.is_some() {
             self.log_trace();
         }
+        if !self.site_hits.is_empty() {
+            self.bump_site();
+        }
         let pc = self.pc;
         let isa = self.isa_at(pc);
         let c = if let Some(hit) = self

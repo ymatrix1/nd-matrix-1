@@ -252,21 +252,24 @@ impl<F: Fp> Core<F> {
     }
 
     // --- memory and register access of the generated steps ---------------------------------
-    fn slot(&self, a: u32) -> Option<usize> {
+    /// Index into `mem` of address `a` and the words left in its window from there on.
+    #[inline(always)]
+    fn slot(&self, a: u32) -> Option<(usize, u32)> {
         for &(base, len, off) in &self.win[..self.nwin] {
-            if a >= base && a - base < len {
-                return Some((off + a - base) as usize);
+            let d = a.wrapping_sub(base);
+            if d < len {
+                return Some(((off + d) as usize, len - d));
             }
         }
         None
     }
 
     pub(super) fn rd(&self, a: u32) -> u32 {
-        self.slot(a).map_or(0, |s| self.mem[s])
+        self.slot(a).map_or(0, |(s, _)| self.mem[s])
     }
 
     pub(super) fn wr(&mut self, a: u32, w: u32) {
-        if let Some(s) = self.slot(a) {
+        if let Some((s, _)) = self.slot(a) {
             self.mem[s] = w;
         } else {
             #[cfg(test)]
@@ -278,8 +281,16 @@ impl<F: Fp> Core<F> {
 
     /// Store of a pair: `PEx` at `a`, `PEy` at `a + 1`.
     pub(super) fn wr2(&mut self, a: u32, p: P<F>) {
-        self.wr(a, p[0].wd());
-        self.wr(a.wrapping_add(1), p[1].wd());
+        match self.slot(a) {
+            Some((s, left)) if left >= 2 => {
+                self.mem[s] = p[0].wd();
+                self.mem[s + 1] = p[1].wd();
+            }
+            _ => {
+                self.wr(a, p[0].wd());
+                self.wr(a.wrapping_add(1), p[1].wd());
+            }
+        }
     }
 
     pub(super) fn r(&self, n: usize) -> P<F> {
@@ -287,7 +298,10 @@ impl<F: Fp> Core<F> {
     }
 
     pub(super) fn ld(&self, a: u32) -> P<F> {
-        [V::W(self.rd(a)), V::W(self.rd(a.wrapping_add(1)))]
+        match self.slot(a) {
+            Some((s, left)) if left >= 2 => [V::W(self.mem[s]), V::W(self.mem[s + 1])],
+            _ => [V::W(self.rd(a)), V::W(self.rd(a.wrapping_add(1)))],
+        }
     }
 
     /// Load through `I1` or `I9`: the `PEx` word in both elements.
@@ -315,7 +329,6 @@ impl<F: Fp> Core<F> {
     }
 
     /// Instruction marker (the pc log exists in tests only).
-    #[inline(always)]
     pub(super) fn tick(&mut self, _pc: u32) {
         #[cfg(test)]
         self.pcs.push(_pc);
@@ -359,6 +372,40 @@ mod tests {
         assert_eq!(c.stray(), 1);
         c.set_speed_words([1, 2, 3]);
         assert_eq!((c.rd(SPEED_WORDS[0]), c.rd(SPEED_WORDS[2])), (1, 3));
+    }
+
+    #[test]
+    fn pair_access_at_a_window_edge_splits_like_two_single_accesses() {
+        // windows [10, 14) and [14, 18) are adjacent: a pair at 13 straddles them
+        let mut c = Core::<f32>::blank(&[(10, 4), (14, 4)]);
+        c.wr2(12, [V::W(1), V::W(2)]);
+        c.wr2(13, [V::W(3), V::W(4)]);
+        assert_eq!(
+            [c.rd(12), c.rd(13), c.rd(14)],
+            [1, 3, 4],
+            "13 / 14 across the two windows"
+        );
+        let p = c.ld(13);
+        assert_eq!((p[0].wd(), p[1].wd()), (3, 4));
+        c.wr2(17, [V::W(7), V::W(8)]);
+        assert_eq!(
+            c.rd(17),
+            7,
+            "the low word lands in the last word of a window"
+        );
+        assert_eq!(
+            (c.rd(18), c.stray()),
+            (0, 1),
+            "the high word is outside every window"
+        );
+        let q = c.ld(17);
+        assert_eq!((q[0].wd(), q[1].wd()), (7, 0));
+        c.wr2(9, [V::W(5), V::W(6)]);
+        assert_eq!(
+            (c.rd(10), c.stray()),
+            (6, 2),
+            "pair entering a window from below"
+        );
     }
 
     #[test]

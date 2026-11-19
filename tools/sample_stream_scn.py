@@ -138,14 +138,16 @@ def build_pcm_scenario(
 ) -> str:
     """Scenario: ring fed with decoded PCM, voice 0 prepared, entry poked, `go`, `frames` audio ISRs."""
     body = [
-        f"pcm 0 path={pcm.as_posix()}",
+        # `credit=on`: the model adds the frames it writes to the unpacker credit `rec + 0x10`
+        # (VERIFIED listing `0x20A5`, D154); it replaces the per loop `poke 0x92410 0x200` of D150
+        # (bit identical output over 20,000 frames, `docs/research/sample-gaps.md` s3).
+        f"pcm 0 path={pcm.as_posix()} credit=on",
         *_msgs(msgs),
         "irq 17 400000",
         "irq 13",
         f"poke {entry_addr:#x} {entry}",
         f"msg {REC_BASE + STATE_FIELD:#x} {STATE_GO:#x}",
         f"loop {frames}",
-        "poke 0x92410 0x200",  # EMPIRICAL (sy_voice_sample.scn): keeps the refill bookkeeping above 0x52
         "irq 17 400000",
         "capture L 0x932ca 1",
         "capture R 0x932cb 1",

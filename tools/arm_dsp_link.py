@@ -219,6 +219,12 @@ class Link:
         self.stats.messages += 1
         self.stats.words.add(dm_word)
 
+    def poke(self, dm_word: int, value: int) -> None:
+        """Queue a data word that is not an ARM message (a harness-side preload, for example the
+        wavetable of the oracle). Logged for replays, not counted in `stats.messages`."""
+        self._buf.append(f"M {dm_word:#x} {value:#x}\n")
+        self.log.append((self.pass_index, dm_word, value))
+
     def _flush(self) -> None:
         if self._buf:
             self.proc.stdin.write("".join(self._buf))

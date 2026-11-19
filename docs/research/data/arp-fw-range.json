@@ -1,0 +1,782 @@
+{
+ "program": "Horizon Whl.ns4p (A:16), layers patched in the file bits for direction and range (tempo 100, MST CLK on, velocity 100)",
+ "note": "notes = playing order from the voice lists; the capture starts on the second pool note (arp-fw-vs-native.md s4). Layer A and C notes are read from the object of that layer; only one layer sounds per key set (zones).",
+ "rows": [
+  {
+   "layer": "C",
+   "keys": [
+    60
+   ],
+   "direction": "UP/DOWN",
+   "range_raw": 0,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    60,
+    60,
+    60,
+    60,
+    60,
+    60,
+    60,
+    60,
+    60,
+    60
+   ],
+   "capture": "HzC_UD_r0"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP/DOWN",
+   "range_raw": 0,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    64,
+    60,
+    64,
+    67,
+    64,
+    60,
+    64,
+    67
+   ],
+   "capture": "HzC_UD_r0"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60
+   ],
+   "direction": "UP",
+   "range_raw": 16,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    72,
+    60,
+    72,
+    60,
+    72,
+    60,
+    72,
+    60,
+    72,
+    60
+   ],
+   "capture": "HzC_Up_r16"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP",
+   "range_raw": 16,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    72,
+    76,
+    60,
+    64,
+    67,
+    72,
+    76,
+    60
+   ],
+   "capture": "HzC_Up_r16"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60
+   ],
+   "direction": "UP",
+   "range_raw": 32,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    72,
+    60,
+    72,
+    60,
+    72,
+    60,
+    72,
+    60,
+    72,
+    60
+   ],
+   "capture": "HzC_Up_r32"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP",
+   "range_raw": 32,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    72,
+    76,
+    79,
+    60,
+    64,
+    67,
+    72,
+    76
+   ],
+   "capture": "HzC_Up_r32"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60
+   ],
+   "direction": "UP/DOWN",
+   "range_raw": 85,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    72,
+    84,
+    96,
+    84,
+    72,
+    60,
+    72,
+    84,
+    96,
+    84
+   ],
+   "capture": "HzC_UD_r85"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP/DOWN",
+   "range_raw": 85,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    72,
+    76,
+    79,
+    84,
+    88,
+    91,
+    96,
+    100
+   ],
+   "capture": "HzC_UD_r85"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60
+   ],
+   "direction": "UP",
+   "range_raw": 85,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    72,
+    84,
+    96,
+    60,
+    72,
+    84,
+    96,
+    60,
+    72,
+    84
+   ],
+   "capture": "HzC_Up_r85"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP",
+   "range_raw": 85,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    72,
+    76,
+    79,
+    84,
+    88,
+    91,
+    96,
+    100
+   ],
+   "capture": "HzC_Up_r85"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60
+   ],
+   "direction": "UP",
+   "range_raw": 127,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    72,
+    84,
+    96,
+    60,
+    72,
+    84,
+    96,
+    60,
+    72,
+    84
+   ],
+   "capture": "HzC_Up_r127"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP",
+   "range_raw": 127,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    72,
+    76,
+    79,
+    84,
+    88,
+    91,
+    96,
+    100
+   ],
+   "capture": "HzC_Up_r127"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60
+   ],
+   "direction": "UP",
+   "range_raw": 47,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    72,
+    84,
+    60,
+    72,
+    84,
+    60,
+    72,
+    84,
+    60,
+    72
+   ],
+   "capture": "HzUpDown1Up2"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP",
+   "range_raw": 47,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    72,
+    76,
+    79,
+    84,
+    60,
+    64,
+    67,
+    72
+   ],
+   "capture": "HzUpDown1Up2"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60
+   ],
+   "direction": "DOWN",
+   "range_raw": 47,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    72,
+    60,
+    84,
+    72,
+    60,
+    84,
+    72,
+    60,
+    84,
+    72
+   ],
+   "capture": "HzDown1Down2"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "DOWN",
+   "range_raw": 47,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    79,
+    76,
+    72,
+    67,
+    64,
+    60,
+    84,
+    79,
+    76,
+    72
+   ],
+   "capture": "HzDown1Down2"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60
+   ],
+   "direction": "UP",
+   "range_raw": 0,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    60,
+    60,
+    60,
+    60,
+    60,
+    60,
+    60,
+    60,
+    60,
+    60
+   ],
+   "capture": "HzUpDown3Up1"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP",
+   "range_raw": 0,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    60,
+    64,
+    67,
+    60,
+    64,
+    67,
+    60,
+    64
+   ],
+   "capture": "HzUpDown3Up1"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP",
+   "range_raw": 7,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    60,
+    64,
+    67,
+    60,
+    64,
+    67,
+    60,
+    64,
+    67,
+    60,
+    64,
+    67,
+    60,
+    64
+   ],
+   "capture": "V1"
+  },
+  {
+   "layer": "A",
+   "keys": [
+    40,
+    43,
+    47
+   ],
+   "direction": "UP",
+   "range_raw": 14,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    43,
+    47,
+    52,
+    40,
+    43,
+    47,
+    52,
+    40,
+    43,
+    47,
+    52,
+    40,
+    43,
+    47,
+    52,
+    40
+   ],
+   "capture": "V1"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP",
+   "range_raw": 28,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    72,
+    76,
+    79,
+    60,
+    64,
+    67,
+    72,
+    76,
+    79,
+    60,
+    64,
+    67,
+    72,
+    76
+   ],
+   "capture": "V2"
+  },
+  {
+   "layer": "A",
+   "keys": [
+    40,
+    43,
+    47
+   ],
+   "direction": "UP",
+   "range_raw": 42,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    43,
+    47,
+    52,
+    55,
+    59,
+    64,
+    40,
+    43,
+    47,
+    52,
+    55,
+    59,
+    64,
+    40,
+    43,
+    47
+   ],
+   "capture": "V2"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP",
+   "range_raw": 57,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    72,
+    76,
+    79,
+    84,
+    88,
+    91,
+    60,
+    64,
+    67,
+    72,
+    76,
+    79,
+    84,
+    88
+   ],
+   "capture": "V3"
+  },
+  {
+   "layer": "A",
+   "keys": [
+    40,
+    43,
+    47
+   ],
+   "direction": "UP",
+   "range_raw": 63,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    43,
+    47,
+    52,
+    55,
+    59,
+    64,
+    67,
+    71,
+    40,
+    43,
+    47,
+    52,
+    55,
+    59,
+    64,
+    67
+   ],
+   "capture": "V3"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP",
+   "range_raw": 95,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    72,
+    76,
+    79,
+    84,
+    88,
+    91,
+    96,
+    100,
+    103,
+    60,
+    64,
+    67,
+    72,
+    76
+   ],
+   "capture": "V4"
+  },
+  {
+   "layer": "A",
+   "keys": [
+    40,
+    43,
+    47
+   ],
+   "direction": "UP",
+   "range_raw": 126,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    43,
+    47,
+    52,
+    55,
+    59,
+    64,
+    67,
+    71,
+    76,
+    79,
+    83,
+    40,
+    43,
+    47,
+    52,
+    55
+   ],
+   "capture": "V4"
+  },
+  {
+   "layer": "A",
+   "keys": [
+    40
+   ],
+   "direction": "UP",
+   "range_raw": 0,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40
+   ],
+   "capture": "arp-fw-events-a16"
+  },
+  {
+   "layer": "A",
+   "keys": [
+    40,
+    43,
+    47
+   ],
+   "direction": "UP",
+   "range_raw": 0,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    43,
+    47,
+    40,
+    43,
+    47,
+    40,
+    43,
+    47,
+    40,
+    43
+   ],
+   "capture": "arp-fw-events-a16"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60
+   ],
+   "direction": "UP/DOWN",
+   "range_raw": 47,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    72,
+    84,
+    72,
+    60,
+    72,
+    84,
+    72,
+    60,
+    72,
+    84
+   ],
+   "capture": "arp-fw-events-a16"
+  },
+  {
+   "layer": "C",
+   "keys": [
+    60,
+    64,
+    67
+   ],
+   "direction": "UP/DOWN",
+   "range_raw": 47,
+   "gate_fraction": 0.667,
+   "step_ms": 150.0,
+   "notes": [
+    64,
+    67,
+    72,
+    76,
+    79,
+    84,
+    79,
+    76,
+    72,
+    67
+   ],
+   "capture": "arp-fw-events-a16"
+  }
+ ]
+}

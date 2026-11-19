@@ -55,6 +55,7 @@ pub fn apply_arp_modes(synth: &mut SynthLayer, dec: &SynthLayerDecoded) {
         perf.gate_env = dec.arp.gate_env();
     } else {
         let thirds = dec.arp.range_thirds();
+        synth.arp_range_raw = dec.arp.range;
         synth.arp_octave_range = 1 + thirds / 3;
         synth.perf.range_extra_thirds = thirds % 3;
     }

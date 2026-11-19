@@ -3,42 +3,40 @@
 //! program, the resolved sounds, the routing facts and the output-health statistics.
 //!
 //! Usage: `cargo run --release -p nord-tools --bin program_sweep -- <backup.ns4b>
-//! [--frames N] [--limit N] [--only <substring>] [--every K] [--notes a,b,..] [--velocity V] [--synth-velocity] [--legacy-synth-velocity]`
+//! [--frames N] [--limit N] [--only <substring>] [--every K] [--notes a,b,..] [--velocity V]
+//! [--synth-velocity] [--legacy-synth-velocity] [--legacy-arp]
+//! [--arp-fw-gate] [--legacy-morph] [--piano-touch] [--legacy-piano-touch] [--wheel V] [--aftertouch V]
+//! [--pedal V]`
 //! (`--synth-velocity` is a no-op since D142 made the firmware synth velocity law the default;
-//! `--legacy-synth-velocity` renders both modes with the linear blend);
+//! `--legacy-synth-velocity` renders both modes with the linear blend; `--legacy-arp` and
+//! `--legacy-morph` restore the pre-D166 arpeggiator and morph law in both modes; `--piano-touch` /
+//! `--legacy-piano-touch` force the firmware Touch curves on / off in both modes; `--wheel`,
+//! `--aftertouch` and `--pedal` send that controller value (0..127) before the notes, so the
+//! morph law is exercised);
 //! `tools/program_sweep.py` drives it. Output
 //! holds derived numbers only (no audio, no firmware or sample content). Release build only: a
 //! debug build overflows the stack in the FX chains.
 
-use nord_core::cbin::{CbinFile, Ns4BackupArchive, ProgramDecoded, ProgramSoundRefs};
+use nord_core::cbin::{CbinFile, Ns4BackupArchive};
 use nord_core::engine::Stage4Engine;
-use nord_core::midi::MidiEvent;
-use nord_core::piano::NpnoSound;
-use nord_core::render::{render_timeline, TimedEvent};
+use nord_core::render::render_timeline;
 use nord_core::render_opts::FirmwareOptions;
 use nord_core::sinc::key_rule::kernel_for_key;
 use nord_core::sweep::{analyze, rms_delta_db};
 use nord_core::synth::SynthSampleSound;
+use nord_tools::sweep_flags::{apply_legacy_flags, controller_events};
+use nord_tools::sweep_load::{
+    build_engine, events, flag, load_sounds, panic_message, piano_of, synth_of, PianoCache,
+    SynthCache, FS,
+};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fs::File;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::Arc;
 
-const FS: f32 = 48_000.0;
 /// Standard note set: C3, G3, E4, C5 (spans the Low / Mid / High split regions).
 const NOTES: [u8; 4] = [48, 55, 64, 72];
 const VELOCITY: u8 = 100;
-
-/// Loaded `.npno` sound and its class byte (file offset 0x44), `None` when it failed to load.
-type PianoCache = HashMap<String, Option<(Arc<NpnoSound>, u8)>>;
-type SynthCache = HashMap<String, Option<Arc<SynthSampleSound>>>;
-
-fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a String> {
-    args.iter()
-        .position(|a| a == name)
-        .and_then(|i| args.get(i + 1))
-}
 
 /// Kernel indices (`sinc::key_rule`) reachable over the key spans of a multisample's zones.
 fn sample_kernels(s: &SynthSampleSound) -> Vec<usize> {
@@ -49,79 +47,6 @@ fn sample_kernels(s: &SynthSampleSound) -> Vec<usize> {
         }
     }
     (0..6).filter(|&k| seen[k]).collect()
-}
-
-fn events(notes: &[u8], velocity: u8, hold: usize) -> Vec<TimedEvent> {
-    let mut v = Vec::new();
-    for &note in notes {
-        v.push(TimedEvent {
-            frame: 0,
-            event: MidiEvent::NoteOn {
-                channel: 0,
-                note,
-                velocity,
-            },
-        });
-        v.push(TimedEvent {
-            frame: hold,
-            event: MidiEvent::NoteOff {
-                channel: 0,
-                note,
-                velocity: 0,
-            },
-        });
-    }
-    v
-}
-
-fn piano_of<'a>(c: &'a PianoCache, r: &Option<String>) -> Option<&'a (Arc<NpnoSound>, u8)> {
-    r.as_ref().and_then(|r| c.get(r)).and_then(Option::as_ref)
-}
-
-fn synth_of<'a>(c: &'a SynthCache, r: &Option<String>) -> Option<&'a Arc<SynthSampleSound>> {
-    r.as_ref().and_then(|r| c.get(r)).and_then(Option::as_ref)
-}
-
-/// Builds an engine for `prog` with the cached sounds installed (mirrors
-/// `load_program_bytes_with_sounds_from_backup`) and `opts` applied.
-fn build_engine(
-    prog: &ProgramDecoded,
-    refs: &ProgramSoundRefs,
-    pianos: &PianoCache,
-    synths: &SynthCache,
-    opts: &FirmwareOptions,
-) -> Stage4Engine {
-    let mask = prog.global.scene_1_mask | prog.global.scene_2_mask;
-    let needed = |on: bool, bit: u8| on || mask == 0 || mask & (1 << bit) != 0;
-    let mut engine = Stage4Engine::new(FS);
-    engine.apply_program(prog);
-    if needed(prog.piano.layer_a.enabled, 2) {
-        if let Some((s, _)) = piano_of(pianos, &refs.piano_a) {
-            engine.piano_a.set_sound(Some(Arc::clone(s)));
-        }
-    }
-    if needed(prog.piano.layer_b.enabled, 3) {
-        if let Some((s, _)) = piano_of(pianos, &refs.piano_b) {
-            engine.piano_b.set_sound(Some(Arc::clone(s)));
-        }
-    }
-    if needed(prog.synth.layer_a.enabled, 4) {
-        if let Some(s) = synth_of(synths, &refs.synth_a) {
-            engine.synth_a.load_sample(Some(Arc::clone(s)));
-        }
-    }
-    if needed(prog.synth.layer_b.enabled, 5) {
-        if let Some(s) = synth_of(synths, &refs.synth_b) {
-            engine.synth_b.load_sample(Some(Arc::clone(s)));
-        }
-    }
-    if needed(prog.synth.layer_c.enabled, 6) {
-        if let Some(s) = synth_of(synths, &refs.synth_c) {
-            engine.synth_c.load_sample(Some(Arc::clone(s)));
-        }
-    }
-    opts.apply_to(&mut engine);
-    engine
 }
 
 /// `--synth-velocity` forces the firmware law on (the default since D142), `--legacy-synth-velocity`
@@ -135,11 +60,16 @@ fn apply_synth_velocity_flags(o: &mut FirmwareOptions, args: &[String]) {
     }
 }
 
-fn panic_message(p: Box<dyn std::any::Any + Send>) -> String {
-    p.downcast_ref::<String>()
-        .cloned()
-        .or_else(|| p.downcast_ref::<&str>().map(|s| (*s).to_string()))
-        .unwrap_or_default()
+/// `--piano-touch` forces the firmware Touch curves on, `--legacy-piano-touch` forces the
+/// Medium curve with the ASSUMED power curves for the other sounds (the pre-flip default); the
+/// legacy flag wins. Lets one build print the sweep before and after the Touch default flip.
+fn apply_piano_touch_flags(o: &mut FirmwareOptions, args: &[String]) {
+    if args.iter().any(|a| a == "--piano-touch") {
+        o.piano_touch = true;
+    }
+    if args.iter().any(|a| a == "--legacy-piano-touch") {
+        o.piano_touch = false;
+    }
 }
 
 fn main() -> Result<(), String> {
@@ -192,7 +122,11 @@ fn main() -> Result<(), String> {
     ];
     for (_, o) in &mut modes {
         apply_synth_velocity_flags(o, &args);
+        apply_piano_touch_flags(o, &args);
+        apply_legacy_flags(o, &args);
     }
+    let byte = |name: &str| flag(&args, name).and_then(|v| v.parse::<u8>().ok());
+    let controls = controller_events(byte("--wheel"), byte("--aftertouch"), byte("--pedal"));
     if args.iter().any(|a| a == "--legacy-1khz-tick") {
         // the pre-D131 1 ms ARM tick, to compare a sweep before and after the flip
         for (_, o) in &mut modes {
@@ -207,34 +141,14 @@ fn main() -> Result<(), String> {
             .and_then(|c| c.decode_program())
             .map_err(|e| format!("{name}: {e}"))?;
         let refs = archive.resolve_program_sounds(&prog);
-        for r in [&refs.piano_a, &refs.piano_b].into_iter().flatten() {
-            if !pianos.contains_key(r) {
-                let loaded = archive.read_entry(&mut file, r).ok().and_then(|b| {
-                    let class = b.get(0x44).copied().unwrap_or(0);
-                    NpnoSound::from_npno_bytes(&b)
-                        .ok()
-                        .map(|s| (Arc::new(s), class))
-                });
-                pianos.insert(r.clone(), loaded);
-            }
-        }
-        for r in [&refs.synth_a, &refs.synth_b, &refs.synth_c]
-            .into_iter()
-            .flatten()
-        {
-            if !synths.contains_key(r) {
-                let loaded = archive
-                    .read_entry(&mut file, r)
-                    .ok()
-                    .and_then(|b| SynthSampleSound::from_nsmp4_bytes(&b).ok().map(Arc::new));
-                synths.insert(r.clone(), loaded);
-            }
-        }
+        load_sounds(&archive, &mut file, &refs, &mut pianos, &mut synths);
         let mut runs = serde_json::Map::new();
         for (label, opts) in &modes {
             let result = catch_unwind(AssertUnwindSafe(|| {
                 let mut engine = build_engine(&prog, &refs, &pianos, &synths, opts);
-                let (l, r) = render_timeline(&mut engine, &events(&notes, velocity, hold), frames);
+                let mut timeline = controls.clone();
+                timeline.extend(events(&notes, velocity, hold));
+                let (l, r) = render_timeline(&mut engine, &timeline, frames);
                 analyze(&l, &r)
             }));
             let value = match result {
@@ -311,34 +225,14 @@ mod tests {
     }
 
     #[test]
-    fn flag_returns_the_value_after_the_name() {
-        let a = args(&["x.ns4b", "--frames", "100", "--limit"]);
-        assert_eq!(flag(&a, "--frames").map(String::as_str), Some("100"));
-        assert_eq!(flag(&a, "--limit"), None, "no value after the last flag");
-        assert_eq!(flag(&a, "--only"), None);
-    }
-
-    #[test]
-    fn events_pair_each_note_on_at_zero_with_a_note_off_at_hold() {
-        let ev = events(&[48, 60], 90, 1000);
-        assert_eq!(ev.len(), 4);
-        assert!(ev.iter().step_by(2).all(|e| e.frame == 0));
-        assert!(ev.iter().skip(1).step_by(2).all(|e| e.frame == 1000));
-        assert!(matches!(
-            ev[0].event,
-            MidiEvent::NoteOn {
-                note: 48,
-                velocity: 90,
-                ..
-            }
-        ));
-    }
-
-    #[test]
-    fn panic_message_reads_string_and_str_payloads() {
-        assert_eq!(panic_message(Box::new(String::from("a"))), "a");
-        assert_eq!(panic_message(Box::new("b")), "b");
-        assert_eq!(panic_message(Box::new(3u8)), "");
+    fn piano_touch_flags_force_either_way_and_legacy_wins() {
+        let mut o = FirmwareOptions::default();
+        apply_piano_touch_flags(&mut o, &args(&["--legacy-piano-touch"]));
+        assert!(!o.piano_touch);
+        apply_piano_touch_flags(&mut o, &args(&["--piano-touch"]));
+        assert!(o.piano_touch);
+        apply_piano_touch_flags(&mut o, &args(&["--piano-touch", "--legacy-piano-touch"]));
+        assert!(!o.piano_touch);
     }
 
     #[test]

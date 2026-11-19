@@ -176,6 +176,27 @@ jobs:
             python tools/release_verify.py "$archive" --target "${{ matrix.target }}"
           done
 
+      - name: Download appimagetool (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/1.9.0/appimagetool-x86_64.AppImage
+          echo "46fdd785094c7f6e545b61afcfb0f3d98d8eab243f644b4b17698c01d06083d1  /tmp/appimagetool" | sha256sum -c -
+          chmod +x /tmp/appimagetool
+
+      - name: Build native OS installers and SHA256 files
+        shell: bash
+        env:
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          args=(--target "${{ matrix.target }}" --out dist)
+          if [ -n "$TAG" ]; then args+=(--tag "$TAG"); fi
+          if [ "${{ runner.os }}" = "Linux" ]; then args+=(--appimagetool /tmp/appimagetool); fi
+          python tools/release_installers.py "${args[@]}"
+
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
@@ -183,6 +204,11 @@ jobs:
           path: |
             dist/*.zip
             dist/*.tar.gz
+            dist/*.exe
+            dist/*.deb
+            dist/*.AppImage
+            dist/*.dmg
+            dist/*.pkg
             dist/*.sha256
           if-no-files-found: error
           retention-days: 14
@@ -218,11 +244,21 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           body: |
-            Early release. The CLAP/VST3 plugin has not been verified in any DAW yet
-            (see docs/HOST_COMPATIBILITY.md). Builds are unsigned. Verify downloads
-            against `SHA256SUMS.txt`. Install paths per OS are in each archive's `README.txt`.
+            Early release. **Provided AS IS, without warranty or support of any kind.**
+            The CLAP/VST3 plugin has not been verified in any DAW yet (see `docs/HOST_COMPATIBILITY.md`).
+            Builds are unsigned. Verify downloads against `SHA256SUMS.txt`.
+
+            **Distribution formats included:**
+            - **Windows (x86_64):** `-setup.exe` installer (GUI, CLI, selectable VST3 & CLAP) and portable `.zip`
+            - **macOS (arm64):** `.pkg` installer (selectable app, VST3 & CLAP), `.dmg` disk image, and portable `.tar.gz`
+            - **Linux (x86_64):** `.deb` package, portable `.AppImage`, and `.tar.gz`
           files: |
             artifacts/*.tar.gz
             artifacts/*.zip
+            artifacts/*.exe
+            artifacts/*.deb
+            artifacts/*.AppImage
+            artifacts/*.dmg
+            artifacts/*.pkg
             artifacts/*.sha256
             artifacts/SHA256SUMS.txt

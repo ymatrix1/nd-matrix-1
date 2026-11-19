@@ -311,8 +311,10 @@ pub struct FirmwareOptions {
     pub piano_firmware_level: bool,
     /// `--firmware-piano-bus`: `PianoLayer::firmware_bus_scale` (opt-in, ASSUMED receiver scale).
     pub piano_bus_scale: bool,
-    /// `--firmware-piano-touch`: `PianoLayer::firmware_touch` (program Touch from the firmware
-    /// velocity curves, VERIFIED against the ARM; opt-in because the program file bits are not).
+    /// `--firmware-piano-touch` / `--legacy-piano-touch`: `PianoLayer::firmware_touch` (program
+    /// Touch from the firmware velocity curves, VERIFIED against the ARM; the program file bits
+    /// VERIFIED by recall of every factory program). On by default since D165;
+    /// `--legacy-piano-touch` and `--legacy-all` play the Medium curve for every `.npno` note.
     pub piano_touch: bool,
     /// `--piano-slew-fw`: `PianoLayer::firmware_slew` (SMP voice-gain slew, opt-in; D22).
     pub piano_slew: bool,
@@ -330,18 +332,34 @@ pub struct FirmwareOptions {
     /// `--fx-rate-match`: the firmware Amp drive and cabinet run at the DSP frame rate 43,402 Hz
     /// (`LayerFxChain::set_fx_rate_match`, D137; opt-in).
     pub fx_rate_match: bool,
+    /// Skips the FX racks of silent layers (`--fx-idle-skip`, D161; opt-in).
+    pub fx_idle_skip: bool,
     /// The synth layer faders follow `(v / 127)^2` (default on, VERIFIED: the handler `0xC011BB48`
     /// run in the ARM harness, D87); `--legacy-synth-layer-law` turns it off.
     pub synth_layer_law: bool,
     /// The Vox key timeline and the synth gain de-zipper run on the measured 24 kHz ARM timer tick
     /// (default on, VERIFIED: `docs/research/arm-tick-timers.md`, D131);
-    /// `--legacy-1khz-tick` restores the 1 ms tick. The arp gate (OQ32) and PUMP (OQ36) are not
-    /// part of this switch.
+    /// `--legacy-1khz-tick` restores the 1 ms tick. The arp gate (`--arp-fw-gate`, OQ32) and PUMP
+    /// (OQ36) are not part of this switch.
     pub measured_tick: bool,
     /// `--synth-sustain-pedal`: the sustain pedal (CC 64) also holds the three synth layers
     /// (`PedalState::sustped`, opt-in; ASSUMED, the SUSTPED default of the hardware synth layers
     /// is not decoded, `docs/research/grand-pad-leftovers.md`).
     pub synth_sustain_pedal: bool,
+    /// `--firmware-morph` / `--legacy-morph`: Wheel / A.T. / Ctrl Ped weigh `v / 128` (full at 127)
+    /// like the ARM and the Synth Osc Ctrl, resonance, LFO and filter-env morphs play
+    /// (`Stage4Engine::firmware_morph`, D159). VERIFIED by ARM run on 245 series; on by default
+    /// since D166 (owner approval 2026-11-18); `--legacy-morph` and `--legacy-all` turn it off.
+    pub firmware_morph: bool,
+    /// `--legacy-arp`: the firmware arpeggiator walk (Up / Down / Up-Down over the whole octave
+    /// pool, a single held key retriggers; `SynthLayer::arp_firmware_walk`; D162, D166). On by
+    /// default since D166 (owner approval 2026-11-18); `--legacy-arp` and `--legacy-all` turn it
+    /// off (and the gate with it). `--arp-fw-walk` and `--arp-firmware` stay accepted.
+    pub arp_firmware: bool,
+    /// `--arp-fw-gate`: Arp / Poly `E` steps and the plain arpeggio last 2/3 of a step
+    /// (`SynthLayer::arp_firmware_gate`). **Opt-in** (default off, D166): VERIFIED only in the
+    /// replayed boot state, no hardware clip (OQ32, D130). Not part of `--firmware-all` either.
+    pub arp_firmware_gate: bool,
     /// `--measured-laws`: `SynthLayer::measured_laws` (EMPIRICAL, Audible Genius clips).
     pub measured_laws: bool,
     /// `--synth-shape <0..1>`: strip shape word of the SHAPE oscillator (`fw_shape.rs`) in
@@ -427,16 +445,20 @@ impl Default for FirmwareOptions {
             fx: FirmwareFx::DEFAULT,
             piano_firmware_level: true,
             piano_bus_scale: false,
-            piano_touch: false,
+            piano_touch: true,
             piano_slew: false,
             piano_pedal_voices: false,
             piano_chain_scale: false,
             piano_layer_law: false,
             fx_defaults: false,
             fx_rate_match: false,
+            fx_idle_skip: false,
             synth_layer_law: true,
             measured_tick: true,
             synth_sustain_pedal: false,
+            firmware_morph: true,
+            arp_firmware: true,
+            arp_firmware_gate: false,
             measured_laws: false,
             synth_shape_milli: None,
             synth_p: Some(PSpec::Table(PTableSpec::BUILTIN)),
@@ -475,11 +497,16 @@ impl FirmwareOptions {
             synth_knob_laws: false,
             synth_velocity_fw: false,
             piano_firmware_level: false,
+            piano_touch: false,
             synth_layer_law: false,
             measured_tick: false,
             synth_sustain_pedal: false,
+            firmware_morph: false,
+            arp_firmware: false,
+            arp_firmware_gate: false,
             sample_kernel_key: false,
             firmware_routing: false,
+            fx: FirmwareFx::LEGACY,
             ..Self::default()
         }
     }
@@ -497,16 +524,20 @@ impl FirmwareOptions {
             fx: FirmwareFx::ALL,
             piano_firmware_level: true,
             piano_bus_scale: false,
-            piano_touch: false,
+            piano_touch: true,
             piano_slew: false,
             piano_pedal_voices: false,
             piano_chain_scale: false,
             piano_layer_law: false,
             fx_defaults: false,
             fx_rate_match: false,
+            fx_idle_skip: false,
             synth_layer_law: true,
             measured_tick: true,
             synth_sustain_pedal: false,
+            firmware_morph: true,
+            arp_firmware: true,
+            arp_firmware_gate: false,
             measured_laws: false,
             synth_shape_milli: None,
             synth_p: Some(PSpec::Table(PTableSpec::BUILTIN)),
@@ -576,12 +607,18 @@ impl FirmwareOptions {
         if let Some(v) = value("--firmware-fx-ports") {
             o.fx.enable_ports(v)?;
         }
+        if has("--legacy-mod2") {
+            o.fx.mod2 = false;
+        }
         o.piano_firmware_level |= has("--firmware-piano-level");
         if has("--legacy-piano-level") {
             o.piano_firmware_level = false;
         }
         o.piano_bus_scale |= has("--firmware-piano-bus");
         o.piano_touch |= has("--firmware-piano-touch");
+        if has("--legacy-piano-touch") {
+            o.piano_touch = false;
+        }
         o.synth_velocity_fw |= has("--firmware-synth-velocity");
         if has("--legacy-synth-velocity") {
             o.synth_velocity_fw = false;
@@ -592,8 +629,19 @@ impl FirmwareOptions {
         o.piano_layer_law |= has("--firmware-piano-layer-law");
         o.fx_defaults |= has("--fx-defaults-firmware");
         o.fx_rate_match |= has("--fx-rate-match");
+        o.fx_idle_skip |= has("--fx-idle-skip");
         o.synth_layer_law |= has("--firmware-synth-layer-law");
         o.synth_sustain_pedal |= has("--synth-sustain-pedal");
+        o.firmware_morph |= has("--firmware-morph");
+        if has("--legacy-morph") {
+            o.firmware_morph = false;
+        }
+        o.arp_firmware |= has("--arp-firmware") || has("--arp-fw-walk");
+        o.arp_firmware_gate |= has("--arp-fw-gate");
+        if has("--legacy-arp") {
+            o.arp_firmware = false;
+            o.arp_firmware_gate = false;
+        }
         if has("--legacy-1khz-tick") {
             o.measured_tick = false;
         }
@@ -728,6 +776,8 @@ impl FirmwareOptions {
             if self.legacy_pump {
                 c.firmware_fx.pump = false;
             }
+            // Mod 2 is on in the engine default (D163), so `--legacy-mod2` has to switch it off.
+            c.firmware_fx.mod2 = self.fx.mod2;
         }
         apply_piano_level(engine, self.piano_firmware_level);
         engine.piano_a.firmware_bus_scale = self.piano_bus_scale;
@@ -745,12 +795,19 @@ impl FirmwareOptions {
         engine.synth_layer_law = self.synth_layer_law;
         crate::render_opts_tick::apply_measured_tick(engine, self.measured_tick);
         apply_synth_sustain(engine, self.synth_sustain_pedal);
+        engine.firmware_morph = self.firmware_morph;
+        crate::render_opts_arp::apply_arp_firmware(
+            engine,
+            self.arp_firmware,
+            self.arp_firmware_gate,
+        );
         if self.fx_defaults {
             for c in engine.fx_chains.iter_mut() {
                 c.apply_firmware_defaults();
             }
         }
         crate::render_opts_fx_rate::apply_fx_rate_match(engine, self.fx_rate_match);
+        crate::render_opts_fx_rate::apply_fx_idle_skip(engine, self.fx_idle_skip);
         apply_b3_tail(engine, self.b3_tail);
         apply_farfisa_processor(engine, self.farfisa_processor);
         apply_b3_bass_processor(engine, self.b3_bass_processor);
@@ -823,12 +880,19 @@ impl FirmwareOptions {
         engine.synth_layer_law = self.synth_layer_law;
         crate::render_opts_tick::apply_measured_tick(engine, self.measured_tick);
         apply_synth_sustain(engine, self.synth_sustain_pedal);
+        engine.firmware_morph = self.firmware_morph;
+        crate::render_opts_arp::apply_arp_firmware(
+            engine,
+            self.arp_firmware,
+            self.arp_firmware_gate,
+        );
         if self.fx_defaults {
             for c in engine.fx_chains.iter_mut() {
                 c.apply_firmware_defaults();
             }
         }
         crate::render_opts_fx_rate::apply_fx_rate_match(engine, self.fx_rate_match);
+        crate::render_opts_fx_rate::apply_fx_idle_skip(engine, self.fx_idle_skip);
         self.set_rotary(engine);
         let bass = self.b3_bass_processor == Some(true);
         apply_b3_tail(engine, Some(!bass && self.b3_tail.unwrap_or(true)));
@@ -979,7 +1043,16 @@ impl FirmwareOptions {
         if ports.len() == crate::fx::FX_PORT_NAMES.len() {
             parts.push("fx".into());
         } else {
-            parts.extend(ports.iter().map(|p| (*p).to_string()));
+            // Ports that are on by default (`mod2`, D163) are not an option; their absence is.
+            parts.extend(
+                ports
+                    .iter()
+                    .filter(|p| !FirmwareFx::DEFAULT.port(p))
+                    .map(|p| (*p).to_string()),
+            );
+            if FirmwareFx::DEFAULT.mod2 && !self.fx.mod2 {
+                parts.push("legacy-mod2".into());
+            }
         }
         if !self.piano_firmware_level {
             parts.push("legacy-piano".into());
@@ -993,8 +1066,8 @@ impl FirmwareOptions {
         if self.piano_bus_scale {
             parts.push("piano-bus".into());
         }
-        if self.piano_touch {
-            parts.push("piano-touch".into());
+        if !self.piano_touch {
+            parts.push("legacy-piano-touch".into());
         }
         if !self.synth_velocity_fw {
             parts.push("legacy-synth-velocity".into());
@@ -1017,6 +1090,9 @@ impl FirmwareOptions {
         if self.fx_rate_match {
             parts.push("fx-rate-match".into());
         }
+        if self.fx_idle_skip {
+            parts.push("fx-idle-skip".into());
+        }
         if !self.synth_layer_law {
             parts.push("legacy-synth-layer".into());
         }
@@ -1025,6 +1101,15 @@ impl FirmwareOptions {
         }
         if self.synth_sustain_pedal {
             parts.push("synth-sustain-pedal".into());
+        }
+        if !self.firmware_morph {
+            parts.push("legacy-morph".into());
+        }
+        if !self.arp_firmware {
+            parts.push("legacy-arp".into());
+        }
+        if self.arp_firmware_gate {
+            parts.push("arp-fw-gate".into());
         }
         if let Some(m) = self.synth_shape_milli {
             parts.push(format!("shape={:.2}", f32::from(m) / 1000.0));
@@ -1086,6 +1171,25 @@ impl FirmwareOptions {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn firmware_morph_is_the_default_and_legacy_morph_opts_out() {
+        let o = FirmwareOptions::from_args(&args(&[])).unwrap();
+        assert!(o.firmware_morph && !o.summary().contains("legacy-morph"));
+        assert!(FirmwareOptions::firmware_all().firmware_morph);
+        assert!(!FirmwareOptions::legacy_all().firmware_morph);
+        let off = FirmwareOptions::from_args(&args(&["--legacy-morph"])).unwrap();
+        assert!(!off.firmware_morph && off.summary().contains("legacy-morph"));
+        // the older spelling stays accepted
+        let on = FirmwareOptions::from_args(&args(&["--firmware-morph"])).unwrap();
+        assert!(on.firmware_morph);
+        let mut e = Stage4Engine::new(48_000.0);
+        assert!(e.firmware_morph, "the engine default is the firmware law");
+        off.apply_to(&mut e);
+        assert!(!e.firmware_morph);
+        on.apply_to(&mut e);
+        assert!(e.firmware_morph);
+    }
+
     #[test]
     fn synth_sustain_pedal_is_opt_in_and_only_touches_the_synth_layers() {
         let o = FirmwareOptions::default();
@@ -1157,11 +1261,12 @@ mod tests {
         assert!(!o.piano_bus_scale, "the bus scale is opt-in");
         let bus = FirmwareOptions::from_args(&args(&["--firmware-piano-bus"])).unwrap();
         assert!(bus.piano_bus_scale);
-        assert!(!o.piano_touch, "the program Touch curves are opt-in");
-        let touch = FirmwareOptions::from_args(&args(&["--firmware-piano-touch"])).unwrap();
-        assert!(touch.piano_touch && touch.summary().contains("piano-touch"));
+        assert!(
+            o.piano_touch,
+            "the program Touch curves are the default since D165"
+        );
         let mut e = Stage4Engine::new(48_000.0);
-        touch.apply_to(&mut e);
+        o.apply_to(&mut e);
         assert!(e.piano_a.firmware_touch && e.piano_b.firmware_touch);
         assert!(
             !o.piano_pedal_voices,
@@ -1269,6 +1374,51 @@ mod tests {
         assert!(!FirmwareOptions::legacy_all().sample_kernel_key);
         assert!(FirmwareOptions::firmware_all().sample_kernel_key);
         assert!(parse_sample_kernel("bogus").is_err());
+    }
+
+    #[test]
+    fn legacy_all_restores_every_default_flip_and_summary_names_each() {
+        let o = FirmwareOptions::legacy_all();
+        assert!(!o.synth_velocity_fw && !o.piano_touch && !o.firmware_morph && !o.arp_firmware);
+        let s = o.summary();
+        for flag in [
+            "legacy-synth-velocity",
+            "legacy-piano-touch",
+            "legacy-morph",
+            "legacy-arp",
+        ] {
+            assert!(s.contains(flag), "summary lacks {flag}: {s}");
+        }
+        let d = FirmwareOptions::default().summary();
+        assert!(
+            !d.contains("legacy-piano-touch") && !d.contains("legacy-arp"),
+            "{d}"
+        );
+    }
+
+    #[test]
+    fn piano_touch_is_the_default_and_legacy_opts_out() {
+        assert!(FirmwareOptions::default().piano_touch);
+        assert!(FirmwareOptions::firmware_all().piano_touch);
+        assert!(!FirmwareOptions::legacy_all().piano_touch);
+        assert!(!FirmwareOptions::default()
+            .summary()
+            .contains("legacy-piano-touch"));
+        let off = FirmwareOptions::from_args(&["--legacy-piano-touch".into()]).unwrap();
+        assert!(!off.piano_touch && off.summary().contains("legacy-piano-touch"));
+        let mut e = Stage4Engine::new(48_000.0);
+        off.apply_to(&mut e);
+        assert!(!e.piano_a.firmware_touch && !e.piano_b.firmware_touch);
+        let on =
+            FirmwareOptions::from_args(&["--legacy-all".into(), "--firmware-piano-touch".into()])
+                .unwrap();
+        assert!(on.piano_touch, "the explicit opt-in flag stays accepted");
+        let wins = FirmwareOptions::from_args(&[
+            "--firmware-piano-touch".into(),
+            "--legacy-piano-touch".into(),
+        ])
+        .unwrap();
+        assert!(!wins.piano_touch, "the legacy flag wins");
     }
 
     #[test]
@@ -1511,7 +1661,7 @@ mod tests {
     #[test]
     fn firmware_reverb_flag_switches_only_the_reverb() {
         let o = FirmwareOptions::from_args(&args(&["--firmware-reverb"])).unwrap();
-        assert!(o.fx.reverb && o.fx.ports_on() == ["reverb"]);
+        assert!(o.fx.reverb && o.fx.ports_on() == ["reverb", "mod2"]);
         let mut e = Stage4Engine::new(48_000.0);
         o.apply_to(&mut e);
         assert!(e.fx_chains.iter().all(|c| c.firmware_fx.reverb));

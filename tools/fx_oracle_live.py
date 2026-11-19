@@ -87,11 +87,11 @@ def null_chain() -> list[tuple[int, int]]:
     return words + [(HEAD_LINK, s)]
 
 
-def install(family: str, state: int) -> list[tuple[int, int]]:
+def install(family: "str | int", state: int) -> list[tuple[int, int]]:
     """Stage 0 record: routine, input bus, state block, level (gain = clip(level+step) + 0.5)."""
     return null_chain() + [
         (MASTER, F_ONE),
-        (REC["fn"], ROUTINE[family]),
+        (REC["fn"], family if isinstance(family, int) else ROUTINE[family]),
         (REC["input"], BUS),
         (REC["state"], state),
         (REC["step"], 0),

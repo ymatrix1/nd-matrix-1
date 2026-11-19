@@ -3,7 +3,8 @@
 //!
 //! The rules come from the firmware pattern compiler (`docs/research/synth-arp-patterns.md`
 //! section 7): a `Q` step is held into the next step, which does not trigger and ends with its own
-//! gate; `E` lasts half a step, `q` a full step.
+//! gate; `E` lasts half a step (engine gate, `arp_firmware_gate` off, pinned by `layer`) or 2/3 of
+//! a step (firmware gate, D166), `q` a full step.
 
 use super::*;
 
@@ -18,6 +19,7 @@ fn layer(gates: &[u8], ties: &[bool]) -> SynthLayer {
     s.release_sec = 0.02;
     s.arp_rate_bpm = 480.0;
     s.arp_mode = ArpMode::Up;
+    s.arp_firmware_gate = false;
     s.perf.pattern_on = true;
     s.perf.pattern_custom = true;
     s.set_pattern_length(gates.len() as u8);
@@ -59,6 +61,22 @@ fn q_ties_into_the_next_step_and_ends_with_its_gate() {
     let runs = note_runs(&mut s, 8);
     assert_eq!(runs.len(), 2, "one note per period: {runs:?}");
     assert!(runs.iter().all(|&r| near(r, STEP * 3 / 2)), "{runs:?}");
+}
+
+#[test]
+fn firmware_gate_makes_e_two_thirds_of_a_step_and_keeps_q_full() {
+    // Pattern [Q, E, ., .]: 8 + 4 eighths = 1 + 2/3 steps with the firmware gate (D166).
+    let mut s = layer(&[8, 4, 0, 0], &[true]);
+    s.arp_firmware_gate = true;
+    s.note_on(60, 100);
+    let runs = note_runs(&mut s, 8);
+    assert_eq!(runs.len(), 2, "one note per period: {runs:?}");
+    assert!(runs.iter().all(|&r| near(r, STEP * 5 / 3)), "{runs:?}");
+    // Q before a rest is still one full step.
+    let mut s = layer(&[8, 0], &[true]);
+    s.arp_firmware_gate = true;
+    s.note_on(60, 100);
+    assert!(note_runs(&mut s, 6).iter().all(|&r| near(r, STEP)));
 }
 
 /// Note chosen at every arpeggiator step change (a trigger) over `steps` steps.

@@ -1,10 +1,10 @@
 # Piano: the program Touch velocity curves (KB TOUCH)
 
-- **Checked:** 2026-11-16
+- **Checked:** 2026-11-18 (s4b added; s1 to s4a of 2026-11-16)
 - **Sources (local, never committed):** OS v1.66 firmware (`target/fw_unpacked/bank0_CODE.bin`, `bank0_SRAM.bin`, ARM base `0xC0000000`), factory backup `Nord Stage 4 Factory Restore RevK v1.66.ns4b` (Clavinet D6 `.npno`, Felt Upright program) under `.reference/`, `docs/research/arm-edit-params.csv`, `ns4decode` (`ns4names.py`, `ns4maps.py`).
 - **Question:** Which velocity curves does the per-program Touch setting (Piano `KB TOUCH`, Organ, Synth) select in the firmware, do they apply to MIDI notes, and what are the tables?
 
-Tags follow `.agents/rules/provenance-in-code.md`. Bean `ns4-yp85`, decisions D88, D99, D117.
+Tags follow `.agents/rules/provenance-in-code.md`. Bean `ns4-yp85`, decisions D88, D99, D117, D165 (default flip).
 
 ## 1. Result
 
@@ -17,7 +17,7 @@ Tags follow `.agents/rules/provenance-in-code.md`. Bean `ns4-yp85`, decisions D8
 | Tables | `T(v)` for `v = 1..=127`, three curves, in `piano/touch_curve.rs` (curve 11 is `T_BY_VELOCITY`, unchanged); fingerprint pinned by a unit test | VERIFIED |
 | End to end | With `[ctx + 0x1C]` set to 10, 11 and 13 and velocities 1, 2, 10, 33, 64, 90, 100, 120, 127 the byte the ARM loads equals the composed table: 27 of 27 (`tools/arm_touch_curves.py arm-check`) | VERIFIED (run) |
 | Names | Edit 0 = heavy, 1 = medium, 2 = light | EMPIRICAL (monotone order of the curves, `ns4decode` `PianoTouch`) |
-| Program file bits equal the edit value | File bit `1991..1992` (layer A), `+96` (layer B) = edit value: 6 of 6 in the program recall (s4); factory set 156 / 208 / 20 for 0 / 1 / 2 | VERIFIED (run) |
+| Program file bits equal the edit value | File bit `1991..1992` (layer A), `+96` (layer B) = edit value: 6 of 6 in the program recall (s4); **all 384 factory programs, both layers, 384 of 384 (768 of 768 layer values) equal the firmware recall (s4b, D165)**; factory set 156 / 208 / 20 (layer A) and 176 / 206 / 2 (layer B) for 0 / 1 / 2 | VERIFIED (run) |
 | Recall to level, no hand poke | A Heavy and a Light factory program recalled by the firmware reach `curveId` 10 / 13 at `[core + 0x1C]`; `T`, `X` and the Q23 amplitudes of both voices equal the Rust model: 18 of 18 velocity rows, max error 0 (s4a) | VERIFIED (run) |
 
 ## 2. Tables (derived numbers)
@@ -102,23 +102,62 @@ Factory census (`cargo run --release -p nord-tools --bin piano_touch_census -- "
 
 Not covered: other notes and sounds than these two (same code path), layer B (stored and recalled by the same handler; both programs keep layer B on Medium, curveId 11), and everything after the Q23 amplitude (SMP bus, DAC; D26, D39).
 
+## 4b. Every factory program recalled by the firmware (D165)
+
+Closes the last file-bit gap: s4 flipped single bits of one program and s4a recalled two programs. `tools/arm_program_touch_bits.py` recalls **every** factory `.ns4p` (no poke, no bit flip): per program it puts the file into the Store record of the EEPROM image, boots the full machine so the firmware recalls it (about 50 s of CPU each, 14 in parallel), reads `Edt_Pno_kKbdTouch` (`0x159`) of both piano layer stores through the layer value table (`arm_edit_capture.value_cell`, the D142 method) and hooks the handler store `0xC011AA38` for `curveId`. The expected values are the decoder values of `piano_touch_census --csv` ([piano-touch-program.csv](data/piano-touch-program.csv)); the recall is committed as [piano-touch-recall.json](data/piano-touch-recall.json).
+
+| Check | Result |
+|---|---|
+| Programs recalled | 384 (all `.ns4p` of the Factory Restore RevK v1.66 backup), 0 errors |
+| Recalled Touch equals the decoded file bits (both layers) | **384 of 384 programs** (768 of 768 layer values: 332 Heavy, 414 Medium, 22 Light) |
+| `curveId` stored by the handler equals `10 / 11 / 13` for the value | 384 of 384 programs (both layers) |
+| Layer A / B combinations seen | (A, B) = (1,1) 176, (0,0) 136, (1,0) 31, (0,1) 20, (2,1) 10, (2,0) 9, (2,2) 1, (1,2) 1: every value occurs in both layers, so the layer B position `+96` is exercised too |
+| Value 3 | never stored |
+
+Reproduce (local firmware and backup, `C=target/fw_unpacked`, about 70 min on 14 workers; `check` needs no firmware and is the unit test `test_committed_recall_equals_the_decoder_census_for_every_factory_program`):
+
+```
+cargo run --release -p nord-tools --bin piano_touch_census -- "<backup>.ns4b" --csv > docs/research/data/piano-touch-program.csv
+python tools/arm_program_touch_bits.py batch $C/bank0_CODE.bin $C/bank0_SRAM.bin --eeprom target/oled/eeprom.bin \
+    --ns4b "<backup>.ns4b" --workers 14 --census docs/research/data/piano-touch-program.csv --out docs/research/data/piano-touch-recall.json
+python tools/arm_program_touch_bits.py check docs/research/data/piano-touch-program.csv docs/research/data/piano-touch-recall.json
+```
+
+Layer client mapping (clients 2, 3 = layer A, B by order) is EMPIRICAL, as for the synth in D142: the values match per layer in all 384 programs, including the 71 programs whose two layers differ.
+
+### Effect of the flip on the 82 factory programs with an active non-Medium Touch
+
+`program_sweep` (new flags `--piano-touch` / `--legacy-piano-touch`; notes C3 G3 E4 C5, velocity 100, 96000 frames, default engine options, [piano-touch-sweep.csv](data/piano-touch-sweep.csv)): sections that are on, layers that are on, Heavy or Light. Whole-program RMS, Touch curves against legacy (Medium for every `.npno` note):
+
+| Result | Value |
+|---|---|
+| Programs rendered, NaN / Inf / silent | 82, 0 / 0 / 0 |
+| RMS change, min / median / max | -1.59 dB / -0.46 dB / +1.23 dB |
+| Quieter / louder / equal | 58 / 20 / 4 (layer A Heavy: -1.59 .. +0.21 dB; layer A Light: -0.14 .. +1.23 dB; organ and synth layers of the same program dilute it) |
+| Default-mode renders with clipped samples | 8 with legacy, 3 with Touch (22 and 10 of 164 renders over both modes). Total clipped samples (default mode, 82 programs) **rise 224 to 534**: Bubbles Mk I 184 to 518 and DistantGrand 2 to 14 (both Light, +0.70 dB) clip more, while six Heavy programs drop to 0 or near 0 (Astoria Grand 5 to 0, Grand Pad 5 to 0, C and G 6 to 0, Koln Grand 2 to 0, Piano Room 1 to 0, Vista Layer Whl 19 to 2). So fewer renders clip, but the two Light programs clip harder |
+| Active Heavy or Light layers without a loaded `.npno` sound | none: every active Heavy or Light layer of those 82 programs resolves to a loaded `.npno` sound (sweep `sounds` fields), but the sweep does not record whether that sound carries a firmware level model: for layer A the D117 census says 83 of 83, for layer B it is unchecked, so the ASSUMED `touch_fallback_amp` is not excluded for a layer B sound |
+
+Heavy plays quieter and Light louder, as s2 predicts (velocity 100: X 29 / 22 / 16, about -0.7 / +0.6 dB of level plus the stroke change). `render_hash` is unchanged (`eb13063d...ca28` before and after: its piano segment is Medium); no golden moves.
+
 ## 5. Implications
 
-- Opt-in only: `PianoLayer::firmware_touch` / `--firmware-piano-touch` / GUI Firmware bar "Touch curves". Off: every `.npno` note plays the Medium curve (the factory default), the other sounds the ASSUMED power curves. The default stays off (D22, D99, D117): programs carry their Touch (s4) and the recall to level chain is verified end to end for a Heavy and a Light program (s4a), but no hardware clip exists for the Light and Heavy curves (the clips are Medium), and the sounds without a level model scale the Medium response by the curve difference only. With the switch off, a Light or Heavy program plays the Medium curve on `.npno` sounds (bit identical to before) and the ASSUMED powers on the others.
-- On: `.npno` sounds with a level model play the layer's curve (stroke and level); other sounds scale the Medium response by `2^(-2 (X - X_medium) / 60)` (only the Touch difference is firmware derived).
-- `render_hash` and the goldens do not change (synthetic setups); a loaded factory program now takes string resonance, soft release, pedal noise and Touch from their real bits.
+- **Default on since D165** (owner approval 2026-11-18): `PianoLayer::firmware_touch` / `--firmware-piano-touch` (still accepted) / GUI Firmware bar "Touch curves"; `--legacy-piano-touch` and `--legacy-all` opt out. The Touch bits of every factory program equal the firmware recall (s4b, 384 of 384) and the recall to level chain is verified for a Heavy and a Light program (s4a). Still missing, stated at the flip: no hardware clip of Heavy or Light (the clips are Medium), the sounds without a level model scale the Medium response (ASSUMED; for layer A the D117 census finds a level model in 83 of 83 Heavy or Light programs in use, layer B is unchecked, s4b), the System-menu MIDI velocity curves are not modelled. The plugin does not receive the per-program Touch (s6). Legacy (`--legacy-piano-touch`): every `.npno` note plays the Medium curve (bit identical to before) and the other sounds the ASSUMED powers.
+- On (default): `.npno` sounds with a level model play the layer's curve (stroke and level); other sounds scale the Medium response by `2^(-2 (X - X_medium) / 60)` (only the Touch difference is firmware derived).
+- `render_hash` and the goldens do not change (synthetic setups, Medium); a loaded factory program takes string resonance, soft release, pedal noise and Touch from their real bits, and since D165 plays its Touch.
 
 ## 6. Follow-ups
 
-Still blocking the default flip of `firmware_touch` (D22: a default flips only when verified end to end), after D117:
+Blockers of the default flip of `firmware_touch` (D22) after D117, and their state after D165 (flipped with owner approval, 2026-11-18):
 
 | Blocker | State | Tag |
 |---|---|---|
-| Program file bits to Touch to level for `.npno` sounds | closed (s4, s4a) | VERIFIED |
-| `touch_fallback_amp` / `TouchCurve::gain_vs_medium` for sounds without an `.npno` level model: `2^(-2 (X - X_medium) / 60)` applied to the Medium response | open: only the Touch difference is firmware derived, the Medium response of those sounds is the ASSUMED power curve; no firmware run exists for such a sound | ASSUMED |
+| Program file bits to Touch to level for `.npno` sounds | closed (s4, s4a; every factory program s4b, 384 of 384) | VERIFIED |
+| `touch_fallback_amp` / `TouchCurve::gain_vs_medium` for sounds without an `.npno` level model: `2^(-2 (X - X_medium) / 60)` applied to the Medium response | open, not blocking in practice: only the Touch difference is firmware derived, the Medium response of those sounds is the ASSUMED power curve; layer A: all 83 Heavy or Light programs in use resolve to a level model (D117); layer B unchecked | ASSUMED |
 | System-menu MIDI velocity curves (`Edt_Sys_kMIDIVelCurve`, `Edt_Ext_kVelCurve`, `Edt_Com_kAuxKbdVelCurve`) choose the `r8` table before `T` | open, not modelled (item 1 below); s4a ran with the default `r8` curve 6 | ASSUMED (default curve) |
-| Hardware clips for Heavy and Light (all existing clips are Medium) | open: the firmware numbers are exact, whether the product matches the model after the DAC for those curves is unmeasured | missing evidence |
-| Re-baseline `render_hash` and the goldens | open until the flip | n/a |
+| Hardware clips for Heavy and Light (all existing clips are Medium) | open, accepted by the owner at the flip: the firmware numbers are exact, whether the product matches the model after the DAC for those curves is unmeasured | missing evidence |
+| Re-baseline `render_hash` and the goldens | not needed: `render_hash` identical before and after (s4b) | VERIFIED (run) |
 
 1. The MIDI velocity curve of the System menu (`Edt_Sys_kMIDIVelCurve`, `Edt_Ext_kVelCurve`, `Edt_Com_kAuxKbdVelCurve`: three values each) selects the other velocity table (`r8` curves 1, 2 and the default 6, `0xC00D2024`); not modelled.
-2. Compare a Light and a Heavy program against hardware clips once such clips exist; then decide the default flip of `firmware_touch` (D22) and re-baseline `render_hash`.
+2. Compare a Light and a Heavy program against hardware clips once such clips exist; if the measured level disagrees, `--legacy-piano-touch` is the fallback.
+3. The plugin (`nord-plugin`, `Params::sync_to_engine`, `params.rs`) writes the global `piano_touch` parameter (default Medium) to both layers on every sync, so a program's own per-layer Touch never reaches the plugin engine: the default flip changes the standalone and GUI paths only. Wiring the program Touch into the plugin needs the program load to set the parameter (or the sync to skip it); not done.
+4. Model the System-menu MIDI velocity curves (item 1) and check that every non-Medium layer's sound carries a firmware level model (layer B; layer A is 83 of 83, D117).

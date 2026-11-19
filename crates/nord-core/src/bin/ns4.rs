@@ -9,7 +9,7 @@ use std::env;
 use std::fs;
 
 const SAMPLE_RATE: f32 = 48_000.0;
-const RENDER_USAGE: &str = "usage: ns4 render-patch <file.ns4p | entry-in-backup> [--backup <file.ns4b> [--program-file <edited.ns4p>]] [--wav <out.wav>] [--note N | --notes 60,64,67 | --events <notes.json> [--confirmed-only]] [--velocity V] [--frames F] [--hold F] [--sustain] [--cc ctrl:val@frame] [--tone-source default|legacy|firmware|vox|b3wheels] [--filter-engine zdf|firmware] [--synth-chain legacy|strip] [--b3-tail on|off] [--farfisa-processor on|off] [--amp-path engine|firmware] [--rotary-drive engine|unity|scaled] [--firmware-fx] [--firmware-reverb] [--firmware-fx-ports delay-laws,delay-time,reverb-mix,reverb,compressor,mod1,mod2,eq] [--legacy-piano-level] [--firmware-routing] [--measured-laws] [--firmware-all|--legacy-all]...";
+const RENDER_USAGE: &str = "usage: ns4 render-patch <file.ns4p | entry-in-backup> [--backup <file.ns4b> [--program-file <edited.ns4p>]] [--wav <out.wav>] [--note N | --notes 60,64,67 | --events <notes.json> [--confirmed-only]] [--velocity V] [--frames F] [--hold F] [--sustain] [--cc ctrl:val@frame] [--tone-source default|legacy|firmware|vox|b3wheels] [--filter-engine zdf|firmware] [--synth-chain legacy|strip] [--b3-tail on|off] [--farfisa-processor on|off] [--amp-path engine|firmware] [--rotary-drive engine|unity|scaled] [--firmware-fx] [--firmware-reverb] [--firmware-fx-ports all|parity|delay-laws,delay-time,reverb-mix,reverb,compressor,mod1,mod2,eq] [--legacy-mod2] [--legacy-piano-level] [--firmware-routing] [--measured-laws] [--firmware-all|--legacy-all]...";
 
 fn run_cli(args: &[String]) -> Result<String, String> {
     let cmd = args.get(1).map(String::as_str).unwrap_or("info");
@@ -239,7 +239,7 @@ fn run_cli(args: &[String]) -> Result<String, String> {
                 .and_then(|i| args.get(i + 1))
             {
                 cfg.scenario = nord_core::bench::Scenario::parse(name).ok_or_else(|| {
-                    format!("unknown scenario '{name}' (expected: worst | typical | idle)")
+                    format!("unknown scenario '{name}' (expected: worst | typical | idle | worst-fw-chorus | worst-fw-spin)")
                 })?;
             }
             let mut out = format_report(cfg, &run(cfg));
@@ -481,7 +481,7 @@ Wrote {wav_path} ({} bytes, 32-bit float stereo)", wav.len()));
         "backup-store" => nord_core::store_cli::backup_store(&args[2..]),
         "preset-check" => nord_core::preset_cli::preset_check(&args[2..]),
         other => Err(format!(
-            "unknown command '{other}' (expected: info | inspect <path> [--json] [--verify] [--unpack <dir>] | backup <path.ns4b> [...] | convert <path> ... | store-program <base> <out> | export-live <dir> <slots...> | backup-store <in.ns4b> <out.ns4b> [--program ...] [--live ...] | preset-check <backup.ns4b> [--bits] | render-demo | bench [--blocks N] [--warmup N] [--stereo] [--scenario worst|typical|idle] [--breakdown] | bench --gui [--layers 3|7] [--keys N] [--frames N] [--churn N] [--breakdown] [firmware flags] | render-patch <path>)"
+            "unknown command '{other}' (expected: info | inspect <path> [--json] [--verify] [--unpack <dir>] | backup <path.ns4b> [...] | convert <path> ... | store-program <base> <out> | export-live <dir> <slots...> | backup-store <in.ns4b> <out.ns4b> [--program ...] [--live ...] | preset-check <backup.ns4b> [--bits] | render-demo | bench [--blocks N] [--warmup N] [--stereo] [--scenario worst|typical|idle|worst-fw-chorus|worst-fw-spin] [--breakdown] | bench --gui [--layers 3|7] [--keys N] [--frames N] [--churn N] [--breakdown] [firmware flags] | render-patch <path>)"
         )),
     }
 }

@@ -762,6 +762,8 @@ impl Stage4Params {
             4 => PianoTimbre::Dyno2,
             _ => PianoTimbre::Mid,
         };
+        // The one global parameter overwrites both layers, so the Touch a program stores per
+        // layer (D99, D165) never reaches the plugin engine; the host sets it by hand.
         let touch = match self.piano_touch.value() {
             1 => VelocityTouch::Light,
             2 => VelocityTouch::Heavy,
