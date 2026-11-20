@@ -31,8 +31,8 @@ use std::sync::Arc;
 /// Logical panel size the shared drawing code is laid out for.
 pub const PANEL_W: f32 = 1560.0;
 pub const PANEL_H: f32 = 420.0;
-/// Default editor window size (75 % of native; fits a laptop screen).
-pub const DEFAULT_SIZE: (u32, u32) = (1170, 315);
+/// Default editor window size: the native panel size (100 %, sharp text).
+pub const DEFAULT_SIZE: (u32, u32) = (1560, 420);
 /// Smallest scale the editor shrinks to.
 pub const MIN_SCALE: f32 = 0.25;
 
@@ -80,7 +80,7 @@ pub fn fit_scale(size: Vec2) -> f32 {
 
 /// Layer that carries the scaled panel.
 fn panel_layer() -> LayerId {
-    LayerId::new(Order::Middle, Id::new("nord-stage-4-panel"))
+    LayerId::new(Order::Background, Id::new("nord-stage-4-panel"))
 }
 
 /// Translucent overlay with a tooltip over every dimmed control; returns how many were drawn.
@@ -131,7 +131,16 @@ pub fn draw_editor<W: ParamWriter>(
         .min_size(Vec2::splat(8.0_f32))
         .show(ctx, egui_state, |ui| {
             let avail = ui.max_rect();
-            ui.painter().rect_filled(avail, 0.0_f32, CHASSIS_DARK);
+            // Layer order (all `Order::Background`, later = on top): chassis fill, the scaled
+            // panel, then this central panel carrying `ResizableWindow`'s corner handle. The
+            // panel covers the whole window, so without moving the central panel to the top the
+            // corner never got the pointer and the window could not be resized.
+            ui.ctx()
+                .layer_painter(LayerId::new(
+                    Order::Background,
+                    Id::new("nord-stage-4-chassis"),
+                ))
+                .rect_filled(avail, 0.0_f32, CHASSIS_DARK);
             let scale = fit_scale(avail.size());
             let panel_size = Vec2::new(PANEL_W, PANEL_H);
             let offset = ((avail.size() - panel_size * scale) * 0.5).max(Vec2::ZERO);
@@ -139,7 +148,7 @@ pub fn draw_editor<W: ParamWriter>(
             // transform maps that onto the window.
             let panel_rect = Rect::from_min_size(Pos2::ZERO, panel_size);
             Area::new(Id::new("nord-stage-4-panel"))
-                .order(Order::Middle)
+                .order(Order::Background)
                 .fixed_pos(Pos2::ZERO)
                 .constrain(false)
                 .show(ui.ctx(), |ui| {
@@ -153,6 +162,7 @@ pub fn draw_editor<W: ParamWriter>(
                 panel_layer(),
                 TSTransform::new(avail.min.to_vec2() + offset, scale),
             );
+            ui.ctx().move_to_top(LayerId::background());
         });
 
     let mut sink = ParamSink::new(writer, &st.notes);
@@ -216,9 +226,9 @@ mod tests {
     #[test]
     fn the_panel_is_scaled_by_its_layer_and_egui_zoom_stays_at_one() {
         let (_params, mut st, _rx) = state();
-        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
+        let egui_state = EguiState::from_size(1170, 315);
         let ctx = Context::default();
-        let size = Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
+        let size = Vec2::new(1170.0, 315.0);
         let input = egui::RawInput {
             screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
             ..Default::default()
@@ -233,7 +243,7 @@ mod tests {
         let t = ctx
             .layer_transform_to_global(panel_layer())
             .expect("panel layer transform");
-        let want = DEFAULT_SIZE.0 as f32 / PANEL_W;
+        let want = 1170.0 / PANEL_W;
         assert!((t.scaling - want).abs() < 1e-4, "{} vs {want}", t.scaling);
         assert!(t.translation.x.abs() < 1.0 && t.translation.y.abs() < 1.0);
     }
@@ -265,6 +275,46 @@ mod tests {
             assert!(r.max.x <= size.x + 1.0 && r.max.y <= size.y + 1.0, "{r:?}");
             assert_eq!(*r, bounds[0]);
         }
+    }
+
+    /// Regression: the scaled panel layer covered the window, so the resize corner (a widget of
+    /// the central panel) never got the pointer and the editor could not be resized.
+    #[test]
+    fn dragging_the_bottom_right_corner_requests_a_resize() {
+        let (_params, mut st, _rx) = state();
+        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
+        let ctx = Context::default();
+        let size = Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
+        let frame = |events: Vec<egui::Event>, st: &mut EditorState| {
+            let input = egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
+                events,
+                ..Default::default()
+            };
+            let _ = ctx.run(input, |ctx| {
+                draw_editor(ctx, &egui_state, st, Recorder::default());
+            });
+        };
+        let corner = Pos2::new(size.x - 4.0, size.y - 4.0);
+        frame(vec![], &mut st);
+        frame(vec![egui::Event::PointerMoved(corner)], &mut st);
+        frame(
+            vec![egui::Event::PointerButton {
+                pos: corner,
+                button: egui::PointerButton::Primary,
+                pressed: true,
+                modifiers: Default::default(),
+            }],
+            &mut st,
+        );
+        let smaller = corner - Vec2::new(300.0, 80.0);
+        frame(vec![egui::Event::PointerMoved(smaller)], &mut st);
+        frame(vec![egui::Event::PointerMoved(smaller)], &mut st);
+        let dbg = format!("{egui_state:?}");
+        assert!(
+            dbg.contains("requested_size: AtomicCell { value: Some("),
+            "{dbg}"
+        );
     }
 
     #[test]
