@@ -135,8 +135,8 @@ pub fn nord_button(ui: &mut Ui, rect: Rect, id: &str, grey: bool) -> bool {
     };
     let assets = crate::baked::BakedPanelAssets::get_or_load(ui.ctx());
     let p = ui.painter();
-    // Expand slightly to include the baked 4px padding / drop shadow around the housing.
-    if !assets.paint_sprite(p, sprite_name, rect.expand(3.0), tint) {
+    // Expand to include the baked 14px soft drop-shadow padding around the housing.
+    if !assets.paint_sprite(p, sprite_name, rect.expand(6.0), tint) {
         p.rect_filled(rect.expand(2.0), 3.5, BUTTON_BEZEL);
         let base = if grey { BUTTON_GREY } else { BUTTON_BLACK };
         p.rect_filled(rect, 3.0, base);

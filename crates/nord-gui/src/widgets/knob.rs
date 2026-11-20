@@ -69,7 +69,7 @@ pub fn knob(
     let a = a0 + sweep * norm;
     let rot_rad = a + std::f32::consts::FRAC_PI_2;
     let assets = crate::baked::BakedPanelAssets::get_or_load(ui.ctx());
-    let sprite_size = vec2(radius * 2.55, radius * 2.55);
+    let sprite_size = vec2(radius * 3.8, radius * 3.8);
     let tint = if resp.hovered() || resp.dragged() {
         Color32::WHITE
     } else {
