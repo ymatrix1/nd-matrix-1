@@ -1841,6 +1841,7 @@
     const knobs = Array.from(document.querySelectorAll("[data-knob]")).map((el, i) => ({
       index: i,
       encoder: el.getAttribute("data-encoder") === "1",
+      default_value: Number(el.getAttribute("data-value")) || 0.5,
       ...norm(el)
     }));
     const buttons = Array.from(document.querySelectorAll(".pill-btn")).map((el, i) => ({
@@ -1851,19 +1852,40 @@
           ? "red"
           : "black",
       vertical: el.classList.contains("vert"),
+      toggle_led: el.getAttribute("data-toggle-led") || null,
+      toggle_pair: el.getAttribute("data-toggle-pair") || null,
+      cycle_leds: el.getAttribute("data-cycle-leds") || null,
+      allow_off: el.getAttribute("data-allow-off") === "1",
+      cycle_3: el.getAttribute("data-cycle-3") || null,
+      prog_btn: el.getAttribute("data-prog-btn") ? Number(el.getAttribute("data-prog-btn")) : null,
+      split_btn: el.hasAttribute("data-split-btn"),
+      fx_focus: el.getAttribute("data-fx-focus") || null,
       ...norm(el)
     }));
     const faders = Array.from(document.querySelectorAll("[data-fader-track]")).map((el, i) => ({
       index: i,
       ...norm(el)
     }));
+    const fader_ladders = Array.from(document.querySelectorAll("[data-fader-strip]")).map((strip) =>
+      Array.from(strip.querySelectorAll(".led-ladder .led-seg")).map((seg) => norm(seg))
+    );
     const drawbars = Array.from(document.querySelectorAll("[data-drawbar-slot]")).map((el, i) => ({
       index: i,
       ...norm(el)
     }));
+    const drawbar_ladders = Array.from(document.querySelectorAll("[data-drawbar]")).map((unit) =>
+      Array.from(unit.querySelectorAll(".drawbar-leds .led-seg")).map((seg) => norm(seg))
+    );
     const leds = Array.from(document.querySelectorAll(".led, .split-led")).map((el, i) => ({
       index: i,
       id: el.getAttribute("data-led") || null,
+      on: el.classList.contains("on"),
+      color: el.classList.contains("green")
+        ? "green"
+        : el.classList.contains("amber")
+          ? "amber"
+          : "red",
+      prog_led: el.getAttribute("data-prog-led") ? Number(el.getAttribute("data-prog-led")) : null,
       split: el.classList.contains("split-led"),
       ...norm(el)
     }));
@@ -1887,7 +1909,9 @@
       knobs,
       buttons,
       faders,
+      fader_ladders,
       drawbars,
+      drawbar_ladders,
       leds,
       oleds,
       wheels,

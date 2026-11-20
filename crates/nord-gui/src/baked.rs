@@ -57,11 +57,17 @@ pub struct BakedSize {
 pub struct BakedKnob {
     pub index: usize,
     pub encoder: bool,
+    #[serde(default = "default_half")]
+    pub default_value: f32,
     pub x: f32,
     pub y: f32,
     pub w: f32,
     pub h: f32,
     pub px: [i32; 4],
+}
+
+fn default_half() -> f32 {
+    0.5
 }
 
 /// Pill button metadata from `panel_layout.json`.
@@ -70,6 +76,22 @@ pub struct BakedButton {
     pub index: usize,
     pub variant: String,
     pub vertical: bool,
+    #[serde(default)]
+    pub toggle_led: Option<String>,
+    #[serde(default)]
+    pub toggle_pair: Option<String>,
+    #[serde(default)]
+    pub cycle_leds: Option<String>,
+    #[serde(default)]
+    pub allow_off: bool,
+    #[serde(default)]
+    pub cycle_3: Option<String>,
+    #[serde(default)]
+    pub prog_btn: Option<usize>,
+    #[serde(default)]
+    pub split_btn: bool,
+    #[serde(default)]
+    pub fx_focus: Option<String>,
     pub x: f32,
     pub y: f32,
     pub w: f32,
@@ -82,12 +104,22 @@ pub struct BakedButton {
 pub struct BakedLed {
     pub index: usize,
     pub id: Option<String>,
+    #[serde(default)]
+    pub on: bool,
+    #[serde(default = "default_led_color")]
+    pub color: String,
+    #[serde(default)]
+    pub prog_led: Option<usize>,
     pub split: bool,
     pub x: f32,
     pub y: f32,
     pub w: f32,
     pub h: f32,
     pub px: [i32; 4],
+}
+
+fn default_led_color() -> String {
+    "red".to_string()
 }
 
 /// Keybed key metadata (`midi` 21..=108) from `panel_layout.json`.
@@ -110,7 +142,11 @@ pub struct BakedPanelLayout {
     pub knobs: Vec<BakedKnob>,
     pub buttons: Vec<BakedButton>,
     pub faders: Vec<BakedRect>,
+    #[serde(default)]
+    pub fader_ladders: Vec<Vec<BakedRect>>,
     pub drawbars: Vec<BakedRect>,
+    #[serde(default)]
+    pub drawbar_ladders: Vec<Vec<BakedRect>>,
     pub leds: Vec<BakedLed>,
     pub oleds: BTreeMap<String, BakedRect>,
     pub wheels: BTreeMap<String, BakedRect>,

@@ -81,6 +81,7 @@
     {
       "index": 0,
       "encoder": false,
+      "default_value": 0.72,
       "x": 0.118553,
       "y": 0.077997,
       "w": 0.012637,
@@ -95,6 +96,7 @@
     {
       "index": 1,
       "encoder": false,
+      "default_value": 0.25,
       "x": 0.118849,
       "y": 0.247628,
       "w": 0.012054,
@@ -109,6 +111,7 @@
     {
       "index": 2,
       "encoder": true,
+      "default_value": 0.5,
       "x": 0.356837,
       "y": 0.485,
       "w": 0.008567,
@@ -123,6 +126,7 @@
     {
       "index": 3,
       "encoder": true,
+      "default_value": 0.5,
       "x": 0.394522,
       "y": 0.29851,
       "w": 0.008567,
@@ -137,6 +141,7 @@
     {
       "index": 4,
       "encoder": true,
+      "default_value": 0.5,
       "x": 0.544975,
       "y": 0.309423,
       "w": 0.008567,
@@ -151,6 +156,7 @@
     {
       "index": 5,
       "encoder": true,
+      "default_value": 0.5,
       "x": 0.563427,
       "y": 0.309423,
       "w": 0.008567,
@@ -165,6 +171,7 @@
     {
       "index": 6,
       "encoder": true,
+      "default_value": 0.5,
       "x": 0.581878,
       "y": 0.309423,
       "w": 0.008567,
@@ -179,6 +186,7 @@
     {
       "index": 7,
       "encoder": false,
+      "default_value": 0.62,
       "x": 0.620626,
       "y": 0.132677,
       "w": 0.012733,
@@ -193,6 +201,7 @@
     {
       "index": 8,
       "encoder": false,
+      "default_value": 0.5,
       "x": 0.671654,
       "y": 0.148462,
       "w": 0.009226,
@@ -207,6 +216,7 @@
     {
       "index": 9,
       "encoder": false,
+      "default_value": 0.65,
       "x": 0.650205,
       "y": 0.285884,
       "w": 0.013007,
@@ -221,6 +231,7 @@
     {
       "index": 10,
       "encoder": false,
+      "default_value": 0.58,
       "x": 0.569301,
       "y": 0.414449,
       "w": 0.011974,
@@ -235,6 +246,7 @@
     {
       "index": 11,
       "encoder": false,
+      "default_value": 0.25,
       "x": 0.546171,
       "y": 0.510513,
       "w": 0.012054,
@@ -249,6 +261,7 @@
     {
       "index": 12,
       "encoder": false,
+      "default_value": 0.35,
       "x": 0.591381,
       "y": 0.523672,
       "w": 0.013007,
@@ -263,6 +276,7 @@
     {
       "index": 13,
       "encoder": false,
+      "default_value": 0.62,
       "x": 0.611616,
       "y": 0.522004,
       "w": 0.012733,
@@ -277,6 +291,7 @@
     {
       "index": 14,
       "encoder": false,
+      "default_value": 0.45,
       "x": 0.671209,
       "y": 0.416432,
       "w": 0.011124,
@@ -291,6 +306,7 @@
     {
       "index": 15,
       "encoder": false,
+      "default_value": 0.38,
       "x": 0.634161,
       "y": 0.524312,
       "w": 0.012733,
@@ -305,6 +321,7 @@
     {
       "index": 16,
       "encoder": false,
+      "default_value": 0.52,
       "x": 0.657736,
       "y": 0.530569,
       "w": 0.010053,
@@ -319,6 +336,7 @@
     {
       "index": 17,
       "encoder": false,
+      "default_value": 0.22,
       "x": 0.740143,
       "y": 0.133782,
       "w": 0.01123,
@@ -333,6 +351,7 @@
     {
       "index": 18,
       "encoder": false,
+      "default_value": 0.62,
       "x": 0.759784,
       "y": 0.142677,
       "w": 0.012733,
@@ -347,6 +366,7 @@
     {
       "index": 19,
       "encoder": false,
+      "default_value": 0.6,
       "x": 0.737783,
       "y": 0.295742,
       "w": 0.012409,
@@ -361,6 +381,7 @@
     {
       "index": 20,
       "encoder": false,
+      "default_value": 0.22,
       "x": 0.759356,
       "y": 0.298493,
       "w": 0.01123,
@@ -375,6 +396,7 @@
     {
       "index": 21,
       "encoder": false,
+      "default_value": 0.25,
       "x": 0.73763,
       "y": 0.444335,
       "w": 0.012054,
@@ -389,6 +411,7 @@
     {
       "index": 22,
       "encoder": false,
+      "default_value": 0.54,
       "x": 0.759555,
       "y": 0.439639,
       "w": 0.010791,
@@ -403,6 +426,7 @@
     {
       "index": 23,
       "encoder": false,
+      "default_value": 0.62,
       "x": 0.737291,
       "y": 0.528831,
       "w": 0.012733,
@@ -417,6 +441,7 @@
     {
       "index": 24,
       "encoder": false,
+      "default_value": 0.65,
       "x": 0.763214,
       "y": 0.528095,
       "w": 0.013007,
@@ -431,6 +456,7 @@
     {
       "index": 25,
       "encoder": false,
+      "default_value": 0.5,
       "x": 0.791166,
       "y": 0.537019,
       "w": 0.009226,
@@ -445,6 +471,7 @@
     {
       "index": 26,
       "encoder": false,
+      "default_value": 0.28,
       "x": 0.827639,
       "y": 0.119728,
       "w": 0.012637,
@@ -459,6 +486,7 @@
     {
       "index": 27,
       "encoder": false,
+      "default_value": 0.62,
       "x": 0.884959,
       "y": 0.129504,
       "w": 0.012733,
@@ -473,6 +501,7 @@
     {
       "index": 28,
       "encoder": false,
+      "default_value": 0.25,
       "x": 0.85705,
       "y": 0.243397,
       "w": 0.012054,
@@ -487,6 +516,7 @@
     {
       "index": 29,
       "encoder": false,
+      "default_value": 0.22,
       "x": 0.82997,
       "y": 0.450416,
       "w": 0.01123,
@@ -501,6 +531,7 @@
     {
       "index": 30,
       "encoder": false,
+      "default_value": 0.62,
       "x": 0.850306,
       "y": 0.528927,
       "w": 0.012733,
@@ -518,6 +549,14 @@
       "index": 0,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "rotary-organ",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.120264,
       "y": 0.378173,
       "w": 0.009226,
@@ -533,6 +572,14 @@
       "index": 1,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "rotary-stop",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.121087,
       "y": 0.473077,
       "w": 0.009226,
@@ -548,6 +595,14 @@
       "index": 2,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": "rotary-slow,rotary-fast",
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.120258,
       "y": 0.567692,
       "w": 0.009226,
@@ -563,6 +618,14 @@
       "index": 3,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "org-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.18265,
       "y": 0.057692,
       "w": 0.011203,
@@ -578,6 +641,14 @@
       "index": 4,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "org-a",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.145027,
       "y": 0.345793,
       "w": 0.011203,
@@ -593,6 +664,14 @@
       "index": 5,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "org-b",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.16337,
       "y": 0.345793,
       "w": 0.011203,
@@ -608,6 +687,14 @@
       "index": 6,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "org-preset",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.155189,
       "y": 0.454183,
       "w": 0.009226,
@@ -623,6 +710,14 @@
       "index": 7,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.150082,
       "y": 0.559519,
       "w": 0.009226,
@@ -638,6 +733,14 @@
       "index": 8,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.160297,
       "y": 0.559519,
       "w": 0.009226,
@@ -653,6 +756,14 @@
       "index": 9,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.191433,
       "y": 0.215385,
       "w": 0.011203,
@@ -668,6 +779,14 @@
       "index": 10,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.219275,
       "y": 0.159231,
       "w": 0.011203,
@@ -683,6 +802,14 @@
       "index": 11,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "org-vib-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.231502,
       "y": 0.220481,
       "w": 0.011203,
@@ -698,6 +825,14 @@
       "index": 12,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "perc-soft",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.259174,
       "y": 0.172788,
       "w": 0.011203,
@@ -713,6 +848,14 @@
       "index": 13,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "perc-fast",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.272086,
       "y": 0.172788,
       "w": 0.011203,
@@ -728,6 +871,14 @@
       "index": 14,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "perc-third",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.28507,
       "y": 0.172788,
       "w": 0.011203,
@@ -743,6 +894,14 @@
       "index": 15,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "perc-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.28402,
       "y": 0.214327,
       "w": 0.011203,
@@ -758,6 +917,14 @@
       "index": 16,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "pno-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.361228,
       "y": 0.059231,
       "w": 0.009226,
@@ -773,6 +940,14 @@
       "index": 17,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "pno-a",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.308618,
       "y": 0.341995,
       "w": 0.009226,
@@ -788,6 +963,14 @@
       "index": 18,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "pno-b",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.325973,
       "y": 0.341995,
       "w": 0.009226,
@@ -803,6 +986,14 @@
       "index": 19,
       "variant": "black",
       "vertical": true,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "pno-t-brt,pno-t-mid,pno-t-sft",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.308695,
       "y": 0.436154,
       "w": 0.005601,
@@ -818,6 +1009,14 @@
       "index": 20,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.312191,
       "y": 0.559519,
       "w": 0.009226,
@@ -833,6 +1032,14 @@
       "index": 21,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.322405,
       "y": 0.559519,
       "w": 0.009226,
@@ -848,6 +1055,14 @@
       "index": 22,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "pno-softrel,pno-strres,pno-pednoise",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.346293,
       "y": 0.146827,
       "w": 0.009226,
@@ -863,6 +1078,14 @@
       "index": 23,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "pno-uni-1,pno-uni-2",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.366722,
       "y": 0.146827,
       "w": 0.009226,
@@ -878,6 +1101,14 @@
       "index": 24,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "pno-touch-m,pno-touch-h",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.346293,
       "y": 0.241058,
       "w": 0.009226,
@@ -893,6 +1124,14 @@
       "index": 25,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "pno-comp-1,pno-comp-2",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.366722,
       "y": 0.241058,
       "w": 0.009226,
@@ -908,6 +1147,14 @@
       "index": 26,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.355519,
       "y": 0.412981,
       "w": 0.011203,
@@ -923,6 +1170,14 @@
       "index": 27,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "m-whl",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.390332,
       "y": 0.095385,
       "w": 0.009226,
@@ -938,6 +1193,14 @@
       "index": 28,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "m-at",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.406914,
       "y": 0.095385,
       "w": 0.009226,
@@ -953,6 +1216,14 @@
       "index": 29,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "m-ped",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.423497,
       "y": 0.095385,
       "w": 0.009226,
@@ -968,6 +1239,14 @@
       "index": 30,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": true,
+      "fx_focus": null,
       "x": 0.442391,
       "y": 0.105721,
       "w": 0.009226,
@@ -983,6 +1262,14 @@
       "index": 31,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.459967,
       "y": 0.100601,
       "w": 0.009226,
@@ -998,6 +1285,14 @@
       "index": 32,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "transp-top-led",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.477538,
       "y": 0.100601,
       "w": 0.009226,
@@ -1013,6 +1308,14 @@
       "index": 33,
       "variant": "red",
       "vertical": false,
+      "toggle_led": "store-led",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.393204,
       "y": 0.167404,
       "w": 0.011203,
@@ -1028,6 +1331,14 @@
       "index": 34,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.389091,
       "y": 0.406875,
       "w": 0.009226,
@@ -1043,6 +1354,14 @@
       "index": 35,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.399305,
       "y": 0.406875,
       "w": 0.009226,
@@ -1058,6 +1377,14 @@
       "index": 36,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "live-led",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.394198,
       "y": 0.48113,
       "w": 0.009226,
@@ -1073,6 +1400,14 @@
       "index": 37,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "scene2-led",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.394198,
       "y": 0.571058,
       "w": 0.009226,
@@ -1088,6 +1423,14 @@
       "index": 38,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "plib-org",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.419697,
       "y": 0.190481,
       "w": 0.009226,
@@ -1103,6 +1446,14 @@
       "index": 39,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "plib-pno",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.438149,
       "y": 0.190481,
       "w": 0.009226,
@@ -1118,6 +1469,14 @@
       "index": 40,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "plib-syn",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.4566,
       "y": 0.190481,
       "w": 0.009226,
@@ -1133,6 +1492,14 @@
       "index": 41,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 1,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.417514,
       "y": 0.512356,
       "w": 0.009226,
@@ -1148,6 +1515,14 @@
       "index": 42,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 2,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.431271,
       "y": 0.512356,
       "w": 0.009226,
@@ -1163,6 +1538,14 @@
       "index": 43,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 3,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.445027,
       "y": 0.512356,
       "w": 0.009226,
@@ -1178,6 +1561,14 @@
       "index": 44,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 4,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.458783,
       "y": 0.512356,
       "w": 0.009226,
@@ -1193,6 +1584,14 @@
       "index": 45,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 5,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.417514,
       "y": 0.569111,
       "w": 0.009226,
@@ -1208,6 +1607,14 @@
       "index": 46,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 6,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.431271,
       "y": 0.569111,
       "w": 0.009226,
@@ -1223,6 +1630,14 @@
       "index": 47,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 7,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.445027,
       "y": 0.569111,
       "w": 0.009226,
@@ -1238,6 +1653,14 @@
       "index": 48,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 8,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.458783,
       "y": 0.569111,
       "w": 0.009226,
@@ -1253,6 +1676,14 @@
       "index": 49,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.477224,
       "y": 0.167404,
       "w": 0.009226,
@@ -1268,6 +1699,14 @@
       "index": 50,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.477229,
       "y": 0.288462,
       "w": 0.009226,
@@ -1283,6 +1722,14 @@
       "index": 51,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "secedit-led",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.477224,
       "y": 0.35524,
       "w": 0.009226,
@@ -1298,6 +1745,14 @@
       "index": 52,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.477229,
       "y": 0.411538,
       "w": 0.009226,
@@ -1313,6 +1768,14 @@
       "index": 53,
       "variant": "grey",
       "vertical": true,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.479041,
       "y": 0.540288,
       "w": 0.005601,
@@ -1328,6 +1791,14 @@
       "index": 54,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "syn-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.550865,
       "y": 0.057692,
       "w": 0.011203,
@@ -1343,6 +1814,14 @@
       "index": 55,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "syn-a",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.49774,
       "y": 0.336995,
       "w": 0.009226,
@@ -1358,6 +1837,14 @@
       "index": 56,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "syn-b",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.51301,
       "y": 0.336995,
       "w": 0.009226,
@@ -1373,6 +1860,14 @@
       "index": 57,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "syn-c",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.528285,
       "y": 0.336995,
       "w": 0.009226,
@@ -1388,6 +1883,14 @@
       "index": 58,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "kb-hold",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.501859,
       "y": 0.451298,
       "w": 0.009226,
@@ -1403,6 +1906,14 @@
       "index": 59,
       "variant": "red",
       "vertical": false,
+      "toggle_led": "arp-run",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.524923,
       "y": 0.448077,
       "w": 0.009226,
@@ -1418,6 +1929,14 @@
       "index": 60,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.507908,
       "y": 0.559519,
       "w": 0.009226,
@@ -1433,6 +1952,14 @@
       "index": 61,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.518122,
       "y": 0.559519,
       "w": 0.009226,
@@ -1448,6 +1975,14 @@
       "index": 62,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": "syn-mode-ana,syn-mode-smp",
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.600329,
       "y": 0.177885,
       "w": 0.009226,
@@ -1463,6 +1998,14 @@
       "index": 63,
       "variant": "black",
       "vertical": true,
+      "toggle_led": "syn-keep",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.602137,
       "y": 0.292115,
       "w": 0.005601,
@@ -1478,6 +2021,14 @@
       "index": 64,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "arp-mode",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.646221,
       "y": 0.17524,
       "w": 0.009226,
@@ -1493,6 +2044,14 @@
       "index": 65,
       "variant": "black",
       "vertical": true,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.696509,
       "y": 0.153077,
       "w": 0.005601,
@@ -1508,6 +2067,14 @@
       "index": 66,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "v-mono,v-leg",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.622683,
       "y": 0.319087,
       "w": 0.009226,
@@ -1523,6 +2090,14 @@
       "index": 67,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "vib-whl,vib-dly,vib-on",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.671679,
       "y": 0.349231,
       "w": 0.009226,
@@ -1538,6 +2113,14 @@
       "index": 68,
       "variant": "black",
       "vertical": true,
+      "toggle_led": "vib-menu",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.697972,
       "y": 0.304471,
       "w": 0.005601,
@@ -1553,6 +2136,14 @@
       "index": 69,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "lfo-wf",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.546926,
       "y": 0.437837,
       "w": 0.009226,
@@ -1568,6 +2159,14 @@
       "index": 70,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "lfo-d1,lfo-d2",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.573311,
       "y": 0.557139,
       "w": 0.009226,
@@ -1583,6 +2182,14 @@
       "index": 71,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "osc-p",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.59306,
       "y": 0.438101,
       "w": 0.009226,
@@ -1598,6 +2205,14 @@
       "index": 72,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "osc-e",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.613159,
       "y": 0.438101,
       "w": 0.009226,
@@ -1613,6 +2228,14 @@
       "index": 73,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "flt-t",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.632619,
       "y": 0.437861,
       "w": 0.009226,
@@ -1628,6 +2251,14 @@
       "index": 74,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "flt-e",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.65173,
       "y": 0.437861,
       "w": 0.009226,
@@ -1643,6 +2274,14 @@
       "index": 75,
       "variant": "black",
       "vertical": true,
+      "toggle_led": "flt-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.677765,
       "y": 0.543293,
       "w": 0.005601,
@@ -1658,6 +2297,14 @@
       "index": 76,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "amp-v1,amp-v2",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.692586,
       "y": 0.43863,
       "w": 0.009226,
@@ -1673,6 +2320,14 @@
       "index": 77,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "syn-uni-1,syn-uni-2",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.692586,
       "y": 0.576635,
       "w": 0.009226,
@@ -1688,6 +2343,14 @@
       "index": 78,
       "variant": "black",
       "vertical": false,
+      "toggle_led": "fx-master-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.762485,
       "y": 0.057692,
       "w": 0.011203,
@@ -1703,6 +2366,14 @@
       "index": 79,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": "organ",
       "x": 0.717293,
       "y": 0.149423,
       "w": 0.009226,
@@ -1718,6 +2389,14 @@
       "index": 80,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": "piano",
       "x": 0.717298,
       "y": 0.285505,
       "w": 0.009226,
@@ -1733,6 +2412,14 @@
       "index": 81,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": "synth",
       "x": 0.717298,
       "y": 0.422356,
       "w": 0.009226,
@@ -1748,6 +2435,14 @@
       "index": 82,
       "variant": "black",
       "vertical": true,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.71911,
       "y": 0.537212,
       "w": 0.005601,
@@ -1763,6 +2458,14 @@
       "index": 83,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.78922,
       "y": 0.189375,
       "w": 0.009226,
@@ -1778,6 +2481,14 @@
       "index": 84,
       "variant": "grey",
       "vertical": true,
+      "toggle_led": "mod1-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.814544,
       "y": 0.160625,
       "w": 0.005601,
@@ -1793,6 +2504,14 @@
       "index": 85,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.788627,
       "y": 0.342837,
       "w": 0.009226,
@@ -1808,6 +2527,14 @@
       "index": 86,
       "variant": "grey",
       "vertical": true,
+      "toggle_led": "mod2-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.814544,
       "y": 0.312933,
       "w": 0.005601,
@@ -1823,6 +2550,14 @@
       "index": 87,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.795264,
       "y": 0.483077,
       "w": 0.009226,
@@ -1838,6 +2573,14 @@
       "index": 88,
       "variant": "grey",
       "vertical": true,
+      "toggle_led": "amp-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.814873,
       "y": 0.546779,
       "w": 0.005601,
@@ -1853,6 +2596,14 @@
       "index": 89,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "dly-fx1,dly-fx2,dly-fx3",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.857903,
       "y": 0.174063,
       "w": 0.009226,
@@ -1868,6 +2619,14 @@
       "index": 90,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.829572,
       "y": 0.266827,
       "w": 0.009226,
@@ -1883,6 +2642,14 @@
       "index": 91,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "dly-hp,dly-lp",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.887047,
       "y": 0.280769,
       "w": 0.009226,
@@ -1898,6 +2665,14 @@
       "index": 92,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "dly-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.886357,
       "y": 0.341538,
       "w": 0.009226,
@@ -1913,6 +2688,14 @@
       "index": 93,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "comp-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.832867,
       "y": 0.561538,
       "w": 0.009226,
@@ -1928,6 +2711,14 @@
       "index": 94,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "rev-brt,rev-drk",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.849985,
       "y": 0.469736,
       "w": 0.009226,
@@ -1943,6 +2734,14 @@
       "index": 95,
       "variant": "black",
       "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.879407,
       "y": 0.478462,
       "w": 0.009226,
@@ -1958,6 +2757,14 @@
       "index": 96,
       "variant": "grey",
       "vertical": false,
+      "toggle_led": "rev-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
       "x": 0.886687,
       "y": 0.543942,
       "w": 0.009226,
@@ -2062,6 +2869,946 @@
         94
       ]
     }
+  ],
+  "fader_ladders": [
+    [
+      {
+        "x": 0.156013,
+        "y": 0.238462,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          155,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.156013,
+        "y": 0.226298,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          147,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.156013,
+        "y": 0.214159,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          139,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.156013,
+        "y": 0.201995,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          131,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.156013,
+        "y": 0.189856,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          123,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.156013,
+        "y": 0.177692,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          116,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.156013,
+        "y": 0.165529,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          108,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.156013,
+        "y": 0.153389,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          100,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.156013,
+        "y": 0.141226,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          92,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.156013,
+        "y": 0.129087,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          84,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.156013,
+        "y": 0.116923,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          474,
+          76,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.167545,
+        "y": 0.238462,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          155,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.167545,
+        "y": 0.226298,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          147,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.167545,
+        "y": 0.214159,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          139,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.167545,
+        "y": 0.201995,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          131,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.167545,
+        "y": 0.189856,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          123,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.167545,
+        "y": 0.177692,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          116,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.167545,
+        "y": 0.165529,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          108,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.167545,
+        "y": 0.153389,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          100,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.167545,
+        "y": 0.141226,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          92,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.167545,
+        "y": 0.129087,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          84,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.167545,
+        "y": 0.116923,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          509,
+          76,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.318451,
+        "y": 0.232308,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          151,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.318451,
+        "y": 0.220144,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          143,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.318451,
+        "y": 0.208005,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          135,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.318451,
+        "y": 0.195841,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          127,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.318451,
+        "y": 0.183702,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          119,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.318451,
+        "y": 0.171538,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          112,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.318451,
+        "y": 0.159375,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          104,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.318451,
+        "y": 0.147236,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          96,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.318451,
+        "y": 0.135072,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          88,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.318451,
+        "y": 0.122933,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          80,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.318451,
+        "y": 0.110769,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          967,
+          72,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.329325,
+        "y": 0.232308,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          151,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.329325,
+        "y": 0.220144,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          143,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.329325,
+        "y": 0.208005,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          135,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.329325,
+        "y": 0.195841,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          127,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.329325,
+        "y": 0.183702,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          119,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.329325,
+        "y": 0.171538,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          112,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.329325,
+        "y": 0.159375,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          104,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.329325,
+        "y": 0.147236,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          96,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.329325,
+        "y": 0.135072,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          88,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.329325,
+        "y": 0.122933,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          80,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.329325,
+        "y": 0.110769,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1000,
+          72,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.50939,
+        "y": 0.230769,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          150,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.50939,
+        "y": 0.218606,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          142,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.50939,
+        "y": 0.206466,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          134,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.50939,
+        "y": 0.194303,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          126,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.50939,
+        "y": 0.182163,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          118,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.50939,
+        "y": 0.17,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          111,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.50939,
+        "y": 0.157837,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          103,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.50939,
+        "y": 0.145697,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          95,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.50939,
+        "y": 0.133534,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          87,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.50939,
+        "y": 0.121394,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          79,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.50939,
+        "y": 0.109231,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1546,
+          71,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.519605,
+        "y": 0.230769,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          150,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.519605,
+        "y": 0.218606,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          142,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.519605,
+        "y": 0.206466,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          134,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.519605,
+        "y": 0.194303,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          126,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.519605,
+        "y": 0.182163,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          118,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.519605,
+        "y": 0.17,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          111,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.519605,
+        "y": 0.157837,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          103,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.519605,
+        "y": 0.145697,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          95,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.519605,
+        "y": 0.133534,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          87,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.519605,
+        "y": 0.121394,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          79,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.519605,
+        "y": 0.109231,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1577,
+          71,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.529819,
+        "y": 0.230769,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          150,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.529819,
+        "y": 0.218606,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          142,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.529819,
+        "y": 0.206466,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          134,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.529819,
+        "y": 0.194303,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          126,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.529819,
+        "y": 0.182163,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          118,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.529819,
+        "y": 0.17,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          111,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.529819,
+        "y": 0.157837,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          103,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.529819,
+        "y": 0.145697,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          95,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.529819,
+        "y": 0.133534,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          87,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.529819,
+        "y": 0.121394,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          79,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.529819,
+        "y": 0.109231,
+        "w": 0.000988,
+        "h": 0.007692,
+        "px": [
+          1608,
+          71,
+          3,
+          5
+        ]
+      }
+    ]
   ],
   "drawbars": [
     {
@@ -2182,10 +3929,897 @@
       ]
     }
   ],
+  "drawbar_ladders": [
+    [
+      {
+        "x": 0.189786,
+        "y": 0.363077,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          576,
+          236,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.189786,
+        "y": 0.381659,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          576,
+          248,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.189786,
+        "y": 0.400216,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          576,
+          260,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.189786,
+        "y": 0.418798,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          576,
+          272,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.189786,
+        "y": 0.437356,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          576,
+          284,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.189786,
+        "y": 0.455937,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          576,
+          296,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.189786,
+        "y": 0.474495,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          576,
+          308,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.189786,
+        "y": 0.493077,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          576,
+          321,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.202842,
+        "y": 0.361538,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          616,
+          235,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.202842,
+        "y": 0.38012,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          616,
+          247,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.202842,
+        "y": 0.398678,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          616,
+          259,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.202842,
+        "y": 0.41726,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          616,
+          271,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.202842,
+        "y": 0.435817,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          616,
+          283,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.202842,
+        "y": 0.454399,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          616,
+          295,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.202842,
+        "y": 0.472957,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          616,
+          307,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.202842,
+        "y": 0.491538,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          616,
+          320,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.215898,
+        "y": 0.363077,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          655,
+          236,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.215898,
+        "y": 0.381659,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          655,
+          248,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.215898,
+        "y": 0.400216,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          655,
+          260,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.215898,
+        "y": 0.418798,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          655,
+          272,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.215898,
+        "y": 0.437356,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          655,
+          284,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.215898,
+        "y": 0.455937,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          655,
+          296,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.215898,
+        "y": 0.474495,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          655,
+          308,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.215898,
+        "y": 0.493077,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          655,
+          321,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.228954,
+        "y": 0.363077,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          695,
+          236,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.228954,
+        "y": 0.381659,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          695,
+          248,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.228954,
+        "y": 0.400216,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          695,
+          260,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.228954,
+        "y": 0.418798,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          695,
+          272,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.228954,
+        "y": 0.437356,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          695,
+          284,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.228954,
+        "y": 0.455937,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          695,
+          296,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.228954,
+        "y": 0.474495,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          695,
+          308,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.228954,
+        "y": 0.493077,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          695,
+          321,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.24201,
+        "y": 0.361538,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          735,
+          235,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.24201,
+        "y": 0.38012,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          735,
+          247,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.24201,
+        "y": 0.398678,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          735,
+          259,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.24201,
+        "y": 0.41726,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          735,
+          271,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.24201,
+        "y": 0.435817,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          735,
+          283,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.24201,
+        "y": 0.454399,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          735,
+          295,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.24201,
+        "y": 0.472957,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          735,
+          307,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.24201,
+        "y": 0.491538,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          735,
+          320,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.255066,
+        "y": 0.363077,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          774,
+          236,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.255066,
+        "y": 0.381659,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          774,
+          248,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.255066,
+        "y": 0.400216,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          774,
+          260,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.255066,
+        "y": 0.418798,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          774,
+          272,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.255066,
+        "y": 0.437356,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          774,
+          284,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.255066,
+        "y": 0.455937,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          774,
+          296,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.255066,
+        "y": 0.474495,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          774,
+          308,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.255066,
+        "y": 0.493077,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          774,
+          321,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.268122,
+        "y": 0.361538,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          814,
+          235,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.268122,
+        "y": 0.38012,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          814,
+          247,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.268122,
+        "y": 0.398678,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          814,
+          259,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.268122,
+        "y": 0.41726,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          814,
+          271,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.268122,
+        "y": 0.435817,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          814,
+          283,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.268122,
+        "y": 0.454399,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          814,
+          295,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.268122,
+        "y": 0.472957,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          814,
+          307,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.268122,
+        "y": 0.491538,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          814,
+          320,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.281178,
+        "y": 0.361538,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          853,
+          235,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.281178,
+        "y": 0.38012,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          853,
+          247,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.281178,
+        "y": 0.398678,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          853,
+          259,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.281178,
+        "y": 0.41726,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          853,
+          271,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.281178,
+        "y": 0.435817,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          853,
+          283,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.281178,
+        "y": 0.454399,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          853,
+          295,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.281178,
+        "y": 0.472957,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          853,
+          307,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.281178,
+        "y": 0.491538,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          853,
+          320,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.294234,
+        "y": 0.363077,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          893,
+          236,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.294234,
+        "y": 0.381659,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          893,
+          248,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.294234,
+        "y": 0.400216,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          893,
+          260,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.294234,
+        "y": 0.418798,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          893,
+          272,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.294234,
+        "y": 0.437356,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          893,
+          284,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.294234,
+        "y": 0.455937,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          893,
+          296,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.294234,
+        "y": 0.474495,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          893,
+          308,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.294234,
+        "y": 0.493077,
+        "w": 0.002306,
+        "h": 0.013077,
+        "px": [
+          893,
+          321,
+          7,
+          9
+        ]
+      }
+    ]
+  ],
   "leds": [
     {
       "index": 0,
       "id": "rotary-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.132455,
       "y": 0.232692,
@@ -2201,6 +4835,9 @@
     {
       "index": 1,
       "id": "rotary-organ",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.119383,
       "y": 0.362788,
@@ -2216,6 +4853,9 @@
     {
       "index": 2,
       "id": "rotary-mic",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.116104,
       "y": 0.405865,
@@ -2231,6 +4871,9 @@
     {
       "index": 3,
       "id": "rotary-stop",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.117844,
       "y": 0.457692,
@@ -2246,6 +4889,9 @@
     {
       "index": 4,
       "id": "rotary-slow",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.115527,
       "y": 0.552308,
@@ -2261,6 +4907,9 @@
     {
       "index": 5,
       "id": "rotary-fast",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.125834,
       "y": 0.552308,
@@ -2276,6 +4925,9 @@
     {
       "index": 6,
       "id": "rotary-morph",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.119249,
       "y": 0.595385,
@@ -2291,6 +4943,9 @@
     {
       "index": 7,
       "id": "org-fx-focus",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.166449,
       "y": 0.072163,
@@ -2306,6 +4961,9 @@
     {
       "index": 8,
       "id": "org-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.178331,
       "y": 0.072163,
@@ -2321,6 +4979,9 @@
     {
       "index": 9,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.155225,
       "y": 0.310072,
@@ -2336,6 +4997,9 @@
     {
       "index": 10,
       "id": "org-a",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.144095,
       "y": 0.329255,
@@ -2351,6 +5015,9 @@
     {
       "index": 11,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.144249,
       "y": 0.377572,
@@ -2366,6 +5033,9 @@
     {
       "index": 12,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.173564,
       "y": 0.310072,
@@ -2381,6 +5051,9 @@
     {
       "index": 13,
       "id": "org-b",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.162438,
       "y": 0.329255,
@@ -2396,6 +5069,9 @@
     {
       "index": 14,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.163664,
       "y": 0.377572,
@@ -2411,6 +5087,9 @@
     {
       "index": 15,
       "id": "org-preset",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.15416,
       "y": 0.441635,
@@ -2426,6 +5105,9 @@
     {
       "index": 16,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.154201,
       "y": 0.602308,
@@ -2441,6 +5123,9 @@
     {
       "index": 17,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.157331,
       "y": 0.602308,
@@ -2456,6 +5141,9 @@
     {
       "index": 18,
       "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.160461,
       "y": 0.602308,
@@ -2471,6 +5159,9 @@
     {
       "index": 19,
       "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.163591,
       "y": 0.602308,
@@ -2486,6 +5177,9 @@
     {
       "index": 20,
       "id": "org-vib-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.227512,
       "y": 0.234183,
@@ -2501,6 +5195,9 @@
     {
       "index": 21,
       "id": "perc-soft",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.260544,
       "y": 0.16024,
@@ -2516,6 +5213,9 @@
     {
       "index": 22,
       "id": "perc-fast",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.273574,
       "y": 0.16024,
@@ -2531,6 +5231,9 @@
     {
       "index": 23,
       "id": "perc-third",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.28593,
       "y": 0.16024,
@@ -2546,6 +5249,9 @@
     {
       "index": 24,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.260297,
       "y": 0.223173,
@@ -2561,6 +5267,9 @@
     {
       "index": 25,
       "id": "perc-on",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.28003,
       "y": 0.228029,
@@ -2576,6 +5285,9 @@
     {
       "index": 26,
       "id": "pno-fx-focus",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.345027,
       "y": 0.072163,
@@ -2591,6 +5303,9 @@
     {
       "index": 27,
       "id": "pno-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.356909,
       "y": 0.072163,
@@ -2606,6 +5321,9 @@
     {
       "index": 28,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.317828,
       "y": 0.306274,
@@ -2621,6 +5339,9 @@
     {
       "index": 29,
       "id": "pno-a",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.306698,
       "y": 0.325457,
@@ -2636,6 +5357,9 @@
     {
       "index": 30,
       "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.306852,
       "y": 0.370697,
@@ -2651,6 +5375,9 @@
     {
       "index": 31,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.335178,
       "y": 0.306274,
@@ -2666,6 +5393,9 @@
     {
       "index": 32,
       "id": "pno-b",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.324053,
       "y": 0.325457,
@@ -2681,6 +5411,9 @@
     {
       "index": 33,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.325278,
       "y": 0.370697,
@@ -2696,6 +5429,9 @@
     {
       "index": 34,
       "id": "pno-t-brt",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.325077,
       "y": 0.451298,
@@ -2711,6 +5447,9 @@
     {
       "index": 35,
       "id": "pno-t-mid",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.325077,
       "y": 0.464856,
@@ -2726,6 +5465,9 @@
     {
       "index": 36,
       "id": "pno-t-sft",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.325077,
       "y": 0.478413,
@@ -2741,6 +5483,9 @@
     {
       "index": 37,
       "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.31631,
       "y": 0.602308,
@@ -2756,6 +5501,9 @@
     {
       "index": 38,
       "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.31944,
       "y": 0.602308,
@@ -2771,6 +5519,9 @@
     {
       "index": 39,
       "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.32257,
       "y": 0.602308,
@@ -2786,6 +5537,9 @@
     {
       "index": 40,
       "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.3257,
       "y": 0.602308,
@@ -2801,6 +5555,9 @@
     {
       "index": 41,
       "id": "pno-softrel",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.342993,
       "y": 0.119183,
@@ -2816,6 +5573,9 @@
     {
       "index": 42,
       "id": "pno-strres",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.342993,
       "y": 0.13274,
@@ -2831,6 +5591,9 @@
     {
       "index": 43,
       "id": "pno-pednoise",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.342365,
       "y": 0.175529,
@@ -2846,6 +5609,9 @@
     {
       "index": 44,
       "id": "pno-uni-2",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.370578,
       "y": 0.119183,
@@ -2861,6 +5627,9 @@
     {
       "index": 45,
       "id": "pno-uni-1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.370377,
       "y": 0.13274,
@@ -2876,6 +5645,9 @@
     {
       "index": 46,
       "id": "pno-touch-m",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.350499,
       "y": 0.213413,
@@ -2891,6 +5663,9 @@
     {
       "index": 47,
       "id": "pno-touch-h",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.350499,
       "y": 0.226971,
@@ -2906,6 +5681,9 @@
     {
       "index": 48,
       "id": "pno-comp-2",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.370578,
       "y": 0.213413,
@@ -2921,6 +5699,9 @@
     {
       "index": 49,
       "id": "pno-comp-1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.370377,
       "y": 0.226971,
@@ -2936,6 +5717,9 @@
     {
       "index": 50,
       "id": "m-whl",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.389425,
       "y": 0.079615,
@@ -2951,6 +5735,9 @@
     {
       "index": 51,
       "id": "m-at",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.407794,
       "y": 0.079615,
@@ -2966,6 +5753,9 @@
     {
       "index": 52,
       "id": "m-ped",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.421628,
       "y": 0.079615,
@@ -2981,6 +5771,9 @@
     {
       "index": 53,
       "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.443626,
       "y": 0.073029,
@@ -2996,6 +5789,9 @@
     {
       "index": 54,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.446098,
       "y": 0.073029,
@@ -3011,6 +5807,9 @@
     {
       "index": 55,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.448569,
       "y": 0.073029,
@@ -3026,6 +5825,9 @@
     {
       "index": 56,
       "id": "mst-clk-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.457213,
       "y": 0.136683,
@@ -3041,6 +5843,9 @@
     {
       "index": 57,
       "id": "transp-top-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.475664,
       "y": 0.079159,
@@ -3056,6 +5861,9 @@
     {
       "index": 58,
       "id": "store-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.393832,
       "y": 0.154856,
@@ -3071,6 +5879,9 @@
     {
       "index": 59,
       "id": "midi-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.392741,
       "y": 0.258293,
@@ -3086,6 +5897,9 @@
     {
       "index": 60,
       "id": "transp-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.401179,
       "y": 0.258293,
@@ -3101,6 +5915,9 @@
     {
       "index": 61,
       "id": "live-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.391686,
       "y": 0.468582,
@@ -3116,6 +5933,9 @@
     {
       "index": 62,
       "id": "numpad-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.39253,
       "y": 0.508293,
@@ -3131,6 +5951,9 @@
     {
       "index": 63,
       "id": "scene2-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.39287,
       "y": 0.55375,
@@ -3146,6 +5969,9 @@
     {
       "index": 64,
       "id": "scene2-ped",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.39392,
       "y": 0.598221,
@@ -3161,6 +5987,9 @@
     {
       "index": 65,
       "id": "plib-org",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.419594,
       "y": 0.176394,
@@ -3176,6 +6005,9 @@
     {
       "index": 66,
       "id": "plib-pno",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.438442,
       "y": 0.176394,
@@ -3191,6 +6023,9 @@
     {
       "index": 67,
       "id": "plib-syn",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.456513,
       "y": 0.176394,
@@ -3206,6 +6041,9 @@
     {
       "index": 68,
       "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": 1,
       "split": false,
       "x": 0.42049,
       "y": 0.499808,
@@ -3221,6 +6059,9 @@
     {
       "index": 69,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 2,
       "split": false,
       "x": 0.434051,
       "y": 0.499808,
@@ -3236,6 +6077,9 @@
     {
       "index": 70,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 3,
       "split": false,
       "x": 0.447791,
       "y": 0.499808,
@@ -3251,6 +6095,9 @@
     {
       "index": 71,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 4,
       "split": false,
       "x": 0.461506,
       "y": 0.499808,
@@ -3266,6 +6113,9 @@
     {
       "index": 72,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 5,
       "split": false,
       "x": 0.420264,
       "y": 0.556562,
@@ -3281,6 +6131,9 @@
     {
       "index": 73,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 6,
       "split": false,
       "x": 0.434051,
       "y": 0.556562,
@@ -3296,6 +6149,9 @@
     {
       "index": 74,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 7,
       "split": false,
       "x": 0.447817,
       "y": 0.556562,
@@ -3311,6 +6167,9 @@
     {
       "index": 75,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 8,
       "split": false,
       "x": 0.461512,
       "y": 0.556562,
@@ -3326,6 +6185,9 @@
     {
       "index": 76,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.477502,
       "y": 0.275913,
@@ -3341,6 +6203,9 @@
     {
       "index": 77,
       "id": "secedit-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.476436,
       "y": 0.338245,
@@ -3356,6 +6221,9 @@
     {
       "index": 78,
       "id": "syn-fx-focus",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
       "split": false,
       "x": 0.534663,
       "y": 0.072163,
@@ -3371,6 +6239,9 @@
     {
       "index": 79,
       "id": "syn-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.546546,
       "y": 0.072163,
@@ -3386,6 +6257,9 @@
     {
       "index": 80,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.505972,
       "y": 0.304447,
@@ -3401,6 +6275,9 @@
     {
       "index": 81,
       "id": "syn-a",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
       "split": false,
       "x": 0.496571,
       "y": 0.321226,
@@ -3416,6 +6293,9 @@
     {
       "index": 82,
       "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.496489,
       "y": 0.36512,
@@ -3431,6 +6311,9 @@
     {
       "index": 83,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.521247,
       "y": 0.304447,
@@ -3446,6 +6329,9 @@
     {
       "index": 84,
       "id": "syn-b",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
       "split": false,
       "x": 0.511841,
       "y": 0.321226,
@@ -3461,6 +6347,9 @@
     {
       "index": 85,
       "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.509782,
       "y": 0.36488,
@@ -3476,6 +6365,9 @@
     {
       "index": 86,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.536486,
       "y": 0.304447,
@@ -3491,6 +6383,9 @@
     {
       "index": 87,
       "id": "syn-c",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
       "split": false,
       "x": 0.527116,
       "y": 0.321226,
@@ -3506,6 +6401,9 @@
     {
       "index": 88,
       "id": "kb-hold",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.500371,
       "y": 0.435529,
@@ -3521,6 +6419,9 @@
     {
       "index": 89,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.499295,
       "y": 0.478053,
@@ -3536,6 +6437,9 @@
     {
       "index": 90,
       "id": "arp-run",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.523208,
       "y": 0.435529,
@@ -3551,6 +6455,9 @@
     {
       "index": 91,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.522544,
       "y": 0.474832,
@@ -3566,6 +6473,9 @@
     {
       "index": 92,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.512026,
       "y": 0.602308,
@@ -3581,6 +6491,9 @@
     {
       "index": 93,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.515157,
       "y": 0.602308,
@@ -3596,6 +6509,9 @@
     {
       "index": 94,
       "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.518287,
       "y": 0.602308,
@@ -3611,6 +6527,9 @@
     {
       "index": 95,
       "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
       "split": false,
       "x": 0.521417,
       "y": 0.602308,
@@ -3626,6 +6545,9 @@
     {
       "index": 96,
       "id": "syn-mode-smp",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.598317,
       "y": 0.137067,
@@ -3641,6 +6563,9 @@
     {
       "index": 97,
       "id": "syn-mode-ana",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.598317,
       "y": 0.152163,
@@ -3656,6 +6581,9 @@
     {
       "index": 98,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.599202,
       "y": 0.218221,
@@ -3671,6 +6599,9 @@
     {
       "index": 99,
       "id": "syn-keep",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.596983,
       "y": 0.273197,
@@ -3686,6 +6617,9 @@
     {
       "index": 100,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.61911,
       "y": 0.198077,
@@ -3701,6 +6635,9 @@
     {
       "index": 101,
       "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.621041,
       "y": 0.215673,
@@ -3716,6 +6653,9 @@
     {
       "index": 102,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.648893,
       "y": 0.144519,
@@ -3731,6 +6671,9 @@
     {
       "index": 103,
       "id": "arp-mode",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.648893,
       "y": 0.159615,
@@ -3746,6 +6689,9 @@
     {
       "index": 104,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.666799,
       "y": 0.208077,
@@ -3761,6 +6707,9 @@
     {
       "index": 105,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.694646,
       "y": 0.133606,
@@ -3776,6 +6725,9 @@
     {
       "index": 106,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.693184,
       "y": 0.216394,
@@ -3791,6 +6743,9 @@
     {
       "index": 107,
       "id": "v-mono",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.621679,
       "y": 0.274856,
@@ -3806,6 +6761,9 @@
     {
       "index": 108,
       "id": "v-leg",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.621679,
       "y": 0.289952,
@@ -3821,6 +6779,9 @@
     {
       "index": 109,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.61911,
       "y": 0.362837,
@@ -3836,6 +6797,9 @@
     {
       "index": 110,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.628218,
       "y": 0.362837,
@@ -3851,6 +6815,9 @@
     {
       "index": 111,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.651683,
       "y": 0.351923,
@@ -3866,6 +6833,9 @@
     {
       "index": 112,
       "id": "vib-whl",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.675638,
       "y": 0.274856,
@@ -3881,6 +6851,9 @@
     {
       "index": 113,
       "id": "vib-dly",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.675638,
       "y": 0.288413,
@@ -3896,6 +6869,9 @@
     {
       "index": 114,
       "id": "vib-on",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.675638,
       "y": 0.301971,
@@ -3911,6 +6887,9 @@
     {
       "index": 115,
       "id": "vib-menu",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.696108,
       "y": 0.285,
@@ -3926,6 +6905,9 @@
     {
       "index": 116,
       "id": "lfo-wf",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.544316,
       "y": 0.420144,
@@ -3941,6 +6923,9 @@
     {
       "index": 117,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.545459,
       "y": 0.469976,
@@ -3956,6 +6941,9 @@
     {
       "index": 118,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.56824,
       "y": 0.478077,
@@ -3971,6 +6959,9 @@
     {
       "index": 119,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.544316,
       "y": 0.574327,
@@ -3986,6 +6977,9 @@
     {
       "index": 120,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.546247,
       "y": 0.591923,
@@ -4001,6 +6995,9 @@
     {
       "index": 121,
       "id": "lfo-d1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.572946,
       "y": 0.531178,
@@ -4016,6 +7013,9 @@
     {
       "index": 122,
       "id": "lfo-d2",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.572946,
       "y": 0.543606,
@@ -4031,6 +7031,9 @@
     {
       "index": 123,
       "id": "osc-p",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.590687,
       "y": 0.420553,
@@ -4046,6 +7049,9 @@
     {
       "index": 124,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.589183,
       "y": 0.469832,
@@ -4061,6 +7067,9 @@
     {
       "index": 125,
       "id": "osc-e",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.611038,
       "y": 0.420553,
@@ -4076,6 +7085,9 @@
     {
       "index": 126,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.610899,
       "y": 0.469832,
@@ -4091,6 +7103,9 @@
     {
       "index": 127,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.590584,
       "y": 0.589712,
@@ -4106,6 +7121,9 @@
     {
       "index": 128,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.611141,
       "y": 0.587404,
@@ -4121,6 +7139,9 @@
     {
       "index": 129,
       "id": "flt-t",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.633273,
       "y": 0.420312,
@@ -4136,6 +7157,9 @@
     {
       "index": 130,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.631301,
       "y": 0.469832,
@@ -4151,6 +7175,9 @@
     {
       "index": 131,
       "id": "flt-e",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.649609,
       "y": 0.420312,
@@ -4166,6 +7193,9 @@
     {
       "index": 132,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.649176,
       "y": 0.469832,
@@ -4181,6 +7211,9 @@
     {
       "index": 133,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.669929,
       "y": 0.478077,
@@ -4196,6 +7229,9 @@
     {
       "index": 134,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.635868,
       "y": 0.589712,
@@ -4211,6 +7247,9 @@
     {
       "index": 135,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.653048,
       "y": 0.589712,
@@ -4226,6 +7265,9 @@
     {
       "index": 136,
       "id": "flt-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.675772,
       "y": 0.526635,
@@ -4241,6 +7283,9 @@
     {
       "index": 137,
       "id": "amp-env-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.691227,
       "y": 0.419952,
@@ -4256,6 +7301,9 @@
     {
       "index": 138,
       "id": "amp-v1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.694893,
       "y": 0.485385,
@@ -4271,6 +7319,9 @@
     {
       "index": 139,
       "id": "amp-v2",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.699032,
       "y": 0.485385,
@@ -4286,6 +7337,9 @@
     {
       "index": 140,
       "id": "syn-uni-2",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.696443,
       "y": 0.545913,
@@ -4301,6 +7355,9 @@
     {
       "index": 141,
       "id": "syn-uni-1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.696242,
       "y": 0.559471,
@@ -4316,6 +7373,9 @@
     {
       "index": 142,
       "id": "fx-master-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.758165,
       "y": 0.072163,
@@ -4331,6 +7391,9 @@
     {
       "index": 143,
       "id": "fxf-org-a",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.721,
       "y": 0.12125,
@@ -4346,6 +7409,9 @@
     {
       "index": 144,
       "id": "fxf-pno-a",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.71911,
       "y": 0.257332,
@@ -4361,6 +7427,9 @@
     {
       "index": 145,
       "id": "fxf-pno-b",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.7229,
       "y": 0.257332,
@@ -4376,6 +7445,9 @@
     {
       "index": 146,
       "id": "fxf-syn-a",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
       "split": false,
       "x": 0.717545,
       "y": 0.394183,
@@ -4391,6 +7463,9 @@
     {
       "index": 147,
       "id": "fxf-syn-b",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
       "split": false,
       "x": 0.721005,
       "y": 0.394183,
@@ -4406,6 +7481,9 @@
     {
       "index": 148,
       "id": "fxf-syn-c",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
       "split": false,
       "x": 0.724465,
       "y": 0.394183,
@@ -4421,6 +7499,9 @@
     {
       "index": 149,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.736738,
       "y": 0.198077,
@@ -4436,6 +7517,9 @@
     {
       "index": 150,
       "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.739806,
       "y": 0.218077,
@@ -4451,6 +7535,9 @@
     {
       "index": 151,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.759607,
       "y": 0.208077,
@@ -4466,6 +7553,9 @@
     {
       "index": 152,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.782985,
       "y": 0.218846,
@@ -4481,6 +7571,9 @@
     {
       "index": 153,
       "id": "mod1-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.818616,
       "y": 0.146538,
@@ -4496,6 +7589,9 @@
     {
       "index": 154,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.739477,
       "y": 0.360385,
@@ -4511,6 +7607,9 @@
     {
       "index": 155,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.758428,
       "y": 0.360385,
@@ -4526,6 +7625,9 @@
     {
       "index": 156,
       "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.785333,
       "y": 0.37113,
@@ -4541,6 +7643,9 @@
     {
       "index": 157,
       "id": "mod2-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.818616,
       "y": 0.298846,
@@ -4556,6 +7661,9 @@
     {
       "index": 158,
       "id": "amp-drive-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.740764,
       "y": 0.426082,
@@ -4571,6 +7679,9 @@
     {
       "index": 159,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.738571,
       "y": 0.508149,
@@ -4586,6 +7697,9 @@
     {
       "index": 160,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.792298,
       "y": 0.51137,
@@ -4601,6 +7715,9 @@
     {
       "index": 161,
       "id": "amp-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.818946,
       "y": 0.532692,
@@ -4616,6 +7733,9 @@
     {
       "index": 162,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.828434,
       "y": 0.184904,
@@ -4631,6 +7751,9 @@
     {
       "index": 163,
       "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.828007,
       "y": 0.2025,
@@ -4646,6 +7769,9 @@
     {
       "index": 164,
       "id": "dly-fx1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.861316,
       "y": 0.13637,
@@ -4661,6 +7787,9 @@
     {
       "index": 165,
       "id": "dly-fx2",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.861316,
       "y": 0.149135,
@@ -4676,6 +7805,9 @@
     {
       "index": 166,
       "id": "dly-fx3",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.861316,
       "y": 0.161899,
@@ -4691,6 +7823,9 @@
     {
       "index": 167,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.854937,
       "y": 0.200817,
@@ -4706,6 +7841,9 @@
     {
       "index": 168,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.883474,
       "y": 0.194904,
@@ -4721,6 +7859,9 @@
     {
       "index": 169,
       "id": "dly-tap",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.827677,
       "y": 0.253125,
@@ -4736,6 +7877,9 @@
     {
       "index": 170,
       "id": "dly-ana",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.827729,
       "y": 0.29512,
@@ -4751,6 +7895,9 @@
     {
       "index": 171,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.856368,
       "y": 0.307212,
@@ -4766,6 +7913,9 @@
     {
       "index": 172,
       "id": "dly-hp",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.890949,
       "y": 0.254303,
@@ -4781,6 +7931,9 @@
     {
       "index": 173,
       "id": "dly-lp",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.890949,
       "y": 0.267067,
@@ -4796,6 +7949,9 @@
     {
       "index": 174,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.897364,
       "y": 0.309063,
@@ -4811,6 +7967,9 @@
     {
       "index": 175,
       "id": "dly-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.879026,
       "y": 0.364856,
@@ -4826,6 +7985,9 @@
     {
       "index": 176,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.884416,
       "y": 0.371923,
@@ -4841,6 +8003,9 @@
     {
       "index": 177,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.830606,
       "y": 0.420601,
@@ -4856,6 +8021,9 @@
     {
       "index": 178,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.831667,
       "y": 0.537813,
@@ -4871,6 +8039,9 @@
     {
       "index": 179,
       "id": "comp-on",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.825983,
       "y": 0.584447,
@@ -4886,6 +8057,9 @@
     {
       "index": 180,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.830926,
       "y": 0.591923,
@@ -4901,6 +8075,9 @@
     {
       "index": 181,
       "id": "rev-brt",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.849423,
       "y": 0.441731,
@@ -4916,6 +8093,9 @@
     {
       "index": 182,
       "id": "rev-drk",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.850335,
       "y": 0.456034,
@@ -4931,6 +8111,9 @@
     {
       "index": 183,
       "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.890918,
       "y": 0.505048,
@@ -4946,6 +8129,9 @@
     {
       "index": 184,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.849964,
       "y": 0.594327,
@@ -4961,6 +8147,9 @@
     {
       "index": 185,
       "id": "rev-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.879685,
       "y": 0.56726,
@@ -4976,6 +8165,9 @@
     {
       "index": 186,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": false,
       "x": 0.884746,
       "y": 0.574327,
@@ -4991,6 +8183,9 @@
     {
       "index": 187,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": true,
       "x": 0.184638,
       "y": 0.635385,
@@ -5006,6 +8201,9 @@
     {
       "index": 188,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": true,
       "x": 0.257414,
       "y": 0.635385,
@@ -5021,6 +8219,9 @@
     {
       "index": 189,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": true,
       "x": 0.338921,
       "y": 0.635385,
@@ -5036,6 +8237,9 @@
     {
       "index": 190,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": true,
       "x": 0.408783,
       "y": 0.635385,
@@ -5051,6 +8255,9 @@
     {
       "index": 191,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": true,
       "x": 0.47865,
       "y": 0.635385,
@@ -5066,6 +8273,9 @@
     {
       "index": 192,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": true,
       "x": 0.548517,
       "y": 0.635385,
@@ -5081,6 +8291,9 @@
     {
       "index": 193,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": true,
       "x": 0.618379,
       "y": 0.635385,
@@ -5096,6 +8309,9 @@
     {
       "index": 194,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": true,
       "x": 0.688246,
       "y": 0.635385,
@@ -5111,6 +8327,9 @@
     {
       "index": 195,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": true,
       "x": 0.758109,
       "y": 0.635385,
@@ -5126,6 +8345,9 @@
     {
       "index": 196,
       "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
       "split": true,
       "x": 0.827976,
       "y": 0.635385,

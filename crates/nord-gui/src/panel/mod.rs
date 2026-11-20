@@ -3,6 +3,7 @@
 //! Spec: `docs/specs/visual-style-and-panel.md`. One file per bay (Phase 6b B4).
 
 mod aux_flag;
+pub mod baked_view;
 mod bay_effects;
 mod bay_master;
 mod bay_organ;
@@ -108,6 +109,10 @@ use prelude::*;
 
 /// Draw the whole front panel (or the focused section) at the current view.
 pub fn render_stage4_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handle: &AudioHandle) {
+    if state.use_baked_plate {
+        baked_view::render_baked_panel(ui, state, audio_handle);
+        return;
+    }
     // One lock-free read of the engine per frame; the bays take what they show from it.
     let now_ms = (ui.input(|i| i.time) * 1000.0) as u32;
     state.telemetry = audio_handle.telemetry().latest();

@@ -102,8 +102,13 @@ impl Stage4App {
         let active_keys = Arc::new(std::array::from_fn(|_| AtomicBool::new(false)));
         let audio_handle = start_audio_and_midi(Arc::clone(&active_keys));
 
+        let state = Stage4PanelState {
+            use_baked_plate: true,
+            ..Default::default()
+        };
+
         let mut app = Self {
-            state: Stage4PanelState::default(),
+            state,
             library: BackupLibraryState::new(),
             audio_handle,
             active_keys,
