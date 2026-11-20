@@ -116,6 +116,12 @@ pub fn draw_editor<W: ParamWriter>(
 ) {
     sync_panel_from_params(&st.index, &mut st.panel);
 
+    // The shared panel would otherwise drive egui's zoom itself (fighting this one every frame
+    // and flickering); the editor always shows the whole panel.
+    st.panel.view.host_scaled = true;
+    st.panel.view.focus = None;
+    st.panel.view.panorama = None;
+
     // egui_baseview ignores egui's zoom factor (see the module doc): keep it at 1.
     if (ctx.zoom_factor() - 1.0).abs() > 1e-3 {
         ctx.set_zoom_factor(1.0);
@@ -230,6 +236,35 @@ mod tests {
         let want = DEFAULT_SIZE.0 as f32 / PANEL_W;
         assert!((t.scaling - want).abs() < 1e-4, "{} vs {want}", t.scaling);
         assert!(t.translation.x.abs() < 1.0 && t.translation.y.abs() < 1.0);
+    }
+
+    /// Regression: the shared panel used to set its own zoom every frame (flip-flop with the
+    /// editor's), so the drawn size alternated frame to frame (flicker in FL Studio).
+    #[test]
+    fn the_drawn_size_is_stable_across_frames() {
+        let (_params, mut st, _rx) = state();
+        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
+        let ctx = Context::default();
+        let size = Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
+        let input = egui::RawInput {
+            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
+            ..Default::default()
+        };
+        let mut bounds = vec![];
+        for _ in 0..6 {
+            let out = ctx.run(input.clone(), |ctx| {
+                draw_editor(ctx, &egui_state, &mut st, Recorder::default());
+            });
+            let r = out.shapes.iter().fold(Rect::NOTHING, |r, s| {
+                r.union(s.shape.visual_bounding_rect().intersect(s.clip_rect))
+            });
+            bounds.push(r);
+            assert!((ctx.zoom_factor() - 1.0).abs() < 1e-6);
+        }
+        for r in &bounds {
+            assert!(r.max.x <= size.x + 1.0 && r.max.y <= size.y + 1.0, "{r:?}");
+            assert_eq!(*r, bounds[0]);
+        }
     }
 
     #[test]
