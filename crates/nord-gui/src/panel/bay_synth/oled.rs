@@ -29,6 +29,38 @@ pub(super) fn paint_oled(
 ) {
     sui.mark("synth.oled");
     let disp = glass_rect(o);
+    let dial_xs = [
+        rect_or_empty(DIAL_IDS[0], o).center().x,
+        rect_or_empty(DIAL_IDS[1], o).center().x,
+        rect_or_empty(DIAL_IDS[2], o).center().x,
+    ];
+    paint_oled_inner(p, disp, dial_xs, sui, sample, hint);
+}
+
+/// Draw the ARM-verified Synth OLED directly inside an arbitrary `disp` rect (used by `baked_view`).
+pub(crate) fn paint_oled_in_rect(
+    p: &Painter,
+    disp: Rect,
+    sui: &mut SynthUi,
+    sample: Option<&str>,
+    hint: Option<&str>,
+) {
+    let dial_xs = [
+        disp.left() + disp.width() * 0.17,
+        disp.left() + disp.width() * 0.50,
+        disp.left() + disp.width() * 0.83,
+    ];
+    paint_oled_inner(p, disp, dial_xs, sui, sample, hint);
+}
+
+fn paint_oled_inner(
+    p: &Painter,
+    disp: Rect,
+    dial_xs: [f32; 3],
+    sui: &mut SynthUi,
+    sample: Option<&str>,
+    hint: Option<&str>,
+) {
     p.rect_filled(disp.expand(2.5), 3.0, Color32::from_rgb(10, 11, 13));
     p.rect_filled(disp, 2.0, OLED_BG);
     let p = p.with_clip_rect(disp);
@@ -65,7 +97,7 @@ pub(super) fn paint_oled(
     paint_graphic(&p, area, &v.graphic);
     for (i, s) in v.soft.iter().enumerate() {
         let Some(s) = s else { continue };
-        let x = rect_or_empty(DIAL_IDS[i], o).center().x;
+        let x = dial_xs[i];
         let col = if s.dim { FG.gamma_multiply(0.4) } else { FG };
         soft_text(&p, disp, x, disp.bottom() - 21.5, &s.value, col);
         // VERIFIED (research note s16.4): the labels are small inverted tabs, not outlined boxes.

@@ -92,6 +92,8 @@ pub struct BakedButton {
     pub split_btn: bool,
     #[serde(default)]
     pub fx_focus: Option<String>,
+    #[serde(default)]
+    pub cycle_btn: Option<String>,
     pub x: f32,
     pub y: f32,
     pub w: f32,
@@ -122,6 +124,22 @@ fn default_led_color() -> String {
     "red".to_string()
 }
 
+/// Triangular selector LED metadata from `panel_layout.json`.
+#[derive(Clone, Debug, Deserialize)]
+pub struct BakedTri {
+    pub index: usize,
+    pub group: String,
+    pub tri_idx: usize,
+    pub count: usize,
+    pub dir: String,
+    pub on: bool,
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+    pub px: [i32; 4],
+}
+
 /// Keybed key metadata (`midi` 21..=108) from `panel_layout.json`.
 #[derive(Clone, Debug, Deserialize)]
 pub struct BakedKey {
@@ -148,6 +166,8 @@ pub struct BakedPanelLayout {
     #[serde(default)]
     pub drawbar_ladders: Vec<Vec<BakedRect>>,
     pub leds: Vec<BakedLed>,
+    #[serde(default)]
+    pub tris: Vec<BakedTri>,
     pub oleds: BTreeMap<String, BakedRect>,
     pub wheels: BTreeMap<String, BakedRect>,
     pub keys: Vec<BakedKey>,
@@ -239,6 +259,46 @@ impl BakedPanelAssets {
                 pos2(rect.left() + tile.u_end * rect.width(), rect.bottom()),
             );
             painter.image(tile.texture.id(), tile_rect, full_uv, Color32::WHITE);
+        }
+    }
+
+    /// Re-paint a normalized `[0..1]` sub-region of the static plate (e.g. an unpressed black key
+    /// on top of an adjacent pressed white key).
+    pub fn paint_plate_region(
+        &self,
+        painter: &Painter,
+        plate_rect: Rect,
+        nx: f32,
+        ny: f32,
+        nw: f32,
+        nh: f32,
+    ) {
+        let nx0 = nx.clamp(0.0, 1.0);
+        let nx1 = (nx + nw).clamp(0.0, 1.0);
+        let ny0 = ny.clamp(0.0, 1.0);
+        let ny1 = (ny + nh).clamp(0.0, 1.0);
+        for tile in &self.plate_tiles {
+            let ix0 = nx0.max(tile.u_start);
+            let ix1 = nx1.min(tile.u_end);
+            if ix1 <= ix0 {
+                continue;
+            }
+            let span = (tile.u_end - tile.u_start).max(1e-6);
+            let uv = Rect::from_min_max(
+                pos2((ix0 - tile.u_start) / span, ny0),
+                pos2((ix1 - tile.u_start) / span, ny1),
+            );
+            let dst = Rect::from_min_max(
+                pos2(
+                    plate_rect.left() + ix0 * plate_rect.width(),
+                    plate_rect.top() + ny0 * plate_rect.height(),
+                ),
+                pos2(
+                    plate_rect.left() + ix1 * plate_rect.width(),
+                    plate_rect.top() + ny1 * plate_rect.height(),
+                ),
+            );
+            painter.image(tile.texture.id(), dst, uv, Color32::WHITE);
         }
     }
 

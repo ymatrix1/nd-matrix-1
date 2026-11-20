@@ -1860,6 +1860,7 @@
       prog_btn: el.getAttribute("data-prog-btn") ? Number(el.getAttribute("data-prog-btn")) : null,
       split_btn: el.hasAttribute("data-split-btn"),
       fx_focus: el.getAttribute("data-fx-focus") || null,
+      cycle_btn: el.getAttribute("data-cycle-btn") || null,
       ...norm(el)
     }));
     const faders = Array.from(document.querySelectorAll("[data-fader-track]")).map((el, i) => ({
@@ -1889,6 +1890,24 @@
       split: el.classList.contains("split-led"),
       ...norm(el)
     }));
+    const tris = Array.from(document.querySelectorAll("[data-cycle-group] [data-tri-idx]")).map((el, i) => {
+      const grp = el.closest("[data-cycle-group]");
+      return {
+        index: i,
+        group: grp ? grp.getAttribute("data-cycle-group") || "" : "",
+        tri_idx: Number(el.getAttribute("data-tri-idx")),
+        count: grp ? Number(grp.getAttribute("data-cycle-count")) || 6 : 6,
+        dir: el.classList.contains("left")
+          ? "left"
+          : el.classList.contains("right")
+            ? "right"
+            : el.classList.contains("up")
+              ? "up"
+              : "down",
+        on: el.classList.contains("on"),
+        ...norm(el)
+      };
+    });
     const oleds = {
       main: norm(document.getElementById("main-oled")),
       synth: norm(document.querySelector(".oled-synth"))
@@ -1913,6 +1932,7 @@
       drawbars,
       drawbar_ladders,
       leds,
+      tris,
       oleds,
       wheels,
       keys

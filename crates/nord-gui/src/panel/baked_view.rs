@@ -5,7 +5,7 @@
 
 use super::prelude::*;
 use crate::baked::BakedPanelAssets;
-use egui::{pos2, vec2, Align2, Color32, FontId, Id, Rect, Sense, Ui};
+use egui::{pos2, vec2, Color32, Id, Rect, Sense, Ui};
 
 fn norm_rect(x: f32, y: f32, w: f32, h: f32, container: Rect) -> Rect {
     Rect::from_min_size(
@@ -37,7 +37,9 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
     // 1. Pitch Stick & Mod Wheel
     if let Some(r_pitch) = assets.layout.wheels.get("pitch_stick") {
         let rect = r_pitch.in_rect(plate_rect);
-        let resp = ui.interact(rect, ui.id().with("baked_pitch"), Sense::click_and_drag());
+        let resp = ui
+            .interact(rect, ui.id().with("baked_pitch"), Sense::click_and_drag())
+            .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
         if resp.dragged() {
             state.pitch_stick = (state.pitch_stick + resp.drag_delta().x * 0.025).clamp(-1.0, 1.0);
             let pb = ((state.pitch_stick + 1.0) * 8192.0).round() as u16;
@@ -53,11 +55,12 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
         }
         let travel = rect.width() * 0.22 * state.pitch_stick;
         let center = rect.center() + vec2(travel, -travel * 0.17);
+        // .pitch-stick-wood is 34x22 px + 14 px sprite padding on each side = 62x50 px.
         assets.paint_sprite_rotated(
             &p,
             "pitch_stick",
             center,
-            vec2(38.0 * scale_x, 26.0 * scale_x),
+            vec2(62.0 * scale_x, 50.0 * scale_x),
             -0.174,
             Color32::WHITE,
         );
@@ -65,9 +68,21 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
 
     if let Some(r_mod) = assets.layout.wheels.get("mod_wheel") {
         let rect = r_mod.in_rect(plate_rect);
-        let resp = ui.interact(rect, ui.id().with("baked_mod"), Sense::click_and_drag());
-        if resp.dragged() {
-            state.mod_wheel = (state.mod_wheel - resp.drag_delta().y * 0.012).clamp(0.0, 1.0);
+        let resp = ui
+            .interact(rect, ui.id().with("baked_mod"), Sense::click_and_drag())
+            .on_hover_cursor(egui::CursorIcon::ResizeVertical);
+        let scroll_dy = if resp.hovered() {
+            ui.input(|i| i.smooth_scroll_delta.y)
+        } else {
+            0.0
+        };
+        if resp.dragged() || scroll_dy.abs() > 0.1 {
+            let delta = if resp.dragged() {
+                -resp.drag_delta().y * 0.012
+            } else {
+                scroll_dy * 0.0025
+            };
+            state.mod_wheel = (state.mod_wheel + delta).clamp(0.0, 1.0);
             let val = (state.mod_wheel * 127.0).round() as u8;
             audio_handle.send_keyboard_midi(MidiEvent::ControlChange {
                 channel: 0,
@@ -87,32 +102,55 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             }
         }
         let mod_tilt: f32 = -0.174;
-        let drum_size = vec2(22.0 * scale_x, 94.0 * scale_x);
+        // .mod-wheel-drum is 15x86 px + 14 px sprite padding on each side = 43x114 px.
         assets.paint_sprite_rotated(
             &p,
             "mod_wheel_drum",
             rect.center(),
-            drum_size,
+            vec2(43.0 * scale_x, 114.0 * scale_x),
             mod_tilt,
             Color32::WHITE,
         );
-        // Draw the moving grip dimple/groove along the tilted drum axis so rotation is visible.
+        // Rolling stone-wheel ribs + recessed dimple along the tilted drum axis so the wheel
+        // visibly rolls just like background-position in panel.js.
+        let drum_h = 86.0 * scale_x;
+        let drum_w = 13.0 * scale_x;
         let axis = vec2(-mod_tilt.sin(), mod_tilt.cos());
-        let along = (0.5 - state.mod_wheel) * drum_size.y * 0.62;
-        let groove_center = rect.center() + axis * along;
         let (sin, cos) = mod_tilt.sin_cos();
-        let (gw, gh) = (drum_size.x * 0.64 * 0.5, 4.5 * scale_x * 0.5);
-        let pts = [(-1.0_f32, -1.0_f32), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)]
-            .map(|(x, y)| {
-                let (px, py) = (x * gw, y * gh);
-                groove_center + vec2(px * cos - py * sin, px * sin + py * cos)
-            })
-            .to_vec();
-        p.add(egui::Shape::convex_polygon(
-            pts,
-            Color32::from_black_alpha(150),
-            egui::Stroke::new(0.9 * scale_x, Color32::from_white_alpha(120)),
-        ));
+        let rib_pitch = 9.0 * scale_x;
+        let phase = (-state.mod_wheel * 36.0 * scale_x).rem_euclid(rib_pitch);
+        let half_h = drum_h * 0.44;
+        let mut y_off = -half_h + phase;
+        while y_off <= half_h {
+            let t = y_off / half_h;
+            let alpha = ((1.0 - t * t).max(0.0) * 42.0) as u8;
+            let rc = rect.center() + axis * y_off;
+            let hw = drum_w * 0.42;
+            p.line_segment(
+                [rc - vec2(hw * cos, hw * sin), rc + vec2(hw * cos, hw * sin)],
+                egui::Stroke::new(1.0 * scale_x, Color32::from_black_alpha(alpha)),
+            );
+            y_off += rib_pitch;
+        }
+        let along = (0.24 - state.mod_wheel * 0.62) * drum_h;
+        let dimple_center = rect.center() + axis * along;
+        let rx = 5.0 * scale_x;
+        let ry = 5.5 * scale_x;
+        p.circle_filled(
+            dimple_center + vec2(0.0, 0.8 * scale_x),
+            rx.max(ry),
+            Color32::from_white_alpha(75),
+        );
+        p.circle_filled(
+            dimple_center,
+            rx.max(ry) * 0.92,
+            Color32::from_rgba_unmultiplied(36, 40, 46, 210),
+        );
+        p.circle_filled(
+            dimple_center + vec2(0.8 * scale_x, -0.6 * scale_x),
+            rx * 0.55,
+            Color32::from_white_alpha(60),
+        );
     }
 
     // 2. Knobs & Encoders
@@ -121,11 +159,13 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
         let rect = norm_rect(k.x, k.y, k.w, k.h, plate_rect);
         let hit_size = if k.encoder { 28.0 } else { 30.0 } * scale_x;
         let hit_rect = Rect::from_center_size(rect.center(), vec2(hit_size, hit_size));
-        let resp = ui.interact(
-            hit_rect,
-            ui.id().with(("bk", k.index)),
-            Sense::click_and_drag(),
-        );
+        let resp = ui
+            .interact(
+                hit_rect,
+                ui.id().with(("bk", k.index)),
+                Sense::click_and_drag(),
+            )
+            .on_hover_cursor(egui::CursorIcon::ResizeVertical);
         let mut val: f32 = ui.ctx().data(|d| {
             d.get_temp::<f32>(knob_vals_id.with(k.index))
                 .unwrap_or(if k.index == 0 {
@@ -134,8 +174,17 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                     k.default_value
                 })
         });
-        if resp.dragged() {
-            let delta = -resp.drag_delta().y * 0.007;
+        let scroll_dy = if resp.hovered() {
+            ui.input(|i| i.smooth_scroll_delta.y)
+        } else {
+            0.0
+        };
+        if resp.dragged() || scroll_dy.abs() > 0.1 {
+            let delta = if resp.dragged() {
+                -resp.drag_delta().y * 0.007
+            } else {
+                scroll_dy * 0.0018
+            };
             val = if k.encoder {
                 val + delta
             } else {
@@ -177,9 +226,18 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             Color32::from_black_alpha(110),
         );
         assets.paint_sprite_rotated(&p, sprite, rect.center(), size, angle, tint);
+        if k.encoder {
+            let dot_r = 8.0 * scale_x;
+            let (s, c) = (angle - std::f32::consts::FRAC_PI_2).sin_cos();
+            p.circle_filled(
+                rect.center() + vec2(c * dot_r, s * dot_r),
+                1.6 * scale_x,
+                Color32::from_rgba_unmultiplied(215, 224, 234, 190),
+            );
+        }
     }
 
-    // Load / initialize live LED states from the HTML/CSS prototype defaults
+    // Load / initialize live LED states and triangular matrix states from HTML/CSS defaults
     let leds_id = Id::new("ns4_baked_leds");
     let mut led_states: Vec<(bool, String)> = ui.ctx().data(|d| {
         d.get_temp::<Vec<(bool, String)>>(leds_id)
@@ -193,11 +251,19 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                     .collect()
             })
     });
+    let tris_id = Id::new("ns4_baked_tris");
+    let mut tri_states: Vec<bool> = ui.ctx().data(|d| {
+        d.get_temp::<Vec<bool>>(tris_id)
+            .filter(|v| v.len() == assets.layout.tris.len())
+            .unwrap_or_else(|| assets.layout.tris.iter().map(|t| t.on).collect())
+    });
 
     // 3. Pill Buttons (wired 1:1 to HTML/JS LED + Program behaviors)
     for b in &assets.layout.buttons {
         let rect = norm_rect(b.x, b.y, b.w, b.h, plate_rect);
-        let resp = ui.interact(rect, ui.id().with(("bb", b.index)), Sense::click());
+        let resp = ui
+            .interact(rect, ui.id().with(("bb", b.index)), Sense::click())
+            .on_hover_cursor(egui::CursorIcon::PointingHand);
         let down = resp.is_pointer_button_down_on();
         if resp.clicked() {
             let find_led = |id: &str| {
@@ -340,6 +406,26 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                     }
                 }
             }
+            if let Some(group_name) = b.cycle_btn.as_deref() {
+                let mut cur: Option<usize> = None;
+                let mut count: usize = 6;
+                for (ti, t) in assets.layout.tris.iter().enumerate() {
+                    if t.group == group_name {
+                        count = t.count.max(1);
+                        if tri_states[ti] {
+                            cur = Some(t.tri_idx);
+                        }
+                    }
+                }
+                let next = cur.map_or(0, |c| (c + 1) % count);
+                for (ti, t) in assets.layout.tris.iter().enumerate() {
+                    if t.group == group_name {
+                        tri_states[ti] = t.tri_idx == next;
+                    }
+                }
+                ui.ctx()
+                    .data_mut(|d| d.insert_temp(tris_id, tri_states.clone()));
+            }
             ui.ctx()
                 .data_mut(|d| d.insert_temp(leds_id, led_states.clone()));
         }
@@ -373,7 +459,9 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
     // 4. 7 Layer Faders + 11-LED Green Ladders
     for (idx, f) in assets.layout.faders.iter().enumerate() {
         let rect = f.in_rect(plate_rect);
-        let resp = ui.interact(rect, ui.id().with(("bf", idx)), Sense::click_and_drag());
+        let resp = ui
+            .interact(rect, ui.id().with(("bf", idx)), Sense::click_and_drag())
+            .on_hover_cursor(egui::CursorIcon::ResizeVertical);
         let level_ref: &mut f32 = match idx {
             0 => &mut state.organ_a_level,
             1 => &mut state.organ_b_level,
@@ -383,10 +471,17 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             5 => &mut state.synth_b_level,
             _ => &mut state.synth_c_level,
         };
+        let scroll_dy = if resp.hovered() {
+            ui.input(|i| i.smooth_scroll_delta.y)
+        } else {
+            0.0
+        };
         if resp.dragged() || resp.clicked() {
             if let Some(pos) = resp.interact_pointer_pos() {
                 *level_ref = (1.0 - (pos.y - rect.top()) / rect.height().max(1.0)).clamp(0.0, 1.0);
             }
+        } else if scroll_dy.abs() > 0.1 {
+            *level_ref = (*level_ref + scroll_dy * 0.002).clamp(0.0, 1.0);
         }
         let val = *level_ref;
         let cy = rect.top() + (0.10 + (1.0 - val) * 0.80) * rect.height();
@@ -417,8 +512,15 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
     let drawbar_white = [false, false, true, true, false, true, false, false, true];
     for (idx, d) in assets.layout.drawbars.iter().enumerate() {
         let rect = d.in_rect(plate_rect);
-        let resp = ui.interact(rect, ui.id().with(("bd", idx)), Sense::click_and_drag());
+        let resp = ui
+            .interact(rect, ui.id().with(("bd", idx)), Sense::click_and_drag())
+            .on_hover_cursor(egui::CursorIcon::ResizeVertical);
         let slot = idx.min(8);
+        let scroll_dy = if resp.hovered() {
+            ui.input(|i| i.smooth_scroll_delta.y)
+        } else {
+            0.0
+        };
         if resp.dragged() || resp.clicked() {
             if let Some(pos) = resp.interact_pointer_pos() {
                 let n = ((pos.y - rect.top() - 12.0 * scale_x) / (rect.height() * 0.65))
@@ -428,6 +530,10 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                     state.organ_drawbars[slot] = step;
                 }
             }
+        } else if scroll_dy.abs() > 0.1 {
+            let cur = state.organ_drawbars[slot] as i8;
+            let delta = if scroll_dy > 0.0 { -1 } else { 1 };
+            state.organ_drawbars[slot] = (cur + delta).clamp(0, 8) as u8;
         }
         let step_u8 = state.organ_drawbars[slot];
         let step = step_u8 as f32 / 8.0;
@@ -473,165 +579,85 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                 "amber" => LED_AMBER,
                 _ => LED_RED,
             };
+            p.circle_filled(r.center(), radius * 2.1, col.gamma_multiply(0.14));
+            p.circle_filled(r.center(), radius * 1.45, col.gamma_multiply(0.28));
             p.circle_filled(r.center(), radius, col);
-            p.circle_stroke(
-                r.center(),
-                radius * 1.65,
-                egui::Stroke::new(1.3, col.gamma_multiply(0.35)),
+            p.circle_filled(
+                r.center() - vec2(radius * 0.25, radius * 0.25),
+                (radius * 0.35).max(1.0),
+                Color32::from_white_alpha(140),
             );
         } else {
             p.circle_filled(r.center(), radius * 0.85, Color32::from_rgb(24, 20, 22));
         }
     }
 
-    // 7. Live OLED Displays
+    // 6b. Triangular Matrix LEDs (ORGAN MODEL, VIB/CHORUS, PIANO SELECT, MOD 1/2, AMP, REVERB)
+    for (idx, t) in assets.layout.tris.iter().enumerate() {
+        let on = tri_states[idx];
+        let r = norm_rect(t.x, t.y, t.w, t.h, plate_rect);
+        let pts = match t.dir.as_str() {
+            "left" => vec![r.left_center(), r.right_top(), r.right_bottom()],
+            "right" => vec![r.right_center(), r.left_top(), r.left_bottom()],
+            "up" => vec![r.center_top(), r.left_bottom(), r.right_bottom()],
+            _ => vec![r.center_bottom(), r.left_top(), r.right_top()],
+        };
+        let fill = if on {
+            LED_RED
+        } else {
+            Color32::from_rgb(32, 24, 26)
+        };
+        let stroke = if on {
+            egui::Stroke::new(1.0, LED_RED.gamma_multiply(0.5))
+        } else {
+            egui::Stroke::NONE
+        };
+        p.add(egui::Shape::convex_polygon(pts, fill, stroke));
+    }
+
+    // 7. Live ARM-verified OLED Displays (reusing bay_program::oled & bay_synth::oled)
     if let Some(main_oled) = assets.layout.oleds.get("main") {
         let r = main_oled.in_rect(plate_rect);
-        p.rect_filled(r, 2.0, PROTOTYPE_OLED_BG);
-        p.rect_stroke(
-            r,
-            2.0,
-            egui::Stroke::new(1.0, Color32::from_rgb(24, 28, 34)),
-            egui::StrokeKind::Inside,
-        );
-        let pad_x = r.width() * 0.06;
-        let font_sm = (r.height() * 0.19).clamp(7.0, 13.0);
-        let font_lg = (r.height() * 0.28).clamp(9.0, 18.0);
-        let title = if state.prog_title.is_empty() {
-            "nd matrix 1"
-        } else {
-            &state.prog_title
+        let summary = super::bay_program::oled::Summary {
+            organ: format!("{:?}", state.organ_model),
+            piano: state
+                .loaded_piano_name
+                .clone()
+                .unwrap_or_else(|| format!("{:?}", state.piano_cat)),
+            synth: state
+                .loaded_sample_name
+                .clone()
+                .unwrap_or_else(|| format!("{:?}", state.synth_waveform)),
+            piano_size: None,
+            organ_bars: matches!(state.organ_model, OrganModel::B3).then_some(state.organ_drawbars),
+            layers_on: [
+                state.organ_a_active,
+                state.organ_b_active,
+                state.piano_a_active,
+                state.piano_b_active,
+                state.synth_a_active,
+                state.synth_b_active,
+                state.synth_c_active,
+            ],
         };
-        p.text(
-            pos2(r.left() + pad_x, r.top() + r.height() * 0.10),
-            Align2::LEFT_TOP,
-            &state.prog_id,
-            FontId::monospace(font_sm),
-            PROTOTYPE_OLED_FG,
-        );
-        let layers = format!(
-            "{}{}{}",
-            if state.organ_a_active || state.organ_b_active {
-                "ORG "
-            } else {
-                ""
-            },
-            if state.piano_a_active || state.piano_b_active {
-                "PNO "
-            } else {
-                ""
-            },
-            if state.synth_a_active || state.synth_b_active || state.synth_c_active {
-                "SYN"
-            } else {
-                ""
-            }
-        );
-        p.text(
-            pos2(r.right() - pad_x, r.top() + r.height() * 0.10),
-            Align2::RIGHT_TOP,
-            layers.trim(),
-            FontId::monospace(font_sm * 0.88),
-            Color32::from_rgb(0x8E, 0xB8, 0xD8),
-        );
-        p.text(
-            pos2(r.left() + pad_x, r.top() + r.height() * 0.36),
-            Align2::LEFT_TOP,
-            title,
-            FontId::monospace(font_lg),
-            PROTOTYPE_OLED_FG,
-        );
-        let sub = format!(
-            "MST {:.0}%  MOD {:.0}%",
-            state.master_volume * 100.0,
-            state.mod_wheel * 100.0
-        );
-        p.text(
-            pos2(r.left() + pad_x, r.bottom() - r.height() * 0.12),
-            Align2::LEFT_BOTTOM,
-            sub,
-            FontId::monospace(font_sm * 0.88),
-            Color32::from_rgb(0x9A, 0xC0, 0xDF),
-        );
+        let mut oled_text = super::bay_program::oled::compose(&state.program_ui, &summary);
+        if !state.prog_id.is_empty() && oled_text.bar.is_none() {
+            oled_text.big = state.prog_id.clone();
+        }
+        if !state.prog_title.is_empty() && oled_text.bar.is_none() {
+            oled_text.sub = state.prog_title.clone();
+        }
+        super::bay_program::oled::paint(&p, r, &oled_text, false);
     }
     if let Some(synth_oled) = assets.layout.oleds.get("synth") {
         let r = synth_oled.in_rect(plate_rect);
-        p.rect_filled(r, 2.0, PROTOTYPE_OLED_BG);
-        p.rect_stroke(
+        super::bay_synth::oled::paint_oled_in_rect(
+            &p,
             r,
-            2.0,
-            egui::Stroke::new(1.0, Color32::from_rgb(24, 28, 34)),
-            egui::StrokeKind::Inside,
+            &mut state.synth_ui,
+            state.loaded_sample_name.as_deref(),
+            None,
         );
-        let bar_h = (r.height() * 0.24).max(9.0);
-        let bar_rect = Rect::from_min_size(
-            pos2(r.left() + 2.0, r.top() + 2.0),
-            vec2((r.width() - 4.0).max(4.0), bar_h),
-        );
-        p.rect_filled(bar_rect, 1.0, Color32::from_rgb(0x9A, 0xC0, 0xDF));
-        let font_bar = (bar_h * 0.72).clamp(6.5, 11.0);
-        let mode_title = match state.synth_osc_mode {
-            SynthOscMode::Sample => "SAMPLE",
-            SynthOscMode::Analog => "OSC WAVEFORM",
-            _ => "SYNTH OSC",
-        };
-        p.text(
-            bar_rect.center(),
-            Align2::CENTER_CENTER,
-            mode_title,
-            FontId::monospace(font_bar),
-            Color32::from_rgb(7, 9, 13),
-        );
-        let label = match state.synth_osc_mode {
-            SynthOscMode::Sample => state
-                .loaded_sample_name
-                .as_deref()
-                .unwrap_or("Sample")
-                .to_string(),
-            _ => format!("{:?}", state.synth_waveform),
-        };
-        let font_body = (r.height() * 0.22).clamp(7.5, 14.0);
-        p.text(
-            pos2(
-                r.left() + r.width() * 0.06,
-                bar_rect.bottom() + r.height() * 0.06,
-            ),
-            Align2::LEFT_TOP,
-            label,
-            FontId::monospace(font_body),
-            PROTOTYPE_OLED_FG,
-        );
-        // Simple crisp waveform trace in lower third
-        let wf_top = r.top() + r.height() * 0.62;
-        let wf_bot = r.bottom() - r.height() * 0.12;
-        let wf_mid = (wf_top + wf_bot) * 0.5;
-        let wf_amp = (wf_bot - wf_top) * 0.45;
-        let x0 = r.left() + r.width() * 0.08;
-        let x1 = r.right() - r.width() * 0.08;
-        let steps = 28;
-        let mut pts = Vec::with_capacity(steps + 1);
-        for i in 0..=steps {
-            let t = i as f32 / steps as f32;
-            let x = egui::lerp(x0..=x1, t);
-            let phase = (t * 2.0) % 1.0;
-            let y_norm = match state.synth_waveform {
-                VaWaveform::Pulse => {
-                    if phase < 0.5 {
-                        -1.0
-                    } else {
-                        1.0
-                    }
-                }
-                VaWaveform::Triangle => 1.0 - 4.0 * (phase - 0.5).abs(),
-                VaWaveform::Sine => (phase * std::f32::consts::TAU).sin(),
-                VaWaveform::Saw | VaWaveform::SuperSaw => 2.0 * phase - 1.0,
-            };
-            pts.push(pos2(x, wf_mid + y_norm * wf_amp));
-        }
-        p.add(egui::Shape::line(
-            pts,
-            egui::Stroke::new(1.2, PROTOTYPE_OLED_FG),
-        ));
     }
 
     // 8. Interactive 88-Key Keybed (single hit-box so drag glissando & black-key priority work)
@@ -640,11 +666,13 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
         keys_bbox = keys_bbox.union(norm_rect(key.x, key.y, key.w, key.h, plate_rect));
     }
     if keys_bbox.is_positive() {
-        let resp = ui.interact(
-            keys_bbox,
-            ui.id().with("stage4_baked_keybed"),
-            Sense::click_and_drag(),
-        );
+        let resp = ui
+            .interact(
+                keys_bbox,
+                ui.id().with("stage4_baked_keybed"),
+                Sense::click_and_drag(),
+            )
+            .on_hover_cursor(egui::CursorIcon::PointingHand);
         if resp.is_pointer_button_down_on() {
             if let Some(pos) = resp.interact_pointer_pos() {
                 let hit = assets
@@ -693,39 +721,64 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             });
         }
     }
-    // Render pressed keys matching HTML/CSS .key-white.active & .key-black.active
-    // White keys first, then black keys on top so black keys are never covered.
-    let mut pressed_white_rects: Vec<Rect> = Vec::new();
-    for key in &assets.layout.keys {
-        if key.black {
-            continue;
+    // Render pressed keys matching HTML/CSS .key-white.active & .key-black.active.
+    // Clipped strictly to `keys_bbox` so pressed keys never bleed over the red felt lip, and
+    // overlapping unpressed black keys are re-painted verbatim from `panel_plate_2x.png`.
+    if keys_bbox.is_positive() {
+        let key_p = p.with_clip_rect(keys_bbox);
+        let shift_y = 2.0 * scale_x;
+        let mut pressed_white_rects: Vec<Rect> = Vec::new();
+        for key in &assets.layout.keys {
+            if key.black {
+                continue;
+            }
+            let is_pressed = state.midi_active_keys[key.midi as usize]
+                || state.mouse_held_note == Some(key.midi)
+                || state.computer_kb.is_sounding(key.midi);
+            if is_pressed {
+                let r = norm_rect(key.x, key.y, key.w, key.h, plate_rect);
+                pressed_white_rects.push(r);
+                let r_down = r.translate(vec2(0.0, shift_y));
+                // Pressed ivory body (.key-white.active) + top depression shadow under felt lip
+                key_p.rect_filled(r_down, 2.0 * scale_x, Color32::from_rgb(228, 226, 219));
+                key_p.rect_filled(
+                    Rect::from_min_size(r.left_top(), vec2(r.width(), 5.0 * scale_x)),
+                    0.0,
+                    Color32::from_black_alpha(55),
+                );
+                key_p.rect_stroke(
+                    r_down,
+                    2.0 * scale_x,
+                    egui::Stroke::new(1.0, Color32::from_rgb(156, 154, 146)),
+                    egui::StrokeKind::Inside,
+                );
+            }
         }
-        let is_pressed = state.midi_active_keys[key.midi as usize]
-            || state.mouse_held_note == Some(key.midi)
-            || state.computer_kb.is_sounding(key.midi);
-        if is_pressed {
+        for key in &assets.layout.keys {
+            if !key.black {
+                continue;
+            }
+            let is_pressed = state.midi_active_keys[key.midi as usize]
+                || state.mouse_held_note == Some(key.midi)
+                || state.computer_kb.is_sounding(key.midi);
             let r = norm_rect(key.x, key.y, key.w, key.h, plate_rect);
-            pressed_white_rects.push(r);
-            if !assets.paint_sprite(&p, "key_white_down", r, Color32::WHITE) {
-                p.rect_filled(r, 2.0, Color32::from_rgb(218, 216, 208));
+            let overlaps_pressed_white = pressed_white_rects.iter().any(|wr| wr.intersects(r));
+            if is_pressed {
+                let r_down = r.translate(vec2(0.0, shift_y));
+                key_p.rect_filled(r_down, 2.0 * scale_x, Color32::from_rgb(22, 24, 28));
+                key_p.rect_filled(
+                    r_down.shrink2(vec2(2.0 * scale_x, 3.0 * scale_x)),
+                    1.5 * scale_x,
+                    Color32::from_rgb(36, 40, 46),
+                );
+                key_p.rect_filled(
+                    Rect::from_min_size(r.left_top(), vec2(r.width(), 4.0 * scale_x)),
+                    0.0,
+                    Color32::from_black_alpha(95),
+                );
+            } else if overlaps_pressed_white {
+                assets.paint_plate_region(&key_p, plate_rect, key.x, key.y, key.w, key.h);
             }
-        }
-    }
-    for key in &assets.layout.keys {
-        if !key.black {
-            continue;
-        }
-        let is_pressed = state.midi_active_keys[key.midi as usize]
-            || state.mouse_held_note == Some(key.midi)
-            || state.computer_kb.is_sounding(key.midi);
-        let r = norm_rect(key.x, key.y, key.w, key.h, plate_rect);
-        let overlaps_pressed_white = pressed_white_rects.iter().any(|wr| wr.intersects(r));
-        if is_pressed {
-            if !assets.paint_sprite(&p, "key_black_down", r, Color32::WHITE) {
-                p.rect_filled(r, 2.0, Color32::from_rgb(48, 52, 60));
-            }
-        } else if overlaps_pressed_white {
-            assets.paint_sprite(&p, "key_black_up", r, Color32::WHITE);
         }
     }
 }
@@ -734,13 +787,18 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
 mod tests {
     use super::*;
     use crate::audio::AudioHandle;
+    use std::collections::BTreeSet;
 
     #[test]
     fn baked_panel_renders_all_layers_without_panics() {
         let mut state = Stage4PanelState {
             use_baked_plate: true,
+            mouse_held_note: Some(60), // pressed white key C4
+            pitch_stick: 0.45,
+            mod_wheel: 0.65,
             ..Default::default()
         };
+        state.midi_active_keys[61] = true; // pressed black key C#4
         let (audio, _rx) = AudioHandle::new();
         let ctx = egui::Context::default();
         let _ = ctx.run(Default::default(), |ctx| {
@@ -748,5 +806,48 @@ mod tests {
                 render_baked_panel(ui, &mut state, &audio);
             });
         });
+    }
+
+    #[test]
+    fn baked_layout_contains_all_interactive_controls_ladders_and_tris() {
+        let ctx = egui::Context::default();
+        let assets = BakedPanelAssets::get_or_load(&ctx);
+        let l = &assets.layout;
+        assert!(
+            l.knobs.len() >= 30,
+            "expected >= 30 knobs, got {}",
+            l.knobs.len()
+        );
+        assert!(
+            l.buttons.len() >= 80,
+            "expected >= 80 buttons, got {}",
+            l.buttons.len()
+        );
+        assert_eq!(l.faders.len(), 7, "expected 7 layer faders");
+        assert_eq!(l.fader_ladders.len(), 7, "expected 7 fader LED ladders");
+        assert!(l.fader_ladders.iter().all(|segs| segs.len() == 11));
+        assert_eq!(l.drawbars.len(), 9, "expected 9 organ drawbars");
+        assert_eq!(l.drawbar_ladders.len(), 9, "expected 9 drawbar LED ladders");
+        assert!(l.drawbar_ladders.iter().all(|segs| segs.len() == 8));
+        assert_eq!(l.keys.len(), 88, "expected 88 keybed keys");
+        assert!(l.oleds.contains_key("main") && l.oleds.contains_key("synth"));
+        assert!(l.wheels.contains_key("pitch_stick") && l.wheels.contains_key("mod_wheel"));
+
+        let tri_groups: BTreeSet<&str> = l.tris.iter().map(|t| t.group.as_str()).collect();
+        assert_eq!(l.tris.len(), 42, "expected 42 triangular matrix LEDs");
+        for expected in [
+            "org-model",
+            "org-vib",
+            "pno-cat",
+            "fx-mod1",
+            "fx-mod2",
+            "fx-amp",
+            "fx-rev",
+        ] {
+            assert!(
+                tri_groups.contains(expected),
+                "missing triangular LED group {expected}"
+            );
+        }
     }
 }

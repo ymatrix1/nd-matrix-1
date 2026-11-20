@@ -3,20 +3,20 @@
   "generator": "tools/bake_panel_from_html.py",
   "files": {
     "panel_layout.json": {
-      "bytes": 160428,
-      "sha256": "d8697bd13beaddbccb4299726c88bd6f377c5e670d2e135b3804c0f081b747f6"
+      "bytes": 174601,
+      "sha256": "6959ecb57f3e002667ca2c86d275c50e7f06678b6015874f885fd743d87d833b"
     },
     "panel_plate_2x.png": {
-      "bytes": 3121377,
-      "sha256": "f20f277ad949cc5bedb86c6a25ea7c919fc0b0a8212618dcc725052e6961157c"
+      "bytes": 2934720,
+      "sha256": "b56a25f0daeab174b220f792cf480e817af26a683a8f31d8c9139ac69f3caf4d"
     },
     "panel_sprites.json": {
       "bytes": 2958,
       "sha256": "7715595ea3e6a749eb40c60cb7e6fc908bb739c8edeb3e5fffba5dbc578f8aa0"
     },
     "panel_sprites_2x.png": {
-      "bytes": 64269,
-      "sha256": "7144f7712e9bf87d659b12b80ef8b9b75677ec619b6cd61b3cf3a820b49a8702"
+      "bytes": 64045,
+      "sha256": "9f59905a5ed8d4a8d70a4f7624f8bf65cc1fb4b8d39ffd43712f3476b486ad8f"
     }
   }
 }
