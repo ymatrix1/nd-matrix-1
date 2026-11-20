@@ -78,7 +78,7 @@ pub fn pitch_and_mod_wheels(
     let assets = crate::baked::BakedPanelAssets::get_or_load(ui.ctx());
     let travel = (PITCH_SLOT_MM.0 - PITCH_PADDLE_MM.0) * 0.5 * s;
     let paddle_center = c + axis * (*pitch * travel);
-    let paddle_size = vec2(PITCH_PADDLE_MM.0, PITCH_PADDLE_MM.1) * s * 1.15;
+    let paddle_size = vec2(PITCH_PADDLE_MM.0, PITCH_PADDLE_MM.1) * s;
     if !assets.paint_sprite_rotated(
         p,
         "pitch_stick",
