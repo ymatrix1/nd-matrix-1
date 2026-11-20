@@ -1,9 +1,13 @@
 //! One editor frame: read-back, the shared front panel, dimmed-control overlay, sink pump.
 //!
 //! The panel is the same `render_stage4_panel` the standalone app draws (`nord-gui`), at its
-//! native 1560 x 420 logical px. The window scales it with egui's zoom factor so the whole
-//! panel always fits (aspect preserved, centred, letterboxed in the chassis colour), which
-//! also covers HiDPI: the host's DPI scale multiplies on top through `nih_plug_egui`.
+//! native 1560 x 420 logical px. The panel lives in its own egui layer whose transform scales
+//! and centres it so the whole panel always fits (aspect preserved, letterboxed in the chassis
+//! colour). The host's DPI scale multiplies on top through `nih_plug_egui`.
+//!
+//! egui's zoom factor is NOT used: `egui_baseview` lays out and tessellates with the native
+//! pixels-per-point, so a zoom factor below 1 only changed font rounding (the panel drew at
+//! 100 %, clipped, and the ppp mismatch is the suspected cause of the flicker in FL Studio).
 
 use super::coverage::{Coverage, DIM_TOOLTIP};
 use super::index::ParamIndex;
@@ -12,8 +16,10 @@ use super::readback::sync_panel_from_params;
 use super::sink::{pump, ParamSink};
 use super::write::ParamWriter;
 use crossbeam_channel::Receiver;
+use nih_plug_egui::egui::emath::TSTransform;
 use nih_plug_egui::egui::{
-    self, Color32, Context, Id, Rect, Sense, Stroke, StrokeKind, Ui, UiBuilder, Vec2,
+    self, Area, Color32, Context, Id, LayerId, Order, Pos2, Rect, Sense, Stroke, StrokeKind, Ui,
+    UiBuilder, Vec2,
 };
 use nih_plug_egui::resizable_window::ResizableWindow;
 use nih_plug_egui::EguiState;
@@ -67,6 +73,16 @@ pub fn scale_for(size: (u32, u32)) -> f32 {
     (w / PANEL_W).min(h / PANEL_H).max(MIN_SCALE)
 }
 
+/// Scale that makes the whole panel fit an area of `size` logical points (aspect preserved).
+pub fn fit_scale(size: Vec2) -> f32 {
+    (size.x / PANEL_W).min(size.y / PANEL_H).max(MIN_SCALE)
+}
+
+/// Layer that carries the scaled panel.
+fn panel_layer() -> LayerId {
+    LayerId::new(Order::Middle, Id::new("nord-stage-4-panel"))
+}
+
 /// Translucent overlay with a tooltip over every dimmed control; returns how many were drawn.
 ///
 /// The overlay also takes the pointer so a dimmed control cannot be clicked or dragged.
@@ -100,9 +116,9 @@ pub fn draw_editor<W: ParamWriter>(
 ) {
     sync_panel_from_params(&st.index, &mut st.panel);
 
-    let scale = scale_for(egui_state.size());
-    if (ctx.zoom_factor() - scale).abs() > 1e-3 {
-        ctx.set_zoom_factor(scale);
+    // egui_baseview ignores egui's zoom factor (see the module doc): keep it at 1.
+    if (ctx.zoom_factor() - 1.0).abs() > 1e-3 {
+        ctx.set_zoom_factor(1.0);
     }
 
     ResizableWindow::new("nord-stage-4-editor")
@@ -110,13 +126,27 @@ pub fn draw_editor<W: ParamWriter>(
         .show(ctx, egui_state, |ui| {
             let avail = ui.max_rect();
             ui.painter().rect_filled(avail, 0.0_f32, CHASSIS_DARK);
-            let size = Vec2::new(PANEL_W, PANEL_H);
-            let offset = ((avail.size() - size) * 0.5).max(Vec2::ZERO);
-            let panel_rect = Rect::from_min_size(avail.min + offset, size);
-            ui.scope_builder(UiBuilder::new().max_rect(panel_rect), |ui| {
-                render_stage4_panel(ui, &mut st.panel, &st.handle);
-            });
-            st.last_overlays = draw_dim_overlay(ui, panel_rect.min, &st.coverage);
+            let scale = fit_scale(avail.size());
+            let panel_size = Vec2::new(PANEL_W, PANEL_H);
+            let offset = ((avail.size() - panel_size * scale) * 0.5).max(Vec2::ZERO);
+            // The panel is laid out in its own coordinates (origin 0,0, native size); the layer
+            // transform maps that onto the window.
+            let panel_rect = Rect::from_min_size(Pos2::ZERO, panel_size);
+            Area::new(Id::new("nord-stage-4-panel"))
+                .order(Order::Middle)
+                .fixed_pos(Pos2::ZERO)
+                .constrain(false)
+                .show(ui.ctx(), |ui| {
+                    ui.set_clip_rect(panel_rect);
+                    ui.scope_builder(UiBuilder::new().max_rect(panel_rect), |ui| {
+                        render_stage4_panel(ui, &mut st.panel, &st.handle);
+                    });
+                    st.last_overlays = draw_dim_overlay(ui, panel_rect.min, &st.coverage);
+                });
+            ui.ctx().set_transform_layer(
+                panel_layer(),
+                TSTransform::new(avail.min.to_vec2() + offset, scale),
+            );
         });
 
     let mut sink = ParamSink::new(writer, &st.notes);
@@ -175,6 +205,38 @@ mod tests {
         assert!(out.shapes.len() > 1000, "only {} shapes", out.shapes.len());
         assert_eq!(st.last_overlays, st.coverage.dimmed_ids().count());
         assert!(st.last_overlays > 0, "some controls must be dimmed today");
+    }
+
+    #[test]
+    fn the_panel_is_scaled_by_its_layer_and_egui_zoom_stays_at_one() {
+        let (_params, mut st, _rx) = state();
+        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
+        let ctx = Context::default();
+        let size = Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
+        let input = egui::RawInput {
+            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
+            ..Default::default()
+        };
+        // A few frames: the zoom must never leave 1 and the layer transform must settle.
+        for _ in 0..3 {
+            let _ = ctx.run(input.clone(), |ctx| {
+                draw_editor(ctx, &egui_state, &mut st, Recorder::default());
+            });
+        }
+        assert!((ctx.zoom_factor() - 1.0).abs() < 1e-6);
+        let t = ctx
+            .layer_transform_to_global(panel_layer())
+            .expect("panel layer transform");
+        let want = DEFAULT_SIZE.0 as f32 / PANEL_W;
+        assert!((t.scaling - want).abs() < 1e-4, "{} vs {want}", t.scaling);
+        assert!(t.translation.x.abs() < 1.0 && t.translation.y.abs() < 1.0);
+    }
+
+    #[test]
+    fn fit_scale_matches_scale_for_and_letterboxes() {
+        assert!((fit_scale(Vec2::new(780.0, 210.0)) - 0.5).abs() < 1e-6);
+        assert!((fit_scale(Vec2::new(3120.0, 420.0)) - 1.0).abs() < 1e-6);
+        assert_eq!(fit_scale(Vec2::new(1.0, 1.0)), MIN_SCALE);
     }
 
     #[test]
