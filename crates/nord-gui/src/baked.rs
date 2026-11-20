@@ -244,7 +244,11 @@ impl BakedPanelAssets {
                 center.x + lx * cos - ly * sin,
                 center.y + lx * sin + ly * cos,
             );
-            mesh.colored_vertex(p, t_uv, tint);
+            mesh.vertices.push(egui::epaint::Vertex {
+                pos: p,
+                uv: t_uv,
+                color: tint,
+            });
         }
         mesh.add_triangle(0, 1, 2);
         mesh.add_triangle(0, 2, 3);
