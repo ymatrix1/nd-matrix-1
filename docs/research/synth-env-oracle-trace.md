@@ -54,7 +54,7 @@ Findings:
 
 ## 5. Implications
 
-- Opt-in `--synth-fw-env-law` (`synth/fw_cutoff_env.rs`, `SynthLayer::fw_env_law`) applies the VERIFIED semitone composition to the layer cutoff. Default unchanged (D198).
+- Opt-in `--synth-fw-env-law` (`synth/fw_cutoff_env.rs`, `SynthLayer::fw_env_law`) applies the VERIFIED semitone composition to the layer cutoff. Default unchanged (D200).
 - The amp attack velocity scaling and the 0.5 decay sustain are recorded but not implemented: only plateau accuracy, no note dependence check.
 
 ## 6. Follow-ups
