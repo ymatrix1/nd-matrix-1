@@ -49,6 +49,8 @@ mod fw_leslie_main_e;
 mod fw_leslie_ops;
 mod fw_leslie_ring;
 mod fw_live;
+mod fw_lp24;
+mod fw_lp24_tables;
 pub mod fw_map;
 mod fw_mod1;
 mod fw_mod1_data;
@@ -135,6 +137,10 @@ mod tests_fw_leslie_data;
 mod tests_fw_leslie_golden;
 #[cfg(test)]
 mod tests_fw_leslie_golden_data;
+#[cfg(test)]
+mod tests_fw_lp24_chain;
+#[cfg(test)]
+mod tests_fw_lp24_golden;
 #[cfg(test)]
 mod tests_fw_map;
 #[cfg(test)]
@@ -360,6 +366,8 @@ pub struct LayerFxChain {
     fw_rate_match: Option<Box<RateMatch>>,
     /// The firmware Amp EQ (`firmware_fx.eq`), built when first needed.
     fw_eq: Option<fw_eq::FwEqStage>,
+    /// Firmware Amp LP24 / HP24 (`FirmwareFx::lp24`), built on first use.
+    fw_lp24: Option<fw_lp24::FwLp24>,
     /// The firmware Spring reverb (`firmware_fx.reverb`), built when first needed.
     fw_reverb: Option<Box<FwReverb>>,
     /// The firmware multi-tap reverb (`firmware_fx.reverb`, `kRvbType` 2..11), built when first
@@ -482,6 +490,7 @@ impl LayerFxChain {
             fw_amp: None,
             fw_rate_match: RateMatch::supports(fs).then(|| Box::new(RateMatch::new(fs))),
             fw_eq: None,
+            fw_lp24: None,
             fw_reverb: None,
             fw_reverb_multi: None,
             fw_comp_amount: 0.0,
