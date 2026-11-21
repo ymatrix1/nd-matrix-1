@@ -309,15 +309,7 @@ fn render_dialog_contents(
         .auto_shrink([false, false])
         .show(ui, |ui| match dlg.tab {
             DebugTab::Firmware => {
-                shadcn_card(
-                    ui,
-                    "Firmware & DSP Engine Options",
-                    "Toggle ARM/SHARC firmware-derived synthesis, filter, and FX laws.",
-                    |ui| {
-                        firmware.show_bar(ui, audio_handle);
-                        ui.add_space(10.0);
-                    },
-                );
+                firmware.show_organized(ui, audio_handle);
             }
             DebugTab::AudioMidi => {
                 shadcn_card(
