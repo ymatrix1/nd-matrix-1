@@ -352,3 +352,27 @@ fn fw_env_law_opens_the_cutoff_further_and_is_off_by_default() {
     // no envelope amount: both laws are the static cutoff
     assert_eq!(render(false, 0.0), render(true, 0.0));
 }
+
+#[test]
+fn fw_env_law_composes_the_lfo_in_semitones_only_on_the_cutoff_destination() {
+    let render = |law: bool, dest: LfoDestination, amount: f32| {
+        let mut s = layer(SynthChain::FirmwareStrip);
+        s.cutoff_hz = 800.0;
+        s.lfo_dest = dest;
+        s.lfo_amount = amount;
+        s.lfo_rate_hz = 6.0;
+        s.fw_env_law = law;
+        s.note_on(48, 100);
+        render_n(&mut s, 9_600)
+    };
+    let cutoff = LfoDestination::FilterCutoff;
+    // amount 0.25 = 32 semitones of LFO swing against 20 % of the Hz cutoff: another render
+    let (def, fw) = (render(false, cutoff, 0.25), render(true, cutoff, 0.25));
+    assert!(def != fw, "the LFO law changes the render");
+    assert!(fw.iter().all(|f| f[0].is_finite() && f[1].is_finite()));
+    // no depth: both laws are the static cutoff
+    assert_eq!(render(false, cutoff, 0.0), render(true, cutoff, 0.0));
+    // other destinations are not touched by the flag
+    let osc = LfoDestination::OscPitch;
+    assert_eq!(render(false, osc, 0.25), render(true, osc, 0.25));
+}
