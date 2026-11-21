@@ -16,6 +16,16 @@ impl PianoLayer {
     pub(super) fn firmware_voices_allowed(&self) -> bool {
         !self.damper_pedal_down || self.firmware_pedal_voices
     }
+
+    /// `(stroke index, extra voice, amplitude)` of every active non-release voice, for the census
+    /// tool (`piano_voice_census`). Allocates: never call from the audio path.
+    pub fn active_voice_strokes(&self) -> Vec<(Option<usize>, bool, f32)> {
+        self.voices
+            .iter()
+            .filter(|v| v.active && !v.is_release_sample)
+            .map(|v| (v.stroke_idx, v.extra, v.amp))
+            .collect()
+    }
 }
 
 #[cfg(test)]
@@ -91,5 +101,15 @@ mod tests {
             .iter()
             .filter(|v| v.active && !v.is_release_sample)
             .all(|v| v.releasing));
+    }
+
+    #[test]
+    fn active_voice_strokes_lists_the_started_voices() {
+        let mut layer = layer(true);
+        assert!(layer.active_voice_strokes().is_empty());
+        layer.note_on(60, 64);
+        let list = layer.active_voice_strokes();
+        assert_eq!(list.len(), 2);
+        assert!(list[0].1 && !list[1].1, "extra voice first, main last");
     }
 }

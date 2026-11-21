@@ -5,6 +5,7 @@ pub mod csv_cols;
 pub mod fx_cases;
 pub mod fx_parity;
 pub mod leslie_probe;
+pub mod piano_voice_census;
 pub mod rank_groups;
 pub mod rank_metrics;
 pub mod reverb_measure;
