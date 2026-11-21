@@ -120,7 +120,7 @@ pub enum PSpec {
     /// (`PTableSpec::oracle`, D140): opt-in, `--synth-p oracle`.
     Oracle,
     /// [`PSpec::Oracle`] plus the oracle level of the SHAPE triangle, MULTI and SUPER rows times
-    /// the one coupling factor (`PTableSpec::coupled`, D189): opt-in, `--synth-p coupled`.
+    /// the one coupling factor (`PTableSpec::coupled`, D194): opt-in, `--synth-p coupled`.
     Coupled,
 }
 

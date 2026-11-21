@@ -218,7 +218,7 @@ impl PTableSpec {
         Self::parse(&rest).expect("fixed oracle rows parse")
     }
 
-    /// The table of `--synth-p coupled` (D189): [`PTableSpec::oracle`] plus the SHAPE triangle,
+    /// The table of `--synth-p coupled` (D194): [`PTableSpec::oracle`] plus the SHAPE triangle,
     /// MULTI and SUPER rows at their oracle level times the one coupling factor
     /// [`COUPLED_FILTER_GAIN`]; the cutoff factors, shape scale and every other row stay as the
     /// built-in table (EMPIRICAL).
