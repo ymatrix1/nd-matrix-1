@@ -296,7 +296,7 @@ The firmware amp is worth +5.3 / +10.2 dB over the engine amp and +7.5 / +15.2 d
 
 **Conclusion.** The amp / cabinet half of the Vox path is complete for Twin, Twin II, JC, JC II, Small and Small II (oracle words, drive stage 1.4e-6 to 1.7e-4 of peak, chain 9e-4 of peak); the 7.5 / 9.7 dB residual is **not an amp or cabinet error**. What is left is on the organ side (the Vox bank at 2 to 6 kHz is 25 dB under the hardware before the amp; whether the hardware amp is driven harder than `kAmpDrive 14` is not recoverable from the clip) and the unported Mod 2 (type 6) of the program. No default changed (`render_hash` `c7f06ca7...` unchanged, no program sweep needed); D22 is not re-opened. Note the s11 Vox row (-1.3 / +0.9) was measured with the earlier Vox source and level; with the current oracle-exact bank and firmware level the same amp reads -7.5 / -9.7.
 
-**Not done:** cabinet biquad bank transliteration (the impulse response is equivalent, s10), routine `0x122B1D`, JC / Small recordings (the clips have Twin only), amp types 7..9 (To Rotary, LP24, HP24: their words are not in the drive stage context, the organ unit instance of the tone stack `0x1243F4` is unknown), the Mod 2 type 6 of the Vox program.
+**Not done:** cabinet biquad bank transliteration (the impulse response is equivalent, s10), routine `0x122B1D`, JC / Small recordings (the clips have Twin only), amp types 7..9 (To Rotary, LP24, HP24: closed in [amp-types-789](amp-types-789.md), LP24 / HP24 = `0x124EFA` state variable pair, organ unit instance of `0x1243F4` = PNO core 1 `0x125261`; To Rotary `0x125142` not modelled), the Mod 2 type 6 of the Vox program.
 
 ## Implications
 

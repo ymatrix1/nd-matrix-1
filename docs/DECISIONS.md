@@ -7,6 +7,8 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 | # | Date | Decision | Status |
 |---|---|---|---|
 | [D185](#d185-piano-chain-tap-a-bound-piano-sound-reaches-a-live-smp-chip-sharc-live---smp-the-page-refill-is-the-next-blocker) | 2026-11-21 | Piano chain tap: a bound piano sound reaches a live SMP chip (`sharc-live --smp`); the page refill is the next blocker | proposed |
+
+| [D181](#d181-amp-types-8-and-9-lp24--hp24-are-one-state-variable-pair-0x124efa-model-and-recorded-oracle-cases-no-rust-port-yet) | 2026-11-21 | Amp types 8 / 9 (LP24, HP24) are one state variable pair `0x124EFA`; Python model and recorded oracle cases; no Rust port yet | accepted |
 | [D180](#d180-the-fx-rate-match---fx-rate-match-d137-becomes-the-default---legacy-fx-rate-opts-out-rate-matched-chains-for-every-new-layerfxchain) | 2026-11-21 | The FX rate match (`--fx-rate-match`, D137) becomes the default; `--legacy-fx-rate` opts out; rate-matched chains for every new `LayerFxChain` | accepted |
 | [D173](#d173-the-fx-parity-set-firmwarefxparity-delay-laws-and-time-compressor-mod-1-eq-mod-2-amp-becomes-the-default---legacy-fx-ports-opts-out-the-chorus-delay-is-closed---fx-rate-match-stays-opt-in-with-a-recommendation) | 2026-11-20 | The FX parity set becomes the default, `--legacy-fx-ports` opts out, the chorus delay is closed, `--fx-rate-match` stays opt-in | accepted |
 | [D179](#d179-the-synth_sineplk-clip-drift-473-to-748-is-the-d163-mod-2-default-flip-not-a-synth-regression-no-code-change) | 2026-11-21 | The `synth_sineplk` clip drift 4.73 to 7.48 is the D163 Mod 2 default flip, not a synth regression; no code change | proposed |
@@ -1963,3 +1965,13 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Wire the bind into the census now (rejected: no level to rank). Model the page DMA by guessing the descriptor to file offset law (rejected: undecoded, tag would be ASSUMED with no check).
 - **Open:** page refill (descriptor words `0x27AE4` etc. to external offsets; `epchain` for the SMP with the `.npno` as external image), ring half choice, piano layers 2 and 3, `ns4_inspect` piano layer decode 2 bits late.
 - **Impact:** `tools/arm_piano_bind.py`, `arm_dsp_live.py`, `arm_dsp_route.py`, `crates/nord-sharc/src/runner/live_smp.rs`, `live_sy.rs`, `live_presets.rs`, `bin/sharc_live.rs`; tests `test_arm_piano_bind.py`, `test_arm_dsp_route.py`, `live_smp` / `live_sy` / `live_presets` units; no default, no render path touched (`render_hash` unchanged).
+
+### D181. Amp types 8 and 9 (LP24 / HP24) are one state variable pair `0x124EFA`; model and recorded oracle cases, no Rust port yet
+
+- **Status:** accepted 2026-11-21
+- **Decided by:** the DSP-image hunt session (research record; no behaviour change), reported to the coordinating session.
+- **Context:** [fx-type-map](research/fx-type-map.md) s10 left amp types 7..9 open (module and organ unit instance unknown); OQ31 listed LP+HP and the Clav EQ as unmodelled.
+- **Decision:** (1) Record in [amp-types-789](research/amp-types-789.md) that types 8 and 9 install one routine (`0x124EFA` core 1, `0x124586` core 2) whose mode word picks LP or HP, with oracle-verified equations (`tools/fx_model_lp24.py`, worst error 4.7e-07). (2) The organ unit instance of the tone stack `0x1243F4` is PNO core 1 `0x125261`. (3) Clav EQ is a documented negative result. (4) No Rust port until the unit template constants and the word tables are captured.
+- **Why:** A port with `ASSUMED` template constants would only prove the formula against itself (`.agents/rules/provenance-in-code.md`).
+- **Alternatives:** Port now with assumed constants (rejected: no hardware evidence). Skip the record (rejected: the routine identity and equations are reusable).
+- **Impact:** `tools/fx_model_lp24.py`, `tools/tests/test_fx_model_lp24.py`, `docs/research/data/fx-lp24-oracle-cases.json`, `docs/research/amp-types-789.md`; OQ31 and fx-type-map s10 updated. No engine change.

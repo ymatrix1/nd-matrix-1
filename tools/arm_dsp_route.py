@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 CHIPS = {"FX": 0, "PNO": 1, "ORG": 2, "SY": 3, "SMP": 4}
 PRESETS = ("pno", "org", "sy", "smp")  # `sharc-live` flags (`runner/live_presets.rs`); `sy` is D153
-SAMPLE_CHIPS = {"SY": "sy", "SMP": "smp"}  # core 0, path 1, interrupt driven pass; `smp` is D181
+SAMPLE_CHIPS = {"SY": "sy", "SMP": "smp"}  # core 0, path 1, interrupt driven pass; `smp` is D185
 DM_WORDS = 0x100000  # data word space of one core window (`0x28000000 + 4 w`, w < 2^20)
 # VERIFIED (`synth-stage-models-12.md` s1): the ARM writes the wavetables of the SUPER 2..4 and
 # WAVETABLE stages to the DSP L2 byte window below the core windows; the DSP reads them as data
@@ -52,7 +52,7 @@ class ChipSpec:
 
     def flags(self) -> list[str]:
         """`sharc-live` flags of this chip."""
-        if self.preset == "smp":  # same pass model as SY, SMP FIFO and ring tap (D181)
+        if self.preset == "smp":  # same pass model as SY, SMP FIFO and ring tap (D185)
             return ["--smp"]
         if self.preset == "sy":  # interrupt driven pass, no epdma, no level window (D153)
             return ["--sy", *(["--epchain"] if self.window == "epchain" else [])]
