@@ -207,3 +207,21 @@ def test_poke_is_queued_and_logged_but_not_counted_as_an_arm_message() -> None:
     assert link._buf == ["M 0x8030000 0x1234\n", "M 0xc1dcc 0x7\n"]
     assert link.log == [(0, 0x08030000, 0x1234), (0, 0xC1DCC, 7)]
     assert link.stats.messages == 1 and link.stats.words == {0xC1DCC}
+
+
+def test_command_flushes_queued_messages_then_returns_the_reply_and_calls_the_hook() -> None:
+    proc = FakeProc(["F base=1 dir=2..3"])
+    link = dl.Link(proc)
+    seen: list[tuple[int, int]] = []
+    link.on_send = lambda w, v: seen.append((w, v))
+    link.send(0x10, 5)
+    assert link.command("F 7") == "F base=1 dir=2..3"
+    assert proc.stdin.getvalue() == "M 0x10 0x5\nF 7\n"
+    assert seen == [(0x10, 5)]
+
+
+def test_command_raises_on_an_error_reply() -> None:
+    proc = FakeProc(["ERR no flash image loaded"])
+    link = dl.Link(proc)
+    with pytest.raises(RuntimeError, match="no flash"):
+        link.command("F 1")

@@ -1,0 +1,96 @@
+"""Unit tests for tools/arm_smp_flash.py (synthetic `.npno` tables, no firmware, no subprocess)."""
+
+from __future__ import annotations
+
+import struct
+
+import arm_smp_flash as sf
+
+
+def synthetic_npno(channels: int, strokes: list[tuple[int, int, int]]) -> bytes:
+    """Header tables only: `(offset_from_cnsp_base, frames, npages)` per stroke."""
+    data = bytearray(sf.STROKE_TABLE + len(strokes) * sf.STROKE_SIZE)
+    struct.pack_into(">H", data, sf.CHANNELS_AT, channels)
+    struct.pack_into(">H", data, sf.NSTROKES_AT, len(strokes))
+    for k, (off, frames, npages) in enumerate(strokes):
+        at = sf.STROKE_TABLE + k * sf.STROKE_SIZE
+        struct.pack_into(">I", data, at + 8, off)
+        struct.pack_into(">I", data, at + 0x0E, frames)
+        struct.pack_into(">H", data, at + 0x12, npages)
+    return bytes(data)
+
+
+class FakeLink:
+    def __init__(self) -> None:
+        self.sent: list[str] = []
+
+    def command(self, line: str) -> str:
+        self.sent.append(line)
+        return "F ok"
+
+
+# the two Astoria Grand strokes of the run (offset from the CNSP base, frames, pages) and their rec[-10]
+ASTORIA = [(82_933_064, 162_532, 99, 0x9E7E), (80_929_944, 153_593, 93, 0x9AAA)]
+
+
+def test_parse_strokes_reads_offset_frames_and_pages() -> None:
+    npno = synthetic_npno(2, [(a, b, c) for a, b, c, _ in ASTORIA])
+    got = sf.parse_strokes(npno)
+    assert [(s.offset, s.frames, s.npages, s.channels) for s in got] == [
+        (a + 0x2C, b, c, 2) for a, b, c, _ in ASTORIA
+    ]
+
+
+def test_the_page_law_reproduces_the_observed_descriptors() -> None:
+    strokes = sf.parse_strokes(synthetic_npno(2, [(a, b, c) for a, b, c, _ in ASTORIA]))
+    assert [sf.stroke_page(s) for s in strokes] == [v for *_, v in ASTORIA]
+    # the file byte of page v is 2044 * v - 148 (stereo)
+    assert [2044 * sf.stroke_page(s) - 148 for s in strokes] == [s.offset for s in strokes]
+
+
+def test_a_stroke_off_the_grid_has_no_page() -> None:
+    npno = synthetic_npno(2, [(10, 5, 1)])
+    assert sf.stroke_page(sf.parse_strokes(npno)[0]) is None
+
+
+def test_mono_pages_use_the_1022_byte_grid() -> None:
+    off = 1022 * 7 - 148 - sf.CNSP_BASE
+    s = sf.parse_strokes(synthetic_npno(1, [(off, 9, 1)]))[0]
+    assert sf.stroke_page(s) == 7
+
+
+def test_a_descriptor_in_the_message_stream_places_the_file_once() -> None:
+    npno = synthetic_npno(2, [(a, b, c) for a, b, c, _ in ASTORIA])
+    link = FakeLink()
+    feed = sf.SmpFlashFeed(sf.parse_strokes(npno), link)
+    assert feed.observe(0x9391D, 0x6E6F) is None
+    assert feed.observe(0x9391E, 0x9E7E) is None
+    det = feed.observe(0x9391F, 162_532)
+    assert det and det.stroke == 0 and det.law_ok and det.rec11 == 0x6E6F and det.placed == "F ok"
+    # the second stroke of the same file: same directory index, no second F
+    feed.observe(0x93953, 0x6E6F)
+    feed.observe(0x93954, 0x9AAA)
+    det2 = feed.observe(0x93955, 153_593)
+    assert det2 and det2.stroke == 1 and det2.law_ok and det2.placed == ""
+    assert link.sent == [f"F {0x6E6F}"]
+    assert feed.summary()["descriptors"] == 2 and feed.summary()["law_ok"] == 2
+
+
+def test_a_frame_count_with_a_wrong_page_is_reported_not_placed() -> None:
+    npno = synthetic_npno(2, [(a, b, c) for a, b, c, _ in ASTORIA])
+    link = FakeLink()
+    feed = sf.SmpFlashFeed(sf.parse_strokes(npno), link)
+    feed.observe(0x100, 5)
+    feed.observe(0x101, 12345)
+    det = feed.observe(0x102, 162_532)
+    assert det and not det.law_ok and link.sent == []
+
+
+def test_expected_head_is_the_payload_after_the_two_header_bytes() -> None:
+    npno = bytearray(synthetic_npno(1, [(0x1000, 4, 1)]))
+    at = 0x1000 + sf.CNSP_BASE
+    npno += bytes(at + 2 + 16 - len(npno))
+    for k in range(8):
+        struct.pack_into(">H", npno, at + 2 + 2 * k, 0x100 + k)
+    s = sf.parse_strokes(bytes(npno))[0]
+    assert sf.expected_head(bytes(npno), s) == [0x100 + k for k in range(8)]

@@ -180,6 +180,7 @@ class Link:
         self.stats = LinkStats()
         self.pass_index = 0
         self.log = log if log is not None else []
+        self.on_send = None  # optional hook `(dm_word, value)` called after every `send`
         self._buf: list[str] = []
         self.timeout = timeout
         self._lines: queue.Queue[str] = queue.Queue()
@@ -218,12 +219,24 @@ class Link:
         self.log.append((self.pass_index, dm_word, value))
         self.stats.messages += 1
         self.stats.words.add(dm_word)
+        if self.on_send is not None:
+            self.on_send(dm_word, value)
 
     def poke(self, dm_word: int, value: int) -> None:
         """Queue a data word that is not an ARM message (a harness-side preload, for example the
         wavetable of the oracle). Logged for replays, not counted in `stats.messages`."""
         self._buf.append(f"M {dm_word:#x} {value:#x}\n")
         self.log.append((self.pass_index, dm_word, value))
+
+    def command(self, line: str) -> str:
+        """One protocol line with a one-line reply (`L`, `F`, `E`), after the queued messages."""
+        self._flush()
+        self.proc.stdin.write(line + "\n")
+        self.proc.stdin.flush()
+        reply = self._readline().strip()
+        if reply.startswith("ERR"):
+            raise RuntimeError(reply)
+        return reply
 
     def _flush(self) -> None:
         if self._buf:

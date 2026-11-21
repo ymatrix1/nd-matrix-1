@@ -4,6 +4,7 @@ use super::epchain::EpChain;
 use super::epdma::EpDma;
 use super::ringdma::RingDma;
 use super::sc57x::Sc57x;
+use super::smpflash::SmpFlash;
 use super::spi_boot::{self, SpiBoot};
 use super::{AccessLog, Bus};
 use crate::core::Core;
@@ -137,11 +138,22 @@ impl Core {
             || (spi_boot::IISPI..=spi_boot::SPIDMAC).contains(&addr)
     }
 
+    /// Whether the SMP flash model is on and `addr` is in one of its banks.
+    fn flash_claims(&self, addr: u32) -> bool {
+        SmpFlash::covers(addr)
+            && self
+                .periph
+                .as_ref()
+                .and_then(|p| p.epchain.as_ref())
+                .is_some_and(|e| e.flash.is_some())
+    }
+
     /// Whether a model or the census looks at `addr`: the system range, plus the IOP window when
     /// the range-transfer model or the census is on.
     #[inline]
     fn periph_claims(&self, addr: u32) -> bool {
         Self::periph_range(addr)
+            || self.flash_claims(addr)
             || (addr < 0x4_0000
                 && self
                     .periph
@@ -178,6 +190,9 @@ impl Core {
         if let Some(e) = p.epchain.as_ref().filter(|_| EpChain::contains(addr)) {
             v = Some(e.read(addr));
         }
+        if let Some(f) = p.epchain.as_mut().and_then(|e| e.flash.as_mut()) {
+            v = f.read(addr).or(v);
+        }
         if v.is_some() {
             self.device_reads += 1;
         }
@@ -209,6 +224,13 @@ impl Core {
         } else if let Some(e) = p.epchain.as_mut().filter(|_| EpChain::contains(addr)) {
             e.write(addr, v, &mut CoreBus(self));
             true
+        } else if let Some(f) = p
+            .epchain
+            .as_mut()
+            .and_then(|e| e.flash.as_mut())
+            .filter(|_| SmpFlash::covers(addr))
+        {
+            f.write(addr, v)
         } else if let Some(r) = p.ringdma.as_mut().filter(|_| RingDma::contains(addr)) {
             r.write(v, &mut CoreBus(self));
             true
@@ -466,5 +488,24 @@ mod tests {
         c.dm_write(DMAC0, 0x125).unwrap();
         assert_eq!((c.dm_read(0x9_4000), c.dm_read(0x9_4001)), (Ok(7), Ok(8)));
         assert_eq!(c.epchain().unwrap().tcbs, 1);
+    }
+
+    #[test]
+    fn the_flash_banks_answer_core_accesses_only_when_the_flash_is_loaded() {
+        use crate::core::periph::smpflash::{SmpFlash, BANK1, BANK2};
+        let mut c = Core::new(&[]);
+        c.enable_epchain();
+        c.dm_write(BANK2 + 1, 2).unwrap();
+        assert_eq!(c.dm_read(BANK2 + 1), Ok(2), "no flash: plain device store");
+        c.epchain().unwrap().flash = Some(SmpFlash::new(vec![0xAB, 0xCD, 0x12, 0x34]));
+        assert_eq!(c.dm_read(BANK1), Ok(0xABCD), "latch still 0, header word");
+        c.dm_write(BANK2 + 9, 1).unwrap();
+        assert_eq!(c.epchain().unwrap().flash.as_ref().unwrap().latch(), 1);
+        assert_eq!(
+            c.dm_read(BANK1),
+            Ok(0),
+            "latch 1 is outside the 2 word image"
+        );
+        assert_eq!(c.dm_read(0x9_0000), Ok(0), "SRAM is untouched");
     }
 }

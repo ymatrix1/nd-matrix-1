@@ -95,3 +95,7 @@ uv run --with unicorn --with capstone python tools/arm_dsp_live.py $C/bank0_CODE
 3. Separate piano layers 2 and 3 (`select_sound` binds layer 0 of core 0 only).
 4. Check the ring half choice (`live_smp::ring_half`) on the first non-zero ring.
 5. Fix `ns4_inspect._decode_piano_layer` (2 bit shift against `piano_preset.rs`, test pins the old layout).
+
+## Update 2026-11-21 (D191)
+
+Follow-up 1 is done: the descriptor law and the flash feed are in [smp-page-refill](smp-page-refill.md). The rings now hold the file words, but the voice phase freezes after the first refill, so follow-ups 2 and 4 wait for the per-voice gate.
