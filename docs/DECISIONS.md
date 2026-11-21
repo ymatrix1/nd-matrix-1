@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D188](#d188-firmware-amp-lp24--hp24-state-variable-pair-0x124efa-ported-opt-in---firmware-fx-ports-lp24) | 2026-11-21 | Firmware Amp LP24 / HP24 (state variable pair `0x124EFA`) ported, opt-in `--firmware-fx-ports lp24` | accepted |
 | [D185](#d185-piano-chain-tap-a-bound-piano-sound-reaches-a-live-smp-chip-sharc-live---smp-the-page-refill-is-the-next-blocker) | 2026-11-21 | Piano chain tap: a bound piano sound reaches a live SMP chip (`sharc-live --smp`); the page refill is the next blocker | proposed |
 | [D181](#d181-amp-types-8-and-9-lp24--hp24-are-one-state-variable-pair-0x124efa-model-and-recorded-oracle-cases-no-rust-port-yet) | 2026-11-21 | Amp types 8 / 9 (LP24, HP24) are one state variable pair `0x124EFA`; Python model and recorded oracle cases; no Rust port yet | accepted |
 | [D180](#d180-the-fx-rate-match---fx-rate-match-d137-becomes-the-default---legacy-fx-rate-opts-out-rate-matched-chains-for-every-new-layerfxchain) | 2026-11-21 | The FX rate match (`--fx-rate-match`, D137) becomes the default; `--legacy-fx-rate` opts out; rate-matched chains for every new `LayerFxChain` | accepted |
@@ -1974,3 +1975,14 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Why:** A port with `ASSUMED` template constants would only prove the formula against itself (`.agents/rules/provenance-in-code.md`).
 - **Alternatives:** Port now with assumed constants (rejected: no hardware evidence). Skip the record (rejected: the routine identity and equations are reusable).
 - **Impact:** `tools/fx_model_lp24.py`, `tools/tests/test_fx_model_lp24.py`, `docs/research/data/fx-lp24-oracle-cases.json`, `docs/research/amp-types-789.md`; OQ31 and fx-type-map s10 updated. No engine change.
+
+### D188. Firmware Amp LP24 / HP24 (state variable pair `0x124EFA`) ported, opt-in `--firmware-fx-ports lp24`
+
+- **Status:** accepted 2026-11-21
+- **Decided by:** the DSP-image hunt session (opt-in port, default unchanged), reported to the coordinating session.
+- **Context:** D181 identified the routine and equations; this adds the unit template constants and the full word tables and ports it.
+- **Decision:** `FirmwareFx::lp24` (`--firmware-fx-ports lp24`) runs `fx/fw_lp24.rs` for `AmpCabinet::LpFilter` / `HpFilter` instead of the engine's two biquad pairs. Opt-in: not in `ALL`, `PARITY` or `PORT_NAMES`. Latency 4 frames on that layer.
+- **Why:** Equations, template constants and all `kAmpMidFreq` / `kAmpMid` words are VERIFIED against the oracle and the ARM capture; no hardware clip of an LP24 / HP24 program exists to justify a default flip (D22).
+- **Alternatives:** Put it in `ALL` / `PARITY` (rejected: no clip evidence, and `PORT_NAMES` is mirrored by the GUI and tests). Keep the biquad stand-in only (rejected: wrong damping, clipping and smoothing).
+- **Open:** the cutoff unit (rate scale at 48 kHz), the mapping of the engine Mid Freq to a table index, the Mid knob to counts mapping (ASSUMED), type 9 words assumed equal to type 8's (the filter list `0xC044398C` is shared, `fx-param-fits.csv`).
+- **Impact:** `fx/fw_lp24.rs`, `fx/fw_lp24_tables.rs`, `fx/amp_eq.rs`, `fx/firmware_fx.rs`, `fx/firmware_fx_ports.rs`, tests `tests_fw_lp24_golden.rs`, `tests_fw_lp24_chain.rs`, `tools/fx_lp24_golden.py`; `docs/research/amp-types-789.md`.

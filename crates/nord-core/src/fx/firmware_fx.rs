@@ -88,6 +88,11 @@ pub struct FirmwareFx {
     /// Firmware Mod 2 (`kFx2Type` 0 to 11: `PHAS`, `FLANG`, `CHOR`, `VIBE`, `ENS`, `SPIN`) with the
     /// `kFx2Amt` / `kFx2Rate` words. `ENS` runs with ASSUMED circular tap registers (D95).
     pub mod2: bool,
+    /// Firmware Amp `LP24` / `HP24` (state variable pair `0x124EFA`, `kAmpMidFreq` / `kAmpMid`
+    /// words) in place of the engine's two biquad pairs. Opt-in (`--firmware-fx-ports lp24`), not in
+    /// [`Self::ALL`] or [`FX_PORT_NAMES`](super::FX_PORT_NAMES): no clip confirms it yet
+    /// (`docs/research/amp-types-789.md`). Latency 4 frames on an LP24 / HP24 layer.
+    pub lp24: bool,
 }
 
 impl Default for FirmwareFx {
@@ -131,6 +136,7 @@ impl FirmwareFx {
         pump: false,
         eq: false,
         mod2: false,
+        lp24: false,
     };
 
     /// Every firmware port except the two reverb ports: delay laws and time, compressor, Mod 1,
@@ -158,6 +164,7 @@ impl FirmwareFx {
         pump: true,
         eq: true,
         mod2: true,
+        lp24: false,
     };
 }
 

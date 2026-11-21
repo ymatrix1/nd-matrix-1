@@ -42,8 +42,10 @@ def f32(w: int) -> float:
     return struct.unpack("<f", struct.pack("<I", w))[0]
 
 
-def model(ctx: dict[int, float], frames: list[float], mode: int):
-    """One lane of the routine: `(outputs, states, (A2, B2, g2, a1, b))`.
+def model(ctx: dict[int, float], frames: list[float], mode: int, lane: int = 0):
+    """One channel of the routine: `(outputs, states, (A2, B2, g2, a1, b))`.
+
+    `lane` 0 is the left channel (states at even offsets), 1 the right (odd offsets).
 
     `ctx` maps offset to float. Cutoff words `c[-32]`, `c[-31]` and resonance words `c[-29]`,
     `c[-27]` smooth toward their targets with K; `c[-26]` smooths toward `c[-28]`.
@@ -59,7 +61,7 @@ def model(ctx: dict[int, float], frames: list[float], mode: int):
     inv = 1 / (lim + 4 * x_c * b2 + x_c * x_c) ** 0.5
     a1 = 2 * x_c * inv
     b = 4 * b2 * inv
-    s = {k: c(k) for k in (-16, -14, -12, -10, -8, -6)}
+    s = {k: c(k + lane) for k in (-16, -14, -12, -10, -8, -6)}
 
     def clip(v: float) -> float:
         return max(-lim, min(lim, v))
@@ -110,12 +112,15 @@ def random_case(seed: int, mode: int) -> dict:
 
 
 def model_from_mem(mem: dict, mode: int) -> dict[int, float]:
-    """Model outputs (left lane, 4 frames) as floats keyed by address, from a word image."""
+    """Model outputs (both channels, 4 frames) as floats keyed by address, from a word image."""
     mem = {int(a): int(w) for a, w in mem.items()}
     ctx = {o: f32(mem[CTX + o]) for o in range(-32, 0)}
-    frames = [f32(mem[IN + 2 * i]) for i in range(4)]
-    out, _, _ = model(ctx, frames, mode)
-    return {IN + 2 * i: v for i, v in enumerate(out)}
+    exp = {}
+    for lane in (0, 1):
+        frames = [f32(mem[IN + 2 * i + lane]) for i in range(4)]
+        out, _, _ = model(ctx, frames, mode, lane)
+        exp.update({IN + 2 * i + lane: v for i, v in enumerate(out)})
+    return exp
 
 
 def run_oracle(image: str, binary: Path, cases: list[dict]) -> list[dict[int, int]]:
