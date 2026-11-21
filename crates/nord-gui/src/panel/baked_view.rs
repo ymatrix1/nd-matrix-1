@@ -203,6 +203,19 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                     state.rotary_drive = val;
                     audio_handle.send_command(AudioCommand::SetRotaryDrive(val));
                 }
+                4..=6 => {
+                    let dial_idx = k.index - 4;
+                    state.synth_ui.dial_acc[dial_idx] += delta * 6.0;
+                    let steps = state.synth_ui.dial_acc[dial_idx].trunc();
+                    state.synth_ui.dial_acc[dial_idx] -= steps;
+                    if steps != 0.0 {
+                        let shift = ui.input(|i| i.modifiers.shift);
+                        state.synth_ui.turn_dial(dial_idx, steps as i32, shift);
+                        for e in state.synth_ui.take_edits() {
+                            audio_handle.send_command(AudioCommand::Synth(e));
+                        }
+                    }
+                }
                 _ => {}
             }
         }
