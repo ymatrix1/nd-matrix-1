@@ -1,0 +1,18 @@
+{
+ "program": "Bank F/Synth Engine.ns4p",
+ "pattern": {"steps": 14, "gate": "EEEEEEEEEEEEEE", "pan": "CRLCRCLCCRLRCC"},
+ "arm_steps_key60": [
+  {"step": 1, "arm_tick_after_key": 3794, "pan_code_r3": 2, "pan": "R", "builder_kind_sequence": [2, 4], "key_word": "0x0100E200", "dm_word": "0xC1DCC"},
+  {"step": 2, "arm_tick_after_key": 8466, "pan_code_r3": 1, "pan": "L", "builder_kind_sequence": [2, 4], "key_word": "0x0200E200", "dm_word": "0xC1DCD"},
+  {"step": 3, "arm_tick_after_key": 13138, "pan_code_r3": 0, "pan": "C", "builder_kind_sequence": [2, 4], "key_word": "0x0300E200", "dm_word": "0xC1DCE"},
+  {"step": 4, "arm_tick_after_key": 17810, "pan_code_r3": 2, "pan": "R", "builder_kind_sequence": [2, 4], "key_word": "0x0100E200", "dm_word": "0xC1DCF"}
+ ],
+ "arm_step_period_ticks": 4672,
+ "replay_key_word_flags_at_dm_0xC1DCC_1500_passes": {
+  "0x01": {"left_peak": 0.0, "right_peak": 0.1947},
+  "0x02": {"left_peak": 0.1947, "right_peak": 0.0},
+  "0x03": {"left_peak": 0.1947, "right_peak": 0.1947}
+ },
+ "live_chain_window_0xC1F89_8_1_key_8000_ticks": {"lane_peak": 0.19437},
+ "live_chain_window_0xC1F89_4_2_key_8000_ticks": {"lane_peak": 0.0}
+}

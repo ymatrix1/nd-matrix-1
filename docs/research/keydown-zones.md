@@ -128,6 +128,8 @@ The `W(key, footage)` of the task: the B3 weight written for a key and footage `
 
 ## 7. Synth voice event (`0xC01EC690`)
 
+**Update (2026-11-20, [arp-pan-lanes](arp-pan-lanes.md), D175):** the two low flag bits (`0x03` for a plain key) are the output lane select of the voice record, not voice banks; arp steps carry the step pan there (`0x03` C, `0x02` L, `0x01` R).
+
 One message per key to PNO core 2, no other effect (the idle burst of section 3 appears now and then):
 
 `DM(0xC1DCC + 3 voice + layer) = (layer << 29) | (0x0B on / 0x08 off) << 24 | ((note - 60) & 0xFF) << 16 | 0x80xx00`
