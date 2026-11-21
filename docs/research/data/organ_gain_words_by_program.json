@@ -1,0 +1,65 @@
+{
+ "checked": "2026-11-21",
+ "tool": "tools/arm_dsp_capture.py one (load phase, PNO core 1 words, last write wins)",
+ "note": "absent key = never written in the capture",
+ "programs": {
+  "Bank A/B3 Chords n Solo": {
+   "0xb2ff0": "0x3fa66666",
+   "0xb300e": "0x3f800000",
+   "0xb301d": "0x3f800000",
+   "0xb2fff": "0x3fa66666",
+   "0xb2ecf": "0x3f81874a",
+   "0xb2ede": "0x3f81874a"
+  },
+  "Bank A/B3 Jazz Split": {
+   "0xb2ff0": "0x3fa66666",
+   "0xb300e": "0x3f800000",
+   "0xb301d": "0x3f800000",
+   "0xb2fff": "0x3fa66666",
+   "0xb2ecf": "0x3fcccccd",
+   "0xb2ede": "0x3fcccccd"
+  },
+  "Bank A/B3 Old Forest": {
+   "0xb2ff0": "0x3fa66666",
+   "0xb300e": "0x3f800000",
+   "0xb301d": "0x3f800000",
+   "0xb2fff": "0x3fa66666",
+   "0xb2ecf": "0x3fcccccd",
+   "0xb2ede": "0x3fcccccd"
+  },
+  "Bank A/Space Drama II": {
+   "0xb2ff0": "0x3fa66666",
+   "0xb300e": "0x3f800000",
+   "0xb301d": "0x3f800000",
+   "0xb2fff": "0x3fa66666",
+   "0xb2ecf": "0x3f6ef1a5",
+   "0xb2ede": "0x3f6ef1a5"
+  },
+  "Bank A/Velvet Grand": {
+   "0xb300e": "0x3f800000",
+   "0xb301d": "0x3f800000",
+   "0xb2fff": "0x3fa66666"
+  },
+  "Bank A/Vintage Vox J3": {
+   "0xb2ff0": "0x3fa66666",
+   "0xb300e": "0x3f800000",
+   "0xb301d": "0x3f800000",
+   "0xb2fff": "0x3fa66666",
+   "0xb2ecf": "0x3fcccccd",
+   "0xb2ede": "0x3fcccccd"
+  },
+  "Bank A/White Grand": {
+   "0xb300e": "0x3f800000",
+   "0xb301d": "0x3f800000",
+   "0xb2fff": "0x3fa66666"
+  },
+  "Bank B/Cathedral Pipes": {
+   "0xb2ff0": "0x3fa66666",
+   "0xb300e": "0x3f800000",
+   "0xb301d": "0x3f800000",
+   "0xb2fff": "0x3fa66666",
+   "0xb2ecf": "0x3fcccccd",
+   "0xb2ede": "0x3fcccccd"
+  }
+ }
+}

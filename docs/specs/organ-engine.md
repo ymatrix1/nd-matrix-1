@@ -296,7 +296,7 @@ K               = 2.8 (+8.9 dB)                                    EMPIRICAL thr
 | `Legacy` | the built-in levels: Legacy drawbar bus 0.08 (`LEGACY_BUS_OVER_UNIT` = +14.39 dB over the ARM weight unit), the Vox boot swell word 0.6199, layer level linear |
 | `Firmware` | `K` on the weight mix / `B3Wheels` sum, the Vox word replaced by `K` (the engine pedal is the swell), layer level squared (`Stage4Engine::render_frame`) |
 
-`ns4 render-patch --organ-level default|legacy|firmware|chain` (`chain` = the verified chain word 1.6 times the FX path 0.3732 in place of `K`, opt-in, 13 to 15 dB under the B3 and Vox clips, D49), `FirmwareOptions::organ_level`. The program rotary drive enters the engine as `preset / 10` (the firmware drive is `v / 127`, VERIFIED, [fx-type-map](../research/fx-type-map.md) s9); `export` multiplies by 10.
+`ns4 render-patch --organ-level default|legacy|firmware|chain` (`chain` = the verified chain words 1.6 x 1.3 (`0xB2EDE` and `0xB2FF0`, both written by the layer sender in every organ program, D189) times the FX path 0.3732 = 0.776 in place of `K`, opt-in, about 11 to 13 dB under the B3 and Vox clips, D49, D189), `FirmwareOptions::organ_level`. The program rotary drive enters the engine as `preset / 10` (the firmware drive is `v / 127`, VERIFIED, [fx-type-map](../research/fx-type-map.md) s9); `export` multiplies by 10.
 
 ### 3.2 9 Drawbar Harmonic Bus Matrix & Foldback
 

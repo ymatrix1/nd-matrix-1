@@ -149,6 +149,25 @@ One `K` spans a 3.1 dB spread over three different DSP paths, so part of it may 
 
 Readings: (1) one `K` does not fit the three engines on the Transkun streams: 1.8 (Vox) to 4.9 .. 8.4 (B3) is a 13 dB spread, against 3.4 dB on the earlier video-detected notes at velocity 100 (s4); the centring at 2.8 is not supported by the stream replay, whose velocities are ordinal, not the Nord scale. (2) B3 and Pipe are not linear in `K` (chain and `K = 2.8` disagree by 2.3 and 2.6 dB in `k_needed`: soft clip, drive, compressor), Vox is (0.3 dB). (3) The spread is of the size of the rotary drive choice (4.8 dB) plus the velocity scale, so no engine-specific gain word is implied. `K` stays EMPIRICAL at 2.8, `Chain` stays opt-in, no default changes.
 
+### 6.4 The second organ gain word and the Piano-to-Organ recall diff (D189, 2026-11-21)
+
+- **Checked:** 2026-11-21. **Sources (local):** `tools/arm_dsp_capture.py one` (booted ARM, program recall in the Store record, load / idle / key phases) on `Velvet Grand`, `White Grand` (piano) and `B3 Chords n Solo`, `B3 Jazz Split`, `B3 Old Forest`, `Vintage Vox J3`, `Space Drama II` (Pipe2 + synth), `Cathedral Pipes` (Bank B); `target/PNO/core1_sram.bin`, `target/bulk/pno_core1.script`, `docs/research/data/org-system-load-pno1.script`, release `sharc-sys` (`--pno --lane 2:0`). Words per program: [organ_gain_words_by_program.json](data/organ_gain_words_by_program.json).
+- **Question:** the open lead of s6.3: does a Piano to Organ program recall write an organ gain that the oracle runs and the `Chain` law lack?
+
+| Finding | Result | Tag |
+|---|---|---|
+| Piano vs organ recall (Velvet Grand vs B3 Chords n Solo, PNO + ORG + FX words, last write per address) | piano: FX rows `0xC2893/4`, `0xC28A2/3` = 1.0 (SMP bus gains, as s6.2); organ: PNO `0xB2ECF/D0`, `0xB2EDE/DF` = `1.6 (v/127)^2` and **`0xB2FF0/1` = 1.3**; no other level-like word differs (the rest are filter / key tables) | VERIFIED (capture) |
+| `0xB2FF0/1` | **written in every organ program** (B3 x3, Vox, Pipe2, Pipe cathedral): `0x3FA66666` = 1.3, the value of scale cell 1 (`[mixer + 0x154]`; ASSUMED link, the sender path to this family was not traced), same senders `0xC022E3E8` / `0xC022E288`, tick 234; the piano programs do not write it. s5.2 / s6.2 listed the family `0xB2FF0..` as "no layer-word writer": the writer is the same layer sender, the harness edit capture did not run the organ recall | VERIFIED (capture) |
+| Does the lane use it? | **Yes, multiplicatively.** `sharc-sys --pno --lane 2:0`, B3 Chords n Solo, 8 keys, 8,000 passes: as captured (`0xB2EDE` = 1.0119, `0xB2FF0` = 1.3) RMS 0.058359; both 1.0: 0.044362 (ratio 1.3155 = 1.0119 x 1.3); (2, 1) and (1, 2): 0.088725 both; any of `0xB2EDE`, `0xB2FF0`, `0xB301D` at 0: silent; `0xB301D` x 2 doubles the RMS (it is 1.0 in every program); `0xB2ECF`, `0xB2ED0`, `0xB2EDF`, `0xB2FF1`, `0xB2FFF`, `0xB300E/F`, `0xB301E` change nothing on lane `2:0` | VERIFIED (run) |
+| Chain at level 127 | `1.6 x 1.3 x 1.0 = 2.08` (6.4 dB), not 1.6 (4.1 dB); with the FX output path `0.3732`: **0.776** (-2.2 dB) | VERIFIED words, ASSUMED unit |
+| Per engine | B3, Vox, Pipe1/2 all send the same `1.6 (v/127)^2` and 1.3; no per-engine ARM gain exists. Engine differences of s6.3 / [organ-k-controls](organ-k-controls.md) are not in the level words | VERIFIED (capture) |
+
+**Effect on `K`.** `K = 2.8` over the verified chain is now `2.8 / 0.776 = 3.61` (11.1 dB) instead of 4.69 (13.4 dB): 2.3 dB of the gap is closed by a verified word. The D72 lead (`K` = chain / 0.21875 = 2.729) moves to `0.776 / 0.21875 = 3.55`, 2.1 dB above `K = 2.8` and inside the per-clip needs of s4 (B3 3.67, Vox 3.12, Pipe 2.57): the coincidence is weaker, not a derivation. `K` stays EMPIRICAL.
+
+**Opt-in change.** `--organ-level chain` (`OutputLevel::Chain`) now uses 1.6 x 1.3 x 0.3732 = 0.776 (test `chain_law_is_the_verified_word_times_the_fx_path`, `second_organ_word_is_1_3_and_b3_word_is_level_squared_times_1_6`: the B3 word `0x3F81874A` equals `1.6 (101/127)^2`, the lane ratio 1.3155). No default changes; `render_hash` unchanged.
+
+**Open (exact next blocker for OQ24).** 11.1 dB remain between the verified chain and the clips, one common factor for B3 / Vox / Pipe. The ARM words are exhausted (no other organ word differs from a piano recall). What is left sits inside the DSP / FX side: (a) the unit of the PNO lane at the FX input (the FX mixer was measured with pokes of 0.25 at unity; the real lane to FX DMA descriptor and its `I0` are still not run: needs `sharc-live` PNO core 1 and FX core 1 chained, `arm_dsp_live.py --chip PNO:1 --chip FX:1`, with the organ program), (b) the piano side (SMP slew `0.21875`, [smp-slew](smp-slew.md)) if the clips are compared with the piano as reference, (c) the clip loudness (pedal 127?, velocity). A single-note organ clip with a known level would split (a) from (c).
+
 ## Implications
 
 - One structure, three words: `output = K * swell_word(pedal) * level^2 * bank`. Two factors are firmware, one scale is not.
@@ -157,6 +176,7 @@ Readings: (1) one `K` does not fit the three engines on the Transkun streams: 1.
 
 ## Follow-ups
 
+0. Done in s6.4 (D189): the Piano to Organ recall diff; the second word `0xB2FF0` = 1.3 found.
 1. Find where the FX unit's organ section scales its input (`K`): the audio-port DMA descriptors of the PNO to FX hand-over, or the organ unit rows `0xB28xx`.
 2. Run `0xC011AB8C` with the real per-layer controller to confirm the squared law dynamically; capture a second swell value (`v = 64`) to check `520 v^2`.
 3. Remove or rescale the Legacy key click on the firmware B3 path; re-run the B3 presence.
