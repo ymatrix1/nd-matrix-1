@@ -107,6 +107,19 @@ def test_sy_chip_spec_takes_path_1_and_the_sy_flag() -> None:
     assert r.parse_chip_spec("SY:0=sy=i=epchain").flags() == ["--sy", "--epchain"]
 
 
+def test_smp_chip_spec_takes_path_1_and_the_smp_flag():
+    s = r.parse_chip_spec("SMP:0=smp=target/DSP/dsp_image_4_SMP.bin")
+    assert (s.name, s.comm, s.core, s.path, s.flags()) == ("SMP0", 4, 0, 1, ["--smp"])
+
+
+@pytest.mark.parametrize(
+    "bad", ["SMP:0=sy=i", "SY:0=smp=i", "SMP:1=smp=i", "PNO:1=smp=i", "ORG:0=smp=i"]
+)
+def test_smp_chip_spec_rejects_mismatched_chip_and_preset(bad):
+    with pytest.raises(ValueError):
+        r.parse_chip_spec(bad)
+
+
 @pytest.mark.parametrize("bad", ["SY:0=org=i", "SY:1=sy=i", "ORG:0=org=i", "PNO:0=sy=i"])
 def test_sy_preset_and_core_zero_only_go_together(bad: str) -> None:
     with pytest.raises(ValueError):

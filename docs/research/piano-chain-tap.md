@@ -44,6 +44,10 @@ python -c "import json; r = json.load(open('astoria.json')); print({p: r['phases
 - The ranking cannot compare native and chain for piano until blockers 1 to 3 are done; the flag stays honest (`piano_no_chain_tap`).
 - Blocker 1 alone would give a **voice-start tap** (SMP key messages, record gain words: velocity law, voice count) without audio; blockers 2 and 3 give audio. That is a separate task (bean `ns4-pnoc`).
 
+## Update 2026-11-21 (D185)
+
+Blockers 1 and 2 are done: [piano-chain-tap-smp](piano-chain-tap-smp.md). A bound piano sound makes the key send 70 to 117 messages to a live SMP chip; the tap is silent until the page refill (blocker 3).
+
 ## Follow-ups
 
 1. Bind a piano sound in the live driver (`arm_piano_load` stub), program to `.npno` map from the stored sound id.

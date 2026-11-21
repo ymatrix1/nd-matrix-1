@@ -1,4 +1,4 @@
-//! `sharc-live IMAGE [--pno|--org|--sy] [--epdma] [--epchain] [--isrs N] [--ring-dma] [--probe PC]... [--lane SET:PAIR]
+//! `sharc-live IMAGE [--pno|--org|--sy|--smp] [--epdma] [--epchain] [--isrs N] [--ring-dma] [--probe PC]... [--lane SET:PAIR]
 //! [--window ADDR:COUNT:STRIDE]`: one DSP
 //! chip as a line-protocol server (D138). The ARM harness (`tools/arm_dsp_link.py`) writes the
 //! messages the firmware sends (`M W1 W2`), asks for passes (`P N`) and reads the summary lines;
@@ -44,6 +44,7 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
             "--pno" => p.preset = "pno",
             "--org" => p.preset = "org", // ORG core 1/2 and PNO core 2 (organ program, D144)
             "--sy" => p.preset = "sy",   // SY1SY2 sample chip, interrupt-driven pass (D153)
+            "--smp" => p.preset = "smp", // SMP piano chip, same pass model, ring tap (OQ41)
             "--window" => {
                 let s = it.next().ok_or("--window needs ADDR:COUNT:STRIDE")?;
                 let bad = || format!("bad --window {s:?} (want ADDR:COUNT:STRIDE)");
@@ -87,7 +88,7 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
         }
     }
     if p.image.is_empty() {
-        return Err("usage: sharc-live IMAGE [--pno|--org|--sy] [--epdma] [--epchain] [--isrs N] [--ring-dma] [--probe PC]... [--lane SET:PAIR] [--window ADDR:COUNT:STRIDE]".into());
+        return Err("usage: sharc-live IMAGE [--pno|--org|--sy|--smp] [--epdma] [--epchain] [--isrs N] [--ring-dma] [--probe PC]... [--lane SET:PAIR] [--window ADDR:COUNT:STRIDE]".into());
     }
     Ok(p)
 }
@@ -104,7 +105,9 @@ fn serve(args: &[String]) -> Result<(), String> {
         irq: periph.start_status(p.irq),
     };
     let mut live = Live::new(core, cfg, p.ping_pong, a.lane, a.probes);
-    if p.sy {
+    if p.smp {
+        live = live.with_sy(SyModel::smp(a.isrs));
+    } else if p.sy {
         live = live.with_sy(SyModel::new(a.isrs));
     }
     if let Some((addr, n, st)) = a.window {
@@ -186,6 +189,7 @@ mod tests {
         let a = parse(&args(&["sy.bin", "--sy", "--isrs", "1", "--epchain"])).unwrap();
         assert_eq!((a.preset, a.isrs, a.periph.epchain), ("sy", 1, true));
         assert_eq!(parse(&args(&["sy.bin", "--sy"])).unwrap().isrs, 2);
+        assert_eq!(parse(&args(&["smp.bin", "--smp"])).unwrap().preset, "smp");
     }
 
     #[test]
