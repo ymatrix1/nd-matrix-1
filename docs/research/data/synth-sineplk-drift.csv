@@ -1,0 +1,23 @@
+table,label,commit_or_flag,synth_sineplk_score
+bisect,D121 merge (PR 471),bcf4cbbc,4.73
+bisect,before D163 PR 519 merge,fa5cfd58^1 (0dcf3c7a),4.75
+bisect,D163 PR 519 merge (research only),fa5cfd58,4.75
+bisect,before D163 PR 521 merge,6a8ba992^1 (0679c998),4.75
+bisect,D163 PR 521 merge (Mod 2 default on),6a8ba992,7.48
+bisect,main 85b2b572,85b2b572,7.48
+ablation,default,,7.48
+ablation,--legacy-mod2,,4.75
+ablation,--legacy-all,,6.30
+ablation,--legacy-synth-velocity,,7.47
+ablation,--legacy-arp,,7.48
+ablation,--legacy-morph,,7.48
+ablation,--legacy-pump,,7.48
+ablation,--legacy-routing,,7.48
+ablation,--legacy-synth-layer-law,,7.48
+ablation,--legacy-piano-touch,,7.48
+ablation,--legacy-piano-level,,7.48
+ablation,--legacy-1khz-tick,,7.48
+ablation,--no-arp-gate,,7.48
+ablation,--no-synth-knob-laws,,7.50
+ablation,--no-synth-stages,,7.24
+ablation,--no-synth-wave-bank,,7.48
