@@ -1,6 +1,6 @@
 # Morph (Wheel, A.T., Ctrl Ped): firmware law against the native engine
 
-Checked: 2026-11-17 (task `ns4-kq1o`, decision [D159](../DECISIONS.md)). **2026-11-18 (D166): the firmware law is the default; `--legacy-morph` restores the native law described as "default" below.** **2026-11-21 ([D204](../DECISIONS.md), section 7): organ drawbar, Leslie speed, delay rate, arp range / rate and Osc Env Amount morph captured or bounded; the FX delay rate morph is played (it reaches the audio only with the opt-in `FirmwareFx::delay_time`).**
+Checked: 2026-11-17 (task `ns4-kq1o`, decision [D159](../DECISIONS.md)). **2026-11-18 (D166): the firmware law is the default; `--legacy-morph` restores the native law described as "default" below.** **2026-11-21 ([D204](../DECISIONS.md), section 7): organ drawbar, Leslie speed, delay rate, arp range / rate and Osc Env Amount morph captured or bounded; the FX delay rate morph is played (it reaches the audio only with the opt-in `FirmwareFx::delay_time`).** **2026-11-21 ([D206](../DECISIONS.md), section 8): the Osc Env Amount morph is captured on all 9 programs and played with the opt-in `--synth-osc-env-morph`.**
 
 Sources: OS v1.66 ARM image run in the Unicorn harness (`tools/arm_program_morph.py`, Store-record
 recall of a program, MIDI on UART2); factory `Program/Bank A/Horizon Whl.ns4p` from the local
@@ -60,7 +60,7 @@ The Morph group ids `Morph_Grp_kOne..Five` have range `0..128`, which is the wei
 | Organ drawbar morph | decoded, not played | not played; no factory program uses it, the firmware recall does not apply it (section 7.3) |
 | Arp range morph | range decoded, depths dropped | not played; dispatch captured, the range scale is not (section 7.4) |
 | Arp rate morph | depths dropped | not played; no factory program uses it |
-| Osc Env Amount (`kOscEnvAmt`) morph | not decoded | not played; **9 programs use it**, dispatch captured (section 7.4) |
+| Osc Env Amount (`kOscEnvAmt`) morph | decoded since D206, not played | played only with the opt-in `--synth-osc-env-morph` (D206, section 8; 9 programs); default render unchanged |
 | Leslie speed morph | absent | not played; no factory program uses it, layout `EMPIRICAL` (section 7.5) |
 
 ## 4. Native law against firmware law, in numbers
@@ -285,14 +285,71 @@ depths. The fit of the other series is not affected.
   owner decision (D204 does not propose it).
 * Drawbar, Leslie speed and arp rate morph need no work today (0 programs); the arp range morph
   needs the range scale first (1 program).
-* Osc Env Amount morph (9 programs) is worth a port.
+* Osc Env Amount morph (9 programs) is worth a port: done in section 8 (D206, opt-in).
 
 ### 7.8 Follow-ups
 
-- Osc Env Amount morph slot: decoder field `osc_env_amount_morph` (`+99 / +107 / +115`, `max_val`
-  120), `SynthMorphSet` slot 6, clip slots, tests against the FM Harpies rows.
+- ~~Osc Env Amount morph slot~~ done in section 8 (D206).
 - Organ drawbar subscription path (which recall function registers the ids) if a program with
   drawbar depths ever appears (user programs can).
 - Delay hand-off in the harness: longer `--settle`, one event per scenario for the three-source
   combination, to turn the stale 6007 word into a measurement.
 - Arp range: capture the sequencer's range from the dispatched value (`arp_firmware_walk`).
+
+## 8. Osc Env Amount morph: capture of all 9 programs and the opt-in slot (2026-11-21, D206)
+
+**Checked:** 2026-11-21. **Sources (local, never committed):** OS v1.66 `bank0_CODE.bin` /
+`bank0_SRAM.bin`, the factory backup `Nord Stage 4 Factory Restore RevK v1.66.ns4b`, the harness
+`tools/arm_program_morph.py --cells --dsp-all` (new `--history`), `tools/morph_osc_env_report.py`.
+**Question:** what does the firmware do for the `Edt_Syn_kOscEnvAmt` (`-60..60`) morph of the 9
+programs that use it, and can the native engine play it?
+
+Programs (decoder-checked, section 7.1): Sine-Saw Plk Whl (A, wheel +42), Chrome Layer (C, base
+-21, wheel -15), FM Cloud Whl (C, wheel +18), Favorite Video (A, A.T. -40), Distorted Whl II (A,
+base 21, wheel +6), Rich FM Pad Whl (B, base 60, wheel -45), Cassette Pad AT (A, A.T. -35), FM
+Harpies (A base 21 wheel +2, C base 30 wheel +10), Time Warp Saw (A, A.T. -48): 10 synth layers.
+Scenarios: `wheel:64`, `wheel:127`, `at:127`, `pedal:127` and all three; 27 rows with a dispatch,
+[data/morph-fw-osc-env.csv](data/morph-fw-osc-env.csv).
+
+| Check | Result |
+|---|---|
+| Cells `[base, wheel, A.T., pedal]` equal the decoded file words (`depth + 120` stored, 8 bit at `+99 / +107 / +115`) | 10 of 10 layers |
+| Dispatch equals `clamp(base + sum d w(v), -60, 60)`, `w = v / 128`, 1.0 at 127 | **27 of 27** rows, fractions kept (`-28.5`, `37.5`), the clamp is not hit by a factory program |
+| DSP word (ORG core 2 common 0 word 12) equals float32 `x / 60` | **21 of 21** wheel rows, max error 2e-3 steps (float32 truncation, `0x3EBBBBBB` for 22 / 60); fractional values are not rounded |
+| Layer B word | Rich FM Pad Whl writes `0xE01FE`, not `0xE0314` (stays 0); exact `x / 60` at both wheel values; `EMPIRICAL`, one program |
+| DSP word of the **A.T. programs** (3 programs, 6 rows) | **not `x / 60`**: dispatch `-48` writes `-34.5`, `-24` writes `-6.1875`; one write, one dispatch (`--history`), no later write at 400 settle ticks |
+
+The A.T. words are a smooth, monotone function of the dispatched value
+([data/morph-fw-osc-env-at.csv](data/morph-fw-osc-env-at.csv), Time Warp Saw, A.T. 1 .. 127) and
+the other two A.T. programs fall on the same curve (`-35 -> -15.68`, `-40 -> -21.67`; the curve
+gives about 15.7 and 21.6 by linear interpolation), so the source is the dispatched value, not the program or
+the layer level (Favorite Video has no level morph). The wheel programs read exactly `x / 60`. The cause is open
+([OQ43](../OPEN-QUESTIONS.md)); candidates, none checked: a different osc-env setter state of
+these three layers (layer flags) and an A.T.-path scaling; a static dispatch of the same id on
+these layers would tell. Until then the native slot plays the verified law for every source, and the A.T. rows are
+the documented exception.
+
+**Native port** (`synth_morph.rs` slot 5, `osc_env_amount`): the knob position is
+`(steps + 60) / 120`, so the bipolar amount `-1..1` is `2 norm - 1` and the file depth `d` steps
+is `d / 120` (`MorphDeltas` of the decoder, `osc_env_amount_morph`); the sum and clamp are the
+shared `MorphParameter::evaluate` (clamp `-60..60` steps is `0..1` here). `SynthMorphSet::apply_with`
+writes `SynthLayer::osc_env_amount` only when `Stage4Engine::synth_osc_env_morph` is on
+(`--synth-osc-env-morph`, default off); `apply` keeps its old behaviour, `--legacy-morph` skips the
+whole set, so the default render and `--legacy-morph` are unchanged. A live edit becomes the new
+base and clearing the depths puts the base back, like the five D166 slots. Copy / Paste / Clear
+Morph carry the slot (`MorphClip`). Export keeps the base depths (`LOSSY_FIELDS`). Round trip over
+the 384 factory programs re-encodes byte-identically (temporary corpus test, not committed: the
+`.ns4p` files are local); 10 synth layers carry a non-zero depth.
+
+Tests: `synth_morph_osc_env_tests.rs` replays the 27 CSV rows through `SynthMorphSet::apply_with`
+(dispatch within 1e-3 steps) and the 21 wheel DSP words (2e-3 steps); `cbin::synth_raw` decodes the
+FM Harpies words; `engine::tests_firmware_morph` and `render_opts` cover the gate and the flag.
+
+**Implications.** The slot is `VERIFIED` for the wheel (6 of 9 programs: Sine-Saw Plk Whl, Chrome
+Layer, FM Cloud Whl, Distorted Whl II, Rich FM Pad Whl, FM Harpies) and `ASSUMED` for A.T. (3 of 9:
+Cassette Pad AT, Favorite Video, Time Warp Saw), so the flag stays opt-in; flipping it is the
+owner's call and is not proposed before OQ43 is answered. No listening comparison was made.
+
+**Follow-ups.** OQ43 (A.T. DSP word); the audible effect of the osc envelope depth in the
+affected programs (render A/B with `--synth-osc-env-morph`); layer B word `0xE01FE` against a
+static dispatch.

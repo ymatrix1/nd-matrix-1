@@ -179,6 +179,13 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
         help="log the last word of every DSP message per (chip, core, DM word) of a scenario",
     )
     ap.add_argument("--settle", type=int, default=SETTLE_TICKS, help="ticks after each event")
+    ap.add_argument(
+        "--history",
+        metavar="DM_WORD",
+        help="print every dispatch of the ids named by --history-name and every DSP write of this "
+        "DM word (hex), in order, per scenario (the CSV keeps only the last value)",
+    )
+    ap.add_argument("--history-name", default="Edt_Syn_kOscEnvAmt", help="edit name for --history")
     ap.add_argument("--changed-only", action="store_true", help="drop rows equal to `none`")
     ap.add_argument("--csv", type=Path)
     ns = ap.parse_args(argv)
@@ -240,10 +247,16 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
         for source, value in parse_scenario(text):
             rig.send(event_bytes(source, value))
             for _t, msg in rig.tick(ns.settle):
+                if ns.history and msg.dm_word == int(ns.history, 16) and msg.chip == "ORG":
+                    print("HISTORY dsp", text, _t, msg.core, hex(msg.dm_word), f"{msg.word2:#010x}")
                 if msg.chip == "ORG" and msg.core == 2 and msg.dm_word in WATCH_WORDS:
                     words[msg.dm_word] = msg.word2
                 if ns.dsp_all:
                     every[(msg.chip, msg.core, msg.dm_word)] = msg.word2
+        if ns.history:
+            for store, eid, raw in log:
+                if names.get(eid) == ns.history_name and raw is not None:
+                    print("HISTORY dispatch", text, hex(store), signed32(raw) / Q16)
         for dm_word, word in sorted(words.items()):
             rows.append(
                 (text, "dsp", 2, "ORG", hex(dm_word), WATCH_WORDS[dm_word], f"{word:#010x}")

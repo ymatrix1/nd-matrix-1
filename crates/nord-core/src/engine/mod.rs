@@ -148,6 +148,9 @@ pub struct Stage4Engine {
     /// Controller weights follow the ARM law `v / 128` (full at 127) and the five extra synth
     /// morph targets play (D159). Default on since D166; `--legacy-morph` restores `v / 127`.
     pub firmware_morph: bool,
+    /// Opt-in (default off, `--synth-osc-env-morph`, D206): play the Osc Env Amount morph slot of
+    /// the synth layers (`synth_morph.rs`). Needs `firmware_morph`.
+    pub synth_osc_env_morph: bool,
     pub morph_controllers: MorphControllers,
     pub scene: LayerSceneState,
     pub split_router: KeybedSplitRouter,
@@ -251,6 +254,7 @@ impl Stage4Engine {
             synth_cutoff_morph: [MorphParameter::new(0.5); 3],
             synth_morph: [crate::synth_morph::SynthMorphSet::default(); 3],
             firmware_morph: true,
+            synth_osc_env_morph: false,
             morph_controllers: MorphControllers::default(),
             scene: LayerSceneState::default(),
             split_router: KeybedSplitRouter::default(),
