@@ -53,7 +53,7 @@ class ChipSpec:
     def flags(self) -> list[str]:
         """`sharc-live` flags of this chip."""
         if self.preset == "smp":  # same pass model as SY, SMP FIFO and ring tap (D185)
-            return ["--smp"]
+            return ["--smp", "--fifo-pace", "1"]  # one ARM pair per interrupt (D200)
         if self.preset == "sy":  # interrupt driven pass, no epdma, no level window (D153)
             return ["--sy", *(["--epchain"] if self.window == "epchain" else [])]
         out = [f"--{self.preset}", "--epdma"]

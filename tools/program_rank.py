@@ -96,7 +96,8 @@ def chain_flags(row: dict, chain: dict | None, expect: dict | None = None) -> di
     out = {
         "chain_run": bool(chain and chain["census"]),
         "pno1_peak": None, "pno2_peak": None, "org2_peak": None,
-        "sy_prepare": None, "sy_audio_peak": None, "flags": [],
+        "sy_prepare": None, "sy_audio_peak": None, "smp_peak_dbfs": None, "smp_cycles": None,
+        "flags": [],
     }  # fmt: skip
     if not out["chain_run"]:
         out["flags"].append("chain_run_failed")
@@ -122,7 +123,14 @@ def chain_flags(row: dict, chain: dict | None, expect: dict | None = None) -> di
         if audio is not None and not out["sy_audio_peak"] and out["sy_prepare"]:
             flags.append("sample_voiced_no_audio")
     if "piano" in eng:
-        flags.append("piano_no_chain_tap")
+        smp = chain["census"].get("smp")
+        if smp is None:
+            flags.append("piano_no_chain_tap")
+        else:
+            out["smp_peak_dbfs"] = smp.get("peak_dbfs")
+            out["smp_cycles"] = smp.get("fundamental_cycles")
+            if smp.get("kind") != "audio":
+                flags.append("piano_chain_no_audio")
     return out | {"flags": flags}
 
 
@@ -165,7 +173,8 @@ def csv_header() -> list[str]:
     for mode in ("def", "fw"):
         cols += [f"{mode}_rms_db", f"{mode}_centroid_hz"] + [f"{mode}_b{i}" for i in range(BANDS)]
     cols += ["d_level_db", "d_centroid_oct", "d_band_db", "score", "dominant"]
-    cols += ["pno1_peak", "pno2_peak", "org2_peak", "sy_prepare", "sy_audio_peak", "flags"]
+    cols += ["pno1_peak", "pno2_peak", "org2_peak", "sy_prepare", "sy_audio_peak"]
+    cols += ["smp_peak_dbfs", "smp_cycles", "flags"]
     return cols
 
 
@@ -189,7 +198,8 @@ def csv_row(r: dict) -> list:
     ]
     sy_prepare = "" if c["sy_prepare"] is None else c["sy_prepare"]
     out += [f(c["pno1_peak"], 5), f(c["pno2_peak"], 5), f(c["org2_peak"], 5), sy_prepare]
-    out += [f(c["sy_audio_peak"], 5), ";".join(c["flags"])]
+    out += [f(c["sy_audio_peak"], 5), f(c["smp_peak_dbfs"], 2), f(c["smp_cycles"], 5)]
+    out += [";".join(c["flags"])]
     return out
 
 
