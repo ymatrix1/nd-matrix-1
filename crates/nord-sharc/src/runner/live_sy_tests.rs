@@ -56,6 +56,21 @@ fn a_batch_is_capped_by_the_isr_pair_limit_and_resets_the_fifo() {
 }
 
 #[test]
+fn pace_limits_the_pairs_per_interrupt_below_the_isr_cap() {
+    let mut c = core_with_rti_vectors();
+    c.dm_write(FIFO_CAP, 8).unwrap();
+    let mut m = SyModel::new(1);
+    m.pace = 1;
+    for k in 0..3 {
+        m.send(0x9_5000 + k, 0x100 + k);
+    }
+    m.feed_fifo(&mut c).unwrap();
+    assert_eq!((m.queued(), m.stats.pairs), (2, 1));
+    m.feed_fifo(&mut c).unwrap();
+    assert_eq!((m.queued(), m.stats.pairs), (1, 2));
+}
+
+#[test]
 fn no_cap_or_no_message_means_no_fifo_interrupt() {
     let mut c = core_with_rti_vectors();
     let mut m = SyModel::new(1);
@@ -150,7 +165,10 @@ fn the_smp_model_uses_its_own_fifo_never_stages_and_taps_the_ring() {
         .unwrap();
     c.dm_write(live_smp::RING_HALVES[1], 0.5f32.to_bits())
         .unwrap();
-    c.dm_write(live_smp::RING_HALVES[1] + 11, (-1.0f32).to_bits())
+    c.dm_write(live_smp::RING_HALVES[1] + 1, (-1.0f32).to_bits())
+        .unwrap();
+    // the second slot of the half is not tapped (D205): a value there must not appear
+    c.dm_write(live_smp::RING_HALVES[1] + 11, 0.25f32.to_bits())
         .unwrap();
     let mut m = SyModel::smp(1);
     m.send(STATE_WORD, STATE_PREPARE); // an SY state word is a plain store on the SMP
@@ -166,9 +184,9 @@ fn the_smp_model_uses_its_own_fifo_never_stages_and_taps_the_ring() {
         Ok(live_smp::FIFO_BASE + 4 - live_smp::INDEX_BIAS)
     );
     let w = m.level_words();
-    assert_eq!(w.len(), 4, "two stereo frames per interrupt");
+    assert_eq!(w.len(), 2, "one stereo frame per interrupt");
     assert_eq!(f32::from_bits(w[0]), 0.5);
-    assert_eq!(f32::from_bits(w[3]), -1.0);
+    assert_eq!(f32::from_bits(w[1]), -1.0);
 }
 
 #[test]

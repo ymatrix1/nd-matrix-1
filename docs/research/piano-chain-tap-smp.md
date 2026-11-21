@@ -99,3 +99,8 @@ uv run --with unicorn --with capstone python tools/arm_dsp_live.py $C/bank0_CODE
 ## Update 2026-11-21 (D191)
 
 Follow-up 1 is done: the descriptor law and the flash feed are in [smp-page-refill](smp-page-refill.md). The rings now hold the file words, but the voice phase freezes after the first refill, so follow-ups 2 and 4 wait for the per-voice gate.
+
+## Update 2026-11-21 (D205)
+
+Follow-ups 2 and 4 are done for the pilot programs: see [smp-voice-pitch](smp-voice-pitch.md). The tap carries a piano signal once the ARM pairs are paced (`--fifo-pace 1`); follow-up 2 (census) has its mechanism (`program_rank_chain.py --smp`) but the 155 run is open; follow-up 4 (ring half): the half the pointer holds on entry is right, one frame per interrupt is written at `+0`, the other half and the second slot stay 0.
+
