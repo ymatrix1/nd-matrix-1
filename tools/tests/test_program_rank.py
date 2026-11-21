@@ -84,6 +84,17 @@ def test_chain_flags_per_engine() -> None:
     assert p["flags"] == ["piano_no_chain_tap"]
 
 
+def test_piano_chain_tap_column_replaces_the_no_tap_flag_when_the_smp_tap_has_audio() -> None:
+    n = native(piano=True, synth=False)
+    c = chain()
+    c["census"]["smp"] = {"kind": "audio", "peak_dbfs": -15.9, "fundamental_cycles": 0.00601}
+    f = pr.chain_flags(n, c)
+    assert f["flags"] == [] and (f["smp_peak_dbfs"], f["smp_cycles"]) == (-15.9, 0.00601)
+    c["census"]["smp"] = {"kind": "silent", "peak_dbfs": None, "fundamental_cycles": None}
+    assert pr.chain_flags(n, c)["flags"] == ["piano_chain_no_audio"]
+    assert "smp_peak_dbfs" in pr.csv_header() and "smp_cycles" in pr.csv_header()
+
+
 def test_sample_flags_cover_no_voice_lost_layer_and_silent_audio() -> None:
     n = native(sample=3)
     assert pr.chain_flags(n, chain(prepare=0))["flags"] == ["sample_no_voice"]

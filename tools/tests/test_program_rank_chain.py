@@ -41,6 +41,27 @@ def test_chips_follow_the_engines_of_scene_one() -> None:
     assert "--sy-timeline" not in cmd and cmd.count("--chip") == 1
 
 
+def test_piano_programs_run_the_smp_chip_only_when_its_image_is_given() -> None:
+    assert pc.chips_for(["piano"], smp=True) == ["PNO1", "SMP0"]
+    assert pc.chips_for(["organ"], smp=True) == ["PNO1"]
+    assert pc.chips_for(["piano"]) == ["PNO1"]
+    a = ns()
+    a.smp = Path("smp.bin")
+    cmd = pc.live_command(a, Path("P"), Path("o"), audio=False, chips=["PNO1", "SMP0"])
+    chips = [cmd[i + 1] for i, x in enumerate(cmd) if x == "--chip"]
+    assert chips[1] == "SMP:0=smp=smp.bin" and "--piano-bind" in cmd
+
+
+def test_extract_keeps_the_smp_tap_numbers() -> None:
+    r = run_result()
+    assert pc.extract(r)["smp"] is None
+    tap = {"kind": "audio", "peak_dbfs": -15.9, "fundamental_cycles": 0.006, "words": 9, "x": 1}
+    r["smp_flash"] = {"tap": tap}
+    assert pc.extract(r)["smp"] == {
+        "kind": "audio", "peak_dbfs": -15.9, "fundamental_cycles": 0.006, "words": 9,
+    }  # fmt: skip
+
+
 def run_result() -> dict:
     chip = {
         "lane_peak": 0.5,

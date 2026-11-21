@@ -77,6 +77,9 @@ pub struct SyModel {
     /// Word holding the pairs-per-interrupt cap the ISR applies (`FIFO_CAP` for SY1SY2, `live_smp::FIFO_CAP` for SMP).
     cap_addr: u32,
     smp: bool,
+    /// ARM pacing: at most this many queued pairs enter the FIFO per audio interrupt (`--fifo-pace`,
+    /// D200; 0 = the whole queue up to the ISR cap, the earlier behaviour).
+    pub pace: usize,
     /// SMP ring tap: read the half the pointer does NOT hold on entry (`H 1`, OQ41 ring half test).
     pub other_half: bool,
     queue: VecDeque<(u32, u32)>,
@@ -157,6 +160,7 @@ impl SyModel {
             index_bias: 0,
             cap_addr: FIFO_CAP,
             smp: false,
+            pace: 0,
             other_half: false,
             queue: VecDeque::new(),
             staged: [false; VOICES as usize],
@@ -219,7 +223,10 @@ impl SyModel {
     /// FIFO reset plus up to `DM(0x92180)` queued pairs written behind it (step 1).
     pub(crate) fn feed_fifo(&mut self, core: &mut Core) -> Result<u64, String> {
         let cap = core.dm_read(self.cap_addr).unwrap_or(0) as usize;
-        let n = self.queue.len().min(cap);
+        let mut n = self.queue.len().min(cap);
+        if self.pace > 0 {
+            n = n.min(self.pace);
+        }
         if n == 0 {
             return Ok(0);
         }

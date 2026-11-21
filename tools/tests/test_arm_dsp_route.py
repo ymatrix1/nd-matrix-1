@@ -109,7 +109,13 @@ def test_sy_chip_spec_takes_path_1_and_the_sy_flag() -> None:
 
 def test_smp_chip_spec_takes_path_1_and_the_smp_flag():
     s = r.parse_chip_spec("SMP:0=smp=target/DSP/dsp_image_4_SMP.bin")
-    assert (s.name, s.comm, s.core, s.path, s.flags()) == ("SMP0", 4, 0, 1, ["--smp"])
+    assert (s.name, s.comm, s.core, s.path, s.flags()) == (
+        "SMP0",
+        4,
+        0,
+        1,
+        ["--smp", "--fifo-pace", "1"],
+    )
 
 
 @pytest.mark.parametrize(

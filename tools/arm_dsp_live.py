@@ -235,7 +235,8 @@ def smp_flash_report(flash) -> dict:  # noqa: ANN001  # pragma: no cover
     rings = sf.check_rings(link, npno, feed.strokes)
     out = {**feed.summary(), "chip": link.command("E"), "rings": rings}
     if tap is not None and tap.exists():  # the tap file is flushed per pass (D199)
-        out["tap"] = sf.tap_stats(tap.read_bytes())
+        data = tap.read_bytes()
+        out["tap"] = sf.tap_stats(data) | {"fundamental_cycles": sf.tap_fundamental(data)}
     return out
 
 
