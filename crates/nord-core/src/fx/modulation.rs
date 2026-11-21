@@ -35,6 +35,17 @@ impl LayerFxChain {
     /// of `kFx1Type` 0..=3 (types 4..=11 go to `process_fw_mod1_rest`), runs in Master Clock sync, or has no raw values (engine path).
     fn process_fw_mod1(&mut self, l: f32, r: f32) -> Option<[f32; 2]> {
         let (ty, rate) = (self.mod1_type_raw?, self.mod1_rate_raw?);
+        // PUMP (10, 11) has its own switch (D134); the other types follow `mod1`.
+        let on = if matches!(ty, 10 | 11) {
+            self.firmware_fx.pump
+        } else {
+            self.firmware_fx.mod1
+        };
+        if !on {
+            self.fw_mod1 = None;
+            self.retire_fw_mod1_rest();
+            return None;
+        }
         // PUMP follows the Master Clock through a clock word (D149); every other type in sync
         // stays on the engine model.
         let pump_period = if matches!(ty, 10 | 11) {
@@ -160,7 +171,7 @@ impl LayerFxChain {
         if self.mod1_type == Mod1Type::Off {
             return [l, r];
         }
-        if self.firmware_fx.mod1 {
+        if self.firmware_fx.mod1 || self.firmware_fx.pump {
             if let Some(out) = self.process_fw_mod1(l, r) {
                 return out;
             }

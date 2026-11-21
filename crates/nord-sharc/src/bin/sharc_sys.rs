@@ -29,12 +29,15 @@
 //! --tap ADDR:COUNT          (repeatable) with --tap-out F: append those DM words after every pass (LE u32, pass-major)
 //! --lane SET:PAIR --wav F   record output pointer set SET (0..5) pair PAIR (0..2) of every pass to a
 //!                           float WAV (--rate R, default 48000; untimed extra run)
+//! --feed S:P:DST[:v|p]      with --lane: copy the previous pass's lane pair S:P into DM(DST..DST+3) before every
+//!                           pass (D172); --wav-chain F records DST, --feed-tap ADDR=F (repeatable) other pairs
 //! --sec-id ID               start Core1-style passes through the SEC model (CSID/END), source ID
 //! --census                  list every register the boot and the passes touch outside SRAM
 //! ```
 //! Evidence: `docs/research/org-system-run.md`.
 use nord_sharc::core::Core;
 use nord_sharc::runner::audio::wav_bytes;
+use nord_sharc::runner::feed_run::{feed_run, parse_feed, Feed};
 use nord_sharc::runner::live::pno_preset;
 use nord_sharc::runner::live_presets::org_preset;
 use nord_sharc::runner::msg::{deliver, parse_msg, parse_rx_irq, parse_script, Msg};
@@ -91,6 +94,9 @@ struct Options {
     taps: Vec<(u32, u32)>,
     tap_out: Option<String>,
     wav: Option<String>,
+    wav_chain: Option<String>,
+    feed: Option<Feed>,
+    feed_taps: Vec<(u32, String)>,
     rate: u32,
 }
 
@@ -210,6 +216,16 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
             "--tap" => o.taps.push(parse_tap(&val()?)?),
             "--tap-out" => o.tap_out = Some(val()?),
             "--wav" => o.wav = Some(val()?),
+            "--wav-chain" => o.wav_chain = Some(val()?),
+            "--feed-tap" => {
+                let s = val()?;
+                let (x, f) = s.split_once('=').ok_or("--feed-tap needs ADDR=FILE")?;
+                o.feed_taps.push((
+                    parse_number(x).ok_or("bad --feed-tap address")?,
+                    f.to_string(),
+                ));
+            }
+            "--feed" => o.feed = Some(parse_feed(&val()?)?),
             "--rate" => o.rate = num(val()?)?,
             "--state-out" => o.state_out = Some(val()?),
             "--state-cmp" => o.state_cmp = Some(val()?),
@@ -482,7 +498,30 @@ fn run(args: &[String]) -> Result<String, String> {
     if o.probe.is_some() {
         out += &probe_passes(&o, &cfg, &data)?;
     }
-    if let Some(lane) = o.lane {
+    if o.feed.is_some() && o.lane.is_none() {
+        return Err("--feed needs --lane (the dry lane to record)".to_string());
+    }
+    if let (Some(lane), Some(feed)) = (o.lane, o.feed) {
+        let mut c = boot(&o, &data)?;
+        let extra: Vec<u32> = o.feed_taps.iter().map(|t| t.0).collect();
+        let r = feed_run(&mut c, &cfg, &o.msgs, total, o.ping_pong, &feed, &extra)?;
+        let _ = writeln!(
+            out,
+            "feed {}:{} -> 0x{:X}: {} passes",
+            lane.0, lane.1, feed.dst, r.passes
+        );
+        let taps = o.feed_taps.iter().zip(&r.extra);
+        let mut files: Vec<(Option<&String>, &[Vec<f32>; 2])> =
+            vec![(o.wav.as_ref(), &r.lane), (o.wav_chain.as_ref(), &r.chain)];
+        files.extend(taps.map(|(t, ch)| (Some(&t.1), ch)));
+        for (f, ch) in files {
+            if let Some(f) = f {
+                std::fs::write(f, wav_bytes(&[ch[0].clone(), ch[1].clone()], o.rate))
+                    .map_err(|e| format!("{f}: {e}"))?;
+                let _ = writeln!(out, "wrote {f}");
+            }
+        }
+    } else if let Some(lane) = o.lane {
         let mut c = boot(&o, &data)?;
         let r = lane_run(&mut c, &cfg, &o.msgs, total, o.ping_pong, lane)?;
         let (peak, rms) = r.level();
@@ -631,6 +670,27 @@ mod tests {
         let o = parse_args(&args(&["img", "--irq", "P4I:0x41", "--flag1"])).unwrap();
         assert_eq!((o.irq, o.flag1), (Some((15, 0x41)), true));
         assert!(parse_args(&args(&["img", "--irq", "P4I"])).is_err());
+    }
+
+    #[test]
+    fn feed_flags_parse_and_need_a_lane() {
+        let o = parse_args(&args(&[
+            "img",
+            "--lane",
+            "2:0",
+            "--feed",
+            "2:0:0xC2E06",
+            "--wav-chain",
+            "c.wav",
+            "--feed-tap",
+            "0xC2E1A=s.wav",
+        ]))
+        .unwrap();
+        assert_eq!(o.feed.map(|f| f.dst), Some(0xC2E06));
+        assert_eq!(o.wav_chain.as_deref(), Some("c.wav"));
+        assert_eq!(o.feed_taps, vec![(0xC2E1A, "s.wav".to_string())]);
+        assert!(parse_args(&args(&["img", "--feed", "9:0:1"])).is_err());
+        assert!(parse_args(&args(&["img", "--feed-tap", "0xC2E1A"])).is_err());
     }
 
     #[test]
