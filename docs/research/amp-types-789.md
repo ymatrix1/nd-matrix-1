@@ -13,7 +13,7 @@ Tags follow `.agents/rules/provenance-in-code.md`.
 | Module | the Amp unit's layer switch (`0xC021D064`, [fx-chain-install](fx-chain-install.md) s5) installs **chain rows** for types 7, 8, 9: a routine pc plus link words, then a mode word through `0xC01F496C`; the mode word handler is `0xC01F4844` | VERIFIED (ARM harness capture, `amp_all.csv`) |
 | LP24 / HP24 routine | one **state variable filter pair** at `0x124EFA` (FX core 1) / `0x124586` (core 2, relocated copy, same code); the mode word at `CTX - 4` selects LP (0) or HP (1) | VERIFIED (oracle) |
 | Equations | section 2; model against `sharc-fx`: worst output error `4.7e-07` over 8 random scenarios (4 LP, 4 HP, 4 frames each), `python tools/fx_model_lp24.py check` | VERIFIED |
-| To Rotary | chain row routine `0x125142` (partner `0x125103`; core 2 copies `0x1247CE` / `0x12478F`) plus a null stub; coefficients read through `PM 0x9437A`; **not modelled**, source of its words not found | EMPIRICAL (identity), open (words) |
+| To Rotary | the type 7 install is the **Leslie family** (`0x125371`, `0x121BBA`, `0x124E0B`, `0x125142`, core 2 `0x1247CE` / `0x12478F`, `0x122857`), not one routine; `0x125142` itself is a fixed fs/4 Butterworth bank (PM `0x9437A`, ROM constants); **not modelled, no port**, section 8 (D195) | EMPIRICAL (identity), VERIFIED (PM words are ROM) |
 | Organ unit instance of the tone stack `0x1243F4` | PNO core 1 `0x125261` | VERIFIED (pc relocation, [fx-type-map](fx-type-map.md) s2) |
 | ARM word laws | cutoff (`kAmpMidFreq` 0..127) writes the cutoff target word at unit DM `0xC1A08` (`CTX - 32`): `6.21e-5` at 0 doubling every 12 steps (`2^(i/12)`, measured ratio `1.05950` against `1.05946`) to `0.0506` at 113 | EMPIRICAL (114 sample points of the capture) |
 | Template constants | `L = c[-25] = 1.0`, `c[-24] = 0.5`, `c[-23] = 0.25`, `c[-3] = 2` (FX core 1 unit 0 context `0xC1A28`, DM dump `0xC1A0F..0xC1A11`, `0xC1A25` of the booted image: `sharc-fx core1_sram.bin --call 0x1231CB --until 0x1231CD --dump 0xC1A00:0x48`) | VERIFIED |
@@ -83,15 +83,28 @@ Largest moves: Unclocked Pad 46.45 to 0.87, Dance Lead 27.93 to 0.87 (both HP24)
 
 **Proposed, not made:** switch `FirmwareFx::lp24` on by default (into `PARITY`) once one hardware clip of an LP24 or HP24 program, e.g. Unclocked Pad or Dance Lead (largest before score), confirms the cutoff unit and the Mid mapping. Until then it stays opt-in (D193).
 
+## 8. To Rotary (type 7): assessment, no port (D195)
+
+Checked 2026-11-21. Sources: `amp_all.csv` (ARM harness capture of the type switch, local), FX core 1 image listing (`sharc-disasm C:/tmp/h/img_0_FX/core1_sram.bin 0x24A206 0x24A290`; byte offset = 2 x pc), [fx-dsp-map](fx-dsp-map.md) s6, [b3-leslie-install-hunt](b3-leslie-install-hunt.md).
+
+| Finding | Evidence | Tag |
+|---|---|---|
+| Type 7 vs type 8 differ in 42 / 54 captured words (type 7 only / type 8 only), all of them chain rows and element constants, none of the filter words | set difference of `(dm_word, word)` over the capture | VERIFIED (capture) |
+| Type 7 rows carry `0x125371` (nonlinear resonant filter) and `0x121BBA` at `0xB047A / 0xB0482`, `0x1247CE` / `0x12478F` with `0x122857` at `0xC1A02..0xC1A23`, `0x124E0B` + `0x125142` + the identity `0x1231CB` at `0xC1AA1..0xC1AA3` | same | VERIFIED (capture) |
+| `0x125103` (63 instr.): averages the input with the previous frame, multiplies by `(DM[I6 - 29] + S) / 2` and a state product, `MAX(., 0)` clamp, stores the pair | listing | EMPIRICAL (reading) |
+| `0x125142` (216 words): average the pair, then three 4-frame TDF II biquads with PM `0x9437A..0x9437E` | listing; coefficients `0.292893 0.585786 0.292893 0 0.171573` verified in fx-dsp-map s6 (`fx_biquad_check.py`, bit identical) | VERIFIED (words are ROM, same table as `0x120FDB`) |
+
+**Result.** The words of `0x125142` are not missing: they are the fixed fs/4 Butterworth ROM table that `fx-dsp-map` already verified, so the "word source not found" of the first note is closed. But the routine is the resampling filter bank around a modulated delay, not the effect. To Rotary is the Leslie chain (nonlinear resonant filter `0x125371`, table LFO `0x1235AA`, cabinet `0x1237F8`, the `0x125103` modulator), the same family D94 / D135 / D171 / D172 / D190 could not run: the element words, state block and ring feed are unknown, a hand-made install gives junk (D172) and the live ARM never installs it (D190). A bank port would add a filter with no stage to feed it and no clip to check it against (no To Rotary recall hardware clip exists). **No port.** The single remaining unlock is the D190 / OQ42 install (what the ARM writes into the chain region on a type 7 recall with the read-back served); when that lands, `0x125142` / `0x125103` port as part of the rotary chain, bank first (oracle-testable now: ROM words, `0x120FDB` style golden).
+
 ## Implications
 
 - Amp LP24 / HP24 are a state variable pair, not a biquad: the engine's biquad stand-ins differ in damping, clipping and the smoothing law. The port is available as `--firmware-fx-ports lp24`.
-- To Rotary stays a pass-through in the engine until `0x125142`'s words are found.
+- To Rotary stays a pass-through in the engine: its coefficient words are ROM (found), but the effect is the Leslie chain whose element words and state are unobtainable (D190, section 8).
 
 ## Follow-ups
 
 1. A hardware clip of an LP24 / HP24 program to confirm the cutoff unit (rate scale 1.106 at 48 kHz) and decide the default.
-2. Model `0x125142` (To Rotary) and find its word source.
+2. To Rotary: only the Leslie install of D190 / OQ42 (element words) can unblock it; `0x125142` alone is not an effect (section 8).
 3. Clav EQ: find the reader of the `kEq` cell.
 
 ## Reproduce

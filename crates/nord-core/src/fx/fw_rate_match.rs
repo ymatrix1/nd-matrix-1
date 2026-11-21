@@ -1,4 +1,4 @@
-//! Rate matching of the per-frame firmware FX stages (default on since D176,
+//! Rate matching of the per-frame firmware FX stages (default on since D180,
 //! `LayerFxChain::set_fx_rate_match`).
 //!
 //! The firmware runs its FX routines once per DSP frame at `F = 43,402.34375 Hz`
