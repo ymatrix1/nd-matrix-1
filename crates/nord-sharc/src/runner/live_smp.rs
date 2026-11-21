@@ -1,4 +1,4 @@
-//! The SMP (piano sample) chip of `sharc-live` (OQ41, D181): constants and the ring tap.
+//! The SMP (piano sample) chip of `sharc-live` (OQ41, D185): constants and the ring tap.
 //!
 //! The SMP image runs like the SY1SY2 image (no poll loop, FIFO reset interrupt 13, audio
 //! interrupt 17, `live_sy::SyModel`), with three differences, all from `docs/research/smp-voice.md`
