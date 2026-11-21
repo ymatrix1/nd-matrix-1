@@ -3,7 +3,9 @@
 //! program (`.ns4p`).
 //!
 //! Usage: `cargo run --release -p nord-tools --bin synth_env_native -- <program.ns4p> [--layer 0|1|2]
-//! [--on 300] [--off 11149] [--passes 16575]`. Prints one JSON line: the stored knobs, the
+//! [--on 300] [--off 11149] [--passes 16575] [--adr-law] [--g 98]`.
+//! `--adr-law` applies the opt-in oracle envelope law of D205 (amp attack scaled by the key byte
+//! `--g`, decay sustain 0.5). Prints one JSON line: the stored knobs, the
 //! record words, the panel cutoff and envelope amount, and per pass the amp level, the filter
 //! level, and the native cutoff coefficient `R` (strip word law of `fw_strip_cutoff.rs`) after
 //! the engine's `2^(amount x octaves x level)` filter envelope law. No audio is produced.
@@ -11,8 +13,8 @@
 use nord_core::cbin::{CbinFile, FILTER_CUTOFF_HZ_TABLE};
 use nord_core::engine::Stage4Engine;
 use nord_core::synth::{
-    fw_strip_cutoff_r, strip_word_for_cutoff, StripEnvRecords, StripKnobs, StripParams, StripVoice,
-    SynthLayer,
+    fw_strip_cutoff_r, rate_index_for_knob, strip_word_for_cutoff, StripEnvRecords, StripKnobs,
+    StripParams, StripVoice, SynthLayer,
 };
 use serde_json::{json, Value};
 
@@ -29,8 +31,13 @@ fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
 
 /// `(amp level, filter level)` after every pass: `on` passes of silence, the gate open until
 /// `off`, then released. `StripParams::period_frames = 1` makes one `advance` one pass.
-pub fn chain_levels(p: &StripParams, on: usize, off: usize, passes: usize) -> Vec<(f32, f32)> {
-    let mut v = StripVoice::default();
+pub fn chain_levels(
+    p: &StripParams,
+    mut v: StripVoice,
+    on: usize,
+    off: usize,
+    passes: usize,
+) -> Vec<(f32, f32)> {
     (0..passes)
         .map(|n| {
             if n < on {
@@ -73,16 +80,36 @@ fn knobs_json(k: &StripKnobs) -> Value {
     })
 }
 
-fn layer_report(layer: &SynthLayer, on: usize, off: usize, passes: usize) -> Result<Value, String> {
-    let knobs = layer
-        .strip_knobs
-        .ok_or("program carries no envelope knobs")?;
-    let params = StripParams {
-        amp: StripEnvRecords::from_knobs(knobs.amp, layer.sustain_level),
+/// Chain parameters and the voice of a layer; `law = Some(g)` applies the D205 oracle law.
+pub fn chain_setup(knobs: &StripKnobs, sustain: f32, law: Option<u8>) -> (StripParams, StripVoice) {
+    let mut params = StripParams {
+        amp: StripEnvRecords::from_knobs(knobs.amp, sustain),
         filter: StripEnvRecords::from_knobs(knobs.filter, 0.0),
         period_frames: 1.0,
     };
-    let lv = chain_levels(&params, on, off, passes);
+    let Some(g) = law else {
+        return (params, StripVoice::default());
+    };
+    let word = rate_index_for_knob(knobs.amp.attack);
+    params.amp = params.amp.with_oracle_law(word);
+    params.filter = params
+        .filter
+        .with_oracle_law(rate_index_for_knob(knobs.filter.attack));
+    (params, StripVoice::with_scaled_amp_attack(word, g))
+}
+
+fn layer_report(
+    layer: &SynthLayer,
+    on: usize,
+    off: usize,
+    passes: usize,
+    law: Option<u8>,
+) -> Result<Value, String> {
+    let knobs = layer
+        .strip_knobs
+        .ok_or("program carries no envelope knobs")?;
+    let (params, voice) = chain_setup(&knobs, layer.sustain_level, law);
+    let lv = chain_levels(&params, voice, on, off, passes);
     let amount = layer.filter_env_amount;
     let r: Vec<f32> = lv
         .iter()
@@ -131,7 +158,13 @@ fn run(args: &[String]) -> Result<(), String> {
         2 => &*engine.synth_c,
         _ => return Err("--layer must be 0, 1 or 2".into()),
     };
-    println!("{}", layer_report(layer, on, off, passes)?);
+    let law = args
+        .iter()
+        .any(|a| a == "--adr-law")
+        .then(|| num("--g", 98))
+        .transpose()?
+        .map(|g| g.min(127) as u8);
+    println!("{}", layer_report(layer, on, off, passes, law)?);
     Ok(())
 }
 
@@ -163,12 +196,45 @@ mod tests {
 
     #[test]
     fn levels_are_silent_before_the_key_rise_then_fall_after_it_goes_off() {
-        let lv = chain_levels(&params(), 10, 400, 900);
+        let lv = chain_levels(&params(), StripVoice::default(), 10, 400, 900);
         assert_eq!(lv.len(), 900);
         assert!(lv[..10].iter().all(|l| *l == (0.0, 0.0)));
         let peak = lv.iter().map(|l| l.0).fold(0.0, f32::max);
         assert!(peak > 0.4, "amp reaches its level, peak {peak}");
         assert!(lv[899].0 < lv[399].0, "release lowers the amp level");
+    }
+
+    #[test]
+    fn adr_law_setup_scales_the_amp_attack_and_stops_decay_at_half() {
+        let k = nord_core::synth::StripKnobs {
+            amp: EnvKnobs {
+                attack: 4,
+                decay: 60,
+                release: 50,
+            },
+            filter: EnvKnobs {
+                attack: 4,
+                decay: 60,
+                release: 50,
+            },
+        };
+        let (p0, v0) = chain_setup(&k, 0.0, None);
+        let (p1, v1) = chain_setup(&k, 0.0, Some(20));
+        assert!(v0.amp_attack_b.is_none() && v1.amp_attack_b.is_some());
+        assert!(
+            v1.amp_attack_b.unwrap() < p0.amp.attack.b,
+            "soft key is slower"
+        );
+        assert_eq!(
+            (p0.amp.decay.thr, p1.amp.decay.thr, p1.filter.decay.thr),
+            (0.0, 0.5, 0.5)
+        );
+        let (_, v127) = chain_setup(&k, 0.0, Some(127));
+        assert_eq!(
+            v127.amp_attack_b,
+            Some(p1.amp.attack.b),
+            "g = 127 is unscaled"
+        );
     }
 
     #[test]

@@ -152,7 +152,7 @@ impl SynthLayer {
             fw_filter: self.voices[idx].fw_filter,
             fw_filter_right: self.voices[idx].fw_filter_right,
             fw_memo: self.voices[idx].fw_memo,
-            strip: StripVoice::default(),
+            strip: self.new_strip_voice(super::fw_velocity::key_byte(vel_norm)),
             sample_zone_idx,
             sample_pos: 0.0,
             sample_step,

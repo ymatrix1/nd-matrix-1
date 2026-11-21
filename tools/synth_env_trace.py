@@ -228,9 +228,11 @@ def run_oracle(
     return f[:, : len(ENV_TAPS)], f[:, len(ENV_TAPS)]
 
 
-def run_native(native: str, program: str, on: int, off: int, passes: int) -> dict:
+def run_native(
+    native: str, program: str, on: int, off: int, passes: int, extra: tuple[str, ...] = ()
+) -> dict:
     r = subprocess.run(
-        [native, program, "--on", str(on), "--off", str(off), "--passes", str(passes)],
+        [native, program, "--on", str(on), "--off", str(off), "--passes", str(passes), *extra],
         capture_output=True,
         text=True,
         check=False,
@@ -250,7 +252,7 @@ def report(ns: argparse.Namespace) -> int:  # pragma: no cover - needs local fir
     on = KEY_ON_PASS
     off = on + int(HOLD_S / PASS_S)
     passes = off + int(TAIL_S / PASS_S)
-    nat = run_native(ns.native, ns.program, on, off, passes)
+    nat = run_native(ns.native, ns.program, on, off, passes, tuple(ns.native_args.split()))
     words = program_words(nat["knobs"], nat["cutoff_knob"], int(nat["filter_env_amount_knob"]))
     (work / "load.script").write_text(o.core2_load_script(rows))
     (work / "adr.script").write_text(inject_script(words))
@@ -399,6 +401,9 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - CLI wiring
     p.add_argument("--sharc-sys", required=True)
     p.add_argument("--image", required=True)
     p.add_argument("--native", required=True)
+    p.add_argument(
+        "--native-args", default="", help="extra flags of synth_env_native, e.g. --adr-law"
+    )
     p.add_argument("--workdir", required=True)
     sw = sub.add_parser("sweep")
     sw.add_argument("capture")

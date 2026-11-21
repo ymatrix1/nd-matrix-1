@@ -24,6 +24,7 @@ pub mod arp_rate;
 mod dsp;
 pub mod filter_gain;
 mod fw_adr_chain;
+mod fw_adr_law;
 mod fw_coef_memo;
 mod fw_cutoff_env;
 mod fw_env_rates;
@@ -147,6 +148,8 @@ mod tests_fw_velocity;
 #[cfg(test)]
 #[rustfmt::skip]
 mod tests_fw_fm_golden;
+#[cfg(test)]
+mod tests_fw_adr_law;
 #[cfg(test)]
 mod tests_fw_ladder_golden;
 #[cfg(test)]
@@ -339,6 +342,10 @@ pub struct SynthLayer {
     /// semitone domain (`fw_cutoff_env.rs`, oracle composition, D195): `2^(amount * 127 / 12 *
     /// level)` instead of `2^(amount * 8 * level)` on the Hz cutoff. Strip chain only.
     pub fw_env_law: bool,
+    /// Opt-in (default off, `--synth-fw-adr-law`, D205): the oracle envelope law of `fw_adr_law.rs`:
+    /// the amp attack index of a negative word is scaled by `g / 127` (key byte `g`) per voice and
+    /// the decay records of both chains stop at the sustain level 0.5. Strip chain only.
+    pub fw_adr_law: bool,
     /// Strip chain only, opt-in (default off, `--synth-stage3`): a `filter_raw3` layer runs the
     /// modelled stage `0x1257B2` (`fw_stage3.rs`) instead of the `Lp12` stand-in.
     pub fw_stage3: bool,
@@ -507,6 +514,7 @@ impl SynthLayer {
             unison_fw_weights: false,
             filter_type_gain: false,
             fw_env_law: false,
+            fw_adr_law: false,
             fw_stage3: false,
             firmware_velocity: false,
             arp_firmware_walk: false,
@@ -543,6 +551,7 @@ impl SynthLayer {
             unison_fw_weights: false,
             filter_type_gain: false,
             fw_env_law: false,
+            fw_adr_law: false,
             fw_stage3: false,
             wave_bank: false,
             knob_laws: true,

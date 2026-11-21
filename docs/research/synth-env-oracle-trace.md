@@ -46,8 +46,8 @@ Cutoff in Hz (before key / max / end of hold / released), oracle against native:
 
 Findings:
 
-- **Amp attack** reads `word * g / 127` (EMPIRICAL, plateau accuracy, velocity sweep CSV): oracle -48 for word -64 and -32 for -42 at the default key velocity (`g` about 96). The release and the filter chains are unscaled. Native uses the raw word.
-- **Sustain**: the oracle decay stops at level 0.5 (the image default of the decay record) for the filter chain and the amp chain; native uses sustain 0 (filter) and 1.0 (amp Hold). Hold droops 4.6 % over 0.5 s.
+- **Amp attack** reads `floor(word * G / 128)` for negative words (`G` = `g`, 128 for `g = 127`): index -49 for word -64 and -33 for -42 at the default key velocity (`g` = 98). VERIFIED 256 of 256 rows, keys 36 / 60 / 84 ([synth-env-law](synth-env-law.md), D205; D200 had the plateau accuracy guess `word * g / 127`). The release and the filter chains are unscaled. Native default uses the raw word; opt-in `--synth-fw-adr-law`.
+- **Sustain**: the oracle decay stops at level 0.5 (the image default of the decay record, VERIFIED on the chain output, [synth-env-law](synth-env-law.md) s3) for the filter chain and the amp chain; native uses sustain 0 (filter) and 1.0 (amp Hold). Hold droops 4.6 % over 0.5 s. Opt-in `--synth-fw-adr-law` stops both chains at 0.5.
 - **Cutoff sweep**: the native law sweeps fewer semitones at full level (amount knob x 1 against knob x 0.756 in the default 96-semitone law). Crunch Synth reaches 13.3 kHz in the oracle, 6.3 kHz native; Smooth Lead 2.2 kHz against 1.4 kHz. Both cap: oracle at R 1.99, native at 0.48 fs.
 - **80s Sci-Fi** is an outlier: the oracle `R` before key on is already 0.54 (14.7 kHz) where the law predicts 1.5 kHz for knob 81. Another term sits in front of `R` in that program (Ladder24 type, a second strip or an LFO offset); open.
 - LFO and input gain into the cutoff are not measured: the injected program leaves the LFO idle and the recall stream has no LFO depth word.
@@ -55,10 +55,10 @@ Findings:
 ## 5. Implications
 
 - Opt-in `--synth-fw-env-law` (`synth/fw_cutoff_env.rs`, `SynthLayer::fw_env_law`) applies the VERIFIED semitone composition to the layer cutoff. Default unchanged (D200).
-- The amp attack velocity scaling and the 0.5 decay sustain are recorded but not implemented: only plateau accuracy, no note dependence check.
+- The amp attack velocity scaling and the 0.5 decay sustain are implemented opt-in as `--synth-fw-adr-law` (D205, [synth-env-law](synth-env-law.md)); the same note finds that the default attack and decay tables are a stale sweep.
 
 ## 6. Follow-ups
 
-- Key-note dependence of the amp attack scaling (k36 / k84).
+- ~~Key-note dependence of the amp attack scaling (k36 / k84)~~: none ([synth-env-law](synth-env-law.md) s2).
 - LFO depth and input gain terms into `R`; the 80s Sci-Fi base offset.
 - Score `--synth-fw-env-law` on the hardware clips before any default flip (owner's call).
