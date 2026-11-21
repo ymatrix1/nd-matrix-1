@@ -37,3 +37,18 @@ fn main() -> Result<(), String> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_committed_oracle_csv_reduces_and_matches_the_table() {
+        let text = include_str!("../../../../docs/research/data/synth-filter-gain-oracle.csv");
+        let gains = reduce(&parse_rows(text).unwrap());
+        assert_eq!(gains.len(), 5, "five filter types");
+        assert!(gains
+            .iter()
+            .all(|g| table_error(g).is_some_and(|e| e.abs() <= 0.06)));
+    }
+}
