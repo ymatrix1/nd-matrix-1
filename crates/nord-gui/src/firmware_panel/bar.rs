@@ -307,9 +307,9 @@ mod tests {
                 "mod2",
                 "eq"
             ],
-            "PARITY is the default since D171"
+            "PARITY is the default since D173"
         );
-        assert_eq!(FirmwareFx::PRE_D171.ports_on(), ["mod2"]);
+        assert_eq!(FirmwareFx::PRE_PARITY.ports_on(), ["mod2"]);
         assert!(FirmwareFx::LEGACY.ports_on().is_empty());
     }
 

@@ -1,6 +1,6 @@
 # Research: factory program coverage and render health
 
-- **Checked:** 2026-11-19
+- **Checked:** 2026-11-20
 - **Sources (local, never committed):** the factory restore backup `Nord Stage 4 Factory Restore RevK v1.66.ns4b` (384 `.ns4p` programs, its `.npno` and `.nsmp4` entries), `tools/program_sweep.py` driving `crates/nord-tools/src/bin/program_sweep.rs` (release build), the classification of paths from `docs/specs/*.md` and `docs/research/*.md` cited per row.
 - **Question:** how much of the factory program space does the emulator cover, which engine paths do the 384 programs rely on, and which of them are firmware-verified, assumed or not modelled; does any program panic, go non-finite, fall silent or clip.
 
@@ -261,7 +261,7 @@ Use-weighted: a path used by two layers counts twice. A `verified` row means the
 - `default`: 384 of 384 rendered without panic; non-finite 0, silent 0, any clipped sample 24, clipping >= 0.1%: 5.
 - `firmware`: 384 of 384 rendered without panic; non-finite 0, silent 0, any clipped sample 27, clipping >= 0.1%: 6.
 
-Level difference firmware minus default (RMS, dB) over 384 programs: min -8.89, p10 -1.73, median 0.34, p90 2.38, max 9.61, mean 0.34.
+Level difference firmware minus default (RMS, dB) over 384 programs: min -8.89, p10 -1.66, median 0.34, p90 2.38, max 9.85, mean 0.36.
 
 ### Outliers
 
@@ -287,7 +287,7 @@ Counts: panic 0, non-finite 0, silent 0, clipping 11, level jump 10.
 
 | entry | rms_delta_db |
 |---|---|
-| Program/Bank D/16th Note Bass.ns4p | 9.61 |
+| Program/Bank D/16th Note Bass.ns4p | 9.85 |
 | Program/Bank B/Fan Club Piano.ns4p | 9.22 |
 | Program/Bank E/PineScape Synth.ns4p | -8.89 |
 | Program/Bank C/LoFi Piano.ns4p | 8.36 |

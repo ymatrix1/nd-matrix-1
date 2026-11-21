@@ -17,7 +17,7 @@ fn fx_ports_flag_selects_exactly_the_listed_ports() {
     assert!(!s.contains("fx "), "not every port: {s}");
     assert!(
         !s.contains("mod1") && !s.contains("eq") && !s.contains("mod2"),
-        "the PARITY ports are defaults, not options (D171): {s}"
+        "the PARITY ports are defaults, not options (D173): {s}"
     );
     // `--legacy-fx-ports` wins over a port list, like `--legacy-mod2`.
     let l = FirmwareOptions::from_args(&args(&[
@@ -37,7 +37,7 @@ fn fx_ports_flag_selects_exactly_the_listed_ports() {
 fn apply_exact_sets_and_clears_individual_fx_ports() {
     let mut e = Stage4Engine::new(48_000.0);
     let mut o = FirmwareOptions {
-        fx: FirmwareFx::PRE_D171,
+        fx: FirmwareFx::PRE_PARITY,
         ..FirmwareOptions::default()
     };
     o.fx.reverb = true;
@@ -194,13 +194,39 @@ fn fx_defaults_flag_is_opt_in_and_sets_the_firmware_words() {
 }
 
 #[test]
+fn the_firmware_pump_is_the_default_and_legacy_pump_restores_the_engine_model() {
+    // D134: on by default on every chain, `--legacy-pump` turns it off (both apply paths), also
+    // together with `--firmware-fx`; it shows in the summary.
+    let mut e = Stage4Engine::new(48_000.0);
+    assert!(e.fx_chains.iter().all(|c| c.firmware_fx.pump));
+    let o = FirmwareOptions::from_args(&args(&["--legacy-pump"])).unwrap();
+    assert!(o.legacy_pump && o.summary().contains("legacy-pump"));
+    o.apply_to(&mut e);
+    assert!(e.fx_chains.iter().all(|c| !c.firmware_fx.pump));
+    let mut g = Stage4Engine::new(48_000.0);
+    o.apply_exact(&mut g);
+    assert!(g
+        .fx_chains
+        .iter()
+        .all(|c| !c.firmware_fx.pump && c.firmware_fx.amp));
+    let both = FirmwareOptions::from_args(&args(&["--firmware-fx", "--legacy-pump"])).unwrap();
+    let mut h = Stage4Engine::new(48_000.0);
+    both.apply_to(&mut h);
+    assert!(h
+        .fx_chains
+        .iter()
+        .all(|c| !c.firmware_fx.pump && c.firmware_fx.mod1));
+    assert!(!FirmwareOptions::from_args(&args(&[])).unwrap().legacy_pump);
+}
+
+#[test]
 fn mod2_is_the_default_and_legacy_mod2_turns_it_off() {
     let d = FirmwareOptions::default();
     assert!(d.fx.mod2 && d.summary() == "defaults", "{}", d.summary());
     let l = FirmwareOptions::from_args(&args(&["--legacy-mod2"])).unwrap();
     assert!(
         !l.fx.mod2 && l.fx.eq,
-        "--legacy-mod2 only turns Mod 2 off since D171"
+        "--legacy-mod2 only turns Mod 2 off since D173"
     );
     assert!(l.summary().contains("legacy-mod2"), "{}", l.summary());
     // `--legacy-mod2` wins over a port list given before it, and `--legacy-all` restores the old FX default.
@@ -217,7 +243,7 @@ fn mod2_is_the_default_and_legacy_mod2_turns_it_off() {
 
 #[test]
 fn the_parity_ports_are_the_default_and_legacy_fx_ports_opts_out() {
-    // D171: every firmware FX port but the two reverb ports is on in a new engine.
+    // D173: every firmware FX port but the two reverb ports is on in a new engine.
     let e = Stage4Engine::new(48_000.0);
     assert!(e
         .fx_chains
@@ -232,14 +258,14 @@ fn the_parity_ports_are_the_default_and_legacy_fx_ports_opts_out() {
     );
     // The opt-out restores the amp and Mod 2 default of D163 to D170, in the options and the engine.
     let l = FirmwareOptions::from_args(&args(&["--legacy-fx-ports"])).unwrap();
-    assert_eq!(l.fx, FirmwareFx::PRE_D171);
+    assert_eq!(l.fx, FirmwareFx::PRE_PARITY);
     assert!(l.summary().contains("legacy-fx-ports"), "{}", l.summary());
     let mut e = Stage4Engine::new(48_000.0);
     l.apply_to(&mut e);
     assert!(e
         .fx_chains
         .iter()
-        .all(|c| c.firmware_fx == FirmwareFx::PRE_D171));
+        .all(|c| c.firmware_fx == FirmwareFx::PRE_PARITY));
     d.apply_to(&mut e);
     assert!(e
         .fx_chains

@@ -1,6 +1,6 @@
 {
   "video": "_zksT69H30c",
-  "note": "Before/after of --fx-rate-match (D137) and of FirmwareFx::PARITY (D163) on the six hardware clips of Part A, on the D171 tree: default, rate-match, parity (--firmware-fx-ports parity), parity+rate-match. Run: uv run python tools/emu_vs_hw.py --spec docs/research/data/emu_vs_hw_parity_rate_match.json --video <Part A .webm> --backup <factory .ns4b> --workdir <scratch> --confirmed-only --out docs/research/data/emu_vs_hw_parity_rate_match_results.json",
+  "note": "Before/after of --fx-rate-match (D137) and of FirmwareFx::PARITY (D163) on the six hardware clips of Part A, on the D173 tree: default, rate-match, parity (--firmware-fx-ports parity), parity+rate-match. Run: uv run python tools/emu_vs_hw.py --spec docs/research/data/emu_vs_hw_parity_rate_match.json --video <Part A .webm> --backup <factory .ns4b> --workdir <scratch> --confirmed-only --out docs/research/data/emu_vs_hw_parity_rate_match_results.json",
   "segments": [
     {
       "id": "organ_b3",

@@ -411,6 +411,9 @@ pub struct FirmwareOptions {
     /// `--amp-path engine|firmware`: `FirmwareFx::amp` on every chain (`None` = the engine default,
     /// firmware drive stage on; `Some(false)` = engine drive and RBJ cabinet).
     pub amp_path: Option<bool>,
+    /// `--legacy-pump`: the engine PUMP model (`fx/mod1_dynamic.rs`) in place of the firmware
+    /// routine `0x122D2C`, which is the default since D134 (`FirmwareFx::pump`).
+    pub legacy_pump: bool,
     /// `--rotary-drive engine|unity|scaled`.
     pub rotary_drive: RotaryDrive,
     /// `--organ-level firmware|legacy`: the organ output level law ([`OutputLevel`]): the swell
@@ -472,6 +475,7 @@ impl Default for FirmwareOptions {
             synth_velocity_fw: true,
             firmware_routing: true,
             amp_path: None,
+            legacy_pump: false,
             rotary_drive: RotaryDrive::Engine,
             organ_level: OutputLevel::ModelDefault,
             leslie_firmware: false,
@@ -550,6 +554,7 @@ impl FirmwareOptions {
             synth_velocity_fw: true,
             firmware_routing: true,
             amp_path: None,
+            legacy_pump: false,
             rotary_drive: RotaryDrive::Engine,
             organ_level: OutputLevel::ModelDefault,
             leslie_firmware: false,
@@ -605,7 +610,7 @@ impl FirmwareOptions {
             o.fx.enable_ports(v)?;
         }
         if has("--legacy-fx-ports") {
-            o.fx = FirmwareFx::PRE_D171;
+            o.fx = FirmwareFx::PRE_PARITY;
         }
         if has("--legacy-mod2") {
             o.fx.mod2 = false;
@@ -719,6 +724,9 @@ impl FirmwareOptions {
         if has("--legacy-routing") {
             o.firmware_routing = false;
         }
+        if has("--legacy-pump") {
+            o.legacy_pump = true;
+        }
         if let Some(v) = value("--amp-path") {
             o.amp_path = Some(parse_amp_path(v)?);
         }
@@ -773,8 +781,11 @@ impl FirmwareOptions {
         apply_firmware_options(engine, self.tone_source, self.filter_engine, false);
         for c in engine.fx_chains.iter_mut() {
             c.firmware_fx.merge_on(&self.fx);
-            // The parity ports are on in the engine default (D163, D171), so the opt-outs
+            // The parity ports are on in the engine default (D163, D173), so the opt-outs
             // (`--legacy-fx-ports`, `--legacy-mod2`) have to switch them off.
+            if self.legacy_pump {
+                c.firmware_fx.pump = false;
+            }
             for name in crate::fx::FX_PORT_NAMES {
                 if let (false, Some(dst)) =
                     (name.starts_with("reverb"), c.firmware_fx.port_mut(name))
@@ -860,6 +871,9 @@ impl FirmwareOptions {
         let mut fx = self.fx;
         if let Some(amp) = self.amp_path {
             fx.amp = amp;
+        }
+        if self.legacy_pump {
+            fx.pump = false;
         }
         for c in engine.fx_chains.iter_mut() {
             c.firmware_fx = fx;
@@ -1056,8 +1070,8 @@ impl FirmwareOptions {
                 .filter(|p| FirmwareFx::DEFAULT.port(p) && !self.fx.port(p))
                 .collect();
             if !off.is_empty() {
-                // `legacy-fx-ports` when only the D171 ports are off, else `legacy-mod2` as before.
-                let pre = FirmwareFx::PRE_D171;
+                // `legacy-fx-ports` when only the D173 ports are off, else `legacy-mod2` as before.
+                let pre = FirmwareFx::PRE_PARITY;
                 let only_d171 = off.iter().all(|p| !pre.port(p));
                 parts.push(
                     if only_d171 {
@@ -1163,6 +1177,9 @@ impl FirmwareOptions {
         }
         if self.sample_pitch_fw {
             parts.push("sample-pitch=fw".into());
+        }
+        if self.legacy_pump {
+            parts.push("legacy-pump".into());
         }
         if let Some(a) = self.amp_path {
             parts.push(format!("amp={}", if a { "firmware" } else { "engine" }));
@@ -1679,7 +1696,7 @@ mod tests {
         assert!(e.fx_chains.iter().all(|c| c.firmware_fx.reverb));
         assert!(
             e.fx_chains.iter().all(|c| c.firmware_fx.delay_laws),
-            "PARITY ports stay on (D171)"
+            "PARITY ports stay on (D173)"
         );
         assert!(o.summary().contains("reverb"));
         o.apply_exact(&mut e);

@@ -171,7 +171,7 @@ mod tests {
 
     fn chain(t: Mod1Type) -> LayerFxChain {
         let mut fx = LayerFxChain::new(FS);
-        fx.firmware_fx = FirmwareFx::LEGACY; // engine models under test (D171: default is PARITY)
+        fx.firmware_fx = FirmwareFx::LEGACY; // engine models under test (D173: default is PARITY)
         fx.reverb_model = ReverbModel::Off;
         fx.mod1_type = t;
         fx

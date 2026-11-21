@@ -128,7 +128,7 @@ This restates the audit of [firmware-flag-audit](firmware-flag-audit.md) per gro
 - Mod 2 is the default since D163; `--firmware-fx-ports parity` applies the rest of this evidence in one switch, and D163 proposes making it the default once the owner has decided the open items of s4. What stays high after it is reverb (Sine Rain Pad, DistantGrand) and the organ programs.
 - The cheapest items that would let the flip pass D136: a dry-reference Mod 2 clip (chorus delay), the EQ joint mid words, the Mod 1 call count.
 
-## 7. Update 2026-11-20 (D171): PARITY becomes the default; rate match and the chorus delay
+## 7. Update 2026-11-20 (D173): PARITY becomes the default; rate match and the chorus delay
 
 - **Checked:** 2026-11-20. Same sources as above plus `emu_vs_hw.py` on the six hardware clips ([emu_vs_hw_parity_rate_match.json](data/emu_vs_hw_parity_rate_match.json), results [emu_vs_hw_parity_rate_match_results.json](data/emu_vs_hw_parity_rate_match_results.json)). New: `program_rank --flip fx_rate_match`, `--legacy-fx-ports`, `program_rank_combo.py --moves`. Data: [program-ranking-fx-parity-flip-384.csv](data/program-ranking-fx-parity-flip-384.csv).
 - **Question:** with the chorus delay explained ([fx-chorus-hw-clip](fx-chorus-hw-clip.md) s8), does the rest of `PARITY` pass as the default, and should `--fx-rate-match` follow?
@@ -158,7 +158,7 @@ No clip gets worse by more than 0.21 under PARITY (Vintage Vox 2.53 to 2.74; rec
 
 ### 7.3 `--fx-rate-match`
 
-Flipped alone on the 384 programs it moves the render from the default by a mean of 0.29 score units (median 0.00; 43 programs by more than 1, 12 by more than 3; largest Farfisa II 7.1, Texas Nights J3 6.4, NS4 Palette 5.2); the moves are the amp and cabinet programs, as D137 predicted. No firmware render exists for it (it is a converter), so the direction comes from the clips in 7.2: it never worsens a clip and takes the amp clip from 5.37 to 3.80. The owner has not been asked yet: it stays opt-in; recommendation in D171.
+Flipped alone on the 384 programs it moves the render from the default by a mean of 0.29 score units (median 0.00; 43 programs by more than 1, 12 by more than 3; largest Farfisa II 7.1, Texas Nights J3 6.4, NS4 Palette 5.2); the moves are the amp and cabinet programs, as D137 predicted. No firmware render exists for it (it is a converter), so the direction comes from the clips in 7.2: it never worsens a clip and takes the amp clip from 5.37 to 3.80. The owner has not been asked yet: it stays opt-in; recommendation in D173.
 
 ### 7.4 Remaining blockers (not waived by the flip)
 

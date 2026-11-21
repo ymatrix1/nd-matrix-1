@@ -18,13 +18,13 @@ Audio 1:1 with the hardware from firmware and oracle evidence only; the verified
 ## Acceptance Criteria
 - [x] Chorus delay investigated with the SHARC oracle and a hardware audio fit; cause documented with a unit test (`tests_mod2_hw_delay`)
 - [x] `--fx-rate-match` evaluated on six hardware clips and 384 programs (not flipped, recommended)
-- [x] 384-program ranking re-run: mean 3.77 to 1.66, 8 programs worse, listed in D171
+- [x] 384-program ranking re-run: mean 3.77 to 1.66, 8 programs worse, listed in D173
 - [x] `FirmwareFx::DEFAULT` = PARITY, `--legacy-fx-ports` opt-out, tests for both
-- [x] D171, spec, ROADMAP, audio-remaining; golden `render_hash` re-baselined with the changed segments named
+- [x] D173, spec, ROADMAP, audio-remaining; golden `render_hash` re-baselined with the changed segments named
 - [x] All AGENTS.md checks
 
 ## Out of Scope
 Reverb ports, the `--fx-rate-match` default, compressor words from the FX image, Mod 1 call count, GUI / plugin defaults beyond the engine tests.
 
 ## Summary of Changes
-- Default flip and opt-out (`render_opts.rs`, `fx/firmware_fx*.rs`), ranking tools (`--legacy-fx-ports`, `fx_rate_match` flip group, `--moves`), chorus tools and test, research notes, D171, golden re-baseline.
+- Default flip and opt-out (`render_opts.rs`, `fx/firmware_fx*.rs`), ranking tools (`--legacy-fx-ports`, `fx_rate_match` flip group, `--moves`), chorus tools and test, research notes, D173, golden re-baseline.

@@ -114,7 +114,7 @@ Positions 0 to 9 fall inside type 4 and step by 12 to 14 `v` each (the 128 `v` s
 
 **What this does not give.** No emulator output was compared with a UP2 render: that needs the official Kontakt Player or a Kontakt readout of `CHORAL_RATE`, `CHORAL_DELAY` and `get_engine_par_disp`. Reverb has no IR here (the `.nkr` `ir_samples` folder is empty).
 
-## 8. Update 2026-11-20 (D171): the 1.7 times is the scope calibration, not the stage
+## 8. Update 2026-11-20 (D173): the 1.7 times is the scope calibration, not the stage
 
 - **Checked:** 2026-11-20. **Sources:** `L.wav` and `R.wav` of the clip (local), the FX image of OS v1.66 (`tools/ns4_dsp_ldr.py <FX image> --sram DIR`), `sharc-fxlive` and `fx_live_native`. **Tools (new):** [tools/fx_chorus_oracle_delay.py](../../tools/fx_chorus_oracle_delay.py), [tools/fx_chorus_comb.py](../../tools/fx_chorus_comb.py), Rust test `fx/tests_mod2_hw_delay.rs`.
 - **Question:** is the firmware chorus delay 1.7 times the hardware's because of the port, the words, or the clip reading (s5 candidates)?

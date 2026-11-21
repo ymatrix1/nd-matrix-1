@@ -4,7 +4,7 @@
 A chorus adds a delayed copy `y = x + g x(t - d)`. Its magnitude response is
 `|1 + g exp(-j 2 pi f d)|`, a comb with period `1 / d` in Hz, so the amplitudes of the partials of
 a held note ripple against frequency with that period. This tool reads the delay `d` per analysis
-frame without any scope calibration (`docs/research/fx-chorus-hw-clip.md` s8, D171):
+frame without any scope calibration (`docs/research/fx-chorus-hw-clip.md` s8, D173):
 
 1. short-time spectrum (Hann, 0.35 s), partial peaks between 110 Hz and 4.5 kHz;
 2. detrend the peak levels (dB) with a running median over 9 partials;

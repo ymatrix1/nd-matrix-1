@@ -3,7 +3,7 @@
 
 Feeds an impulse train (one impulse every 600 DSP frames, longer than the 256 frame delay ring)
 through the live FX chain of `tools/fx_oracle_live.py` and through `fx_live_native`, and reads the
-offset of the delayed copy per impulse (`docs/research/fx-chorus-hw-clip.md` s8, D171).
+offset of the delayed copy per impulse (`docs/research/fx-chorus-hw-clip.md` s8, D173).
 
     python tools/fx_chorus_oracle_delay.py IMAGE/core1_sram.bin OUTDIR --rate 30 --amount 64
 

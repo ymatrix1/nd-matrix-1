@@ -46,6 +46,7 @@ impl FirmwareFx {
     /// Switches on every port that is on in `other` (including `amp`); never switches one off.
     pub fn merge_on(&mut self, other: &FirmwareFx) {
         self.amp |= other.amp;
+        self.pump |= other.pump;
         for n in PORT_NAMES {
             if other.port(n) {
                 if let Some(p) = self.port_mut(n) {
@@ -111,17 +112,17 @@ mod tests {
         let mut g = FirmwareFx::OFF;
         g.merge_on(&FirmwareFx::DEFAULT);
         assert!(
-            g.amp && g.ports_on().len() == 6 && !g.reverb,
-            "the default is PARITY (D171)"
+            g.amp && g.pump && g.ports_on().len() == 6 && !g.reverb,
+            "the default is PARITY (D173, PUMP D134)"
         );
         let mut pre = FirmwareFx::OFF;
-        pre.merge_on(&FirmwareFx::PRE_D171);
+        pre.merge_on(&FirmwareFx::PRE_PARITY);
         assert!(
-            pre.amp && pre.ports_on() == ["mod2"],
-            "amp and Mod 2 (D163)"
+            pre.amp && pre.pump && pre.ports_on() == ["mod2"],
+            "amp, PUMP and Mod 2 (D163, D134)"
         );
         let mut l = FirmwareFx::OFF;
         l.merge_on(&FirmwareFx::LEGACY);
-        assert!(l.amp && l.ports_on().is_empty());
+        assert!(l.amp && l.pump && l.ports_on().is_empty());
     }
 }

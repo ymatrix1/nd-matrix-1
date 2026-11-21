@@ -1,4 +1,4 @@
-//! Delay of the Mod 2 CHOR type 4 copy against the hardware clip (D171,
+//! Delay of the Mod 2 CHOR type 4 copy against the hardware clip (D173,
 //! `docs/research/fx-chorus-hw-clip.md` s8).
 //!
 //! The firmware stage is driven with an impulse train and the offset of the delayed copy is read

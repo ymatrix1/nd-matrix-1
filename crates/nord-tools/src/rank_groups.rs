@@ -72,14 +72,14 @@ pub fn firmware_options() -> FirmwareOptions {
 }
 
 /// The engine default the ranking compares against: `FirmwareOptions::default()` (the PARITY FX
-/// ports since D171), with `legacy_fx_ports` the default of D163 to D170 (amp and Mod 2), with
+/// ports since D173), with `legacy_fx_ports` the default of D163 to D170 (amp and Mod 2), with
 /// `legacy_mod2` the default before D163 (firmware Mod 2 off). The committed ranking data
 /// (`docs/research/data/program-ranking*.csv`) is the `legacy_mod2` baseline. Against the current
 /// default every FX group of [`PARITY_GROUPS`] is a no-op flip.
 pub fn baseline(legacy_mod2: bool, legacy_fx_ports: bool) -> FirmwareOptions {
     let mut o = FirmwareOptions::default();
     if legacy_fx_ports {
-        o.fx = nord_core::fx::FirmwareFx::PRE_D171;
+        o.fx = nord_core::fx::FirmwareFx::PRE_PARITY;
     }
     if legacy_mod2 {
         o.fx = nord_core::fx::FirmwareFx::LEGACY;

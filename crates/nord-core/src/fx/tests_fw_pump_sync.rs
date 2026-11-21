@@ -5,7 +5,7 @@ use super::*;
 fn pump(ty: u8, beats: Option<f32>, bpm: f32) -> LayerFxChain {
     let mut fx = LayerFxChain::new(48_000.0);
     fx.firmware_fx = FirmwareFx {
-        mod1: true,
+        pump: true,
         ..FirmwareFx::OFF
     };
     fx.mod1_type = Mod1Type::Pump;
@@ -144,6 +144,32 @@ fn a_type_change_or_a_pause_reuses_the_allocation_of_the_firmware_stage() {
     gains(&mut fx, 100);
     assert_eq!(at(&fx), first, "same allocation throughout");
     assert!(gains(&mut fx, 4_000).iter().any(|g| *g != 0.0));
+}
+
+#[test]
+fn the_default_switches_run_the_firmware_pump_in_sync_and_legacy_pump_does_not() {
+    // D134: `FirmwareFx::DEFAULT` has no `mod1`, only `pump`: PUMP in Master Clock sync is the
+    // firmware stage (2 frames of latency, 2.1 Hz at 126 BPM); with `pump` off it is the engine
+    // model (no latency) and the other types stay on the engine.
+    let mut fx = pump(10, Some(1.0), 126.0);
+    fx.firmware_fx = FirmwareFx::DEFAULT;
+    let g = gains(&mut fx, 48_000 * 20);
+    assert!(g[..2].iter().all(|x| *x == 0.0));
+    assert!((duck_hz(&g) - 2.10).abs() < 0.1);
+    let mut legacy = pump(10, Some(1.0), 126.0);
+    legacy.firmware_fx = FirmwareFx {
+        pump: false,
+        ..FirmwareFx::DEFAULT
+    };
+    assert_ne!(gains(&mut legacy, 16)[8], 0.0);
+    let mut other = pump(5, Some(1.0), 126.0);
+    other.mod1_type = Mod1Type::RingMod;
+    other.firmware_fx = FirmwareFx::DEFAULT;
+    assert_ne!(
+        gains(&mut other, 16)[8],
+        0.0,
+        "RM follows `mod1`, off by default"
+    );
 }
 
 #[test]
