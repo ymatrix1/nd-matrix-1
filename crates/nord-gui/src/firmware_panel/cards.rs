@@ -80,10 +80,13 @@ fn grid_dropdown<T: PartialEq + Copy>(
         .width(195.0)
         .show_ui(ui, |ui| {
             for (v, name, hint) in choices {
-                ui.selectable_value(value, *v, *name).on_hover_text(*hint);
+                ui.selectable_value(value, *v, *name)
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                    .on_hover_text(*hint);
             }
         })
         .response
+        .on_hover_cursor(egui::CursorIcon::PointingHand)
         .on_hover_text(sw.tooltip());
 }
 
