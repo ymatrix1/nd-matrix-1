@@ -21,6 +21,8 @@ mod native_farfisa;
 #[cfg(test)]
 pub(super) mod native_gen;
 mod plan;
+#[cfg(test)]
+mod probe;
 mod prog_gen;
 mod prog_proc;
 mod tables;
