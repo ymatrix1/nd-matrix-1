@@ -137,7 +137,7 @@ This restates the audit of [firmware-flag-audit](firmware-flag-audit.md) per gro
 
 | Flipped set | n | Mean | Median | p90 | Max | > 5 | > 10 | Worse by > 0.5 | Tag |
 |---|---|---|---|---|---|---|---|---|---|
-| none (amp + Mod 2) | 384 | 3.77 | 2.74 | 8.24 | 21.15 | 103 | 24 | - | EMPIRICAL |
+| none (amp, PUMP, Mod 2) | 384 | 3.72 | 2.74 | 8.18 | 21.15 | 100 | 23 | - | EMPIRICAL |
 | delay + compressor + EQ + Mod 1 (= PARITY) | 384 | 1.66 | 1.04 | 3.84 | 16.61 | 22 | 3 | 8 | EMPIRICAL |
 
 213 programs improve by more than 0.5. The 8 that get worse: Silent Upright 2.62 to 4.89, Innocense 0.83 to 2.54, NS4 Palette 1.80 to 3.50, White Chorus 0.72 to 2.28, Marimba 0.54 to 1.65, Phil Pad 0.21 to 1.08, Detuned Fanfare 1.94 to 2.66, Arctic Choir Whl 1.39 to 2.01. The all-firmware render is the target on both sides, so these eight differ from the firmware render with the new set in a way the chosen subset does not explain (the missing pieces are the reverb ports, kept out by the owner).
@@ -154,11 +154,15 @@ This restates the audit of [firmware-flag-audit](firmware-flag-audit.md) per gro
 | synth SUPER LP24 sidechain | 4.47 | 4.47 | 3.78 | 3.78 |
 | FX amp (Tiny Transistor) | 5.37 | 3.80 | 4.29 | 3.23 |
 
-No clip gets worse by more than 0.21 under PARITY (Vintage Vox 2.53 to 2.74; recovered to 2.24 with the rate match). EMPIRICAL (one take per clip).
+No clip gets worse by more than 0.21 under PARITY (Vintage Vox 2.53 to 2.74; recovered to 2.24 with the rate match). EMPIRICAL (one take per clip). The clip run is from before the merge of the PUMP default (D134) and was not repeated; whether a clip program uses a PUMP was not checked.
 
 ### 7.3 `--fx-rate-match`
 
-Flipped alone on the 384 programs it moves the render from the default by a mean of 0.29 score units (median 0.00; 43 programs by more than 1, 12 by more than 3; largest Farfisa II 7.1, Texas Nights J3 6.4, NS4 Palette 5.2); the moves are the amp and cabinet programs, as D137 predicted. No firmware render exists for it (it is a converter), so the direction comes from the clips in 7.2: it never worsens a clip and takes the amp clip from 5.37 to 3.80. The owner has not been asked yet: it stays opt-in; recommendation in D173.
+Flipped alone on the 384 programs it moves the render from the default by a mean of 0.29 score units (median 0.00; 43 programs by more than 1, 12 by more than 3; largest Farfisa II 7.0, Texas Nights J3 6.4, NS4 Palette 5.2); the moves are the amp and cabinet programs, as D137 predicted. No firmware render exists for it (it is a converter), so the direction comes from the clips in 7.2: it never worsens a clip and takes the amp clip from 5.37 to 3.80. The owner has not been asked yet: it stays opt-in; recommendation in D173.
+
+### 7.3b Program sweep
+
+**Program sweep (merged with PUMP, D134; `program_sweep` against `--legacy-fx-ports`):** 384 programs, no panic and no non-finite sample; the default render changes in 297 programs (128 by more than 1 dB RMS, 40 by more than 3 dB, largest +9.8 dB 16th Note Bass and -9.5 dB PineScape Synth), the firmware render in none. The default-to-firmware level gap shrinks from mean 1.29 to 0.42 dB (programs above 3 dB 48 to 3, above 6 dB 10 to 0); one program's gap grows by more than 1 dB (Night Gaunts Whl 0.2 to 3.0). 18 programs clip more samples (29 programs with a clipped sample against 24; Q and A 0 to 862 samples; the firmware render clips 27 programs by itself), the higher level is the firmware's. `docs/research/data/program-sweep.json` and `program-coverage.md` are regenerated.
 
 ### 7.4 Remaining blockers (not waived by the flip)
 

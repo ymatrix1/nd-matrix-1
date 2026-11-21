@@ -258,45 +258,31 @@ Use-weighted: a path used by two layers counts twice. A `verified` row means the
 
 ## 8. Render health
 
-- `default`: 384 of 384 rendered without panic; non-finite 0, silent 0, any clipped sample 24, clipping >= 0.1%: 5.
+- `default`: 384 of 384 rendered without panic; non-finite 0, silent 0, any clipped sample 29, clipping >= 0.1%: 6.
 - `firmware`: 384 of 384 rendered without panic; non-finite 0, silent 0, any clipped sample 27, clipping >= 0.1%: 6.
 
-Level difference firmware minus default (RMS, dB) over 384 programs: min -8.89, p10 -1.66, median 0.34, p90 2.38, max 9.85, mean 0.36.
+Level difference firmware minus default (RMS, dB) over 384 programs: min -4.5, p10 -0.17, median 0.33, p90 0.56, max 1.33, mean 0.18.
 
 ### Outliers
 
-Counts: panic 0, non-finite 0, silent 0, clipping 11, level jump 10.
+Counts: panic 0, non-finite 0, silent 0, clipping 12, level jump 0.
 
 **Clipping (top 30)**
 
 | entry | mode | peak | clip_fraction |
 |---|---|---|---|
 | Program/Bank D/Windhoek B3 II.ns4p | firmware | 1.0 | 0.113964 |
-| Program/Bank D/Windhoek B3 II.ns4p | default | 1.0 | 0.085406 |
+| Program/Bank D/Windhoek B3 II.ns4p | default | 1.0 | 0.091016 |
 | Program/Bank A/B3 Shade.ns4p | firmware | 1.0 | 0.027682 |
 | Program/Bank D/Vox Inna-Gadda.ns4p | firmware | 1.0 | 0.01976 |
+| Program/Bank D/Vox Inna-Gadda.ns4p | default | 1.0 | 0.015557 |
 | Program/Bank A/B3 Shade.ns4p | default | 1.0 | 0.014484 |
-| Program/Bank D/Vox Inna-Gadda.ns4p | default | 1.0 | 0.009443 |
+| Program/Bank B/Q and A.ns4p | default | 1.0 | 0.00449 |
 | Program/Bank B/Q and A.ns4p | firmware | 1.0 | 0.00449 |
-| Program/Bank A/Bubbles Mk I.ns4p | default | 1.0 | 0.002698 |
 | Program/Bank C/Vox Like Me.ns4p | firmware | 1.0 | 0.002406 |
+| Program/Bank C/Vox Like Me.ns4p | default | 1.0 | 0.001635 |
 | Program/Bank E/Wah EP Ondre J.ns4p | firmware | 1.0 | 0.001516 |
-| Program/Bank C/Vox Like Me.ns4p | default | 1.0 | 0.001047 |
-
-**Level jumps (top 30)**
-
-| entry | rms_delta_db |
-|---|---|
-| Program/Bank D/16th Note Bass.ns4p | 9.85 |
-| Program/Bank B/Fan Club Piano.ns4p | 9.22 |
-| Program/Bank E/PineScape Synth.ns4p | -8.89 |
-| Program/Bank C/LoFi Piano.ns4p | 8.36 |
-| Program/Bank E/24 Frames J3.ns4p | 8.05 |
-| Program/Bank E/Snappy D6.ns4p | 7.95 |
-| Program/Bank C/Bounce Clav.ns4p | 7.41 |
-| Program/Bank F/OD Rock Bass.ns4p | 6.44 |
-| Program/Bank A/Dual Gates.ns4p | -6.43 |
-| Program/Bank A/Jazz Guitar II.ns4p | 6.39 |
+| Program/Bank E/Wah EP Ondre J.ns4p | default | 1.0 | 0.001255 |
 
 ## 9. Implications
 
