@@ -183,3 +183,27 @@ def tap_stats(data: bytes) -> dict[str, object]:
         "distinct_in_loudest_window": distinct,
         "kind": kind,
     }
+
+
+def tap_fundamental(data: bytes, harmonics: int = 4) -> float | None:
+    """Fundamental of a captured tap in cycles per tap frame (harmonic-sum pitch of the left lane).
+
+    The tap holds one frame per audio interrupt (D205); the pitch in Hz is `cycles * frame_rate`
+    and the frame rate of the SMP chip is not known (ASSUMED 48 kHz). The window starts at the
+    loudest sample and spans 8,192 frames. `None` for a silent or too short tap.
+    """
+    import numpy as np  # local: only the pitch check needs it
+
+    x = np.frombuffer(data[: len(data) // 8 * 8], dtype="<f4").reshape(-1, 2)[:, 0].astype(float)
+    if len(x) < 1024 or not np.isfinite(x).all() or float(np.abs(x).max()) < 3e-5:
+        return None
+    start = int(np.argmax(np.abs(x)))
+    seg = x[start : start + 8192]
+    seg = seg - seg.mean()
+    size = 1 << 17
+    mag = np.abs(np.fft.rfft(seg * np.hanning(len(seg)), n=size))
+    cand = np.arange(40, 4000)  # bins: 0.0003 .. 0.03 cycles per frame at this size
+    score = np.array(
+        [sum(mag[min(k * c, len(mag) - 1)] for k in range(1, harmonics + 1)) for c in cand]
+    )
+    return float(cand[int(np.argmax(score))] / size)

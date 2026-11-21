@@ -110,3 +110,15 @@ def test_tap_stats_tells_silence_a_stuck_sample_and_audio_apart() -> None:
     audio = sf.tap_stats(f32(tone))
     assert audio["kind"] == "audio"
     assert abs(audio["peak"] - 0.2) < 1e-3 and abs(audio["peak_dbfs"] - (-13.98)) < 0.05
+
+
+def test_tap_fundamental_finds_the_pitch_of_a_harmonic_tone_and_none_for_silence() -> None:
+    cycles = 0.006
+    tone = []
+    for k in range(9000):
+        v = sum(math.sin(2 * math.pi * cycles * h * k) / h for h in (1, 2, 3))
+        tone += [0.2 * v, 0.2 * v]
+    got = sf.tap_fundamental(f32(tone))
+    assert got is not None and abs(got - cycles) < 2e-5
+    assert sf.tap_fundamental(f32([0.0] * 20000)) is None
+    assert sf.tap_fundamental(f32([0.1] * 100)) is None

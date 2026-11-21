@@ -1,0 +1,28 @@
+program,layer,scenario,base,wheel,at,pedal,law,dispatch,dsp_steps
+Cassette Pad AT,A,at:127,0,0,-35,0,-35.0000,-35.0000,-15.6771
+Cassette Pad AT,A,"wheel:127,at:127,pedal:127",0,0,-35,0,-35.0000,-35.0000,-15.6771
+Chrome Layer,C,wheel:64,-21,-15,0,0,-28.5000,-28.5000,-28.5000
+Chrome Layer,C,wheel:127,-21,-15,0,0,-36.0000,-36.0000,-36.0000
+Chrome Layer,C,"wheel:127,at:127,pedal:127",-21,-15,0,0,-36.0000,-36.0000,-36.0000
+Distorted Whl II,A,wheel:64,21,6,0,0,24.0000,24.0000,24.0000
+Distorted Whl II,A,wheel:127,21,6,0,0,27.0000,27.0000,27.0000
+Distorted Whl II,A,"wheel:127,at:127,pedal:127",21,6,0,0,27.0000,27.0000,27.0000
+Favorite Video,A,at:127,0,0,-40,0,-40.0000,-40.0000,-21.6667
+Favorite Video,A,"wheel:127,at:127,pedal:127",0,0,-40,0,-40.0000,-40.0000,-21.6667
+FM Cloud Whl,C,wheel:64,0,18,0,0,9.0000,9.0000,9.0000
+FM Cloud Whl,C,wheel:127,0,18,0,0,18.0000,18.0000,18.0000
+FM Cloud Whl,C,"wheel:127,at:127,pedal:127",0,18,0,0,18.0000,18.0000,18.0000
+FM Harpies,A,wheel:64,21,2,0,0,22.0000,22.0000,22.0000
+FM Harpies,A,wheel:127,21,2,0,0,23.0000,23.0000,23.0000
+FM Harpies,A,"wheel:127,at:127,pedal:127",21,2,0,0,23.0000,23.0000,23.0000
+FM Harpies,C,wheel:64,30,10,0,0,35.0000,35.0000,35.0000
+FM Harpies,C,wheel:127,30,10,0,0,40.0000,40.0000,40.0000
+FM Harpies,C,"wheel:127,at:127,pedal:127",30,10,0,0,40.0000,40.0000,40.0000
+Rich FM Pad Whl,B,wheel:64,60,-45,0,0,37.5000,37.5000,37.5000
+Rich FM Pad Whl,B,wheel:127,60,-45,0,0,15.0000,15.0000,15.0000
+Rich FM Pad Whl,B,"wheel:127,at:127,pedal:127",60,-45,0,0,15.0000,15.0000,15.0000
+Sine-Saw Plk Whl,A,wheel:64,0,42,0,0,21.0000,21.0000,21.0000
+Sine-Saw Plk Whl,A,wheel:127,0,42,0,0,42.0000,42.0000,42.0000
+Sine-Saw Plk Whl,A,"wheel:127,at:127,pedal:127",0,42,0,0,42.0000,42.0000,42.0000
+Time Warp Saw,A,at:127,0,0,-48,0,-48.0000,-48.0000,-34.5000
+Time Warp Saw,A,"wheel:127,at:127,pedal:127",0,0,-48,0,-48.0000,-48.0000,-34.5000

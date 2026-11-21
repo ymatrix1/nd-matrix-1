@@ -110,6 +110,33 @@ mod tests {
     }
 
     #[test]
+    fn osc_env_amount_morph_words_decode_as_arm_depths() {
+        // FM Harpies layer A and C: base 21 / 30 steps, wheel +2 / +10 (ARM cells
+        // `[21, 2, 0, 0]`, `[30, 10, 0, 0]`, `docs/research/data/morph-fw-osc-env.csv`); the
+        // three 8 bit words at `+99 / +107 / +115` store `depth + 120`.
+        let mut bytes = SynthPresetDecoded::default().pack().unwrap();
+        for (sound, base, wheel, at) in [(1472usize, 21u32, 2u32, 0u32), (2240, 30, 10, 0)] {
+            put(&mut bytes, sound + 92, 7, base);
+            put(&mut bytes, sound + 99, 8, 120 + wheel);
+            put(&mut bytes, sound + 107, 8, 120 + at);
+        }
+        put(&mut bytes, 1856 + 107, 8, 120 - 35); // layer B, A.T. -35
+        let dec = SynthPresetDecoded::unpack(&bytes).unwrap();
+        let steps =
+            |m: crate::cbin::MorphDeltas| [m.wheel, m.aftertouch, m.ctrl_pedal].map(|d| d * 120.0);
+        assert_eq!(steps(dec.layer_a.osc_env_amount_morph), [2.0, 0.0, 0.0]);
+        assert_eq!(steps(dec.layer_c.osc_env_amount_morph), [10.0, 0.0, 0.0]);
+        assert_eq!(steps(dec.layer_b.osc_env_amount_morph), [0.0, -35.0, 0.0]);
+        assert!((dec.layer_a.osc_env_amount - 21.0 / 60.0).abs() < 1e-6);
+        assert_eq!(dec.pack().unwrap(), bytes, "decode + pack must be lossless");
+        // an edited depth is written back and decodes again
+        let mut edited = dec.clone();
+        edited.layer_a.osc_env_amount_morph.ctrl_pedal = -45.0 / 120.0;
+        let again = SynthPresetDecoded::unpack(&edited.pack().unwrap()).unwrap();
+        assert_eq!(steps(again.layer_a.osc_env_amount_morph), [2.0, 0.0, -45.0]);
+    }
+
+    #[test]
     fn collapsed_synth_values_round_trip() {
         let mut bytes = SynthPresetDecoded::default().pack().unwrap();
         // Sound A (`1472`), sound B (`1856`), sound C (`2240`): every collapsed cluster of the

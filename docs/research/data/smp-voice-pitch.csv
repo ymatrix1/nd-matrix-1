@@ -1,0 +1,13 @@
+program,piano_a_sound,stroke,step,tap_kind,tap_peak_dbfs,tap_cycles_per_frame,tap_hz_at_48k,tap_hz_at_44k1,native_hz,native_peak,tap_minus_native_rms_db
+Bank A/Astoria Grand,Grand/Astoria Grand Lrg 6.1,513,0.79830,audio,-15.86,0.00601,288.6,265.1,261.5,0.414,-10.0
+Bank A/Classic Wah Clav,Clavinet/Clavinet D6  6.1,22,0.80571,audio,-20.45,0.00603,289.7,266.1,262.0,0.202,-6.9
+Bank A/Felt Upright,Upright/Felt Upright Lrg 6.2,464,0.80525,audio,-14.86,0.00603,289.3,265.8,261.8,0.445,-9.5
+Bank A/Bubbles Mk I,Electric/EP2 Ideal Timbre Lrg 6.1,160,0.80618,audio,-17.87,0.00603,289.3,265.8,261.5,0.506,-9.8
+Bank A/70s Phase Mk I,Electric/EP9 Stockholm XL 6.0,1175,0.80897,audio,-20.11,0.00603,289.3,265.8,261.5,0.460,-12.0
+Bank A/Shimmer Upright,Upright/Felt Upright Lrg 6.2,463,0.80525,audio,-18.03,0.00603,289.7,266.1,261.8,0.453,-13.2
+Bank B/Frozen Time Whl,Upright/Felt Upright Lrg 6.2,464,0.80525,audio,-17.17,0.00603,289.3,265.8,261.8,0.255,-5.6
+Bank C/C and G,Grand/Astoria Grand Lrg 6.1,513,0.79830,audio,-15.86,0.00601,288.6,265.1,261.5,0.385,-9.1
+Bank C/Ultimate Ballad,Grand/Royal Grand 3D XL 6.1,775,0.80432,audio,-19.96,0.00603,289.7,266.1,262.0,0.387,-13.3
+Bank D/Rotor EP,Electric/EP9 Stockholm XL 6.0,1175,0.80897,audio,-19.11,0.00603,289.3,265.8,261.5,0.497,-12.9
+Bank E/J3 HardPan 80 EP,Electric/EP3 Shallow Close Lrg 6.1,128,0.80525,audio,-18.67,0.00602,288.9,265.5,261.5,0.360,-6.8
+Bank F/EP Steps,Electric/EP6 Sparkletop XL 6.1,285,0.80618,audio,-24.94,0.00604,290.0,266.5,262.2,0.214,-11.9
