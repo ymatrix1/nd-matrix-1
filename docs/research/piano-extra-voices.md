@@ -74,7 +74,7 @@ Emulator against hardware, transcribed velocities and pedal (`python tools/emu_v
 
 Reading: `pedal-voices` alone raises the level by +0.8 to +2.1 dB (Velvet -2.6 to -0.8, Felt -4.2 to -3.4, Grand Pad -1.0 to +1.1; all inside the D22 3 dB RMS target before and after). The score worsens on Velvet (1.37 to 2.74: presence +1.9 to +4.1 dB, brilliance +3.9 to +7.7 dB, centroid +3 to +42 Hz), is neutral on Felt (1.37 to 1.33) and slightly worse on Grand Pad (1.43 to 1.51). On the opt-in `chain + slew` paths it improves the score on Velvet (3.74 to 1.53) and Grand Pad (2.61 to 1.73) and worsens it on Felt (1.31 to 2.49), with the level 5 to 13 dB low in every case. No default flips; the slew paths stay opt-in.
 
-## 6. Engine census on all 38 sounds (D198)
+## 6. Engine census on all 38 sounds (D202)
 
 `cargo run --release -p nord-tools --bin piano_voice_census -- "<Factory Restore RevK v1.66.ns4b>"` (data: [piano-voice-census.csv](data/piano-voice-census.csv)). Per `.npno`: 30 notes (21 to 108 step 3) x 6 velocities (1, 32, 64, 90, 110, 127) = 6,834 points with a firmware list. The firmware list is `NpnoLevel::voices` (VERIFIED against the ARM level calls, D23 and s2); the engine side is the stroke index and amplitude of the voices `PianoLayer::note_on` starts (tolerance 1e-6).
 

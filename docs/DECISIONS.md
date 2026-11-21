@@ -6,7 +6,8 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
-| [D198](#d198-piano-voice-census-the-opt-in-pedal-voice-list-equals-the-firmware-list-on-38-of-38-factory-sounds-the-default-pedal-down-path-equals-it-on-none-of-the-two-voice-classes) | 2026-11-21 | Rust census `piano_voice_census`: opt-in pedal-down voice list equals the firmware list at 6,834 of 6,834 points (38 sounds); default legacy path equals it on 0 of 4,680 two-voice points; no engine change | proposed |
+| [D202](#d202-piano-voice-census-the-opt-in-pedal-voice-list-equals-the-firmware-list-on-38-of-38-factory-sounds-the-default-pedal-down-path-equals-it-on-none-of-the-two-voice-classes) | 2026-11-21 | Rust census `piano_voice_census`: opt-in pedal-down voice list equals the firmware list at 6,834 of 6,834 points (38 sounds); default legacy path equals it on 0 of 4,680 two-voice points; no engine change | proposed |
+| [D198](#d198-the-firmware-organ-stages-run-straight-line-generated-routines-the-planner-breaks-instruction-cycles-bit-identical-bass-still-over-the-block-budget) | 2026-11-21 | The firmware organ stages run straight line generated routines; the planner breaks instruction cycles; bit identical, Bass still over the block budget | accepted |
 | [D197](#d197-mod-1-calls-per-pass-the-dispatcher-calls-a-stage-once-per-pass-the-arm-stage-install-is-not-reproducible-so-the-mod1_unit_calls-flip-stays-proposed) | 2026-11-21 | Mod 1 calls per pass: the dispatcher calls a stage once per pass; the ARM stage install is not reproducible, so the `mod1_unit_calls` flip stays proposed | accepted |
 | [D196](#d196-sy-pitch-entry-e-sixth-hunt-the-arm-claimed-flash-service-writes-only-the-staging-buffer-0x93ff7-image-default-of-dm0xb650f-no-arm-constant-names-the-pitch-window-the-d176-candidate-path-is-closed---sample-pitch-fw-stays-opt-in) | 2026-11-21 | SY pitch entry `e`, sixth hunt: the ARM claimed flash service writes only the staging buffer `0x93FF7`; the D176 candidate path is closed; `--sample-pitch fw` stays opt-in | proposed |
 | [D195](#d195-amp-to-rotary-type-7-is-the-leslie-chain-the-0x125142-words-are-rom-no-port-until-the-d190-install-is-found) | 2026-11-21 | Amp To Rotary (type 7) is the Leslie chain; the `0x125142` words are ROM; no port until the D190 install is found | proposed |
@@ -2051,6 +2052,17 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Open:** the 0.8 ms block budget with a full program is not reached (Bass 1.7 ms per block alone). What remains is interpretation overhead and 5 to 6 ns per float operation; TD-15 lists the next steps (straight line code, SIMD over the two PEs, a closed form of the Farfisa processor, a second core).
 - **Impact:** `crates/nord-core/src/organ/b3_bass_fw/{compile,fastexec,fast,f40,mod}.rs`, `b3_bass_stage.rs`, `farfisa_fw/mod.rs`, `bench.rs`, `bench_organ_fw.rs`, `nord-tools/src/bin/organ_fw_bench.rs` (prints an output hash); TD-15, ROADMAP 7b.3, audio-remaining row 16, [organ-farfisa-bass](research/organ-farfisa-bass.md) s18.
 
+### D198. The firmware organ stages run straight line generated routines; the planner breaks instruction cycles; bit identical, Bass still over the block budget
+
+- **Status:** accepted 2026-11-21
+- **Decided by:** the task of the coordinating session (TD-15, bean `ns4-4wzo`; evidence [organ-farfisa-bass](research/organ-farfisa-bass.md) s19); the coordinating session reviews. Renumber on merge if D198 is taken by a sibling session (D196 is on main, D197 is reserved).
+- **Context:** D192 left Bass at 0.65 and Farfisa at 0.45 s of CPU per second of audio, over the 0.8 ms block budget. Profile: the generator cost 26 us and the processor 12 us per call; about 90 generator instruction executions per call still ran on the reference executor (cycles, conditional items), and half of the rest was dispatch and decoding.
+- **Decision:** (1) `plan.rs` breaks instruction cycles by splitting an ALU, store or load item into a compute half and a commit half over two temp slots, and `COND_ALU` runs a single conditional ALU item per element; no `REF` op is left in the Bass and Farfisa programs. (2) `native_gen.rs` emits each compiled program as straight line Rust (`native_bass_gen.rs`, `native_bass_proc.rs`, `native_farfisa.rs`, GENERATED, checked in, stale files fail a test, `NS4_REGEN=1` rewrites); the stages call them, the interpreter stays the test oracle. (3) The DM is a boxed fixed size array. No default changes (both stages opt-in, D22).
+- **Why:** Bit identical: whole machine state (registers, index registers, flags, accumulators, DM) equal to the interpreter after every call over 600 Bass and 300 Farfisa calls (both lattice tables); `organ_fw_bench` hashes (Bass `0xd1d697626e610cb9`, Farfisa `0x022b186501a4479b`) and the three `ns4 bench` scenario hashes unchanged. Bass 0.78 to 0.87 to 0.38 to 0.52 s, Farfisa 0.35 to 0.50 to 0.22 to 0.33 s (with the 0.16 s wheel ring), same shared host, same session.
+- **Alternatives:** Hand written fused hot loops (rejected: the whole instruction stream is the hot path, a generator covers all of it and cannot drift from the listing); a `build.rs` generator (rejected: the checked in source is reviewable and needs no build step, a test guards freshness); keeping the 400 line file rule for the generated files (rejected: 350 to 630 line generated tables, like `prog_proc.rs`).
+- **Open:** Bass stage alone is about 1.0 to 1.4 ms per block against the 0.8 ms budget of the whole engine (1.3 to 1.7x over); Farfisa with its ring is at the budget. Next: unroll the generator loops, SIMD over the two PEs, exact skipping of unheld voices, a second core (TD-15, s19).
+- **Impact:** `crates/nord-core/src/organ/b3_bass_fw/` (`plan.rs`, `compile.rs`, `fastexec.rs`, `native_gen.rs`, `tables.rs`, `mod.rs`, generated `native_*.rs`), `b3_bass_stage.rs`, `farfisa_fw/mod.rs` (test); TD-15, ROADMAP 7b.3, [organ-engine](specs/organ-engine.md), [organ-farfisa-bass](research/organ-farfisa-bass.md) s19.
+
 ### D193. Amp LP24 / HP24: default flip proposed, not made; type 9 words VERIFIED; multi-call golden
 
 - **Status:** proposed 2026-11-21
@@ -2112,7 +2124,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** port the bank alone opt-in (rejected: no audible effect, wiring unverifiable); wait for hardware clip (needed anyway).
 - **Impact:** `docs/research/amp-types-789.md` s1, s8, follow-ups; no code change besides the doc comment.
 
-### D198. Piano voice census: the opt-in pedal-down voice list equals the firmware list on 38 of 38 factory sounds, the default pedal-down path equals it on none of the two-voice classes
+### D202. Piano voice census: the opt-in pedal-down voice list equals the firmware list on 38 of 38 factory sounds, the default pedal-down path equals it on none of the two-voice classes
 
 - **Status:** proposed 2026-11-21
 - **Decided by:** pending the user (task from the parent session; evidence [piano-extra-voices](research/piano-extra-voices.md) s6, [piano-voice-census.csv](research/data/piano-voice-census.csv))
