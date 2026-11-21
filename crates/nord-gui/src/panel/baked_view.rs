@@ -1302,4 +1302,44 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn computer_keyboard_plays_notes_in_baked_panel_mode() {
+        let ctx = egui::Context::default();
+        let mut state = Stage4PanelState {
+            use_baked_plate: true,
+            ..Default::default()
+        };
+        let (audio, rx) = AudioHandle::new();
+
+        let mut raw = egui::RawInput {
+            focused: true,
+            ..Default::default()
+        };
+        raw.events.push(egui::Event::Key {
+            key: egui::Key::A,
+            physical_key: Some(egui::Key::A),
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        });
+        let _ = ctx.run(raw, |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                super::super::render_stage4_panel(ui, &mut state, &audio);
+            });
+        });
+
+        assert!(
+            state.computer_kb.is_sounding(60),
+            "pressing A in baked panel mode must sound C4 (MIDI 60)"
+        );
+        let cmds: Vec<_> = rx.try_iter().collect();
+        assert!(
+            cmds.iter().any(|c| matches!(
+                c,
+                AudioCommand::Keyboard(MidiEvent::NoteOn { note: 60, .. })
+            )),
+            "expected Keyboard NoteOn 60, got {cmds:?}"
+        );
+    }
 }

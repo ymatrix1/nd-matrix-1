@@ -109,10 +109,6 @@ use prelude::*;
 
 /// Draw the whole front panel (or the focused section) at the current view.
 pub fn render_stage4_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handle: &AudioHandle) {
-    if state.use_baked_plate {
-        baked_view::render_baked_panel(ui, state, audio_handle);
-        return;
-    }
     // One lock-free read of the engine per frame; the bays take what they show from it.
     let now_ms = (ui.input(|i| i.time) * 1000.0) as u32;
     state.telemetry = audio_handle.telemetry().latest();
@@ -125,6 +121,10 @@ pub fn render_stage4_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_hand
     let ctx = ui.ctx().clone();
     // Before the shortcut handlers: it publishes whether the playing keys are claimed.
     computer_kb::drive(&ctx, state, audio_handle);
+    if state.use_baked_plate {
+        baked_view::render_baked_panel(ui, state, audio_handle);
+        return;
+    }
     let cursor = ui.cursor().min;
     state.view.handle_keys(&ctx, state.view.origin(cursor));
     view::apply_zoom(&ctx, &state.view);
