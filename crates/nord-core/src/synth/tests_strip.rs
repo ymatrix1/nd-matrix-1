@@ -311,6 +311,24 @@ fn unison_weights_drop_the_voice_count_normalisation() {
 }
 
 #[test]
+fn filter_type_gain_scales_the_filter_output_by_the_oracle_gain() {
+    use super::filter_gain::filter_gain;
+    let render = |model: FilterModel, gain: bool| {
+        let mut s = layer(SynthChain::FirmwareStrip);
+        s.filter_model = model;
+        s.filter_type_gain = gain;
+        s.note_on(57, 100);
+        render_n(&mut s, 2_400)
+    };
+    // the filter is linear (no drive) so the factor is exact in amplitude
+    for m in [FilterModel::Lp12, FilterModel::Lp24, FilterModel::BandPass] {
+        let (off, on) = (energy(&render(m, false)), energy(&render(m, true)));
+        let want = filter_gain(m) * filter_gain(m);
+        assert!((on / off / want - 1.0).abs() < 0.02, "{m:?}: {}", on / off);
+    }
+}
+
+#[test]
 fn fw_env_law_opens_the_cutoff_further_and_is_off_by_default() {
     let render = |law: bool, amount: f32| {
         let mut s = layer(SynthChain::FirmwareStrip);

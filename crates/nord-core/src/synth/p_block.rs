@@ -122,6 +122,9 @@ pub enum PSpec {
     /// [`PSpec::Oracle`] plus the oracle level of the SHAPE triangle, MULTI and SUPER rows times
     /// the one coupling factor (`PTableSpec::coupled`, D194): opt-in, `--synth-p coupled`.
     Coupled,
+    /// The oracle rows without the coupling factor (`PTableSpec::oracle_rows`, D195): opt-in,
+    /// `--synth-p oracle-rows`, meant for `--synth-filter-gain`.
+    OracleRows,
 }
 
 impl PSpec {
@@ -139,6 +142,9 @@ impl PSpec {
         if v.eq_ignore_ascii_case("coupled") {
             return Ok(PSpec::Coupled);
         }
+        if v.eq_ignore_ascii_case("oracle-rows") {
+            return Ok(PSpec::OracleRows);
+        }
         if v.is_char_boundary(8) && v[..8].eq_ignore_ascii_case("verified") {
             return PTableSpec::parse_over(PTableSpec::verified(), &v[8..]).map(PSpec::Table);
         }
@@ -147,7 +153,7 @@ impl PSpec {
         }
         let bad = || {
             format!(
-                "invalid --synth-p '{v}' (expected fitted|verified|oracle|coupled|table|gain,w2,r2,shape,cutoff)"
+                "invalid --synth-p '{v}' (expected fitted|verified|oracle|coupled|oracle-rows|table|gain,w2,r2,shape,cutoff)"
             )
         };
         let mut m = [0i32; 5];
@@ -173,7 +179,11 @@ impl PSpec {
             PSpec::Fitted => PBlock::FITTED,
             PSpec::Custom(m) => PBlock::from_milli(m),
             // the single-block view of a table is the idle block; use `table()`
-            PSpec::Table(_) | PSpec::Verified | PSpec::Oracle | PSpec::Coupled => PBlock::IDLE,
+            PSpec::Table(_)
+            | PSpec::Verified
+            | PSpec::Oracle
+            | PSpec::Coupled
+            | PSpec::OracleRows => PBlock::IDLE,
         }
     }
 
@@ -184,6 +194,7 @@ impl PSpec {
             PSpec::Verified => Some(PTableSpec::verified().table()),
             PSpec::Oracle => Some(PTableSpec::oracle().table()),
             PSpec::Coupled => Some(PTableSpec::coupled().table()),
+            PSpec::OracleRows => Some(PTableSpec::oracle_rows().table()),
             _ => None,
         }
     }

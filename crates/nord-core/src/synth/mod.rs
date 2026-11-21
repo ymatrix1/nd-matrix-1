@@ -22,6 +22,7 @@ mod arp_order;
 mod arp_pool;
 pub mod arp_rate;
 mod dsp;
+pub mod filter_gain;
 mod fw_adr_chain;
 mod fw_coef_memo;
 mod fw_cutoff_env;
@@ -331,6 +332,9 @@ pub struct SynthLayer {
     /// per-voice weights of the firmware lane mix (`cos` / `sin` of pi/8, no `1 / sqrt(N)`), i.e.
     /// `unison_gain` is applied to a per-voice gain of `1.0` instead of `1 / sqrt(N)`.
     pub unison_fw_weights: bool,
+    /// Opt-in (default off, `--synth-filter-gain`): the filter output is scaled by the oracle gain
+    /// of its type ([`filter_gain::filter_gain`], D195).
+    pub filter_type_gain: bool,
     /// Opt-in (default off, `--synth-fw-env-law`): the filter envelope reaches the cutoff in the
     /// semitone domain (`fw_cutoff_env.rs`, oracle composition, D195): `2^(amount * 127 / 12 *
     /// level)` instead of `2^(amount * 8 * level)` on the Hz cutoff. Strip chain only.
@@ -501,6 +505,7 @@ impl SynthLayer {
             filter_raw3: false,
             unison_gain: 1.0,
             unison_fw_weights: false,
+            filter_type_gain: false,
             fw_env_law: false,
             fw_stage3: false,
             firmware_velocity: false,
@@ -536,6 +541,7 @@ impl SynthLayer {
             filter_raw3: false,
             unison_gain: 1.0,
             unison_fw_weights: false,
+            filter_type_gain: false,
             fw_env_law: false,
             fw_stage3: false,
             wave_bank: false,
