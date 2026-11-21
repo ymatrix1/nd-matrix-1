@@ -127,41 +127,45 @@ pub fn draw_editor<W: ParamWriter>(
         ctx.set_zoom_factor(1.0);
     }
 
+    // The central panel (it carries the resize corner) is drawn above the scaled panel layer, and
+    // its default frame fills the whole window with `panel_fill` (CHASSIS_RED in the app style):
+    // opaque, it hid the panel and left only red. Keep it transparent.
+    if ctx.style().visuals.panel_fill != Color32::TRANSPARENT {
+        ctx.style_mut(|s| s.visuals.panel_fill = Color32::TRANSPARENT);
+    }
+
     ResizableWindow::new("nord-stage-4-editor")
         .min_size(Vec2::splat(8.0_f32))
         .show(ctx, egui_state, |ui| {
             let avail = ui.max_rect();
-            // Layer order (all `Order::Background`, later = on top): chassis fill, the scaled
-            // panel, then this central panel carrying `ResizableWindow`'s corner handle. The
-            // panel covers the whole window, so without moving the central panel to the top the
-            // corner never got the pointer and the window could not be resized.
-            ui.ctx()
-                .layer_painter(LayerId::new(
-                    Order::Background,
-                    Id::new("nord-stage-4-chassis"),
-                ))
-                .rect_filled(avail, 0.0_f32, CHASSIS_DARK);
+            // Layers (all `Order::Background`): the scaled panel, then this central panel carrying
+            // `ResizableWindow`'s corner handle, moved to the top each frame. The panel covers the
+            // whole window, so without that the corner never got the pointer and the window could
+            // not be resized. The letterbox fill is drawn inside the panel layer, behind the
+            // panel: a separate fill layer ended up above it and hid the whole panel.
             let scale = fit_scale(avail.size());
             let panel_size = Vec2::new(PANEL_W, PANEL_H);
             let offset = ((avail.size() - panel_size * scale) * 0.5).max(Vec2::ZERO);
             // The panel is laid out in its own coordinates (origin 0,0, native size); the layer
             // transform maps that onto the window.
+            let to_window = TSTransform::new(avail.min.to_vec2() + offset, scale);
+            let window_in_panel_coords = to_window.inverse() * avail;
             let panel_rect = Rect::from_min_size(Pos2::ZERO, panel_size);
             Area::new(Id::new("nord-stage-4-panel"))
                 .order(Order::Background)
                 .fixed_pos(Pos2::ZERO)
                 .constrain(false)
                 .show(ui.ctx(), |ui| {
+                    ui.painter()
+                        .with_clip_rect(window_in_panel_coords)
+                        .rect_filled(window_in_panel_coords, 0.0_f32, CHASSIS_DARK);
                     ui.set_clip_rect(panel_rect);
                     ui.scope_builder(UiBuilder::new().max_rect(panel_rect), |ui| {
                         render_stage4_panel(ui, &mut st.panel, &st.handle);
                     });
                     st.last_overlays = draw_dim_overlay(ui, panel_rect.min, &st.coverage);
                 });
-            ui.ctx().set_transform_layer(
-                panel_layer(),
-                TSTransform::new(avail.min.to_vec2() + offset, scale),
-            );
+            ui.ctx().set_transform_layer(panel_layer(), to_window);
             ui.ctx().move_to_top(LayerId::background());
         });
 
@@ -271,9 +275,15 @@ mod tests {
             bounds.push(r);
             assert!((ctx.zoom_factor() - 1.0).abs() < 1e-6);
         }
-        for r in &bounds {
+        // Frame 0 is egui's Area sizing pass (nothing of the panel is shown); it must then settle.
+        assert!(
+            bounds[1].width() >= size.x - 1.0,
+            "panel drawn: {:?}",
+            bounds[1]
+        );
+        for r in &bounds[1..] {
             assert!(r.max.x <= size.x + 1.0 && r.max.y <= size.y + 1.0, "{r:?}");
-            assert_eq!(*r, bounds[0]);
+            assert_eq!(*r, bounds[1]);
         }
     }
 
@@ -315,6 +325,36 @@ mod tests {
             dbg.contains("requested_size: AtomicCell { value: Some("),
             "{dbg}"
         );
+    }
+
+    /// Regression: the central panel is drawn above the panel layer; an opaque `panel_fill`
+    /// (CHASSIS_RED in the app style) hid the whole panel, leaving only red.
+    #[test]
+    fn the_top_central_panel_fill_is_transparent_even_with_the_app_style() {
+        let (_params, mut st, _rx) = state();
+        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
+        let ctx = Context::default();
+        nord_gui::style::setup_nord_visuals(&ctx);
+        let size = Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
+        let input = egui::RawInput {
+            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
+            ..Default::default()
+        };
+        let mut out = None;
+        for _ in 0..3 {
+            out = Some(ctx.run(input.clone(), |ctx| {
+                draw_editor(ctx, &egui_state, &mut st, Recorder::default());
+            }));
+        }
+        assert_eq!(ctx.style().visuals.panel_fill, Color32::TRANSPARENT);
+        // Nothing opaque and window-sized may be drawn after the panel content (the last 100
+        // shapes are panel content or overlays): neither the central-panel fill nor a fill layer.
+        for s in out.unwrap().shapes.iter().rev().take(100) {
+            if let egui::Shape::Rect(r) = &s.shape {
+                let covers = r.rect.width() >= size.x - 1.0 && r.rect.height() >= size.y - 1.0;
+                assert!(!(covers && r.fill.a() > 0), "opaque cover {r:?}");
+            }
+        }
     }
 
     #[test]
