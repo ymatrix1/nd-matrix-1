@@ -14,12 +14,81 @@ use egui::{
     ViewportClass, ViewportCommand, ViewportId,
 };
 
-const ZINC_950: Color32 = Color32::from_rgba_premultiplied(10, 11, 15, 224);
-const ZINC_900: Color32 = Color32::from_rgba_premultiplied(19, 20, 25, 200);
-const ZINC_800: Color32 = Color32::from_rgba_premultiplied(34, 34, 34, 34);
+const ZINC_950_GLASS: Color32 = Color32::from_rgba_premultiplied(10, 11, 15, 210);
+const ZINC_900: Color32 = Color32::from_rgba_premultiplied(20, 21, 26, 215);
+const ZINC_800: Color32 = Color32::from_rgb(42, 42, 48);
+const ZINC_700: Color32 = Color32::from_rgb(63, 63, 70);
 const ZINC_400: Color32 = Color32::from_rgb(161, 161, 170);
+const ZINC_200: Color32 = Color32::from_rgb(228, 228, 231);
 const ZINC_50: Color32 = Color32::from_rgb(250, 250, 250);
 const ACCENT_RED: Color32 = Color32::from_rgb(184, 37, 42);
+
+/// Apply a cohesive dark-zinc shadcn/ui theme to the Studio Settings viewport so all buttons,
+/// ComboBox popups, checkboxes, inputs, and highlights are crisp, opaque, and consistent.
+fn apply_shadcn_theme(ctx: &Context) {
+    ctx.style_mut(|s| {
+        s.spacing.button_padding = egui::vec2(10.0, 4.5);
+        s.spacing.item_spacing = egui::vec2(8.0, 6.0);
+        s.spacing.combo_height = 240.0;
+        s.spacing.scroll = egui::style::ScrollStyle {
+            floating: false,
+            bar_width: 6.0,
+            handle_min_length: 24.0,
+            bar_inner_margin: 4.0,
+            bar_outer_margin: 2.0,
+            ..egui::style::ScrollStyle::solid()
+        };
+
+        let v = &mut s.visuals;
+        v.dark_mode = true;
+        v.panel_fill = Color32::TRANSPARENT;
+        // Opaque dark zinc for ComboBox dropdowns, popups, and tooltips (no text bleed-through).
+        v.window_fill = Color32::from_rgb(18, 18, 22);
+        v.window_stroke = Stroke::new(1.0, ZINC_700);
+        v.window_corner_radius = CornerRadius::same(8);
+        v.menu_corner_radius = CornerRadius::same(8);
+        v.popup_shadow = egui::epaint::Shadow {
+            offset: [0, 8],
+            blur: 20,
+            spread: 0,
+            color: Color32::from_black_alpha(180),
+        };
+        v.extreme_bg_color = Color32::from_rgb(9, 9, 11);
+        v.faint_bg_color = Color32::from_rgb(26, 26, 31);
+        v.selection.bg_fill = ACCENT_RED;
+        v.selection.stroke = Stroke::new(1.0, ZINC_50);
+
+        v.widgets.noninteractive.bg_fill = ZINC_900;
+        v.widgets.noninteractive.weak_bg_fill = ZINC_900;
+        v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, ZINC_800);
+        v.widgets.noninteractive.fg_stroke = Stroke::new(1.0, ZINC_200);
+        v.widgets.noninteractive.corner_radius = CornerRadius::same(6);
+
+        v.widgets.inactive.bg_fill = Color32::from_rgb(28, 28, 33);
+        v.widgets.inactive.weak_bg_fill = Color32::from_rgb(28, 28, 33);
+        v.widgets.inactive.bg_stroke = Stroke::new(1.0, ZINC_800);
+        v.widgets.inactive.fg_stroke = Stroke::new(1.0, ZINC_200);
+        v.widgets.inactive.corner_radius = CornerRadius::same(6);
+
+        v.widgets.hovered.bg_fill = Color32::from_rgb(39, 39, 46);
+        v.widgets.hovered.weak_bg_fill = Color32::from_rgb(39, 39, 46);
+        v.widgets.hovered.bg_stroke = Stroke::new(1.0, ZINC_700);
+        v.widgets.hovered.fg_stroke = Stroke::new(1.0, ZINC_50);
+        v.widgets.hovered.corner_radius = CornerRadius::same(6);
+
+        v.widgets.active.bg_fill = Color32::from_rgb(52, 52, 60);
+        v.widgets.active.weak_bg_fill = Color32::from_rgb(52, 52, 60);
+        v.widgets.active.bg_stroke = Stroke::new(1.0, ACCENT_RED);
+        v.widgets.active.fg_stroke = Stroke::new(1.0, ZINC_50);
+        v.widgets.active.corner_radius = CornerRadius::same(6);
+
+        v.widgets.open.bg_fill = Color32::from_rgb(39, 39, 46);
+        v.widgets.open.weak_bg_fill = Color32::from_rgb(39, 39, 46);
+        v.widgets.open.bg_stroke = Stroke::new(1.0, ZINC_700);
+        v.widgets.open.fg_stroke = Stroke::new(1.0, ZINC_50);
+        v.widgets.open.corner_radius = CornerRadius::same(6);
+    });
+}
 const FACTORY_BANK_URL: &str = "https://assets.nordkeyboards.com/media/documents/UTQHpgLs/Nord%20Stage%204%20Factory%20Restore%20RevK%20v1.66.ns4b";
 const OS_UPDATE_URL: &str =
     "https://www.nordkeyboards.com/wt/documents/1042/Update%20Nord%20Stage%204%20OS%20v1.66.zip";
@@ -222,7 +291,7 @@ fn render_dialog_contents(
 
     ui.add_space(12.0);
 
-    egui::ScrollArea::both()
+    egui::ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| match dlg.tab {
             DebugTab::Firmware => {
@@ -232,6 +301,7 @@ fn render_dialog_contents(
                     "Toggle ARM/SHARC firmware-derived synthesis, filter, and FX laws.",
                     |ui| {
                         firmware.show_bar(ui, audio_handle);
+                        ui.add_space(10.0);
                     },
                 );
             }
@@ -323,7 +393,7 @@ fn render_dialog_contents(
                                             .size(11.5)
                                             .color(ZINC_50),
                                     )
-                                    .fill(ZINC_950)
+                                    .fill(ZINC_900)
                                     .stroke(Stroke::new(1.0, ZINC_800))
                                     .corner_radius(CornerRadius::same(6)),
                                 )
@@ -372,7 +442,7 @@ fn render_dialog_contents(
                                             .size(11.5)
                                             .color(ZINC_50),
                                     )
-                                    .fill(ZINC_950)
+                                    .fill(ZINC_900)
                                     .stroke(Stroke::new(1.0, ZINC_800))
                                     .corner_radius(CornerRadius::same(6)),
                                 )
@@ -439,7 +509,7 @@ pub fn show_debug_dialog(
             return;
         }
         let rounded_frame = Frame::NONE
-            .fill(ZINC_950)
+            .fill(ZINC_950_GLASS)
             .stroke(Stroke::new(1.0, ZINC_800))
             .corner_radius(CornerRadius::same(12))
             .inner_margin(Margin::same(16));
@@ -466,15 +536,9 @@ pub fn show_debug_dialog(
                 dlg.open = false;
             }
         } else {
-            vp_ctx.style_mut(|s| {
-                s.visuals.panel_fill = Color32::TRANSPARENT;
-                s.visuals.window_fill = Color32::TRANSPARENT;
-            });
-            // On Windows, eframe secondary viewports use a rectangular swapchain, so draw the
-            // smoked-glass frame flush to the viewport edges (no exposed black corner triangles)
-            // while keeping rounded glass cards and tabs inside.
+            apply_shadcn_theme(vp_ctx);
             let flush_glass = Frame::NONE
-                .fill(ZINC_950)
+                .fill(ZINC_950_GLASS)
                 .stroke(Stroke::new(1.0, ZINC_800))
                 .corner_radius(CornerRadius::ZERO)
                 .inner_margin(Margin::same(16));
