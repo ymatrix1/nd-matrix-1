@@ -42,6 +42,7 @@ fn apply_shadcn_theme(ctx: &Context) {
 
         let v = &mut s.visuals;
         v.dark_mode = true;
+        v.interact_cursor = Some(egui::CursorIcon::PointingHand);
         v.panel_fill = Color32::TRANSPARENT;
         // Opaque dark zinc for ComboBox dropdowns, popups, and tooltips (no text bleed-through).
         v.window_fill = Color32::from_rgb(18, 18, 22);
