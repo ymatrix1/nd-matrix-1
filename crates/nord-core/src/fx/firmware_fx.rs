@@ -77,6 +77,11 @@ pub struct FirmwareFx {
     /// Firmware A-PAN (Fx1 types 0, 1) and TREM (types 2, 3) with the `kFx1Amt` /
     /// `kFx1RateClkDiv` words.
     pub mod1: bool,
+    /// Firmware PUMP (Fx1 types 10, 11, `0x122D2C`), on by default (D134): follows the Master
+    /// Clock when the program syncs to it (counter tick plus one cycle per division), free runs
+    /// otherwise. `false` (`--legacy-pump`) restores the engine pump model (`fx/mod1_dynamic.rs`).
+    /// Not in `FX_PORT_NAMES`: like `amp` it has its own opt-out. Independent of `mod1`.
+    pub pump: bool,
     /// Firmware Amp EQ (tone stack `0x1243F4` with the `kAmpTreble` / `kAmpBass` / `kAmpMid` /
     /// `kAmpMidFreq` words) in place of the engine's three biquads.
     pub eq: bool,
@@ -98,13 +103,15 @@ impl FirmwareFx {
     /// `docs/research/fx-vs-oracle.md` s3.1) with the laws VERIFIED on a dense ARM grid (D90, D100).
     pub const DEFAULT: Self = Self {
         amp: true,
+        pump: true,
         mod2: true,
         ..Self::OFF
     };
 
-    /// The default before D163 (only `amp`), what `--legacy-all` and `--legacy-mod2` restore.
+    /// The default before D163 (`amp` and `pump`), what `--legacy-all` and `--legacy-mod2` restore.
     pub const LEGACY: Self = Self {
         amp: true,
+        pump: true,
         ..Self::OFF
     };
 
@@ -117,6 +124,7 @@ impl FirmwareFx {
         reverb: false,
         amp: false,
         mod1: false,
+        pump: false,
         eq: false,
         mod2: false,
     };
@@ -143,6 +151,7 @@ impl FirmwareFx {
         reverb: true,
         amp: true,
         mod1: true,
+        pump: true,
         eq: true,
         mod2: true,
     };
@@ -152,14 +161,22 @@ impl FirmwareFx {
 mod tests {
     use super::*;
 
+    fn all_pump() -> bool {
+        std::hint::black_box(FirmwareFx::ALL).pump
+    }
+
     #[test]
     fn default_is_off_and_all_turns_every_switch_on() {
         assert_eq!(FirmwareFx::default(), FirmwareFx::DEFAULT);
         let d = std::hint::black_box(FirmwareFx::DEFAULT);
-        assert!(d.amp && !d.delay_laws && !d.compressor);
+        assert!(d.amp && d.pump && !d.delay_laws && !d.compressor);
+        assert!(
+            !FirmwareFx::OFF.pump && all_pump(),
+            "PUMP is on by default (D134)"
+        );
         assert!(d.mod2, "the firmware Mod 2 is the default since D163");
         let legacy = std::hint::black_box(FirmwareFx::LEGACY);
-        assert!(!legacy.mod2 && legacy.amp);
+        assert!(!legacy.mod2 && legacy.amp && legacy.pump);
         let all = std::hint::black_box(FirmwareFx::ALL);
         assert!(
             all.delay_laws

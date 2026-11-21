@@ -185,6 +185,32 @@ fn fx_defaults_flag_is_opt_in_and_sets_the_firmware_words() {
 }
 
 #[test]
+fn the_firmware_pump_is_the_default_and_legacy_pump_restores_the_engine_model() {
+    // D134: on by default on every chain, `--legacy-pump` turns it off (both apply paths), also
+    // together with `--firmware-fx`; it shows in the summary.
+    let mut e = Stage4Engine::new(48_000.0);
+    assert!(e.fx_chains.iter().all(|c| c.firmware_fx.pump));
+    let o = FirmwareOptions::from_args(&args(&["--legacy-pump"])).unwrap();
+    assert!(o.legacy_pump && o.summary().contains("legacy-pump"));
+    o.apply_to(&mut e);
+    assert!(e.fx_chains.iter().all(|c| !c.firmware_fx.pump));
+    let mut g = Stage4Engine::new(48_000.0);
+    o.apply_exact(&mut g);
+    assert!(g
+        .fx_chains
+        .iter()
+        .all(|c| !c.firmware_fx.pump && c.firmware_fx.amp));
+    let both = FirmwareOptions::from_args(&args(&["--firmware-fx", "--legacy-pump"])).unwrap();
+    let mut h = Stage4Engine::new(48_000.0);
+    both.apply_to(&mut h);
+    assert!(h
+        .fx_chains
+        .iter()
+        .all(|c| !c.firmware_fx.pump && c.firmware_fx.mod1));
+    assert!(!FirmwareOptions::from_args(&args(&[])).unwrap().legacy_pump);
+}
+
+#[test]
 fn mod2_is_the_default_and_legacy_mod2_turns_it_off() {
     let d = FirmwareOptions::default();
     assert!(d.fx.mod2 && d.summary() == "defaults", "{}", d.summary());
