@@ -394,8 +394,8 @@ pub struct FirmwareOptions {
     /// `--synth-filter-gain`: `SynthLayer::filter_type_gain` (oracle filter gain by type, D195);
     /// also selects `--synth-p oracle-rows` unless a later `--synth-p` says otherwise.
     pub synth_filter_gain: bool,
-    /// `--synth-fw-env-law`: `SynthLayer::fw_env_law` (filter envelope in semitones of the stage
-    /// coefficient, `127 / 12` octaves at full amount; oracle composition, D195).
+    /// `--synth-fw-env-law`: `SynthLayer::fw_env_law` (filter envelope and cutoff LFO in semitones
+    /// of the stage coefficient, `127 / 12` octaves at full amount; oracle composition, D200 / D207).
     pub synth_fw_env_law: bool,
     /// `--synth-osc-env-morph`: `Stage4Engine::synth_osc_env_morph` (the Osc Env Amount morph of
     /// the synth layers is played, firmware law, D206; needs the firmware morph, on by default).
