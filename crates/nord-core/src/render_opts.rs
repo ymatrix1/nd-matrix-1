@@ -400,6 +400,9 @@ pub struct FirmwareOptions {
     /// `--synth-fw-env-law`: `SynthLayer::fw_env_law` (filter envelope in semitones of the stage
     /// coefficient, `127 / 12` octaves at full amount; oracle composition, D195).
     pub synth_fw_env_law: bool,
+    /// `--synth-osc-env-morph`: `Stage4Engine::synth_osc_env_morph` (the Osc Env Amount morph of
+    /// the synth layers is played, firmware law, D206; needs the firmware morph, on by default).
+    pub synth_osc_env_morph: bool,
     /// `--synth-knob-laws` / `--no-synth-knob-laws`: `SynthLayer::knob_laws` (the strip chain takes
     /// the envelope rate indices straight from the stored knobs, `index = knob - 64`, VERIFIED
     /// run; on by default since D57, off in `--legacy-all`).
@@ -490,6 +493,7 @@ impl Default for FirmwareOptions {
             synth_unison_weights: false,
             synth_filter_gain: false,
             synth_fw_env_law: false,
+            synth_osc_env_morph: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
             sample_kernel_key: true,
@@ -523,6 +527,7 @@ impl FirmwareOptions {
             synth_unison_weights: false,
             synth_filter_gain: false,
             synth_fw_env_law: false,
+            synth_osc_env_morph: false,
             synth_knob_laws: false,
             synth_velocity_fw: false,
             piano_firmware_level: false,
@@ -581,6 +586,7 @@ impl FirmwareOptions {
             synth_unison_weights: false,
             synth_filter_gain: false,
             synth_fw_env_law: false,
+            synth_osc_env_morph: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
             sample_kernel_key: true,
@@ -708,6 +714,7 @@ impl FirmwareOptions {
         o.synth_stage3 |= has("--synth-stage3");
         o.synth_unison_weights |= has("--synth-unison-weights");
         o.synth_fw_env_law |= has("--synth-fw-env-law");
+        o.synth_osc_env_morph |= has("--synth-osc-env-morph");
         if let Some(v) = value("--synth-unison-gain") {
             let u: f32 = v
                 .parse()
@@ -1093,6 +1100,7 @@ impl FirmwareOptions {
         engine.synth_a.fw_env_law = self.synth_fw_env_law;
         engine.synth_b.fw_env_law = self.synth_fw_env_law;
         engine.synth_c.fw_env_law = self.synth_fw_env_law;
+        engine.synth_osc_env_morph = self.synth_osc_env_morph;
         engine.synth_b.unison_gain = uni;
         engine.synth_c.unison_gain = uni;
         engine.synth_a.fw_stage3 = self.synth_stage3;
@@ -1254,6 +1262,9 @@ impl FirmwareOptions {
         }
         if self.synth_fw_env_law {
             parts.push("fw-env-law".into());
+        }
+        if self.synth_osc_env_morph {
+            parts.push("osc-env-morph".into());
         }
         if let Some(m) = self.synth_unison_gain_milli {
             parts.push(format!("synth-unison-gain={:.3}", f32::from(m) / 1000.0));
@@ -1657,6 +1668,21 @@ mod tests {
         assert!(!e.synth_a.wave_bank);
         o.apply_to(&mut e);
         assert!(e.synth_a.wave_bank && e.synth_b.wave_bank && e.synth_c.wave_bank);
+    }
+
+    #[test]
+    fn osc_env_morph_flag_is_opt_in_and_reaches_the_engine() {
+        let d = FirmwareOptions::default();
+        assert!(!d.synth_osc_env_morph && !FirmwareOptions::firmware_all().synth_osc_env_morph);
+        assert!(!d.summary().contains("osc-env-morph"));
+        let o = FirmwareOptions::from_args(&["--synth-osc-env-morph".into()]).unwrap();
+        assert!(o.synth_osc_env_morph && o.summary().contains("osc-env-morph"));
+        let mut e = Stage4Engine::new(48_000.0);
+        o.apply_to(&mut e);
+        assert!(e.synth_osc_env_morph);
+        let mut e = Stage4Engine::new(48_000.0);
+        d.apply_to(&mut e);
+        assert!(!e.synth_osc_env_morph);
     }
 
     #[test]
