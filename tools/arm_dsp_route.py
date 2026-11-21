@@ -16,7 +16,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 CHIPS = {"FX": 0, "PNO": 1, "ORG": 2, "SY": 3, "SMP": 4}
-PRESETS = ("pno", "org", "sy")  # `sharc-live` flags (`runner/live_presets.rs`); `sy` is D153
+PRESETS = ("pno", "org", "sy", "smp")  # `sharc-live` flags (`runner/live_presets.rs`); `sy` is D153
+SAMPLE_CHIPS = {"SY": "sy", "SMP": "smp"}  # core 0, path 1, interrupt driven pass; `smp` is D185
 DM_WORDS = 0x100000  # data word space of one core window (`0x28000000 + 4 w`, w < 2^20)
 # VERIFIED (`synth-stage-models-12.md` s1): the ARM writes the wavetables of the SUPER 2..4 and
 # WAVETABLE stages to the DSP L2 byte window below the core windows; the DSP reads them as data
@@ -46,11 +47,13 @@ class ChipSpec:
 
     @property
     def path(self) -> int:
-        """ARM message path this chip receives: SY takes path 1 (DM word addresses), the rest 2."""
-        return 1 if self.preset == "sy" else 2
+        """ARM message path this chip receives: SY and SMP take path 1 (DM word addresses)."""
+        return 1 if self.preset in SAMPLE_CHIPS.values() else 2
 
     def flags(self) -> list[str]:
         """`sharc-live` flags of this chip."""
+        if self.preset == "smp":  # same pass model as SY, SMP FIFO and ring tap (D185)
+            return ["--smp"]
         if self.preset == "sy":  # interrupt driven pass, no epdma, no level window (D153)
             return ["--sy", *(["--epchain"] if self.window == "epchain" else [])]
         out = [f"--{self.preset}", "--epdma"]
@@ -71,11 +74,16 @@ def parse_chip_spec(text: str) -> ChipSpec:
     head, preset, image, *rest = parts
     chip, _, core = head.partition(":")
     if chip not in CHIPS or not core.isdigit() or int(core) not in (0, 1, 2):
-        raise ValueError(f"bad chip {head!r} (want FX|PNO|ORG:1|2 or SY:0)")
+        raise ValueError(f"bad chip {head!r} (want FX|PNO|ORG:1|2 or SY:0 / SMP:0)")
     if preset not in PRESETS:
         raise ValueError(f"bad preset {preset!r} (want one of {PRESETS})")
-    if (core == "0") != (chip == "SY") or (preset == "sy") != (chip == "SY"):
-        raise ValueError(f"bad chip {head!r} for preset {preset!r} (SY:0 takes the sy preset)")
+    sample = SAMPLE_CHIPS.get(chip)
+    if (core == "0") != (sample is not None) or (sample is not None and preset != sample):
+        raise ValueError(
+            f"bad chip {head!r} for preset {preset!r} (SY:0 takes sy, SMP:0 takes smp)"
+        )
+    if sample is None and preset in SAMPLE_CHIPS.values():
+        raise ValueError(f"bad chip {head!r} for preset {preset!r}")
     rest += [""] * (3 - len(rest))
     return ChipSpec(
         chip,

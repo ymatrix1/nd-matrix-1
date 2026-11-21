@@ -19,6 +19,8 @@ pub struct Preset {
     pub flag1: bool,
     /// The SY1SY2 sample chip: FLAG12 high and the interrupt-driven pass of `live_sy` (D153).
     pub sy: bool,
+    /// The SMP piano chip (`live_smp`, OQ41): the SY model with its own FIFO and ring tap.
+    pub smp: bool,
 }
 
 /// VERIFIED: the `--pno` preset of `sharc-sys` (`pno-full-pass.md`): entry `0x121007`, poll loop
@@ -39,6 +41,7 @@ pub fn pno_preset() -> Preset {
         ],
         flag1: true,
         sy: false,
+        smp: false,
     }
 }
 
@@ -60,6 +63,7 @@ pub fn org_preset() -> Preset {
         devs: vec![(0x282c_0380, 1), (0x3108_d008, 5)],
         flag1: false,
         sy: false,
+        smp: false,
     }
 }
 
@@ -77,6 +81,19 @@ pub fn sy_preset() -> Preset {
         devs: vec![],
         flag1: false,
         sy: true,
+        smp: false,
+    }
+}
+
+/// The SMP start-up of the `smp_voice_ref` scenarios (`warmup 0x1c11e0 100000 flag12=1`,
+/// `poke 0x5201 0x40`, `fifo 0x92196`), VERIFIED against the oracle runs of `smp-voice.md` s5.
+/// ASSUMED: the ARM-driven image needs nothing more than the scenarios gave it.
+pub fn smp_preset() -> Preset {
+    Preset {
+        entry: super::live_smp::ENTRY,
+        sy: true,
+        smp: true,
+        ..sy_preset()
     }
 }
 
@@ -86,6 +103,7 @@ pub fn preset_named(name: &str) -> Option<Preset> {
         "pno" => Some(pno_preset()),
         "org" => Some(org_preset()),
         "sy" => Some(sy_preset()),
+        "smp" => Some(smp_preset()),
         _ => None,
     }
 }
@@ -100,6 +118,10 @@ pub fn boot_core(data: &[u8], preset: &Preset, periph: &PeriphOpts) -> Result<Co
     }
     if preset.sy {
         core.set_flag_input(12, true);
+    }
+    if preset.smp {
+        // IOP register, plain memory in the model (`sharc-ref` `poke 0x5201 0x40`).
+        let _ = core.dm_write(super::live_smp::STATUS_ADDR, super::live_smp::STATUS_VALUE);
     }
     for &(a, v) in &preset.devs {
         core.preset_device(a, v);
@@ -141,6 +163,9 @@ mod tests {
         assert_eq!(preset_named("org").unwrap().entry, 0x12_5C88);
         assert_eq!(preset_named("pno").unwrap().entry, 0x12_1007);
         assert!(preset_named("sy").unwrap().sy && !preset_named("org").unwrap().sy);
-        assert!(preset_named("smp").is_none());
+        let smp = preset_named("smp").unwrap();
+        assert!(smp.sy && smp.smp && smp.entry == 0x1C_11E0);
+        assert!(!preset_named("sy").unwrap().smp);
+        assert!(preset_named("nope").is_none());
     }
 }
