@@ -1,4 +1,4 @@
-# The SY pitch entry `e`, fifth hunt: the flash bus, the ARM claimed flash service and the offset table (negative result, D171)
+# The SY pitch entry `e`, fifth hunt: the flash bus, the ARM claimed flash service and the offset table (negative result, D176)
 
 - **Checked:** 2026-11-20
 - **Sources (local, never committed):** SY1SY2 listing `target/oracle/sy2.lst` and image `target/DSP/dsp_image_3_SY1SY2.bin` (OS v1.66 `bank0_CODE@0xC044667C..`), `bank0_CODE.bin`, the boot port log `target/bulk/boot_log.jsonl` ([arm-bulk-tables](arm-bulk-tables.md), 96,111 messages), `tools/arm_sy_slot_probe.py` on Carina Accordion (key 60), `sharc-ref` scenarios of [sy-pitch-entry-writer](sy-pitch-entry-writer.md) and [dsp-flash-dma-model](dsp-flash-dma-model.md). New: `tools/sy_flash_census.py` (`tools/tests/test_sy_flash_census.py`).

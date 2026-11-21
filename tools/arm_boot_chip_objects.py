@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Report the per-chip record list counts of the OS boot function `0xC0247B64` (D171).
+"""Report the per-chip record list counts of the OS boot function `0xC0247B64` (D176).
 
 Hooks `0xC0248744` (after the 7 byte record loop) in the booted ARM harness and prints, per chip
 object, the chip id, the descriptor pointer and the counts of the 7 byte and the 9 byte lists.
