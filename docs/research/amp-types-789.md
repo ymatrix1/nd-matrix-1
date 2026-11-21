@@ -63,6 +63,26 @@ The two SIMD lanes (words `k`, `k + 1`) run the same recursion on left and right
 
 `fx/fw_lp24.rs` runs the routine on four frames per call (smoothing once per call, then the 4 frames, two channels), `fw_lp24_tables.rs` holds the captured words. `LayerFxChain::process_fw_lp24` (`fx/amp_eq.rs`) replaces the two engine biquad pairs for `AmpCabinet::LpFilter` / `HpFilter` when `FirmwareFx::lp24` is on (`--firmware-fx-ports lp24`; not in `ALL`, `PARITY` or `PORT_NAMES`). The cutoff index is the nearest `EQ_FREQ_HZ` step of the engine's Mid Freq, the Mid counts are `res / 10 * 120 - 60`. Real time: no allocation, no lock. Checks: oracle golden (both channels), shape tests (LP / HP direction, bounded states at full resonance, the glide of the smoother), chain tests (opt-in, latency, other amps untouched). No hardware clip of an LP24 / HP24 program exists yet, so the flag stays opt-in (D22 style).
 
+## 6. Type 9 words and the multi-call golden (VERIFIED)
+
+- **Type 9 words.** The ARM sweep of `kAmpMidFreq` (0..127) and `kAmpMid` (-60..60) was repeated on a type 9 (HP24) unit: all 249 indices send the same words as type 8 (`data/fx-lp24-words-type9.csv` against `data/fx-lp24-words.csv`, `tools/tests/test_fx_lp24_capture.py::test_type_9_words_equal_type_8_at_all_249_indices`). The D188 assumption "type 9 equals type 8" is now VERIFIED.
+- **Multi-call golden.** `tools/fx_lp24_capture.py golden` runs the real template (cutoff and resonance smoothers 0, pre-gain smoother 1.0, filter states 0; `template` checks the words against the FX core 1 image) with the table words through `sharc-fx` for 6 scenarios (LP at `kAmpMidFreq` 100 / 110 / 95, HP at 64 / 90 / 50; `kAmpMid` 0 / -60 / 40) of 24 calls with the state carried and seeded noise input. The stateful Python model and the Rust stage (`tests_fw_lp24_calls.rs`) agree with the oracle to better than 1e-5 on every output word (peaks 0.26 to 1.4, so not quiet). The single-call cases of D188 start from random states; this one covers the smoother glide and the state write-back (c[-31], c[-27], c[-26], six states per channel).
+
+## 7. Program ranking: what the flip would change, and what it proves
+
+`program_rank --amp-filters --flip fx_amp_lp24` renders the 26 factory programs with an enabled LP24 or HP24 amp (key 60, velocity 100, as [program-ranking](program-ranking.md)) with the engine default and with `lp24` on, and scores both against the all-firmware render (which now carries `lp24`). `tools/program_rank_amp.py` joins them ([data/program-ranking-amp-lp24.csv](data/program-ranking-amp-lp24.csv)).
+
+| | Mean score | Median | Improved by more than 0.5 | Unchanged | Worse |
+|---|---|---|---|---|---|
+| Default (engine biquads) | 5.29 | 2.46 | | | |
+| With `lp24` | 1.59 | 1.33 | 13 | 13 | 0 |
+
+Largest moves: Unclocked Pad 46.45 to 0.87, Dance Lead 27.93 to 0.87 (both HP24), Ghost Melody 8.72 to 3.44, Bell Strings 5.06 to 2.50, HP Splash Whl 3.62 to 0.00. The residual (Ghost Melody 3.44, Marimba Pad 3.46 unchanged) comes from other groups in which the reference differs from the default (reverb ports, organ tone source, synth filter engine); not analysed per group here.
+
+**What this proves and does not.** The score is the distance of one of our renders to another render of the same engine with every verified port on. It proves the wiring (LP24 / HP24 layers now carry the verified routine) and how far the engine biquads sit from it. It does **not** prove the sound matches the hardware: the oracle verifies the routine word for word (D188, s6), but no hardware clip of an LP24 / HP24 program exists, and three inputs stay ASSUMED: the Mid knob to `kAmpMid` counts mapping, the engine Mid Freq to table index, and the rate scale (the stage runs at the engine rate here, the firmware at 43,402 Hz; the rate match of D180 is applied through the same path as the drive stage).
+
+**Proposed, not made:** switch `FirmwareFx::lp24` on by default (into `PARITY`) once one hardware clip of an LP24 or HP24 program, e.g. Unclocked Pad or Dance Lead (largest before score), confirms the cutoff unit and the Mid mapping. Until then it stays opt-in (D193).
+
 ## Implications
 
 - Amp LP24 / HP24 are a state variable pair, not a biquad: the engine's biquad stand-ins differ in damping, clipping and the smoothing law. The port is available as `--firmware-fx-ports lp24`.
@@ -83,5 +103,9 @@ python tools/fx_model_lp24.py record --image C:/tmp/h/img_0_FX/core2_sram.bin --
 python tools/fx_lp24_golden.py tables > crates/nord-core/src/fx/fw_lp24_tables.rs
 python tools/fx_lp24_golden.py golden > crates/nord-core/src/fx/tests_fw_lp24_golden.rs
 cargo test -p nord-core --lib lp24
-python -m pytest tools/tests/test_fx_model_lp24.py
+python -m pytest tools/tests/test_fx_model_lp24.py tools/tests/test_fx_lp24_capture.py
+python tools/fx_lp24_capture.py template --image C:/tmp/h/img_0_FX/core1_sram.bin
+python tools/fx_lp24_capture.py golden --image C:/tmp/h/img_0_FX/core2_sram.bin
+cargo run --release -p nord-tools --bin program_rank -- <backup.ns4b> --amp-filters --flip fx_amp_lp24 > rank_amp.jsonl
+python tools/program_rank_amp.py rank_amp.jsonl --csv docs/research/data/program-ranking-amp-lp24.csv
 ```
