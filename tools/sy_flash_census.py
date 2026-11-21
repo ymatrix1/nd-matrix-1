@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Census for the SY pitch entry hunt, round 5 (docs/research/sy-flash-bus-hunt.md, D171).
+"""Census for the SY pitch entry hunt, round 5 (docs/research/sy-flash-bus-hunt.md, D176).
 
 Answers four narrow questions from local files only (no firmware word is printed):
 

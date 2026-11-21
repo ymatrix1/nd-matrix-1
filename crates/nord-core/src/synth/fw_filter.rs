@@ -23,6 +23,7 @@
 use super::fw_filter_table_d::TABLE_D_BITS;
 use super::fw_filter_tables::{TABLE_A_BITS, TABLE_B_BITS, TABLE_C_BITS};
 use super::fw_ladder::{FwLadder, LadderCoefs};
+use super::fw_stage3::{FwStage3, Stage3Coefs};
 use crate::synth_types::FilterModel;
 
 /// Which filter the synth voices run.
@@ -50,6 +51,9 @@ pub enum FwFilterType {
     /// Stage `0x12549D` (`kFltType` 2), four one-pole sections with a shaped feedback
     /// (`fw_ladder.rs`); only selected by [`FwFilterType::from_model_stages`].
     Ladder,
+    /// Stage `0x1257B2` (raw `kFltType` 3, `fw_stage3.rs`); only selected by the opt-in
+    /// `SynthLayer::fw_stage3` for layers decoded with raw type 3.
+    Stage3,
 }
 
 impl FwFilterType {
@@ -182,6 +186,8 @@ pub struct FwCoefs {
     pub h: f32,
     /// Coefficients of the `Ladder` stage (zero for the other kinds).
     pub ladder: LadderCoefs,
+    /// Coefficients of the `Stage3` stage (zero for the other kinds).
+    pub stage3: Stage3Coefs,
 }
 
 impl FwCoefs {
@@ -202,6 +208,18 @@ impl FwCoefs {
                 k: 0.0,
                 h: 1.0,
                 ladder: LadderCoefs::from_r(r, pos),
+                stage3: Stage3Coefs::default(),
+            };
+        }
+        if kind == FwFilterType::Stage3 {
+            // VERIFIED stage input: the strip cutoff coefficient `R` is the frame word `-30`.
+            return Self {
+                cin: 1.0,
+                g: 0.0,
+                k: 0.0,
+                h: 1.0,
+                ladder: LadderCoefs::default(),
+                stage3: Stage3Coefs::new(r, pos),
             };
         }
         let table = if kind == FwFilterType::Bp4 {
@@ -225,6 +243,7 @@ impl FwCoefs {
             k,
             h: 1.0 - 0.25 * g * g - 0.5 * g * k,
             ladder: LadderCoefs::default(),
+            stage3: Stage3Coefs::default(),
         }
     }
 
@@ -242,6 +261,7 @@ impl FwCoefs {
                 k: 0.0,
                 h: 1.0,
                 ladder: LadderCoefs::from_strip_r(r, pos),
+                stage3: Stage3Coefs::default(),
             };
         }
         Self::new(kind, r, pos)
@@ -280,6 +300,8 @@ pub struct FwFilter {
     s: [[f32; 3]; 2],
     /// State of the `Ladder` stage.
     ladder: FwLadder,
+    /// State of the `Stage3` stage.
+    stage3: FwStage3,
 }
 
 impl FwFilter {
@@ -318,6 +340,9 @@ impl FwFilter {
     pub fn process(&mut self, x: f32, co: &FwCoefs, kind: FwFilterType) -> f32 {
         if kind == FwFilterType::Ladder {
             return self.ladder.process(x, &co.ladder);
+        }
+        if kind == FwFilterType::Stage3 {
+            return self.stage3.process(x, &co.stage3);
         }
         let x = if x.is_finite() { x } else { 0.0 };
         let y1 = Self::section(&mut self.s[0], co.cin * x, co, kind);
