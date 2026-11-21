@@ -60,7 +60,7 @@ pub(super) const ORGAN_LEVELS: [Choice<OutputLevel>; 4] = [
     (
         OutputLevel::Chain,
         "Verified chain",
-        "word 1.6 x FX path 0.3732, VERIFIED (13 dB under the clips)",
+        "words 1.6 x 1.3 x FX path 0.3732, VERIFIED (11 dB under the clips)",
     ),
 ];
 pub(super) const CHAINS: [Choice<Option<SynthChain>>; 2] = [

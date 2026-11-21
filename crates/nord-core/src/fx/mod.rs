@@ -138,6 +138,10 @@ mod tests_fw_leslie_golden;
 #[cfg(test)]
 mod tests_fw_leslie_golden_data;
 #[cfg(test)]
+mod tests_fw_lp24_calls;
+#[cfg(test)]
+mod tests_fw_lp24_calls_data;
+#[cfg(test)]
 mod tests_fw_lp24_chain;
 #[cfg(test)]
 mod tests_fw_lp24_golden;
