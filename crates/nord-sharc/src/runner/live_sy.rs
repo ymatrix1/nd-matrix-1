@@ -64,9 +64,18 @@ pub struct SyStats {
 #[derive(Debug)]
 pub struct SyModel {
     pub isrs_per_pass: u32,
+    /// Probe pcs counted inside the audio interrupt and their hit totals (`--probe`).
+    pub probes: Vec<u32>,
+    pub probe_hits: Vec<u64>,
+    /// Register snapshots (`r0..7`, `i0..7`, `l0..1`) taken whenever the first probe pc is reached.
+    pub snaps: Vec<String>,
     /// Command FIFO base: `FIFO_BASE` (SY1SY2) or `live_smp::FIFO_BASE` (SMP, no state words,
     /// no staging refill, output read from the post stage ring).
     fifo_base: u32,
+    /// Offset the ISR adds to `DM(0x2400)` (`R3`): the index word holds `write address - bias`.
+    index_bias: u32,
+    /// Word holding the pairs-per-interrupt cap the ISR applies (`FIFO_CAP` for SY1SY2, `live_smp::FIFO_CAP` for SMP).
+    cap_addr: u32,
     smp: bool,
     /// SMP ring tap: read the half the pointer does NOT hold on entry (`H 1`, OQ41 ring half test).
     pub other_half: bool,
@@ -79,6 +88,18 @@ pub struct SyModel {
 
 /// Runs `vector` to its `RTI`; the FIFO reset vector is unmasked for the call (as `sharc-ref irq`).
 pub fn run_irq(core: &mut Core, vector: u8, max_steps: u64) -> Result<u64, String> {
+    run_irq_probed(core, vector, max_steps, &[], &mut [], &mut Vec::new())
+}
+
+/// [`run_irq`] that also counts, per probe pc, how often an instruction at that pc is executed.
+pub fn run_irq_probed(
+    core: &mut Core,
+    vector: u8,
+    max_steps: u64,
+    probes: &[u32],
+    hits: &mut [u64],
+    snaps: &mut Vec<String>,
+) -> Result<u64, String> {
     let saved = core.imask;
     if vector <= 16 {
         core.imask |= 1 << vector;
@@ -96,6 +117,15 @@ pub fn run_irq(core: &mut Core, vector: u8, max_steps: u64) -> Result<u64, Strin
                 "interrupt {vector} not finished in {max_steps} steps (pc {pc:#x})"
             ));
         }
+        if let Some(i) = probes.iter().position(|&p| p == core.pc) {
+            if let Some(h) = hits.get_mut(i) {
+                *h += 1;
+            }
+            if i == 0 && snaps.len() < 256 {
+                let f = |a: &[u32]| a.iter().map(|v| format!("{v:x}")).collect::<Vec<_>>().join(",");
+                snaps.push(format!("r={};i={};l={}", f(&core.r[..8]), f(&core.i[..8]), f(&core.l[..2])));
+            }
+        }
         core.step()
             .map_err(|f| format!("fault in interrupt {vector}: {f:?}"))?;
         taken |= core.servicing().is_some();
@@ -110,7 +140,12 @@ impl SyModel {
     pub fn new(isrs_per_pass: u32) -> Self {
         Self {
             isrs_per_pass: isrs_per_pass.max(1),
+            probes: Vec::new(),
+            probe_hits: Vec::new(),
+            snaps: Vec::new(),
             fifo_base: FIFO_BASE,
+            index_bias: 0,
+            cap_addr: FIFO_CAP,
             smp: false,
             other_half: false,
             queue: VecDeque::new(),
@@ -125,6 +160,8 @@ impl SyModel {
     pub fn smp(isrs_per_pass: u32) -> Self {
         Self {
             fifo_base: live_smp::FIFO_BASE,
+            index_bias: live_smp::INDEX_BIAS,
+            cap_addr: live_smp::FIFO_CAP,
             smp: true,
             other_half: false,
             ..Self::new(isrs_per_pass)
@@ -171,7 +208,7 @@ impl SyModel {
 
     /// FIFO reset plus up to `DM(0x92180)` queued pairs written behind it (step 1).
     fn feed_fifo(&mut self, core: &mut Core) -> Result<u64, String> {
-        let cap = core.dm_read(FIFO_CAP).unwrap_or(0) as usize;
+        let cap = core.dm_read(self.cap_addr).unwrap_or(0) as usize;
         let n = self.queue.len().min(cap);
         if n == 0 {
             return Ok(0);
@@ -185,7 +222,7 @@ impl SyModel {
             w.map_err(|a| format!("bad FIFO address {a:#x}"))?;
             at += 2;
         }
-        core.dm_write(FIFO_INDEX, at)
+        core.dm_write(FIFO_INDEX, at.wrapping_sub(self.index_bias))
             .map_err(|a| format!("bad FIFO index address {a:#x}"))?;
         self.stats.resets += 1;
         self.stats.pairs += n as u64;
@@ -218,7 +255,14 @@ impl SyModel {
         if self.smp && self.other_half {
             half = live_smp::other_half(half);
         }
-        steps += run_irq(core, AUDIO_VECTOR, ISR_MAX_STEPS)?;
+        steps += run_irq_probed(
+            core,
+            AUDIO_VECTOR,
+            ISR_MAX_STEPS,
+            &self.probes,
+            &mut self.probe_hits,
+            &mut self.snaps,
+        )?;
         self.stats.isrs += 1;
         if self.smp {
             self.frames.extend(live_smp::ring_frames(core, half));
@@ -256,7 +300,7 @@ impl SyModel {
     /// The `sy=` token of the `P` reply (no spaces).
     pub fn report(&self) -> String {
         let s = self.stats;
-        format!(
+        let mut out = format!(
             "sy=isrs:{},resets:{},pairs:{},queued:{},refills:{},staged:{}",
             s.isrs,
             s.resets,
@@ -264,7 +308,17 @@ impl SyModel {
             self.queue.len(),
             s.refills,
             self.staged_voices()
-        )
+        );
+        if !self.probes.is_empty() {
+            let list: Vec<String> = self
+                .probes
+                .iter()
+                .zip(&self.probe_hits)
+                .map(|(p, h)| format!("{p:x}:{h}"))
+                .collect();
+            out.push_str(&format!(" ihits={}", list.join(",")));
+        }
+        out
     }
 }
 
@@ -412,7 +466,7 @@ mod tests {
     #[test]
     fn the_smp_model_uses_its_own_fifo_never_stages_and_taps_the_ring() {
         let mut c = core_with_rti_vectors();
-        c.dm_write(FIFO_CAP, 4).unwrap();
+        c.dm_write(live_smp::FIFO_CAP, 4).unwrap();
         c.dm_write(live_smp::RING_POINTER, live_smp::RING_HALVES[1])
             .unwrap();
         c.dm_write(live_smp::RING_HALVES[1], 0.5f32.to_bits())
@@ -427,9 +481,55 @@ mod tests {
         assert!(ok && steps > 0, "{:?}", m.take_error());
         assert_eq!(c.dm_read(live_smp::FIFO_BASE + 2), Ok(0x9_3936));
         assert_eq!(c.dm_read(FIFO_BASE), Ok(0), "the SY FIFO is untouched");
+        // the ISR adds R3 = 0x80000 to the index word: it holds `write address - bias` (OQ41)
+        assert_eq!(
+            c.dm_read(FIFO_INDEX),
+            Ok(live_smp::FIFO_BASE + 4 - live_smp::INDEX_BIAS)
+        );
         let w = m.level_words();
         assert_eq!(w.len(), 4, "two stereo frames per interrupt");
         assert_eq!(f32::from_bits(w[0]), 0.5);
         assert_eq!(f32::from_bits(w[3]), -1.0);
+    }
+
+    #[test]
+    fn the_smp_batch_is_capped_by_its_own_word_not_the_sy_one() {
+        let mut c = core_with_rti_vectors();
+        c.dm_write(FIFO_CAP, 1).unwrap(); // the SY1SY2 cap word must not limit the SMP
+        c.dm_write(live_smp::FIFO_CAP, 3).unwrap();
+        let mut m = SyModel::smp(1);
+        for k in 0..5 {
+            m.send(0x9_5000 + k, k);
+        }
+        let (_, ok) = m.pass(&mut c);
+        assert!(ok);
+        assert_eq!(m.stats.pairs, 3);
+        assert_eq!(m.queued(), 2);
+    }
+
+    #[test]
+    fn probes_count_executions_and_snapshots_record_registers() {
+        // vector 17 = NOP (3 parcels), RTI: the RTI is the probe
+        let mut image = vec![0u8; 0x24_0000 + 2 * 12 * 20];
+        for v in 0..20usize {
+            let at = 0x24_0000 + 2 * 12 * v;
+            let parcels: &[u16] = if v == 17 { &[0, 0, 0, 0x0bbe, 1, 1] } else { &[0x0bbe, 1, 1] };
+            for (k, p) in parcels.iter().enumerate() {
+                image[at + 2 * k..at + 2 * k + 2].copy_from_slice(&p.to_le_bytes());
+            }
+        }
+        let mut c = Core::new(&image);
+        c.pc = 0x12_0000 + 3 * 100;
+        c.mode1 |= 1 << 12;
+        c.write_ureg(0x7D, 1 << 10);
+        let mut m = SyModel::new(2);
+        m.probes = vec![0x12_0000 + 12 * 17 + 3, 0x12_0000]; // the RTI of vector 17, a pc never run
+        m.probe_hits = vec![0, 0];
+        let (_, ok) = m.pass(&mut c);
+        assert!(ok, "{:?}", m.take_error());
+        assert_eq!(m.probe_hits, vec![2, 0], "two audio interrupts per pass");
+        assert_eq!(m.snaps.len(), 2, "one snapshot per hit of the first probe");
+        assert!(m.report().ends_with("ihits=1200cf:2,120000:0"), "{}", m.report());
+
     }
 }

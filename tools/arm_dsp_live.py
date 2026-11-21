@@ -222,17 +222,21 @@ def attach_smp_flash(chips, backup: Path, bound: dict, log: Path | None):  # noq
     npno = pl.read_npno(backup, bound["member"], 1 << 30)
     path = (log or Path(".")) / "smp_flash.npno"  # a local scratch copy, never committed
     path.parent.mkdir(parents=True, exist_ok=True)
-    feed = sf.attach(link, npno, path, path.with_name("smp_tap.f32") if log else None)
-    return feed, link, npno
+    tap = path.with_name("smp_tap.f32") if log else None
+    feed = sf.attach(link, npno, path, tap)
+    return feed, link, npno, tap
 
 
 def smp_flash_report(flash) -> dict:  # noqa: ANN001  # pragma: no cover
     """Descriptors seen, the chip's flash counters and the ring check."""
     import arm_smp_flash as sf
 
-    feed, link, npno = flash
+    feed, link, npno, tap = flash
     rings = sf.check_rings(link, npno, feed.strokes)
-    return {**feed.summary(), "chip": link.command("E"), "rings": rings}
+    out = {**feed.summary(), "chip": link.command("E"), "rings": rings}
+    if tap is not None and tap.exists():  # the tap file is flushed per pass (D196)
+        out["tap"] = sf.tap_stats(tap.read_bytes())
+    return out
 
 
 def replay_cmd(spec: rt.ChipSpec, exe: Path, log: Path, passes: int, tap: Path) -> list[str]:
