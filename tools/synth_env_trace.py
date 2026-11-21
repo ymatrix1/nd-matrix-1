@@ -310,9 +310,7 @@ def report(ns: argparse.Namespace) -> int:  # pragma: no cover - needs local fir
     passes = off + int(TAIL_S / PASS_S)
     key_text = o.key_script(rows, on, off)
     offset = key_note_offset(key_text)
-    nat = run_native(
-        ns.native, ns.program, on, off, passes, offset, tuple(ns.native_args.split())
-    )
+    nat = run_native(ns.native, ns.program, on, off, passes, offset, tuple(ns.native_args.split()))
     words = program_words(nat["knobs"], nat["cutoff_knob"], int(nat["filter_env_amount_knob"]))
     (work / "load.script").write_text(o.core2_load_script(rows))
     (work / "adr.script").write_text(inject_script(words))
