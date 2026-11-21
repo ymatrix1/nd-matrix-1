@@ -74,6 +74,25 @@ Emulator against hardware, transcribed velocities and pedal (`python tools/emu_v
 
 Reading: `pedal-voices` alone raises the level by +0.8 to +2.1 dB (Velvet -2.6 to -0.8, Felt -4.2 to -3.4, Grand Pad -1.0 to +1.1; all inside the D22 3 dB RMS target before and after). The score worsens on Velvet (1.37 to 2.74: presence +1.9 to +4.1 dB, brilliance +3.9 to +7.7 dB, centroid +3 to +42 Hz), is neutral on Felt (1.37 to 1.33) and slightly worse on Grand Pad (1.43 to 1.51). On the opt-in `chain + slew` paths it improves the score on Velvet (3.74 to 1.53) and Grand Pad (2.61 to 1.73) and worsens it on Felt (1.31 to 2.49), with the level 5 to 13 dB low in every case. No default flips; the slew paths stay opt-in.
 
+## 6. Engine census on all 38 sounds (D202)
+
+`cargo run --release -p nord-tools --bin piano_voice_census -- "<Factory Restore RevK v1.66.ns4b>"` (data: [piano-voice-census.csv](data/piano-voice-census.csv)). Per `.npno`: 30 notes (21 to 108 step 3) x 6 velocities (1, 32, 64, 90, 110, 127) = 6,834 points with a firmware list. The firmware list is `NpnoLevel::voices` (VERIFIED against the ARM level calls, D23 and s2); the engine side is the stroke index and amplitude of the voices `PianoLayer::note_on` starts (tolerance 1e-6).
+
+| Class | Sounds | Points | Two-voice | Damper-down extra | Pedal up = fw | Pedal down default = fw | Pedal down opt-in = fw |
+|---|---|---|---|---|---|---|---|
+| 1 | 1 | 180 | 180 | 0 | 180 | 0 | 180 |
+| 2 | 9 | 1620 | 1620 | 0 | 1620 | 0 | 1620 |
+| 3 | 2 | 360 | 360 | 0 | 360 | 0 | 360 |
+| 5 | 7 | 1260 | 1260 | 858 | 1260 | 0 | 1260 |
+| 6 | 7 | 1260 | 1260 | 954 | 1260 | 0 | 1260 |
+| 4 | 1 | 180 | 0 | 0 | 180 | 142 | 180 |
+| 7 | 3 | 540 | 0 | 0 | 540 | 540 | 540 |
+| 14 | 4 | 714 | 0 | 0 | 714 | 326 | 714 |
+| 15 | 2 | 360 | 0 | 0 | 360 | 231 | 360 |
+| 16 | 2 | 360 | 0 | 0 | 360 | 156 | 360 |
+
+Reading: tag VERIFIED (deterministic census, tests in `piano_voice_census.rs` and `piano/pedal_voices.rs`; the firmware side rests on s2). Pedal up and the opt-in pedal-down path reproduce the firmware list at 6,834 of 6,834 points. The default pedal-down path plays one legacy voice: it equals the firmware list on 0 of 4,680 two-voice points and on 1,395 of 2,154 single-voice points (it picks a damper-down stroke where the firmware plays the normal one). The extra voice is the damper-down stroke at 1,812 of 2,520 grand and upright points. No mismatch remains outside the default pedal-down path, which the opt-in flag already replaces; no engine change.
+
 ## Implications
 
 - Item 21 closes without an engine change: the extra voice is already played. The remaining piano voice-list difference was the pedal-down bypass, which the firmware does not have; the opt-in flag removes it. Defaults stay (D22) until the clips below justify a flip.
