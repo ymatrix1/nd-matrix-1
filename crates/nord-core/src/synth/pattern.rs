@@ -43,15 +43,20 @@ impl PatternPan {
     }
 }
 
-/// Constant-power left/right gains for a pan position `-1..=1`; `0` gives `(1, 1)` (unity per
-/// channel, as an unpanned voice) and a hard side puts `sqrt(2)` on that channel only.
-/// ASSUMED: constant-power law; the hardware pan law is unmeasured.
+/// Left/right lane gains for a pan position `-1..=1`: the lane the pan points away from fades
+/// linearly to zero, the other lane stays at unity, so centre is `(1, 1)` and a hard side is
+/// `(1, 0)` or `(0, 1)`.
+///
+/// VERIFIED (centre and hard sides): the firmware pattern pan reaches the DSP as the two bank bits
+/// of the synth key word (right `0x01`, left `0x02`, centre `0x03`); the PNO core 2 voice record
+/// `DM(0xC1F89 ..)` holds the left samples in the even words and the right samples in the odd
+/// words. Replaying the Synth Engine stream with key word flags 1, 2, 3 gives lane peak 0.1947 on
+/// the selected lane(s) and 0.0 on the other: a lane switch at unity, no `sqrt(2)` boost
+/// (`docs/research/arp-pan-lanes.md`, D175). ASSUMED: the linear fade between the three
+/// hardware positions (patterns only use `-1`, `0`, `1`).
 pub fn pan_gains(pan: f32) -> (f32, f32) {
-    let a = (pan.clamp(-1.0, 1.0) + 1.0) * std::f32::consts::FRAC_PI_4;
-    (
-        a.cos() * std::f32::consts::SQRT_2,
-        a.sin() * std::f32::consts::SQRT_2,
-    )
+    let p = pan.clamp(-1.0, 1.0);
+    ((1.0 - p).min(1.0), (1.0 + p).min(1.0))
 }
 
 /// User-editable pattern: per step gate length (eighths of a step, `0` = rest, `8` = full), tie
@@ -200,15 +205,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pan_gains_are_constant_power_and_centre_is_unity() {
-        let (l, r) = pan_gains(0.0);
-        assert!((l - 1.0).abs() < 1e-6 && (r - 1.0).abs() < 1e-6);
-        let (l, r) = pan_gains(-1.0);
-        assert!((l - std::f32::consts::SQRT_2).abs() < 1e-6 && r.abs() < 1e-6);
-        for p in [-0.7f32, 0.3, 1.0] {
-            let (l, r) = pan_gains(p);
-            assert!((l * l + r * r - 2.0).abs() < 1e-5);
-        }
+    fn pan_gains_switch_lanes_at_unity_like_the_voice_record() {
+        assert_eq!(pan_gains(0.0), (1.0, 1.0));
+        assert_eq!(
+            pan_gains(-1.0),
+            (1.0, 0.0),
+            "left: right lane off, left at unity"
+        );
+        assert_eq!(pan_gains(1.0), (0.0, 1.0));
+        let (l, r) = pan_gains(0.5);
+        assert!((l - 0.5).abs() < 1e-6 && (r - 1.0).abs() < 1e-6);
+        assert_eq!(pan_gains(9.0), (0.0, 1.0), "clamped");
     }
 
     #[test]
