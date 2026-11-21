@@ -102,3 +102,7 @@ Addresses and routines to locate (all in `bank0_CODE` unless stated), with the r
 1. Model the flash behind the ARM device object: answer the SPI reads that the service loop would produce (`0xB6000` address, `0xB6001` count into `0x93FF7 ..`) in `tools/arm_dsp_return.py`, then re-run the sample load and watch the two windows.
 2. (Done in section 1, row 'Can that service write': the DMA reaches the window when `DM(0xB650F)` points there.) Next: find the ARM code that would set `DM(0xB650F)` (computed address, `0xC03B9238` descriptor users, the flash file system) and drive it with a flash image.
 3. `ns` not a multiple of 32 and the loop-end call stay open (section 1); neither depends on this hunt.
+
+## Update 2026-11-21 (D196)
+
+The candidate in section 1 (row 'Can that service write') is closed by [sy-flash-service-hunt](sy-flash-service-hunt.md): the image seeds `DM(0xB650F) = 0x93FF7`, so the service writes the staging buffer, not the window; the `0x9354A` poke of this note's run is not firmware behaviour.
