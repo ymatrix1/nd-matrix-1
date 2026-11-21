@@ -6,7 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
-| [D206](#d206-unrolling-skipping-unheld-voices-and-simd-do-not-pay-on-the-firmware-organ-stages-nothing-changes-but-a-test-only-probe) | 2026-11-21 | Unrolling, skipping unheld voices and SIMD do not pay on the firmware organ stages; nothing changes but a test only probe | accepted |
+| [D208](#d208-unrolling-skipping-unheld-voices-and-simd-do-not-pay-on-the-firmware-organ-stages-nothing-changes-but-a-test-only-probe) | 2026-11-21 | Unrolling, skipping unheld voices and SIMD do not pay on the firmware organ stages; nothing changes but a test only probe | accepted |
 | [D199](#d199-smp-voice-freeze-oq41-was-a-harness-bug-fifo-index-bias-and-cap-word-the-piano-chain-tap-now-carries-audio) | 2026-11-21 | SMP voice freeze (OQ41) was a harness bug: FIFO index bias and cap word; the piano chain tap now carries audio | accepted |
 | [D203](#d203---fx-defaults-firmware-flip-proposal-seven-of-the-eight-words-may-flip-alone-reverb_mix-stays-the-boot-log-confirms-the-start-state) | 2026-11-21 | `--fx-defaults firmware` flip proposal: seven of the eight words may flip alone, `reverb_mix` stays; the boot log confirms the start state | proposed |
 | [D202](#d202-piano-voice-census-the-opt-in-pedal-voice-list-equals-the-firmware-list-on-38-of-38-factory-sounds-the-default-pedal-down-path-equals-it-on-none-of-the-two-voice-classes) | 2026-11-21 | Rust census `piano_voice_census`: opt-in pedal-down voice list equals the firmware list at 6,834 of 6,834 points (38 sounds); default legacy path equals it on 0 of 4,680 two-voice points; no engine change | proposed |
@@ -2068,7 +2068,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Open:** Bass stage alone is about 1.0 to 1.4 ms per block against the 0.8 ms budget of the whole engine (1.3 to 1.7x over); Farfisa with its ring is at the budget. Next: unroll the generator loops, SIMD over the two PEs, exact skipping of unheld voices, a second core (TD-15, s19).
 - **Impact:** `crates/nord-core/src/organ/b3_bass_fw/` (`plan.rs`, `compile.rs`, `fastexec.rs`, `native_gen.rs`, `tables.rs`, `mod.rs`, generated `native_*.rs`), `b3_bass_stage.rs`, `farfisa_fw/mod.rs` (test); TD-15, ROADMAP 7b.3, [organ-engine](specs/organ-engine.md), [organ-farfisa-bass](research/organ-farfisa-bass.md) s19.
 
-### D206. Unrolling, skipping unheld voices and SIMD do not pay on the firmware organ stages; nothing changes but a test only probe
+### D208. Unrolling, skipping unheld voices and SIMD do not pay on the firmware organ stages; nothing changes but a test only probe
 
 - **Status:** accepted 2026-11-21 (number chosen above D205 and every open PR title on that date; renumber if another branch takes it)
 - **Decided by:** the task of the coordinating session (TD-15, bean `ns4-4wzo`; evidence [organ-farfisa-bass](research/organ-farfisa-bass.md) s20); the coordinating session reviews.

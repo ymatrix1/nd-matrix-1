@@ -43,4 +43,4 @@ s15: `tools/sharc_listing_rust.py` decodes the listings into rows, `organ/b3_bas
 
 Farfisa processor on the firmware machine (jumps and AZ / AN flags, `organ/farfisa_fw/`, `farfisa_keys.rs`, `tools/organ_farfisa_fw.py`), 64 bit float fast path, CPU benchmark example (s16, s17, D74).
 
-s20 (D206): unrolling the generator loops is 2x slower (index registers come from DM pointers), no pass of the 22 and 10 pass loops is a state identity (`b3_bass_fw/probe.rs`), SIMD over the PEs is bounded at about 6 percent; hashes unchanged, 0.8 ms budget still missed for Bass (0.96 to 1.1 ms per block alone). Next: registers in locals, second core, Farfisa closed form.
+s20 (D208): unrolling the generator loops is 2x slower (index registers come from DM pointers), no pass of the 22 and 10 pass loops is a state identity (`b3_bass_fw/probe.rs`), SIMD over the PEs is bounded at about 6 percent; hashes unchanged, 0.8 ms budget still missed for Bass (0.96 to 1.1 ms per block alone). Next: registers in locals, second core, Farfisa closed form.
