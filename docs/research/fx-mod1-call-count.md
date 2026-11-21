@@ -64,6 +64,8 @@ Exact measurement that settles it (any one of):
 1. Run the FX chip (`sharc-fxlive`, FX core 1 and the PNO core) with the ARM's chain-install records for one program (the 35 records the firmware writes when a program is recalled), and count the calls of each Mod 1 pc (`0x122D93`, `0x122C39`, `0x1239D0`, `0x123E9B`, `0x123DD2`, `0x122D2C`) per output block, per unit instance (`I1` of the unit rows in s3). Needed: calls per block and the block size of the PNO lane and of the FX lane.
 2. Or a hardware clip of RM / WAH on a synth layer next to the same on a piano layer, to read the latency and smoothing time constant (2.2 ms against 4.5 ms per call, s1).
 
+**Update 2026-11-21 (D194, [fx-mod1-pass-calls](fx-mod1-pass-calls.md)):** the dispatcher gives 1 call per stage per pass (VERIFIED), but the ARM never writes the stage records in the boot or program-load message streams, so option 1 could not be run; the count per unit stays open.
+
 Until then the opt-in `--mod1-unit-calls` stays (default off); the 384-program ranking cannot judge it (mean 2.12 to 2.12, 1 program worse by more than 0.5, Time Warp Saw 5.87 to 6.83).
 
 ## Implications
