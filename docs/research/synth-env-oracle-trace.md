@@ -1,7 +1,7 @@
 # Synth envelope and cutoff trace: oracle vs native (audio-remaining row 3)
 
-**Checked:** 2026-11-21 (D200); extended 2026-11-21 (D204: LFO, input terms, 80s Sci-Fi).
-**Sources:** `tools/synth_cutoff_terms.py`, `tools/synth_lfo_words.py` (D204, section 7), `data/synth-cutoff-terms-oracle.csv`, `data/synth-lfo-arm-words.csv`, `data/synth-env-trace-index.csv`, `tools/synth_env_trace.py` (ARM-word injection, `sharc-sys` taps of the ORG core 2 strip chains `F-20` amp, `F-8` filter, `F+6` osc and of `R = DM(0xC2925)`), `crates/nord-tools/src/bin/synth_env_native.rs` (native chains and `R`), `data/synth-env-trace.csv` (4 programs), `data/synth-cutoff-env-oracle.csv` (34 cutoff / amount / level points), `data/synth-env-velocity-sweep.csv` (90 amp / filter attack points over key velocity), [synth-e2e-oracle-vs-native](synth-e2e-oracle-vs-native.md), [synth-knob-laws](synth-knob-laws.md), [synth-velocity](synth-velocity.md), [arm-tick-timers](arm-tick-timers.md), D130, D132, D140, D194.
+**Checked:** 2026-11-21 (D200); extended 2026-11-21 (D207: LFO, input terms, 80s Sci-Fi).
+**Sources:** `tools/synth_cutoff_terms.py`, `tools/synth_lfo_words.py` (D207, section 7), `data/synth-cutoff-terms-oracle.csv`, `data/synth-lfo-arm-words.csv`, `data/synth-env-trace-index.csv`, `tools/synth_env_trace.py` (ARM-word injection, `sharc-sys` taps of the ORG core 2 strip chains `F-20` amp, `F-8` filter, `F+6` osc and of `R = DM(0xC2925)`), `crates/nord-tools/src/bin/synth_env_native.rs` (native chains and `R`), `data/synth-env-trace.csv` (4 programs), `data/synth-cutoff-env-oracle.csv` (34 cutoff / amount / level points), `data/synth-env-velocity-sweep.csv` (90 amp / filter attack points over key velocity), [synth-e2e-oracle-vs-native](synth-e2e-oracle-vs-native.md), [synth-knob-laws](synth-knob-laws.md), [synth-velocity](synth-velocity.md), [arm-tick-timers](arm-tick-timers.md), D130, D132, D140, D194.
 **Question:** how do the envelope, LFO and input gain add into the synth cutoff, and which tick (ARM 1 kHz or 24 kHz, or the DSP pass) drives them? Does the native chain (envelope chains plus `2^(amount * 8 * level)`) reproduce the oracle?
 
 ## 1. Method
@@ -49,21 +49,21 @@ Findings:
 - **Amp attack** reads `word * g / 127` (EMPIRICAL, plateau accuracy, velocity sweep CSV): oracle -48 for word -64 and -32 for -42 at the default key velocity (`g` about 96). The release and the filter chains are unscaled. Native uses the raw word.
 - **Sustain**: the oracle decay stops at level 0.5 (the image default of the decay record) for the filter chain and the amp chain; native uses sustain 0 (filter) and 1.0 (amp Hold). Hold droops 4.6 % over 0.5 s.
 - **Cutoff sweep**: the native law sweeps fewer semitones at full level (amount knob x 1 against knob x 0.756 in the default 96-semitone law). Crunch Synth reaches 13.3 kHz in the oracle, 6.3 kHz native; Smooth Lead 2.2 kHz against 1.4 kHz. Both cap: oracle at R 1.99, native at 0.48 fs.
-- **80s Sci-Fi** is not an outlier (D204, section 7): its stage is the Ladder24 `0x12549D`, which reads the linear ramp table `R = 0.36083 + 0.0079301 (knob - 52)` as its cutoff position, so the tap `DM(0xC2925)` reads 0.5908 (14.7 kHz by the exponential reading) for knob 81 where the exponential law gives 0.054. Same index sum, other map to `R`; no offset.
-- LFO and input terms: measured in section 7 (D204).
+- **80s Sci-Fi** is not an outlier (D207, section 7): its stage is the Ladder24 `0x12549D`, which reads the linear ramp table `R = 0.36083 + 0.0079301 (knob - 52)` as its cutoff position, so the tap `DM(0xC2925)` reads 0.5908 (14.7 kHz by the exponential reading) for knob 81 where the exponential law gives 0.054. Same index sum, other map to `R`; no offset.
+- LFO and input terms: measured in section 7 (D207).
 
 ## 5. Implications
 
-- Opt-in `--synth-fw-env-law` (`synth/fw_cutoff_env.rs`, `SynthLayer::fw_env_law`) applies the VERIFIED semitone composition to the layer cutoff, since D204 also the LFO term for a cutoff destination. Default unchanged (D200, D204).
+- Opt-in `--synth-fw-env-law` (`synth/fw_cutoff_env.rs`, `SynthLayer::fw_env_law`) applies the VERIFIED semitone composition to the layer cutoff, since D207 also the LFO term for a cutoff destination. Default unchanged (D200, D207).
 - The amp attack velocity scaling and the 0.5 decay sustain are recorded but not implemented: only plateau accuracy, no note dependence check.
 
 ## 6. Follow-ups
 
 - Key-note dependence of the amp attack scaling (k36 / k84).
-- Done in D204: LFO term, input terms, 80s Sci-Fi base offset (section 7). Open: LFO stage output scale with a running LFO (rate words of PNO core 1), injection into the strip of layers B / C (Phat 3 Osc MiniM), key tracking word `w38` (the oracle runs at unity).
+- Done in D207: LFO term, input terms, 80s Sci-Fi base offset (section 7). Open: LFO stage output scale with a running LFO (rate words of PNO core 1), injection into the strip of layers B / C (Phat 3 Osc MiniM), key tracking word `w38` (the oracle runs at unity).
 - Score `--synth-fw-env-law` on the hardware clips before any default flip (owner's call).
 
-## 7. Cutoff index sum (D204)
+## 7. Cutoff index sum (D207)
 
 The pass control block of channel 0 (`sharc-disasm IMAGE 0x24C508 0x24C5DC`, pc `0x126284`) adds, per lane, in index units (`2^24` of a Q31 word = one semitone):
 

@@ -395,7 +395,7 @@ pub struct FirmwareOptions {
     /// also selects `--synth-p oracle-rows` unless a later `--synth-p` says otherwise.
     pub synth_filter_gain: bool,
     /// `--synth-fw-env-law`: `SynthLayer::fw_env_law` (filter envelope and cutoff LFO in semitones
-    /// of the stage coefficient, `127 / 12` octaves at full amount; oracle composition, D200 / D204).
+    /// of the stage coefficient, `127 / 12` octaves at full amount; oracle composition, D200 / D207).
     pub synth_fw_env_law: bool,
     /// `--synth-knob-laws` / `--no-synth-knob-laws`: `SynthLayer::knob_laws` (the strip chain takes
     /// the envelope rate indices straight from the stored knobs, `index = knob - 64`, VERIFIED

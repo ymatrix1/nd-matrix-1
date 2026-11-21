@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""Terms of the ORG core 2 cutoff index sum: oracle measurement and models (D204).
+r"""Terms of the ORG core 2 cutoff index sum: oracle measurement and models (D207).
 
 The pass control block of channel 0 (pc `0x126284..0x126328` of the ORG image, listing
 `sharc-disasm IMAGE 0x24C508 0x24C5DC`) builds the y-lane cutoff index sum

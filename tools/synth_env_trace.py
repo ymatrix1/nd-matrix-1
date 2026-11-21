@@ -178,7 +178,7 @@ def knob_of_hz(hz: float) -> float:
 def knob_of_r(r: float, ladder: bool) -> float:
     """Cutoff index of an oracle tap `R`: exponential law, or the linear ramp for the ladder stage.
 
-    VERIFIED (`synth-cutoff-terms-oracle.csv`, D204): every stage but the ladder maps the index
+    VERIFIED (`synth-cutoff-terms-oracle.csv`, D207): every stage but the ladder maps the index
     sum with `fc = 2F atan(R) / pi`; the ladder reads the ramp `0.36083 + 0.0079301 (knob - 52)`.
     """
     if ladder:
@@ -515,7 +515,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - CLI wiring
     sw.add_argument("--words", default="-60,-40,-20,0,20,40")
     q = sub.add_parser("csv")
     q.add_argument("reports", nargs="+", help="report JSON files")
-    q.add_argument("--index", action="store_true", help="cutoff index rows (D204) instead")
+    q.add_argument("--index", action="store_true", help="cutoff index rows (D207) instead")
     ns = ap.parse_args(argv)
     if ns.cmd == "csv":
         return summarise(ns)

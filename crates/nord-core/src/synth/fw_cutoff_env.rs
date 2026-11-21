@@ -21,7 +21,7 @@
 //! `level` is the oracle chain level times the velocity peak, and that key tracking multiplies
 //! the Hz cutoff before this law, are ASSUMED. Spec: `docs/specs/synth-engine.md` s4.3.
 //!
-//! D204 adds the other terms of the same index sum (`tools/synth_cutoff_terms.py`,
+//! D207 adds the other terms of the same index sum (`tools/synth_cutoff_terms.py`,
 //! `docs/research/data/synth-cutoff-terms-oracle.csv`): the LFO term `512 * depth * lfo`
 //! semitones (`fw_lfo_semitones`), the stage dependent map from the sum to `R`
 //! (`fw_stage_r_of_knob`: exponential for every stage but the ladder, which reads the linear ramp),

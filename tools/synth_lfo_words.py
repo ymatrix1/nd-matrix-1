@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ARM words of the synth LFO destination and depth (`kLFODst`, `kLFOAmt`) (D204).
+"""ARM words of the synth LFO destination and depth (`kLFODst`, `kLFOAmt`) (D207).
 
 `arm_edit_knobs.py` applies every edit id from the settled state, so `kLFOAmt` never saw the
 destination on (`synth-super-lp24-clips.md` s8: common words 2, 3, 8 stay 0). This tool applies

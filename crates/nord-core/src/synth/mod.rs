@@ -337,7 +337,7 @@ pub struct SynthLayer {
     /// of its type ([`filter_gain::filter_gain`], D195).
     pub filter_type_gain: bool,
     /// Opt-in (default off, `--synth-fw-env-law`): the filter envelope and the LFO reach the cutoff
-    /// in the semitone domain (`fw_cutoff_env.rs`, oracle composition, D200 / D204): `2^(amount *
+    /// in the semitone domain (`fw_cutoff_env.rs`, oracle composition, D200 / D207): `2^(amount *
     /// 127 / 12 * level)` instead of `2^(amount * 8 * level)`, and `2^(128 lfo_amount lfo / 12)`
     /// instead of `1 + 0.8 lfo_amount lfo` on the Hz cutoff. Strip chain only.
     pub fw_env_law: bool,
