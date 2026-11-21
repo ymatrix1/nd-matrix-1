@@ -12,9 +12,10 @@
 //! | Output | frame buffer behind `DM(0x93590)` | post stage ring `0xB2000` / `0xB2014`, 2 stereo frames per interrupt | EMPIRICAL (listing + `smp_post_stage.scn`, `piano-bus-convention.md` s2b) |
 //!
 //! The ring holds float words (`bus * 2^-29`) in a 10 word TDM frame: left at `+0`, right at `+1`
-//! of each frame, second frame at `+10`. The page ring refill (external port DMA) is not modelled
-//! here: a voice whose source ring is empty decodes zeros, so the tap stays silent until the ring
-//! is fed (OQ41 blocker 3).
+//! of each frame, second frame at `+10`. The page ring refill runs through the external port DMA
+//! chains of `epchain.rs` against the flash image of `smpflash.rs` (`L`, `F` commands, D191); the
+//! voice phase does not advance after the first refill, so the tap still carries no audio
+//! (`docs/research/smp-page-refill.md`, OQ41).
 use crate::core::Core;
 
 /// SMP command FIFO base (`I0` after the FIFO reset interrupt).
@@ -38,6 +39,15 @@ pub fn ring_half(core: &mut Core) -> u32 {
     let p = core.dm_read(RING_POINTER).unwrap_or(0);
     if RING_HALVES.contains(&p) {
         p
+    } else {
+        RING_HALVES[0]
+    }
+}
+
+/// The other ring half than `half`.
+pub fn other_half(half: u32) -> u32 {
+    if half == RING_HALVES[0] {
+        RING_HALVES[1]
     } else {
         RING_HALVES[0]
     }
@@ -87,6 +97,12 @@ mod tests {
             RING_HALVES[0],
             "garbage pointer is ignored"
         );
+    }
+
+    #[test]
+    fn other_half_swaps_the_two_halves() {
+        assert_eq!(other_half(RING_HALVES[0]), RING_HALVES[1]);
+        assert_eq!(other_half(RING_HALVES[1]), RING_HALVES[0]);
     }
 
     #[test]

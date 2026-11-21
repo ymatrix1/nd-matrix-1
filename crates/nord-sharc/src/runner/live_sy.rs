@@ -68,6 +68,8 @@ pub struct SyModel {
     /// no staging refill, output read from the post stage ring).
     fifo_base: u32,
     smp: bool,
+    /// SMP ring tap: read the half the pointer does NOT hold on entry (`H 1`, OQ41 ring half test).
+    pub other_half: bool,
     queue: VecDeque<(u32, u32)>,
     staged: [bool; VOICES as usize],
     pub stats: SyStats,
@@ -110,6 +112,7 @@ impl SyModel {
             isrs_per_pass: isrs_per_pass.max(1),
             fifo_base: FIFO_BASE,
             smp: false,
+            other_half: false,
             queue: VecDeque::new(),
             staged: [false; VOICES as usize],
             stats: SyStats::default(),
@@ -123,6 +126,7 @@ impl SyModel {
         Self {
             fifo_base: live_smp::FIFO_BASE,
             smp: true,
+            other_half: false,
             ..Self::new(isrs_per_pass)
         }
     }
@@ -210,7 +214,10 @@ impl SyModel {
     fn frame(&mut self, core: &mut Core) -> Result<u64, String> {
         let mut steps = self.feed_fifo(core)?;
         self.refill(core)?;
-        let half = live_smp::ring_half(core);
+        let mut half = live_smp::ring_half(core);
+        if self.smp && self.other_half {
+            half = live_smp::other_half(half);
+        }
         steps += run_irq(core, AUDIO_VECTOR, ISR_MAX_STEPS)?;
         self.stats.isrs += 1;
         if self.smp {

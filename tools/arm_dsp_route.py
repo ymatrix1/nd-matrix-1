@@ -103,6 +103,7 @@ class Router:
         self.owner: dict[tuple[int, int, int], object] = {}
         self.seen: dict[str, int] = {}
         self.skipped: dict[str, int] = {}
+        self.skipped_words: list[tuple[str, int, int]] = []  # (chip, word0, word1) of each skip
         self.l2: dict[str, int] = {}  # L2 stores handed to a core 2 chip, by chip name
 
     def add(self, spec: ChipSpec, link: object, path: int | None = None) -> None:
@@ -120,6 +121,7 @@ class Router:
             return "counted"
         if not 0 <= dm_word < DM_WORDS:
             self.skipped[name] = self.skipped.get(name, 0) + 1
+            self.skipped_words.append((name, dm_word, value))
             return "skipped"
         link.send(dm_word, value)  # type: ignore[attr-defined]
         return "sent"

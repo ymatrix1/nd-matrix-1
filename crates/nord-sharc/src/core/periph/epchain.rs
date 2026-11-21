@@ -20,6 +20,7 @@
 //! the last written value, so `DEN` never clears and a program that polls for completion would spin), the completion
 //! interrupt (`PCI`/`CPDR` interrupt reading of table 3-13 is not used by the traced paths), and
 //! any device behind the external bus: external memory is a plain sparse word store.
+use super::smpflash::SmpFlash;
 use super::Bus;
 use std::collections::BTreeMap;
 
@@ -82,6 +83,8 @@ pub struct EpChain {
     pub window_hits: u64,
     /// Chains cut by [`MAX_TCBS`], an oversize count or a TCB outside DM.
     pub aborted: u64,
+    /// The SMP sample flash behind banks 1 to 3 (opt-in, `sharc-live --smp` page refill, D191).
+    pub flash: Option<SmpFlash>,
     cp: u32,
     dmac: u32,
 }
@@ -158,6 +161,11 @@ impl EpChain {
             let e = t.ext.wrapping_add(t.ext_mod.wrapping_mul(k));
             let i = t.int.wrapping_add(t.int_mod.wrapping_mul(k));
             if t.to_dm {
+                if let Some(w) = self.flash.as_mut().and_then(|f| f.read(e)) {
+                    dm.write32(i, w);
+                    self.words_in += 1;
+                    continue;
+                }
                 // ASSUMED: a read of an address no device answers leaves the destination as it
                 // is (the harness keeps the staging data a `refill` or `stream` model put there)
                 match self.ext.get(&e) {
@@ -167,7 +175,9 @@ impl EpChain {
                 self.words_in += 1;
             } else {
                 let w = dm.read32(i);
-                self.ext.insert(e, w);
+                if !self.flash.as_mut().is_some_and(|f| f.write(e, w)) {
+                    self.ext.insert(e, w);
+                }
                 self.words_out += 1;
             }
         }
@@ -258,6 +268,32 @@ mod tests {
         e2.write(CPEP0, 0x3_6008, &mut m2);
         e2.write(DMAC0, DEN, &mut m2);
         assert_eq!((e2.tcbs, e2.aborted), (0, 1));
+    }
+
+    #[test]
+    fn with_a_flash_the_latch_write_and_the_bank_3_read_follow_the_smp_chain() {
+        use super::super::smpflash::{SmpFlash, BANK2, BANK3};
+        let mut m = Mem::default();
+        m.0.insert(0x9_4000, 1); // latch data: flash word = 1 << 24 | low bits
+        tcb(&mut m, 0x36008, [0x3_6014, 1, BANK2 + 2, 1, 1, 0x9_4000]);
+        tcb(&mut m, 0x36014, [0, 1, BANK3 + 2, 3, 1, 0x9_4100]);
+        let mut e = EpChain::default();
+        let mut f = SmpFlash::new(vec![0, 1, 0, 2, 0, 3, 0, 4, 0, 5]);
+        f.set_base(1 << 24);
+        e.flash = Some(f);
+        e.write(CPEP0, 0x10_0000 | 0x3_6008, &mut m);
+        e.write(DMAC0, 0x125, &mut m);
+        assert_eq!(e.flash.as_ref().unwrap().latch(), 1);
+        assert_eq!(
+            [m.0[&0x9_4100], m.0[&0x9_4101], m.0[&0x9_4102]],
+            [3, 4, 5],
+            "file words 2..4 at flash words 2..4"
+        );
+        assert_eq!(
+            (e.unmapped_reads, e.ext.len()),
+            (0, 0),
+            "flash words, not the sparse store"
+        );
     }
 
     #[test]

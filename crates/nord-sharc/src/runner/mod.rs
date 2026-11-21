@@ -12,9 +12,12 @@ pub mod fx_run;
 pub mod fx_wav;
 pub mod jit_diff;
 pub mod live;
+pub mod live_flash;
 pub mod live_presets;
 pub mod live_smp;
 pub mod live_sy;
+#[cfg(test)]
+mod live_tests;
 pub mod msg;
 pub mod pass;
 pub mod periph_run;

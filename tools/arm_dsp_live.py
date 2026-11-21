@@ -140,7 +140,7 @@ def drive(ns, chips: Chips, router: rt.Router, source=None, before=None) -> dict
     else:
         cap.install_dsp_ack(session.emu)
     feeder.grouper.pending.clear()
-    clock, phases = dl.Clock(), {}
+    clock, phases, flash = dl.Clock(), {}, None
     prev = {s.name: snapshot(link, t0) for s, link in chips.items}
     keys = [int(k) for k in ns.keys.split(",")] if ns.keys else [ns.key]
     probe = syt.SyProbe(timeline, chips.sy_link(), source) if timeline else None
@@ -167,6 +167,7 @@ def drive(ns, chips: Chips, router: rt.Router, source=None, before=None) -> dict
             )
         if name == "idle" and ns.piano_bind:
             result["piano_bind"] = bind_program_piano(session.emu, ns.piano_bind, program)
+            flash = attach_smp_flash(chips, ns.piano_bind, result["piano_bind"], ns.log)
         now = {s.name: snapshot(link, t0) for s, link in chips.items}
         phases[name] = {"ticks": ticks, **{n: phase_delta(prev[n], now[n]) for n in now}}
         phases[name]["arm_messages"] = seen_delta(seen_prev, router.seen)  # every comm, D170
@@ -186,6 +187,8 @@ def drive(ns, chips: Chips, router: rt.Router, source=None, before=None) -> dict
         skipped_out_of_window=router.skipped,
         l2_to_core2=router.l2,
     )
+    if flash:
+        result["smp_flash"] = smp_flash_report(flash)
     result["ticks"], result["clock_passes"] = clock.ticks, clock.passes
     if source:
         result["return_path"] = return_report(source, read_log)
@@ -206,6 +209,30 @@ def bind_program_piano(emu, backup: Path, program: bytes) -> dict:  # noqa: ANN0
     if member is None:
         return {"layer": layer, "member": None}
     return {"layer": layer, "member": member, **pb.bind_piano(emu, pl.read_npno(backup, member))}
+
+
+def attach_smp_flash(chips, backup: Path, bound: dict, log: Path | None):  # noqa: ANN001, ANN201  # pragma: no cover
+    """Serve the bound `.npno` as the flash of the live SMP chip (`arm_smp_flash`, D191)."""
+    import arm_piano_load as pl
+    import arm_smp_flash as sf
+
+    link = next((lk for s, lk in chips.items if s.chip == "SMP"), None)
+    if link is None or not bound.get("member"):
+        return None
+    npno = pl.read_npno(backup, bound["member"], 1 << 30)
+    path = (log or Path(".")) / "smp_flash.npno"  # a local scratch copy, never committed
+    path.parent.mkdir(parents=True, exist_ok=True)
+    feed = sf.attach(link, npno, path, path.with_name("smp_tap.f32") if log else None)
+    return feed, link, npno
+
+
+def smp_flash_report(flash) -> dict:  # noqa: ANN001  # pragma: no cover
+    """Descriptors seen, the chip's flash counters and the ring check."""
+    import arm_smp_flash as sf
+
+    feed, link, npno = flash
+    rings = sf.check_rings(link, npno, feed.strokes)
+    return {**feed.summary(), "chip": link.command("E"), "rings": rings}
 
 
 def replay_cmd(spec: rt.ChipSpec, exe: Path, log: Path, passes: int, tap: Path) -> list[str]:
@@ -309,6 +336,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
         if ns.log:
             ns.log.mkdir(parents=True, exist_ok=True)
             for s, link in items:
+                with (ns.log / "skipped.txt").open("w", encoding="utf-8", newline="\n") as fh:
+                    fh.writelines(f"{n} {a:#010x} {v:#010x}\n" for n, a, v in router.skipped_words)
                 with (ns.log / f"{s.name}.script").open("w", encoding="utf-8", newline="\n") as fh:
                     fh.write(dl.script_text(link.log))
     finally:

@@ -8,6 +8,11 @@
 //! | `P N` | run up to `N` passes, ping-pong and lane read as in `sharc-sys` | `P ...` summary line |
 //! | `T 0\|1` | switch per-pass coverage of the probe pcs off or on | none |
 //! | `D ADDR COUNT` | read data words | `D ADDR w w ...` (hex) |
+//! | `L PATH` | load a `.npno` as the SMP flash image behind the external banks, chain model on (`live_flash`) | `L words=N` |
+//! | `F REC11` | place the file for the descriptor directory index `REC11` and write the linear page directory | `F base=.. dir=..` |
+//! | `C PATH` | capture the tapped words of every later pass to PATH (f32 little endian) | `C ok` |
+//! | `H 0\|1` | SMP ring tap: 1 reads the half the pointer does not hold on entry | `H n` |
+//! | `E [FIRST COUNT]` | external-port DMA chain totals (`--epchain`); with a range also the executed TCBs | `E chains=.. tcbs=..` (+ ` ext:int:count:dir` items, hex) |
 //! | `Q` | end | none |
 //!
 //! Everything is deterministic: no clock, no thread, replies are a pure function of the commands.
@@ -36,6 +41,8 @@ pub struct Live {
     error: Option<String>,
     /// The SY chip: messages go to its FIFO queue and a pass is audio interrupts (D153).
     sy: Option<SyModel>,
+    /// `C PATH`: every tapped word of each pass is appended to this file as f32 little endian (local audio, never committed).
+    capture: Option<std::fs::File>,
 }
 
 impl Live {
@@ -58,6 +65,7 @@ impl Live {
             halted: false,
             error: None,
             sy: None,
+            capture: None,
         }
     }
 
@@ -101,7 +109,12 @@ impl Live {
     pub fn handle(&mut self, line: &str) -> Option<String> {
         match self.exec(line) {
             Ok(reply) => reply,
-            Err(e) if matches!(line.trim_start().chars().next(), Some('P' | 'D')) => {
+            Err(e)
+                if matches!(
+                    line.trim_start().chars().next(),
+                    Some('P' | 'D' | 'L' | 'F' | 'C' | 'H')
+                ) =>
+            {
                 Some(format!("ERR {e}"))
             }
             Err(e) => {
@@ -153,9 +166,68 @@ impl Live {
                 }
                 Ok(Some(out))
             }
+            Some("L") => {
+                let path = line.trim_start().strip_prefix('L').unwrap_or("").trim();
+                super::live_flash::load(&mut self.core, path).map(Some)
+            }
+            Some("C") => {
+                let path = line.trim_start().strip_prefix('C').unwrap_or("").trim();
+                let f = std::fs::File::create(path).map_err(|e| format!("C {path}: {e}"))?;
+                self.capture = Some(f);
+                Ok(Some("C ok".to_string()))
+            }
+            Some("H") => {
+                let on = num(1)? != 0;
+                match &mut self.sy {
+                    Some(sy) => sy.other_half = on,
+                    None => return Err("H: not an SMP chip".to_string()),
+                }
+                Ok(Some(format!("H {}", u8::from(on))))
+            }
+            Some("F") => super::live_flash::place(&mut self.core, num(1)?).map(Some),
+            Some("E") => Ok(Some(self.epchain_report(num(1).ok(), num(2).ok()))),
             Some("Q") | None => Ok(None),
             Some(other) => Err(format!("unknown command {other:?}")),
         }
+    }
+
+    /// `E` reply: totals of the external-port chain model and, for `range` (`first`, `count`), the
+    /// executed TCBs as `ext/ext_mod:int/int_mod:count:dir` (`i` = external to DM, `o` = DM to external).
+    fn epchain_report(&mut self, first: Option<u32>, count: Option<u32>) -> String {
+        let Some(e) = self.core.epchain() else {
+            return "E off".to_string();
+        };
+        let mut out = format!(
+            "E chains={} tcbs={} words_in={} words_out={} unmapped={}",
+            e.chains, e.tcbs, e.words_in, e.words_out, e.unmapped_reads
+        );
+        if let Some(f) = &e.flash {
+            let r = |b| f.reads.get(&b).copied().unwrap_or(0);
+            let _ = write!(
+                out,
+                " flash_b1={} flash_b3={} flash_outside={} latch={} base={}",
+                r(0x0400_0000),
+                r(0x0C00_0000),
+                f.outside,
+                f.latch(),
+                f.base()
+            );
+        }
+        if let (Some(a), Some(n)) = (first, count) {
+            for t in e.log.iter().skip(a as usize).take(n as usize) {
+                let _ = write!(
+                    out,
+                    " {:x}/{:x}:{:x}/{:x}:{:x}:{}",
+                    t.ext,
+                    t.ext_mod,
+                    t.int,
+                    t.int_mod,
+                    t.count,
+                    if t.to_dm { 'i' } else { 'o' }
+                );
+            }
+        }
+        out
     }
 
     /// Runs up to `n` passes and summarises them in one line.
@@ -194,6 +266,12 @@ impl Live {
             }
             idle += 1;
             let w = self.level_words();
+            if let Some(f) = &mut self.capture {
+                let bytes: Vec<u8> = w.iter().flat_map(|b| b.to_le_bytes()).collect();
+                if let Err(e) = std::io::Write::write_all(f, &bytes) {
+                    self.error.get_or_insert(format!("capture: {e}"));
+                }
+            }
             for bits in w {
                 let x = f32::from_bits(bits);
                 if x.is_finite() {
@@ -286,26 +364,6 @@ mod tests {
     }
 
     #[test]
-    fn bad_lines_are_errors_and_quit_is_silent() {
-        let mut l = live(vec![]);
-        assert!(l.exec("X 1").is_err());
-        l.note_error("bad command".into());
-        assert!(l
-            .exec("P 1")
-            .unwrap()
-            .unwrap()
-            .contains("error=bad_command"));
-        assert!(l.exec("M zz 1").is_err());
-        assert!(l.exec("P").is_err());
-        assert_eq!(l.exec("Q").unwrap(), None);
-        assert_eq!(
-            l.exec("T 1").unwrap(),
-            None,
-            "no probes: coverage stays off"
-        );
-    }
-
-    #[test]
     fn bad_p_and_d_lines_are_answered_and_bad_m_lines_are_deferred() {
         let mut l = live(vec![]);
         assert!(l.handle("P x").unwrap().starts_with("ERR "));
@@ -315,46 +373,21 @@ mod tests {
     }
 
     #[test]
-    fn server_passes_equal_lane_run_on_the_same_messages() {
-        use super::super::periph_run::{lane_run, OUT_POINTERS};
-        let cfg = PassConfig {
-            trigger: 0xB_00E2,
-            idle_pc: 0x12_0002,
-            max_steps: 10,
-            irq: None,
-        };
-        let msgs = [
-            (OUT_POINTERS + 2, 0xB_0200),
-            (0xB_0204, 0.5f32.to_bits()),
-            (0xB_0205, (-0.25f32).to_bits()),
-            (0xB_0206, 0.125f32.to_bits()),
-            (0xB_0207, 1.0f32.to_bits()),
-        ];
-        let list: Vec<Msg> = msgs
-            .iter()
-            .map(|&(w1, w2)| Msg {
-                pass: 0,
-                word1: w1,
-                word2: w2,
-            })
-            .collect();
-        let want = lane_run(&mut clearing_core(), &cfg, &list, 3, None, (2, 1)).unwrap();
-        let mut l = Live::new(clearing_core(), cfg, None, (2, 1), vec![]);
-        for (w1, w2) in msgs {
-            l.exec(&format!("M {w1:#x} {w2:#x}")).unwrap();
-        }
-        let r = l.exec("P 3").unwrap().unwrap();
-        let (peak, rms) = want.level();
-        assert!(r.contains(&format!("idle={}", want.passes)), "{r}");
+    fn l_f_and_e_load_place_and_report_the_flash() {
+        let mut l = live(vec![]);
+        assert_eq!(l.exec("E").unwrap(), Some("E off".to_string()));
+        assert!(l.handle("F 3").unwrap().starts_with("ERR"), "no image yet");
+        let p = std::env::temp_dir().join(format!("live_cmd_{}.bin", std::process::id()));
+        std::fs::write(&p, [0u8; 64]).unwrap();
+        let r = l.exec(&format!("L {}", p.display())).unwrap().unwrap();
+        let _ = std::fs::remove_file(&p);
+        assert_eq!(r, "L words=32");
+        assert!(l.exec("F 3").unwrap().unwrap().starts_with("F base=196298"));
+        let e = l.exec("E").unwrap().unwrap();
         assert!(
-            r.contains(&format!("cnt={}", want.left.len() + want.right.len())),
-            "{r}"
+            e.contains("flash_b1=0 flash_b3=0") && e.contains("base=196298"),
+            "{e}"
         );
-        assert!(r.contains(&format!("peak={:.9e}", peak)), "{r}");
-        let sumsq = rms * rms * (want.left.len() + want.right.len()) as f64;
-        assert!(
-            r.contains(&format!("sumsq={:.9e}", sumsq)),
-            "{r} vs {sumsq:e}"
-        );
+        assert!(l.handle("L no/such/file").unwrap().starts_with("ERR"));
     }
 }

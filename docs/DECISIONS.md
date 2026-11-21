@@ -7,6 +7,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 | # | Date | Decision | Status |
 |---|---|---|---|
 | [D193](#d193-amp-lp24--hp24-default-flip-proposed-not-made-type-9-words-verified-multi-call-golden) | 2026-11-21 | Amp LP24 / HP24 default flip proposed, not made; type 9 words VERIFIED; multi-call golden | proposed |
+| [D191](#d191-smp-page-refill-descriptor-to-flash-law-decoded-flash-feed-in-sharc-live---smp-the-voice-does-not-advance-yet) | 2026-11-21 | SMP page refill: descriptor to flash law decoded, flash feed in `sharc-live --smp`; the voice does not advance yet | accepted |
 | [D188](#d188-firmware-amp-lp24--hp24-state-variable-pair-0x124efa-ported-opt-in---firmware-fx-ports-lp24) | 2026-11-21 | Firmware Amp LP24 / HP24 (state variable pair `0x124EFA`) ported, opt-in `--firmware-fx-ports lp24` | accepted |
 | [D192](#d192-the-firmware-organ-stages-run-on-a-compiled-in-place-program-bit-identical-not-yet-within-the-block-budget) | 2026-11-21 | The firmware organ stages run on a compiled in place program; bit identical, not yet within the block budget | accepted |
 | [D190](#d190-no-arm-word-installs-the-b3-leslie-element-in-a-live-run-with-the-read-back-served-the-element-words-are-unobtainable-row-9-stays-unmeasured-no-port) | 2026-11-21 | No ARM word installs the B3 Leslie element in a live run with the read-back served: the element words are unobtainable, row 9 stays unmeasured, no port | proposed |
@@ -2056,3 +2057,13 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Port the D172 hand link with fitted words (rejected: no evidence for the words, gap 17.8 vs 10.9). Hold the result until the L2 and speed-switch experiments run (rejected: the negative narrows OQ42 now and the experiments are follow-ups 1 and 2).
 - **Impact:** `docs/research/b3-leslie-install-hunt.md`, `tools/msg_script_scan.py`, `tools/tests/test_msg_script_scan.py`, `docs/OPEN-QUESTIONS.md` (OQ42), [audio-remaining](research/audio-remaining.md) row 9, `docs/specs/organ-engine.md` s4, `docs/ROADMAP.md`. No `nord-core`, golden, `render_hash` or default change.
 
+
+### D191. SMP page refill: descriptor to flash law decoded, flash feed in `sharc-live --smp`; the voice does not advance yet
+- **Status:** accepted 2026-11-21
+- **Decided by:** the task of the parent session (OQ41, evidence [smp-page-refill](research/smp-page-refill.md)); owner to confirm. Renumber on merge if taken.
+- **Context:** D185 left the SMP source ring empty (page refill unmodelled), so the piano chain tap was silent. 155 programs keep `piano_no_chain_tap`.
+- **Decision:** (1) The stroke descriptor `rec[-11]`, `rec[-10]`, `rec[-9]` maps to a flash word through `DM(0xB237B + ...)` as in [smp-page-refill](research/smp-page-refill.md) s2; `rec[-10] = (stroke file byte + 148) / (1022 * channels)`. (2) `smpflash.rs` serves external banks 1 to 3 as one 16-bit-word flash (core and DMA reads), opt-in with `--epchain` and the `L` / `F` / `E` / `C` / `H` lines of `sharc-live`; `tools/arm_smp_flash.py` places the file when a descriptor appears. (3) `piano_no_chain_tap`, the census and the ranking are unchanged: the voice phase freezes after the first refill, the tap is silent or a DC plateau.
+- **Why:** The law holds for 4 files (3 stereo, 1 mono): every descriptor passes `law_ok` and the ring head equals the file payload. Claiming a tap level would be false: the clavinet plateau (0.0431) is a stuck sample, not audio.
+- **Alternatives:** Claim the clavinet level (rejected: DC). Hold the PR until the voice advances (rejected: the feed and the law are reusable and the blocker is recorded).
+- **Open:** per-voice gate (scheduler, EP DMA completion interrupt, ARM re-init burst), 129 `flash_outside` reads, layers 2 and 3.
+- **Impact:** `smpflash.rs`, `epchain.rs`, `glue.rs`, `live_flash.rs`, `live.rs`, `live_sy.rs` (`other_half`), `tools/arm_smp_flash.py`, `arm_dsp_link.py`, `arm_dsp_live.py`, `arm_dsp_route.py`; tests `smpflash`, `epchain`, `glue`, `live`, `live_smp`, `test_arm_smp_flash.py`, `test_arm_dsp_link.py`; no default, no render path touched.
