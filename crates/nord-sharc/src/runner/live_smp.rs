@@ -13,13 +13,23 @@
 //!
 //! The ring holds float words (`bus * 2^-29`) in a 10 word TDM frame: left at `+0`, right at `+1`
 //! of each frame, second frame at `+10`. The page ring refill runs through the external port DMA
-//! chains of `epchain.rs` against the flash image of `smpflash.rs` (`L`, `F` commands, D191); the
-//! voice phase does not advance after the first refill, so the tap still carries no audio
-//! (`docs/research/smp-page-refill.md`, OQ41).
+//! chains of `epchain.rs` against the flash image of `smpflash.rs` (`L`, `F` commands, D191). The voice
+//! advances once the command FIFO index carries the ISR bias [`INDEX_BIAS`] and the batch is capped
+//! by [`FIFO_CAP`] (D199); the tap then carries varying audio (`docs/research/smp-page-refill.md`).
 use crate::core::Core;
 
 /// SMP command FIFO base (`I0` after the FIFO reset interrupt).
 pub const FIFO_BASE: u32 = 0x9_2196;
+/// VERIFIED (run, clavinet replay, `S` snapshots at `0x1C05CC`: `R3 = 0x80000` in every audio
+/// interrupt, `R2 = 0x280` = ring length `L0`): the ISR computes `n = (DM(0x2400) + R3 - I0) >> 1`
+/// pairs, so the index word holds `write address - 0x80000`. With the plain address (D185..D191)
+/// `n` was `0x3FF..` every interrupt, capped at 16, and the ring was replayed forever: the key
+/// start request ran again every 20 interrupts and reset the voice (OQ41).
+pub const INDEX_BIAS: u32 = 0x8_0000;
+/// VERIFIED (listing `0x1C05C9`: `r1 = dm(0x92419)`, `r0 = min(r0, r1)`; value 16 in the replay): the
+/// SMP audio ISR takes at most `DM(0x92419)` pairs per interrupt. The SY1SY2 word `0x92180` is not
+/// the cap of the SMP image (the model read it there, D185).
+pub const FIFO_CAP: u32 = 0x9_2419;
 /// Loader entry of the SMP image after the boot code.
 pub const ENTRY: u32 = 0x1C_11E0;
 /// Start-up status register the image polls (IOP space, written as plain memory).

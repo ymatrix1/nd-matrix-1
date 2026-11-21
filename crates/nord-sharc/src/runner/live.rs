@@ -13,6 +13,9 @@
 //! | `C PATH` | capture the tapped words of every later pass to PATH (f32 little endian) | `C ok` |
 //! | `H 0\|1` | SMP ring tap: 1 reads the half the pointer does not hold on entry | `H n` |
 //! | `E [FIRST COUNT]` | external-port DMA chain totals (`--epchain`); with a range also the executed TCBs | `E chains=.. tcbs=..` (+ ` ext:int:count:dir` items, hex) |
+//! | `S` | register snapshots taken at the first `--probe` pc inside the audio interrupts since the last `S` (max 256) | `S r=..;i=..;l=.. ...` |
+//! | `G` | core registers `r`, `s`, `i`, `l` (hex) | `G pc=.. r=.. s=.. i=.. l=..` |
+//! | `W ADDR N` | watch data writes to `ADDR..ADDR+N` (at most 4096 hits kept); `W` alone reads and clears the hits | `W pc:addr:value ...` (hex, `pc` = writing instruction) |
 //! | `Q` | end | none |
 //!
 //! Everything is deterministic: no clock, no thread, replies are a pure function of the commands.
@@ -70,7 +73,9 @@ impl Live {
     }
 
     /// Serves the SY1SY2 chip: `M` queues FIFO pairs, `P` runs `model.isrs_per_pass` frames.
-    pub fn with_sy(mut self, model: SyModel) -> Self {
+    pub fn with_sy(mut self, mut model: SyModel) -> Self {
+        model.probes = self.probes.clone();
+        model.probe_hits = vec![0; self.probes.len()];
         self.sy = Some(model);
         self
     }
@@ -112,7 +117,7 @@ impl Live {
             Err(e)
                 if matches!(
                     line.trim_start().chars().next(),
-                    Some('P' | 'D' | 'L' | 'F' | 'C' | 'H')
+                    Some('P' | 'D' | 'L' | 'F' | 'C' | 'H' | 'S' | 'W' | 'G')
                 ) =>
             {
                 Some(format!("ERR {e}"))
@@ -184,11 +189,58 @@ impl Live {
                 }
                 Ok(Some(format!("H {}", u8::from(on))))
             }
+            Some("S") => match &mut self.sy {
+                Some(sy) => Ok(Some(format!(
+                    "S {}",
+                    std::mem::take(&mut sy.snaps).join(" ")
+                ))),
+                None => Err("S: not a sample chip".to_string()),
+            },
+            Some("G") => {
+                let c = &self.core;
+                let f = |n: &str, a: &[u32; 16]| {
+                    format!(
+                        " {n}={}",
+                        a.iter()
+                            .map(|v| format!("{v:x}"))
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    )
+                };
+                Ok(Some(format!(
+                    "G pc={:x}{}{}{}{}",
+                    c.pc,
+                    f("r", &c.r),
+                    f("s", &c.s),
+                    f("i", &c.i),
+                    f("l", &c.l)
+                )))
+            }
+            Some("W") => Ok(Some(self.watch_cmd(num(1).ok(), num(2).ok()))),
             Some("F") => super::live_flash::place(&mut self.core, num(1)?).map(Some),
             Some("E") => Ok(Some(self.epchain_report(num(1).ok(), num(2).ok()))),
             Some("Q") | None => Ok(None),
             Some(other) => Err(format!("unknown command {other:?}")),
         }
+    }
+
+    /// `W` reply: arms the write watch (`ADDR N`) or reports and clears the hits.
+    fn watch_cmd(&mut self, addr: Option<u32>, len: Option<u32>) -> String {
+        if let (Some(a), Some(n)) = (addr, len) {
+            self.core.watch = a;
+            self.core.watch_len = n;
+            self.core.watch_limit = 4096;
+            self.core.watch_hits.clear();
+            self.core.watch_addrs.clear();
+            return format!("W {a:x} {n:x}");
+        }
+        let mut out = String::from("W");
+        for ((_, pc, v), a) in self.core.watch_hits.iter().zip(&self.core.watch_addrs) {
+            let _ = write!(out, " {pc:x}:{a:x}:{v:x}");
+        }
+        self.core.watch_hits.clear();
+        self.core.watch_addrs.clear();
+        out
     }
 
     /// `E` reply: totals of the external-port chain model and, for `range` (`first`, `count`), the
@@ -286,7 +338,7 @@ impl Live {
             self.pass,
             u8::from(self.halted)
         );
-        if self.probing {
+        if self.probing && self.sy.is_none() {
             let list: Vec<String> = self
                 .probes
                 .iter()
@@ -370,6 +422,27 @@ mod tests {
         assert!(l.handle("D").unwrap().starts_with("ERR "));
         assert_eq!(l.handle("M zz 1"), None);
         assert!(l.handle("P 1").unwrap().contains("error=bad_command"));
+    }
+
+    #[test]
+    fn w_g_and_s_watch_writes_dump_registers_and_need_a_sample_chip() {
+        let mut l = live(vec![]);
+        assert_eq!(
+            l.exec("W 0xB0000 2").unwrap(),
+            Some("W b0000 2".to_string())
+        );
+        l.core.pc = 0x12_0002;
+        l.core.dm_write(0xB_0001, 7).unwrap();
+        l.core.dm_write(0xB_0005, 9).unwrap(); // outside the window
+        assert_eq!(l.exec("W").unwrap(), Some("W 120002:b0001:7".to_string()));
+        assert_eq!(
+            l.exec("W").unwrap(),
+            Some("W".to_string()),
+            "hits are cleared"
+        );
+        let g = l.exec("G").unwrap().unwrap();
+        assert!(g.starts_with("G pc=120002 r=") && g.contains(" l="), "{g}");
+        assert!(l.handle("S").unwrap().starts_with("ERR"), "no sample chip");
     }
 
     #[test]

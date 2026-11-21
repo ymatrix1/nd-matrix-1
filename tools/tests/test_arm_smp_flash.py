@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import struct
 
 import arm_smp_flash as sf
@@ -94,3 +95,18 @@ def test_expected_head_is_the_payload_after_the_two_header_bytes() -> None:
         struct.pack_into(">H", npno, at + 2 + 2 * k, 0x100 + k)
     s = sf.parse_strokes(bytes(npno))[0]
     assert sf.expected_head(bytes(npno), s) == [0x100 + k for k in range(8)]
+
+
+def f32(values: list[float]) -> bytes:
+    return struct.pack(f"<{len(values)}f", *values)
+
+
+def test_tap_stats_tells_silence_a_stuck_sample_and_audio_apart() -> None:
+    assert sf.tap_stats(b"")["kind"] == "silent"
+    assert sf.tap_stats(f32([0.0] * 100))["kind"] == "silent"
+    plateau = sf.tap_stats(f32([0.0431] * 5000))  # the D191 clavinet DC plateau
+    assert plateau["kind"] == "plateau" and plateau["distinct_in_loudest_window"] == 1
+    tone = [0.2 * math.sin(0.01 * k) for k in range(5000)]
+    audio = sf.tap_stats(f32(tone))
+    assert audio["kind"] == "audio"
+    assert abs(audio["peak"] - 0.2) < 1e-3 and abs(audio["peak_dbfs"] - (-13.98)) < 0.05

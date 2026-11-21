@@ -19,6 +19,7 @@ checks the law and sends `F rec[-11]` so the live chip places the file and write
 
 from __future__ import annotations
 
+import math
 import struct
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -151,3 +152,34 @@ def check_rings(link, npno: bytes, strokes: list[Stroke]) -> list[dict]:  # noqa
         if words in heads:
             out.append({"ring": f"{base:#x}", "stroke": heads[words]})
     return out
+
+
+def tap_stats(data: bytes) -> dict[str, object]:
+    """Level and shape of a captured tap (f32 little endian, `L R` per frame, `sharc-live` `C`).
+
+    `kind` tells silence, a stuck-sample plateau (D191: one value repeated) and audio apart:
+    audio needs a peak above -90 dBFS and more than 64 distinct values in the loudest window.
+    """
+    n = len(data) // 4
+    x = struct.unpack(f"<{n}f", data[: 4 * n]) if n else ()
+    peak = max((abs(v) for v in x if math.isfinite(v)), default=0.0)
+    win = 4096
+    best = max(
+        (x[i : i + win] for i in range(0, max(n, 1), win)),
+        key=lambda w: max(map(abs, w), default=0.0),
+        default=(),
+    )
+    distinct = len(set(best))
+    if peak < 3e-5:
+        kind = "silent"
+    elif distinct <= 64:
+        kind = "plateau"
+    else:
+        kind = "audio"
+    return {
+        "words": n,
+        "peak": peak,
+        "peak_dbfs": 20 * math.log10(peak) if peak > 0 else None,
+        "distinct_in_loudest_window": distinct,
+        "kind": kind,
+    }
