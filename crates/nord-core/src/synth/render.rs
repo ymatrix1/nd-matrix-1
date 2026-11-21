@@ -113,7 +113,12 @@ impl SynthLayer {
         let uni_count = UNISON_VOICE_COUNT[uni_level];
         // Per voice gains: constant power over the partner voices, measured weak-channel leakage.
         let uni_voice_gain = if uni_count > 0 {
-            1.0 / (uni_count as f32).sqrt()
+            let norm = if self.unison_fw_weights {
+                1.0
+            } else {
+                1.0 / (uni_count as f32).sqrt()
+            };
+            self.unison_gain.clamp(0.0, 8.0) * norm
         } else {
             0.0
         };
@@ -508,7 +513,10 @@ impl SynthLayer {
 
             // Firmware filter family: coefficients once per voice and sample (no allocation).
             // ASSUMED (opt-in `strip_stages`): `Ladder24` runs the modelled stage `0x12549D`
-            let fw_kind = if strip.is_some() && self.strip_stages {
+            let fw_kind = if strip.is_some() && self.fw_stage3 && self.filter_raw3 {
+                // opt-in `--synth-stage3`: raw `kFltType` 3 runs the modelled stage `0x1257B2`
+                FwFilterType::Stage3
+            } else if strip.is_some() && self.strip_stages {
                 FwFilterType::from_model_stages(self.filter_model)
             } else {
                 FwFilterType::from_model(self.filter_model)

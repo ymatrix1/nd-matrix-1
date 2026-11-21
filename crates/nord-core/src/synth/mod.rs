@@ -39,6 +39,8 @@ mod fw_shape34;
 mod fw_sine3;
 mod fw_sine_hp;
 mod fw_sine_warps;
+mod fw_stage3;
+mod fw_stage3_tables;
 mod fw_stages;
 mod fw_strip_cutoff;
 mod fw_sub;
@@ -146,6 +148,8 @@ mod tests_fw_ladder_golden;
 mod tests_fw_ladder_strip;
 #[cfg(test)]
 mod tests_fw_shape_golden;
+#[cfg(test)]
+mod tests_fw_stage3_golden;
 #[cfg(test)]
 mod tests_fw_stage_golden;
 #[cfg(test)]
@@ -313,6 +317,19 @@ pub struct SynthLayer {
     /// Strip chain only, opt-in (default off): only the firmware resonance table position of
     /// [`fw_filter_law::resonance_position`] (`--synth-fw-resonance`); implied by `fw_filter_law`.
     pub fw_resonance: bool,
+    /// Decoded: the raw `kFltType` of the layer is 3 ("LP+HP"), the stage `0x1257B2`.
+    pub filter_raw3: bool,
+    /// Opt-in (default `1.0`, `--synth-unison-gain`): factor on the per-voice gain of the analog
+    /// unison sum (`1 / sqrt(N)` by default). The hardware lane weights are a unit-norm rotation
+    /// (`docs/research/synth-unison-level.md`), the native sum keeps half that power per channel.
+    pub unison_gain: f32,
+    /// Opt-in (default off, `--synth-unison-weights`): the analog unison voices keep the fixed
+    /// per-voice weights of the firmware lane mix (`cos` / `sin` of pi/8, no `1 / sqrt(N)`), i.e.
+    /// `unison_gain` is applied to a per-voice gain of `1.0` instead of `1 / sqrt(N)`.
+    pub unison_fw_weights: bool,
+    /// Strip chain only, opt-in (default off, `--synth-stage3`): a `filter_raw3` layer runs the
+    /// modelled stage `0x1257B2` (`fw_stage3.rs`) instead of the `Lp12` stand-in.
+    pub fw_stage3: bool,
     /// Strip chain only, opt-in (default off): `Wavetable` layers play the firmware WAVE bank stage
     /// `0x1247B6` (`fw_wave.rs`, 320 of 320 oracle words) instead of the 64-table placeholder. Every
     /// wave plays the one boot table until the per-wave loader is decoded (OQ22).
@@ -473,6 +490,10 @@ impl SynthLayer {
             fw_filter_law: None,
             super_lp24_scale: None,
             fw_resonance: false,
+            filter_raw3: false,
+            unison_gain: 1.0,
+            unison_fw_weights: false,
+            fw_stage3: false,
             firmware_velocity: false,
             arp_firmware_walk: false,
             arp_firmware_gate: false,
@@ -503,6 +524,10 @@ impl SynthLayer {
             fw_filter_law: None,
             super_lp24_scale: None,
             fw_resonance: false,
+            filter_raw3: false,
+            unison_gain: 1.0,
+            unison_fw_weights: false,
+            fw_stage3: false,
             wave_bank: false,
             knob_laws: true,
             strip_knobs: None,
