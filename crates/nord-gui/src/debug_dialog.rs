@@ -14,9 +14,9 @@ use egui::{
     ViewportClass, ViewportCommand, ViewportId,
 };
 
-const ZINC_950: Color32 = Color32::from_rgb(9, 9, 11);
-const ZINC_900: Color32 = Color32::from_rgb(24, 24, 27);
-const ZINC_800: Color32 = Color32::from_rgb(39, 39, 42);
+const ZINC_950: Color32 = Color32::from_rgba_premultiplied(10, 11, 15, 224);
+const ZINC_900: Color32 = Color32::from_rgba_premultiplied(19, 20, 25, 200);
+const ZINC_800: Color32 = Color32::from_rgba_premultiplied(34, 34, 34, 34);
 const ZINC_400: Color32 = Color32::from_rgb(161, 161, 170);
 const ZINC_50: Color32 = Color32::from_rgb(250, 250, 250);
 const ACCENT_RED: Color32 = Color32::from_rgb(184, 37, 42);
@@ -455,26 +455,26 @@ pub fn show_debug_dialog(
                 s.visuals.panel_fill = Color32::TRANSPARENT;
                 s.visuals.window_fill = Color32::TRANSPARENT;
             });
+            // On Windows, eframe secondary viewports use a rectangular swapchain, so draw the
+            // smoked-glass frame flush to the viewport edges (no exposed black corner triangles)
+            // while keeping rounded glass cards and tabs inside.
+            let flush_glass = Frame::NONE
+                .fill(ZINC_950)
+                .stroke(Stroke::new(1.0, ZINC_800))
+                .corner_radius(CornerRadius::ZERO)
+                .inner_margin(Margin::same(16));
             egui::CentralPanel::default()
-                .frame(
-                    Frame::NONE
-                        .fill(Color32::TRANSPARENT)
-                        .inner_margin(Margin::same(2)),
-                )
+                .frame(flush_glass)
                 .show(vp_ctx, |ui| {
-                    rounded_frame.show(ui, |ui| {
-                        let inner = ui.available_size() - egui::vec2(2.0, 2.0);
-                        ui.set_min_size(inner.max(egui::Vec2::ZERO));
-                        render_dialog_contents(
-                            ui,
-                            dlg,
-                            state,
-                            library,
-                            firmware,
-                            os_update,
-                            audio_handle,
-                        );
-                    });
+                    render_dialog_contents(
+                        ui,
+                        dlg,
+                        state,
+                        library,
+                        firmware,
+                        os_update,
+                        audio_handle,
+                    );
                 });
 
             // Bottom-right corner resize handle for the borderless settings window
