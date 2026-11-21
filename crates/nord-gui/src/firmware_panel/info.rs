@@ -389,6 +389,15 @@ pub const TICK: SwitchInfo = sw(
     "Vox key timeline and synth gain de-zipper on the measured 24 kHz ARM timer (on by default since D131; --legacy-1khz-tick turns it off and restores 1 ms). Timer rate VERIFIED, the delays are lower bounds in real time (ASSUMED).",
 );
 
+/// The firmware Amp stage at the DSP frame rate (D137), on by default since D176.
+pub const FX_RATE: SwitchInfo = sw(
+    "Global",
+    "--legacy-fx-rate",
+    "FX at 43.4 kHz",
+    Mixed,
+    "Runs the firmware Amp drive and cabinet at the DSP frame rate 43,402 Hz instead of once per host frame, so the cabinet response sits where the hardware has it (on by default since D176; --legacy-fx-rate turns it off). Frame rate VERIFIED, resampling kernel ASSUMED; adds about 0.8 ms on amp layers.",
+);
+
 /// Idle skip of the FX racks (D161), not a firmware path: a CPU saving.
 pub const IDLE_SKIP: SwitchInfo = sw(
     "Global",
@@ -399,7 +408,7 @@ pub const IDLE_SKIP: SwitchInfo = sw(
 );
 
 /// All switches in bar order.
-pub const ALL: [SwitchInfo; 41] = [
+pub const ALL: [SwitchInfo; 42] = [
     TONE,
     B3_TAIL,
     FARFISA,
@@ -440,6 +449,7 @@ pub const ALL: [SwitchInfo; 41] = [
     FX_EQ,
     ROUTING,
     TICK,
+    FX_RATE,
     IDLE_SKIP,
 ];
 

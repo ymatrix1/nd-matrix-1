@@ -235,6 +235,7 @@ Mod 1 / Mod 2 controls send only the edit they own (`bay_effects/mod_touch.rs`):
 | `--firmware-fx-ports eq` (FX: Amp EQ) | Firmware tone stack `0x1243F4` instead of the engine's three biquads, 2 frames latency | MIXED |
 | `--firmware-routing` (Global: Firmware routing) | Section/layer enables (a mask of 0 reads as layer A, as the loader does) and per-layer KB zones as stored; on by default since D73, `--legacy-routing` turns it off | VERIFIED |
 | `--legacy-1khz-tick` (Global: 24 kHz ARM tick, checked = measured) | Vox key timeline and synth gain de-zipper on the measured 24 kHz ARM timer; on by default since D131, unchecking restores the 1 ms tick. Timer rate VERIFIED, real-time delays are lower bounds (ASSUMED) | MIXED |
+| `--legacy-fx-rate` (Global: FX at 43.4 kHz, checked = rate matched) | Firmware Amp drive and cabinet at the DSP frame rate 43,402 Hz instead of once per host frame; on by default since D176, unchecking restores the per-host-frame path. Frame rate VERIFIED, resampling kernel ASSUMED, about 0.8 ms extra latency on amp layers | MIXED |
 | `--fx-idle-skip` (Global: Skip idle FX racks) | Stops the FX rack of a layer silent for 4 s until it gets input again; saves most of the firmware FX CPU in a scene that uses few layers. Not a firmware path; a woken rack resumes from frozen state, 4 s and -140 dBFS are ASSUMED (D161) | ASSUMED |
 | `--firmware-all` / `--legacy-all` | Presets: verified paths on (not measured laws, Vox/Farfisa/B3) / all defaults | - |
 

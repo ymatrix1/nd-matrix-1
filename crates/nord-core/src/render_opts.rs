@@ -329,8 +329,9 @@ pub struct FirmwareOptions {
     /// `--fx-defaults firmware`: every FX chain starts from the ARM `Edt_*` default words
     /// (`LayerFxChain::apply_firmware_defaults`, D101; opt-in, no hardware init-patch clip).
     pub fx_defaults: bool,
-    /// `--fx-rate-match`: the firmware Amp drive and cabinet run at the DSP frame rate 43,402 Hz
-    /// (`LayerFxChain::set_fx_rate_match`, D137; opt-in).
+    /// The firmware Amp drive and cabinet run at the DSP frame rate 43,402 Hz
+    /// (`LayerFxChain::set_fx_rate_match`, D137; default on since D176, `--legacy-fx-rate` turns
+    /// it off; `--fx-rate-match` still switches it on).
     pub fx_rate_match: bool,
     /// Skips the FX racks of silent layers (`--fx-idle-skip`, D161; opt-in).
     pub fx_idle_skip: bool,
@@ -459,7 +460,7 @@ impl Default for FirmwareOptions {
             piano_chain_scale: false,
             piano_layer_law: false,
             fx_defaults: false,
-            fx_rate_match: false,
+            fx_rate_match: true,
             fx_idle_skip: false,
             synth_layer_law: true,
             measured_tick: true,
@@ -512,6 +513,7 @@ impl FirmwareOptions {
             synth_velocity_fw: false,
             piano_firmware_level: false,
             piano_touch: false,
+            fx_rate_match: false,
             synth_layer_law: false,
             measured_tick: false,
             synth_sustain_pedal: false,
@@ -544,7 +546,7 @@ impl FirmwareOptions {
             piano_chain_scale: false,
             piano_layer_law: false,
             fx_defaults: false,
-            fx_rate_match: false,
+            fx_rate_match: true,
             fx_idle_skip: false,
             synth_layer_law: true,
             measured_tick: true,
@@ -649,6 +651,9 @@ impl FirmwareOptions {
         o.piano_layer_law |= has("--firmware-piano-layer-law");
         o.fx_defaults |= has("--fx-defaults-firmware");
         o.fx_rate_match |= has("--fx-rate-match");
+        if has("--legacy-fx-rate") {
+            o.fx_rate_match = false;
+        }
         o.fx_idle_skip |= has("--fx-idle-skip");
         o.synth_layer_law |= has("--firmware-synth-layer-law");
         o.synth_sustain_pedal |= has("--synth-sustain-pedal");
@@ -1154,8 +1159,8 @@ impl FirmwareOptions {
         if self.fx_defaults {
             parts.push("fx-defaults".into());
         }
-        if self.fx_rate_match {
-            parts.push("fx-rate-match".into());
+        if !self.fx_rate_match {
+            parts.push("legacy-fx-rate".into());
         }
         if self.fx_idle_skip {
             parts.push("fx-idle-skip".into());

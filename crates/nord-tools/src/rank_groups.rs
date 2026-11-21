@@ -44,8 +44,9 @@ pub const GROUPS: [(&str, Revert); GROUP_COUNT] = [
 pub const SUBGROUPS: [(&str, Revert); 3] = [
     ("fx_delay_time", |o, d| o.fx.delay_time = d.fx.delay_time),
     ("fx_delay_laws", |o, d| o.fx.delay_laws = d.fx.delay_laws),
-    // `--fx-rate-match` (D137) is no firmware-all field (it is a converter, not a port), so the
-    // flip switches it on whatever the firmware options say.
+    // The rate match (D137, default on since D176) is a converter, not a port: the flip switches
+    // it on whatever the firmware options say, so it is only a change against a `--legacy-fx-rate`
+    // (or older) baseline.
     ("fx_rate_match", |o, _| o.fx_rate_match = true),
 ];
 
@@ -72,17 +73,22 @@ pub fn firmware_options() -> FirmwareOptions {
 }
 
 /// The engine default the ranking compares against: `FirmwareOptions::default()` (the PARITY FX
-/// ports since D173), with `legacy_fx_ports` the default of D163 to D170 (amp and Mod 2), with
-/// `legacy_mod2` the default before D163 (firmware Mod 2 off). The committed ranking data
+/// ports since D173, rate match since D176), with `legacy_fx_rate` the default of D173 to D175
+/// (rate match off), with `legacy_fx_ports` the default of D163 to D170 (amp and Mod 2), with
+/// `legacy_mod2` the default before D163 (firmware Mod 2 off). The two port flags leave the rate
+/// match on (it is no port); add `legacy_fx_rate` to reproduce the data of those eras. The committed ranking data
 /// (`docs/research/data/program-ranking*.csv`) is the `legacy_mod2` baseline. Against the current
 /// default every FX group of [`PARITY_GROUPS`] is a no-op flip.
-pub fn baseline(legacy_mod2: bool, legacy_fx_ports: bool) -> FirmwareOptions {
+pub fn baseline(legacy_mod2: bool, legacy_fx_ports: bool, legacy_fx_rate: bool) -> FirmwareOptions {
     let mut o = FirmwareOptions::default();
     if legacy_fx_ports {
         o.fx = nord_core::fx::FirmwareFx::PRE_PARITY;
     }
     if legacy_mod2 {
         o.fx = nord_core::fx::FirmwareFx::LEGACY;
+    }
+    if legacy_fx_rate {
+        o.fx_rate_match = false;
     }
     o
 }
@@ -169,7 +175,7 @@ mod tests {
 
     /// The default before D163: every group differs from the firmware options.
     fn pre() -> FirmwareOptions {
-        baseline(true, false)
+        baseline(true, false, false)
     }
 
     #[test]
@@ -193,7 +199,7 @@ mod tests {
 
     #[test]
     fn mod2_group_is_a_no_op_against_the_current_default() {
-        let (firmware, now) = (firmware_options(), baseline(false, true));
+        let (firmware, now) = (firmware_options(), baseline(false, true, false));
         assert_eq!(GROUPS[7].0, "fx_mod2");
         assert_eq!(
             reverted(&firmware, &now, 7),
@@ -203,7 +209,7 @@ mod tests {
         for g in (0..GROUP_COUNT).filter(|g| *g != 7) {
             assert_ne!(reverted(&firmware, &now, g), firmware, "group {g}");
         }
-        assert!(baseline(false, true).fx.mod2 && !baseline(true, false).fx.mod2);
+        assert!(baseline(false, true, false).fx.mod2 && !baseline(true, false, false).fx.mod2);
     }
 
     #[test]
@@ -276,7 +282,7 @@ mod tests {
 
     #[test]
     fn delay_subgroups_flip_one_port_alone() {
-        let (firmware, base) = (firmware_options(), baseline(false, true));
+        let (firmware, base) = (firmware_options(), baseline(false, true, false));
         let time = flipped_set(&firmware, &base, &[GROUP_COUNT]);
         assert!(time.fx.delay_time && !time.fx.delay_laws);
         let laws = flipped_set(&firmware, &base, &[GROUP_COUNT + 1]);
@@ -291,9 +297,23 @@ mod tests {
     }
 
     #[test]
+    fn baseline_has_the_rate_match_on_unless_a_legacy_flag_turns_it_off() {
+        assert!(baseline(false, false, false).fx_rate_match);
+        assert!(!baseline(false, false, true).fx_rate_match);
+        assert!(baseline(false, true, false).fx_rate_match);
+        assert!(baseline(true, false, false).fx_rate_match);
+        assert!(!baseline(true, false, true).fx_rate_match);
+        assert_eq!(
+            baseline(false, false, true).fx,
+            nord_core::fx::FirmwareFx::PARITY
+        );
+        assert!(firmware_options().fx_rate_match);
+    }
+
+    #[test]
     fn rate_match_subgroup_switches_the_converter_on_alone() {
-        let (firmware, base) = (firmware_options(), baseline(false, true));
-        assert!(!firmware.fx_rate_match && !base.fx_rate_match);
+        let (firmware, base) = (firmware_options(), baseline(false, true, true));
+        assert!(firmware.fx_rate_match && !base.fx_rate_match);
         let on = flipped_set(&firmware, &base, &[GROUP_COUNT + 2]);
         assert!(on.fx_rate_match);
         assert_eq!(

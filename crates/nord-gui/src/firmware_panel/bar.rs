@@ -203,6 +203,7 @@ fn piano_row(ui: &mut egui::Ui, o: &mut FirmwareOptions) {
         group(ui, "Global", false, false, |ui| {
             checkbox(ui, &info::ROUTING, &mut o.firmware_routing);
             checkbox(ui, &info::TICK, &mut o.measured_tick);
+            checkbox(ui, &info::FX_RATE, &mut o.fx_rate_match);
             checkbox(ui, &info::IDLE_SKIP, &mut o.fx_idle_skip);
         });
     });
