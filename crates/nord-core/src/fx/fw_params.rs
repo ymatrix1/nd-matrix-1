@@ -16,6 +16,24 @@ use super::fw_tone_stack::FwToneStack2;
 /// the Cmp base words of the type switch.
 pub const CMP_SLOPE: f32 = 0.05;
 
+/// VERIFIED: the compressor words the ARM and the routine never write, as the FX image row holds
+/// them (core 1 row `I1 = 0xB0168`; the five rows of both cores are identical):
+/// `SLOPE` pair `(0.75, 1.0)` at `c[-0x17]`, `REDUCTION_SCALE` `0x3C2AAAAA` (1/96) at `c[-0x15]`,
+/// `TABLE1` `0x37800000` (2^-16) at `c[-0x14]`, `LOG_GAIN` `6.0` at `c[-0x0B]`. Read by
+/// `tools/fx_compressor_row.py row` from `core1_sram.bin`; the ARM boot log writes no word at these
+/// offsets in any of the ten instances (same script, `scan`) and the routine model (`fw_compressor`)
+/// stores only `LEVEL`, `EXCESS` and `MAKEUP`; the oracle chain with these words and the port with
+/// [`compressor_for_amount_row`] null each other (`docs/research/fx-compressor-row.md`).
+pub const CMP_ROW_SLOPE: [f32; 2] = [0.75, 1.0];
+/// VERIFIED (see [`CMP_ROW_SLOPE`]): `REDUCTION_SCALE` word `c[-0x15]`.
+pub const CMP_ROW_REDUCTION_SCALE: u32 = 0x3C2A_AAAA;
+/// VERIFIED (see [`CMP_ROW_SLOPE`]): `TABLE1` word `c[-0x14]`.
+pub const CMP_ROW_TABLE1: u32 = 0x3780_0000;
+/// VERIFIED (see [`CMP_ROW_SLOPE`]): `LOG_GAIN` `c[-0x0B]`.
+pub const CMP_ROW_LOG_GAIN: f32 = 6.0;
+/// VERIFIED (see [`CMP_ROW_SLOPE`]): `SMOOTH` word `c[-0x09]` (0.99078, the delay's `K`).
+pub const CMP_ROW_SMOOTH: u32 = 0x3F7D_A3C2;
+
 /// Sets `kDlyMix` and `kDlyFbkAmt` (UI values `0..=127`) on a delay context: send `c[-0x1B]`, dry
 /// `c[4]`, feedback matrix diagonal `c[-0x1A]`, `c[-0x19]`. The delay time words are not touched
 /// (undecoded, `fx-contexts.md` s5.1).
@@ -55,6 +73,19 @@ pub fn compressor_for_amount(amount: f32) -> FwCompressor {
     }
     c.set_pair(cmp::SLOPE, CMP_SLOPE);
     set_compressor_amount(&mut c, amount, true);
+    c
+}
+
+/// [`compressor_for_amount`] with the firmware's own gain-law words ([`CMP_ROW_SLOPE`] and
+/// friends) in place of the ASSUMED ones. The `kCmpAmt` words are unchanged.
+pub fn compressor_for_amount_row(amount: f32) -> FwCompressor {
+    let mut c = compressor_for_amount(amount);
+    c.set_value(cmp::SLOPE, CMP_ROW_SLOPE[0]);
+    c.set_value(cmp::SLOPE + 1, CMP_ROW_SLOPE[1]);
+    c.set_word(cmp::REDUCTION_SCALE, CMP_ROW_REDUCTION_SCALE);
+    c.set_word(cmp::TABLE1, CMP_ROW_TABLE1);
+    c.set_value(cmp::LOG_GAIN, CMP_ROW_LOG_GAIN);
+    c.set_word(cmp::SMOOTH, CMP_ROW_SMOOTH);
     c
 }
 
@@ -98,6 +129,54 @@ mod tests {
         assert_eq!((d.value(-0x1A), d.value(-0x19)), (1.0, 1.0));
         let nonzero = d.words().iter().filter(|w| **w != 0).count();
         assert_eq!(nonzero, 4, "send, dry (2.4e-4), feedback pair");
+    }
+
+    #[test]
+    fn the_firmware_row_replaces_exactly_the_assumed_gain_law_words() {
+        let (a, f) = (compressor_for_amount(64.0), compressor_for_amount_row(64.0));
+        let diff: Vec<i32> = (-0x20..-6)
+            .filter(|o| a.words()[(o + 0x20) as usize] != f.words()[(o + 0x20) as usize])
+            .collect();
+        // SLOPE pair (right word differs only if 1.0 != 0.05: both do), REDUCTION_SCALE, TABLE1,
+        // LOG_GAIN, SMOOTH (0.9908 against the image word 0.99078).
+        assert_eq!(diff, [-0x17, -0x16, -0x15, -0x14, -0x0B, -0x09]);
+        assert_eq!(f.words()[(cmp::SLOPE + 0x20) as usize], 0.75f32.to_bits());
+        assert_eq!(f.words()[(cmp::LOG_GAIN + 0x20) as usize], 6.0f32.to_bits());
+        // the kCmpAmt words and the ARM pairs are the same
+        for o in [
+            cmp::MAKEUP_TARGET,
+            cmp::THRESHOLD,
+            cmp::ATTACK,
+            cmp::RELEASE,
+        ] {
+            assert_eq!(
+                a.words()[(o + 0x20) as usize],
+                f.words()[(o + 0x20) as usize]
+            );
+        }
+    }
+
+    #[test]
+    fn the_firmware_row_reduces_a_loud_block_by_its_own_law_not_the_assumed_one() {
+        // amount 127: threshold -36, makeup 6.72. A 0.5 peak block is 35 log2 units above the
+        // threshold: SLOPE 0.05 gives a reduction fraction of 0.875, SLOPE 0.75 saturates it.
+        let run = |mut c: FwCompressor| {
+            let mut out = 0.0f32;
+            for _ in 0..400 {
+                let mut b = [0.5f32; 8];
+                c.process_block(&mut b);
+                out = b[0];
+            }
+            out
+        };
+        let (assumed, firmware) = (
+            run(compressor_for_amount(127.0)),
+            run(compressor_for_amount_row(127.0)),
+        );
+        assert!(
+            (assumed - firmware).abs() > 0.05 * assumed.max(firmware),
+            "assumed {assumed}, firmware row {firmware}"
+        );
     }
 
     #[test]
