@@ -6,7 +6,8 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
-| [D197](#d197-native-synth-filter-gain-by-type-opt-in---synth-filter-gain-it-does-not-beat-the-single-coupling-factor-of-d194-on-the-clips-no-flip) | 2026-11-21 | Native synth filter gain by type (opt-in `--synth-filter-gain`); it does not beat the single coupling factor of D194 on the clips, no flip | proposed |
+| [D197](#d197-mod-1-calls-per-pass-the-dispatcher-calls-a-stage-once-per-pass-the-arm-stage-install-is-not-reproducible-so-the-mod1_unit_calls-flip-stays-proposed) | 2026-11-21 | Mod 1 calls per pass: the dispatcher calls a stage once per pass; the ARM stage install is not reproducible, so the `mod1_unit_calls` flip stays proposed | accepted |
+| [D198](#d198-native-synth-filter-gain-by-type-opt-in---synth-filter-gain-it-does-not-beat-the-single-coupling-factor-of-d194-on-the-clips-no-flip) | 2026-11-21 | Native synth filter gain by type (opt-in `--synth-filter-gain`); it does not beat the single coupling factor of D194 on the clips, no flip | proposed |
 | [D196](#d196-sy-pitch-entry-e-sixth-hunt-the-arm-claimed-flash-service-writes-only-the-staging-buffer-0x93ff7-image-default-of-dm0xb650f-no-arm-constant-names-the-pitch-window-the-d176-candidate-path-is-closed---sample-pitch-fw-stays-opt-in) | 2026-11-21 | SY pitch entry `e`, sixth hunt: the ARM claimed flash service writes only the staging buffer `0x93FF7`; the D176 candidate path is closed; `--sample-pitch fw` stays opt-in | proposed |
 | [D195](#d195-amp-to-rotary-type-7-is-the-leslie-chain-the-0x125142-words-are-rom-no-port-until-the-d190-install-is-found) | 2026-11-21 | Amp To Rotary (type 7) is the Leslie chain; the `0x125142` words are ROM; no port until the D190 install is found | proposed |
 | [D194](#d194-the-fitted-shape-triangle--multi--super-rows-are-the-oracle-rows-times-the-missing-filter-gain-opt-in---synth-p-coupled-and---synth-oracle-rows-times-sqrt-2-plus-the-unison-lane-weights-default-flip-is-the-owners-call) | 2026-11-21 | The fitted SHAPE triangle / MULTI / SUPER rows are the oracle rows times the missing filter gain; opt-in `--synth-p coupled` and `--synth-oracle`; flip is the owner's call | proposed |
@@ -2081,6 +2082,17 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Open:** per-voice gate (scheduler, EP DMA completion interrupt, ARM re-init burst), 129 `flash_outside` reads, layers 2 and 3.
 - **Impact:** `smpflash.rs`, `epchain.rs`, `glue.rs`, `live_flash.rs`, `live.rs`, `live_sy.rs` (`other_half`), `tools/arm_smp_flash.py`, `arm_dsp_link.py`, `arm_dsp_live.py`, `arm_dsp_route.py`; tests `smpflash`, `epchain`, `glue`, `live`, `live_smp`, `test_arm_smp_flash.py`, `test_arm_dsp_link.py`; no default, no render path touched.
 
+### D197. Mod 1 calls per pass: the dispatcher calls a stage once per pass; the ARM stage install is not reproducible, so the `mod1_unit_calls` flip stays proposed
+
+- **Status:** accepted (measurement recorded); the D186 default flip is not made and not newly proposed.
+- **Decided by:** the session working OQ38 (a measurement result, no behaviour change).
+- **Context:** D186 left the default flip of `mod1_unit_calls` blocked on one fact: how many calls per pass each Mod 1 unit gets in the firmware (OQ38 b, [fx-mod1-call-count](research/fx-mod1-call-count.md) s5b).
+- **Decision:** (1) Record the measurement of [fx-mod1-pass-calls](research/fx-mod1-pass-calls.md) with the reproducible tool `tools/fx_mod1_pass_calls.py` (`stage-writes`, `dispatch`, `install`; tests `tools/tests/test_fx_mod1_pass_calls.py`). (2) Result: one FX core 1 pass reaches the null stub 35 times (once per stage record) on the full ARM state of a real program; an installed Mod 1 routine is called once per pass at block count 2 (4 of 4 frame positions) and at block count 1 (2 of 4); the ARM writes none of the stage records in the boot script (0 of 3,499 lines) or in the program load (0 of 1,846 FX core 1 messages), so no Mod 1 routine runs in the harness pass. (3) No code change: `mod1_unit_calls` stays opt-in and off, the flip stays the owner's decision.
+- **Why:** the call count per stage is 1 (VERIFIED), but a count-1 piano row in the 4-frame FX pass leaves 2 frames unprocessed, so either the piano unit gets two stage records (H2) or the real pass is 2 frames (H3); the message stream cannot tell which.
+- **Alternatives:** count in a PNO harness (organ only, does not settle piano or synth); infer the call count from the port's design (that is the ASSUMED value we wanted to replace); flip now on the block-count evidence (rejected: the pass structure is still unmeasured).
+- **Open:** where the ARM writes the 35 stage records (OQ38 b), their input pointers per unit, the pass size of the running chip.
+- **Impact:** `tools/fx_mod1_pass_calls.py`, `tools/tests/test_fx_mod1_pass_calls.py`, [fx-mod1-pass-calls](research/fx-mod1-pass-calls.md), [fx-mod1-call-count](research/fx-mod1-call-count.md) s5b, OQ38, ROADMAP 7b.4.
+
 ### D196. SY pitch entry `e`, sixth hunt: the ARM claimed flash service writes only the staging buffer `0x93FF7` (image default of `DM(0xB650F)`), no ARM constant names the pitch window; the D176 candidate path is closed; `--sample-pitch fw` stays opt-in
 
 - **Status:** proposed 2026-11-21
@@ -2100,10 +2112,10 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** port the bank alone opt-in (rejected: no audible effect, wiring unverifiable); wait for hardware clip (needed anyway).
 - **Impact:** `docs/research/amp-types-789.md` s1, s8, follow-ups; no code change besides the doc comment.
 
-### D197. Native synth filter gain by type (opt-in `--synth-filter-gain`); it does not beat the single coupling factor of D194 on the clips, no flip
+### D198. Native synth filter gain by type (opt-in `--synth-filter-gain`); it does not beat the single coupling factor of D194 on the clips, no flip
 
 - **Status:** proposed 2026-11-21
-- **Decided by:** the task of the parent session ([synth-filter-gain-by-type](research/synth-filter-gain-by-type.md)); owner to confirm. Renumber on merge if D197 is taken.
+- **Decided by:** the task of the parent session ([synth-filter-gain-by-type](research/synth-filter-gain-by-type.md)); owner to confirm. Renumber on merge if D198 is taken.
 - **Context:** D194 found the oracle filter above the native one and replaced the three fitted rows by the oracle rows times one empirical factor (`COUPLED_FILTER_GAIN = sqrt 2`). Open step: the native filter gain by filter type, so the factor is derivable. The D194 table had no HighPass program.
 - **Decision:** (1) Per type oracle gain (22 programs through the ARM stream into ORG core 2; reduction by the new tool `synth_filter_gain`): Lp12 `+4.65 dB` (5), Lp24 `+5.26` (7), Ladder24 `+1.17` (4, bimodal `-2.2 .. +5.3`), BandPass `0.0` (1), HighPass `+3.62` (4: `+7.3`, `+4.0`, `+3.7`, `-0.6` at the 14 Hz cutoff floor); the resonance 0.95 outlier is excluded. (2) Opt-in `--synth-filter-gain` (`SynthLayer::filter_type_gain`, table `synth/filter_gain.rs`; also selects `--synth-p oracle-rows`, the oracle rows `0.4 / 1.6 / 1.9` without the factor). (3) 16 Part A synth clips on current main, mean abs RMS error: default `3.39 dB`, `--synth-oracle` (D194) `2.77`, `--synth-filter-gain` `4.08` (`+ --synth-unison-weights` `4.07`); mean score `2.708 / 2.640 / 2.685 / 2.652`. The type gain overshoots clips whose rows were never fitted behind the quiet filter (`synth_sineplk` `+3.0 -> +7.5`, `synth_12db` `+0.2 -> +4.6`). (4) Nord Sound Manager 9.22 holds only Stage 3 to Stage 4 converter classes and Sample Editor 4.36 only `.nsmp4` tooling: no probe-building use. Defaults unchanged (D22).
 - **Why:** The measurement is the oracle filter stage level, the clips measure the hardware output; they disagree by `1.5 .. 2.3 dB` per type and the single factor tracks the clips. A type constant also cannot express the cutoff dependence (wide open Ladder24, HighPass at the cutoff floor read `<= 0`).
