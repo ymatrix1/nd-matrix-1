@@ -1,0 +1,15 @@
+scenario,store,client,kind,id,name,value
+wheel:64,dsp,2,ORG,0xe0309,synth B cutoff word,0x14000000
+wheel:64,0x91097560,4,synth,0x10f,Edt_Syn_kArpRange,18.0000
+wheel:64,0x91097560,4,synth,0x122,Edt_Syn_kOscEnvAmt,22.0000
+wheel:64,0x91097560,4,synth,0x128,Edt_Syn_kOscCtrl,3.0000
+wheel:64,0x91097560,4,synth,0x138,Edt_Syn_kFltEnvAmt,41.5000
+wheel:64,0x910bf020,5,synth,0x134,Edt_Syn_kFltFreq,72.0000
+wheel:64,0x910e6ae0,6,synth,0x122,Edt_Syn_kOscEnvAmt,35.0000
+wheel:127,dsp,2,ORG,0xe0309,synth B cutoff word,0x1c000000
+wheel:127,0x91097560,4,synth,0x10f,Edt_Syn_kArpRange,29.0000
+wheel:127,0x91097560,4,synth,0x122,Edt_Syn_kOscEnvAmt,23.0000
+wheel:127,0x91097560,4,synth,0x128,Edt_Syn_kOscCtrl,6.0000
+wheel:127,0x91097560,4,synth,0x138,Edt_Syn_kFltEnvAmt,46.0000
+wheel:127,0x910bf020,5,synth,0x134,Edt_Syn_kFltFreq,80.0000
+wheel:127,0x910e6ae0,6,synth,0x122,Edt_Syn_kOscEnvAmt,40.0000

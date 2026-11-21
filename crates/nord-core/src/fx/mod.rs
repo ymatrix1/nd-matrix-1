@@ -128,6 +128,8 @@ mod tests_firmware_fx;
 #[cfg(test)]
 mod tests_fw_amp_chain;
 #[cfg(test)]
+mod tests_fw_delay_morph;
+#[cfg(test)]
 mod tests_fw_delay_time;
 #[cfg(test)]
 mod tests_fw_eq_chain;
@@ -583,6 +585,12 @@ impl LayerFxChain {
         }
         if morph_active(&m.reverb_amount) {
             self.reverb_mix = m.reverb_amount.evaluate(ctrl);
+        }
+        if morph_active(&m.delay_rate) && self.delay_rate_raw.is_some() {
+            // VERIFIED (ARM run, `docs/research/morph-fw-vs-native.md` s7): the firmware sums the
+            // depths in 14 bit steps, clamps to 0..16383 and the handler `0xC010C514` rounds the
+            // Q16.16 value to the nearest integer before the time table.
+            self.delay_rate_raw = Some((m.delay_rate.evaluate(ctrl) * 16_383.0).round() as u16);
         }
     }
 
