@@ -4,8 +4,226 @@
 //! live OLEDs, and an 88-key keybed wired to `AudioHandle` / `Stage4PanelState`.
 
 use super::prelude::*;
+use crate::audio::{FxEdit, FxFloat, SynthEdit, SynthParam, SynthTarget};
 use crate::baked::BakedPanelAssets;
 use egui::{pos2, vec2, Color32, Id, Rect, Sense, Ui};
+
+/// Apply a user edit on baked knob `idx` (`0..=30`) to `Stage4PanelState` and dispatch its
+/// corresponding real-time `AudioCommand` / `ProgramUi` / `SynthUi` edit.
+pub(crate) fn apply_baked_knob(
+    idx: usize,
+    val: f32,
+    delta: f32,
+    shift: bool,
+    state: &mut Stage4PanelState,
+    audio_handle: &AudioHandle,
+) {
+    let synth_layer = SynthTarget::Layer(state.synth_ui.focus.min(2) as u8);
+    let send_eq = |s: &Stage4PanelState| {
+        audio_handle.send_command(AudioCommand::SetFxEq {
+            drive: s.eq_drive,
+            bass: s.eq_bass,
+            mid: s.eq_mid,
+            mid_freq: s.eq_mid_freq,
+            treble: s.eq_treble,
+        });
+    };
+    match idx {
+        0 => {
+            state.master_volume = val;
+            audio_handle.send_command(AudioCommand::SetMasterVolume(val));
+        }
+        1 => {
+            state.rotary_drive = val;
+            audio_handle.send_command(AudioCommand::SetRotaryDrive(val));
+        }
+        2 => {
+            let steps = (delta * 8.0).trunc() as i32;
+            if steps != 0 {
+                let cats = [
+                    PianoCategory::Grand,
+                    PianoCategory::Upright,
+                    PianoCategory::Electric,
+                    PianoCategory::Clav,
+                    PianoCategory::Digital,
+                    PianoCategory::Misc,
+                ];
+                let cur = cats.iter().position(|&c| c == state.piano_cat).unwrap_or(0) as i32;
+                let next = (cur + steps).rem_euclid(cats.len() as i32) as usize;
+                state.piano_cat = cats[next];
+                audio_handle.send_command(AudioCommand::SetPianoCategory(state.piano_cat));
+            }
+        }
+        3 => {
+            let steps = (delta * 8.0).trunc() as i32;
+            if steps != 0 {
+                for cmd in state.program_ui.dial(steps, shift) {
+                    audio_handle.send_command(cmd);
+                }
+                let loc = state.program_ui.browse;
+                state.prog_id = loc.label();
+                let name = super::bay_program::oled::name_at(&state.program_ui, loc);
+                if !name.is_empty() {
+                    state.prog_title = name;
+                }
+            }
+        }
+        4..=6 => {
+            let dial_idx = idx - 4;
+            state.synth_ui.dial_acc[dial_idx] += delta * 6.0;
+            let steps = state.synth_ui.dial_acc[dial_idx].trunc();
+            state.synth_ui.dial_acc[dial_idx] -= steps;
+            if steps != 0.0 {
+                state.synth_ui.turn_dial(dial_idx, steps as i32, shift);
+                for e in state.synth_ui.take_edits() {
+                    audio_handle.send_command(AudioCommand::Synth(e));
+                }
+            }
+        }
+        7 => {
+            audio_handle.send_command(AudioCommand::Synth(SynthEdit::Param(
+                synth_layer,
+                SynthParam::ArpRate(val),
+            )));
+        }
+        8 => {
+            let range = 1 + (val.clamp(0.0, 1.0) * 3.0).round() as u8;
+            audio_handle.send_command(AudioCommand::Synth(SynthEdit::Param(
+                synth_layer,
+                SynthParam::ArpRange(range),
+            )));
+        }
+        9 => {
+            audio_handle.send_command(AudioCommand::Synth(SynthEdit::Param(
+                synth_layer,
+                SynthParam::Glide(val),
+            )));
+        }
+        10 => {
+            audio_handle.send_command(AudioCommand::Synth(SynthEdit::Param(
+                synth_layer,
+                SynthParam::LfoAmount(val),
+            )));
+        }
+        11 => {
+            audio_handle.send_command(AudioCommand::Synth(SynthEdit::Param(
+                synth_layer,
+                SynthParam::LfoRate(val),
+            )));
+        }
+        12 => {
+            state.synth_detune = val;
+            audio_handle.send_command(AudioCommand::SetSynthDetune(val));
+        }
+        13 => {
+            audio_handle.send_command(AudioCommand::Synth(SynthEdit::Param(
+                synth_layer,
+                SynthParam::OscEnvAmount(val * 2.0 - 1.0),
+            )));
+        }
+        14 => {
+            audio_handle.send_command(AudioCommand::Synth(SynthEdit::Param(
+                synth_layer,
+                SynthParam::FilterEnvAmount(val),
+            )));
+        }
+        15 => {
+            state.synth_cutoff = val;
+            audio_handle.send_command(AudioCommand::SetSynthCutoff(val));
+        }
+        16 => {
+            state.synth_resonance = val;
+            audio_handle.send_command(AudioCommand::SetSynthResonance(val));
+        }
+        17 => {
+            state.mod1_rate = val;
+            audio_handle.send_command(AudioCommand::SetFxMod1 {
+                kind: state.mod1_type,
+                rate: val,
+                amount: state.mod1_amount,
+            });
+        }
+        18 => {
+            state.mod1_amount = val;
+            audio_handle.send_command(AudioCommand::SetFxMod1 {
+                kind: state.mod1_type,
+                rate: state.mod1_rate,
+                amount: val,
+            });
+        }
+        19 => {
+            state.mod2_rate = val;
+            audio_handle.send_command(AudioCommand::SetFxMod2 {
+                kind: state.mod2_type,
+                rate: val,
+                amount: state.mod2_amount,
+            });
+        }
+        20 => {
+            state.mod2_amount = val;
+            audio_handle.send_command(AudioCommand::SetFxMod2 {
+                kind: state.mod2_type,
+                rate: state.mod2_rate,
+                amount: val,
+            });
+        }
+        21 => {
+            state.eq_drive = val;
+            send_eq(state);
+        }
+        22 => {
+            state.eq_mid_freq = val;
+            send_eq(state);
+        }
+        23 => {
+            state.eq_bass = val;
+            send_eq(state);
+        }
+        24 => {
+            state.eq_mid = val;
+            send_eq(state);
+        }
+        25 => {
+            state.eq_treble = val;
+            send_eq(state);
+        }
+        26 => {
+            audio_handle.send_command(AudioCommand::Fx(FxEdit::Float {
+                slot: state.fx_focus.min(5) as u8,
+                param: FxFloat::DelayTime,
+                value: val,
+            }));
+        }
+        27 => {
+            state.delay_feedback = val;
+            audio_handle.send_command(AudioCommand::SetFxDelay {
+                enabled: state.delay_on,
+                feedback: val,
+                mix: state.delay_mix,
+            });
+        }
+        28 => {
+            state.delay_mix = val;
+            audio_handle.send_command(AudioCommand::SetFxDelay {
+                enabled: state.delay_on,
+                feedback: state.delay_feedback,
+                mix: val,
+            });
+        }
+        29 => {
+            state.master_comp = val;
+            audio_handle.send_command(AudioCommand::SetMasterComp(val));
+        }
+        30 => {
+            state.reverb_mix = val;
+            audio_handle.send_command(AudioCommand::SetFxReverb {
+                model: state.reverb_model,
+                mix: val,
+            });
+        }
+        _ => {}
+    }
+}
 
 fn norm_rect(x: f32, y: f32, w: f32, h: f32, container: Rect) -> Rect {
     Rect::from_min_size(
@@ -194,30 +412,20 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             };
             ui.ctx()
                 .data_mut(|d| d.insert_temp(knob_vals_id.with(k.index), val));
-            match k.index {
-                0 => {
-                    state.master_volume = val;
-                    audio_handle.send_command(AudioCommand::SetMasterVolume(val));
-                }
-                1 => {
-                    state.rotary_drive = val;
-                    audio_handle.send_command(AudioCommand::SetRotaryDrive(val));
-                }
-                4..=6 => {
-                    let dial_idx = k.index - 4;
-                    state.synth_ui.dial_acc[dial_idx] += delta * 6.0;
-                    let steps = state.synth_ui.dial_acc[dial_idx].trunc();
-                    state.synth_ui.dial_acc[dial_idx] -= steps;
-                    if steps != 0.0 {
-                        let shift = ui.input(|i| i.modifiers.shift);
-                        state.synth_ui.turn_dial(dial_idx, steps as i32, shift);
-                        for e in state.synth_ui.take_edits() {
-                            audio_handle.send_command(AudioCommand::Synth(e));
-                        }
-                    }
-                }
-                _ => {}
-            }
+            let shift = ui.input(|i| i.modifiers.shift);
+            // Accumulate small encoder drags so every tick steps cleanly (Program & Piano encoders).
+            let enc_delta = if k.index == 2 || k.index == 3 {
+                let acc_id = Id::new("ns4_baked_enc_acc").with(k.index);
+                let mut acc = ui.ctx().data(|d| d.get_temp::<f32>(acc_id).unwrap_or(0.0));
+                acc += delta;
+                let whole = (acc * 8.0).trunc() / 8.0;
+                acc -= whole;
+                ui.ctx().data_mut(|d| d.insert_temp(acc_id, acc));
+                whole
+            } else {
+                delta
+            };
+            apply_baked_knob(k.index, val, enc_delta, shift, state, audio_handle);
         }
         let angle = if k.encoder {
             val * std::f32::consts::TAU
@@ -300,17 +508,45 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                     led_states[li].0 = !led_states[li].0;
                     let on = led_states[li].0;
                     match id {
-                        "org-a" => state.organ_a_active = on,
-                        "org-b" => state.organ_b_active = on,
-                        "pno-a" => state.piano_a_active = on,
-                        "pno-b" => state.piano_b_active = on,
-                        "syn-a" => state.synth_a_active = on,
-                        "syn-b" => state.synth_b_active = on,
-                        "syn-c" => state.synth_c_active = on,
+                        "org-a" => {
+                            state.organ_a_active = on;
+                            audio_handle.send_command(AudioCommand::SetLayerActive(0, on));
+                        }
+                        "org-b" => {
+                            state.organ_b_active = on;
+                            audio_handle.send_command(AudioCommand::SetLayerActive(1, on));
+                        }
+                        "pno-a" => {
+                            state.piano_a_active = on;
+                            audio_handle.send_command(AudioCommand::SetLayerActive(2, on));
+                        }
+                        "pno-b" => {
+                            state.piano_b_active = on;
+                            audio_handle.send_command(AudioCommand::SetLayerActive(3, on));
+                        }
+                        "syn-a" => {
+                            state.synth_a_active = on;
+                            audio_handle.send_command(AudioCommand::SetLayerActive(4, on));
+                        }
+                        "syn-b" => {
+                            state.synth_b_active = on;
+                            audio_handle.send_command(AudioCommand::SetLayerActive(5, on));
+                        }
+                        "syn-c" => {
+                            state.synth_c_active = on;
+                            audio_handle.send_command(AudioCommand::SetLayerActive(6, on));
+                        }
                         "m-whl" => state.morph_wheel_active = on,
                         "m-at" => state.morph_at_active = on,
                         "m-ped" => state.morph_ctrl_active = on,
-                        "dly-on" => state.delay_on = on,
+                        "dly-on" => {
+                            state.delay_on = on;
+                            audio_handle.send_command(AudioCommand::SetFxDelay {
+                                enabled: on,
+                                feedback: state.delay_feedback,
+                                mix: state.delay_mix,
+                            });
+                        }
                         "rotary-stop" => state.rotary_stop = on,
                         _ => {}
                     }
@@ -895,6 +1131,30 @@ mod tests {
             assert!(
                 tri_groups.contains(expected),
                 "missing triangular LED group {expected}"
+            );
+        }
+    }
+
+    #[test]
+    fn every_baked_knob_dispatches_real_audio_or_program_change() {
+        let ctx = egui::Context::default();
+        let assets = BakedPanelAssets::get_or_load(&ctx);
+        assert_eq!(assets.layout.knobs.len(), 31, "expected all 31 panel knobs");
+
+        for k in &assets.layout.knobs {
+            let mut state = Stage4PanelState::default();
+            let (audio, rx) = AudioHandle::new();
+            let before_loc = state.program_ui.browse;
+
+            apply_baked_knob(k.index, 0.73, 0.25, false, &mut state, &audio);
+
+            let cmds: Vec<_> = rx.try_iter().collect();
+            let program_moved = state.program_ui.browse != before_loc;
+            assert!(
+                !cmds.is_empty() || program_moved,
+                "knob {} (encoder={}) produced neither an AudioCommand nor a ProgramUi navigation",
+                k.index,
+                k.encoder
             );
         }
     }
