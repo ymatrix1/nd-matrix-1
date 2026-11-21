@@ -1135,12 +1135,19 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             });
         }
     }
-    // Render pressed keys matching HTML/CSS .key-white.active & .key-black.active.
-    // Clipped strictly to `keys_bbox` so pressed keys never bleed over the red felt lip, and
-    // overlapping unpressed black keys are re-painted verbatim from `panel_plate_2x.png`.
+    // Render pressed keys matching HTML/CSS .key-white.active & .key-black.active verbatim:
+    // - Clipped at `keys_bbox.top()` so keys never bleed over the red felt lip, while allowing
+    //   `shift_y` (2px) downward travel into the black bottom trim (CSS `transform: translateY(2px)`).
+    // - White keys use the exact CSS 4-stop vertical gradient + 1px bottom lip + side recession shadows.
+    // - Overlapping unpressed black keys restore their drop shadow and verbatim baked Fatar TP/40 pixels.
+    // - Pressed black keys translate their verbatim baked pixels down 2px with CSS active inset shadows.
     if keys_bbox.is_positive() {
-        let key_p = p.with_clip_rect(keys_bbox);
-        let shift_y = 2.0 * scale_x;
+        let shift_y = (2.0 * scale_x).max(1.5);
+        let key_clip = Rect::from_min_max(
+            keys_bbox.min,
+            pos2(keys_bbox.max.x, keys_bbox.max.y + shift_y),
+        );
+        let key_p = p.with_clip_rect(key_clip);
         let mut pressed_white_rects: Vec<Rect> = Vec::new();
         for key in &assets.layout.keys {
             if key.black {
@@ -1152,22 +1159,60 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             if is_pressed {
                 let r = norm_rect(key.x, key.y, key.w, key.h, plate_rect);
                 pressed_white_rects.push(r);
-                let r_down = r.translate(vec2(0.0, shift_y));
-                // Pressed ivory body (.key-white.active) + top depression shadow under felt lip
-                key_p.rect_filled(r_down, 2.0 * scale_x, Color32::from_rgb(228, 226, 219));
+                // Recessed gap under the red felt lip where the key dropped down
                 key_p.rect_filled(
-                    Rect::from_min_size(r.left_top(), vec2(r.width(), 5.0 * scale_x)),
+                    Rect::from_min_max(r.left_top(), pos2(r.right(), r.top() + shift_y + 1.0)),
                     0.0,
-                    Color32::from_black_alpha(55),
+                    Color32::from_rgb(138, 136, 129),
                 );
-                key_p.rect_stroke(
+                let r_down = r.translate(vec2(0.0, shift_y));
+                // Exact CSS `.key-white.active` vertical gradient:
+                // linear-gradient(180deg, #cfcdc6 0%, #e4e2db 20%, #ebe9e2 88%, #d2d0c8 100%)
+                paint_vertical_gradient(
+                    &key_p,
                     r_down,
-                    2.0 * scale_x,
-                    egui::Stroke::new(1.0, Color32::from_rgb(156, 154, 146)),
-                    egui::StrokeKind::Inside,
+                    &[
+                        (0.00, Color32::from_rgb(0xcf, 0xcd, 0xc6)),
+                        (0.20, Color32::from_rgb(0xe4, 0xe2, 0xdb)),
+                        (0.88, Color32::from_rgb(0xeb, 0xe9, 0xe2)),
+                        (1.00, Color32::from_rgb(0xd2, 0xd0, 0xc8)),
+                    ],
+                );
+                // Top felt-lip cast shadow + left/right neighbor-wall recession shadows
+                key_p.rect_filled(
+                    Rect::from_min_size(r_down.left_top(), vec2(r_down.width(), 3.0 * scale_x)),
+                    0.0,
+                    Color32::from_black_alpha(38),
+                );
+                let side_w = (1.5 * scale_x).max(1.0);
+                key_p.rect_filled(
+                    Rect::from_min_size(r_down.left_top(), vec2(side_w, r_down.height())),
+                    0.0,
+                    Color32::from_black_alpha(28),
+                );
+                key_p.rect_filled(
+                    Rect::from_min_max(
+                        pos2(r_down.right() - side_w, r_down.top()),
+                        r_down.right_bottom(),
+                    ),
+                    0.0,
+                    Color32::from_black_alpha(28),
+                );
+                // CSS `border-right: 1px solid #9c9a92` & `border-bottom: 1px solid #bdbbb2`
+                key_p.line_segment(
+                    [r_down.right_top(), r_down.right_bottom()],
+                    egui::Stroke::new(1.0, Color32::from_rgb(0x9c, 0x9a, 0x92)),
+                );
+                key_p.line_segment(
+                    [
+                        pos2(r_down.left(), r_down.bottom() - 0.5),
+                        pos2(r_down.right(), r_down.bottom() - 0.5),
+                    ],
+                    egui::Stroke::new(1.0, Color32::from_rgb(0xa4, 0xa2, 0x99)),
                 );
             }
         }
+        let plate_down = plate_rect.translate(vec2(0.0, shift_y));
         for key in &assets.layout.keys {
             if !key.black {
                 continue;
@@ -1178,23 +1223,91 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             let r = norm_rect(key.x, key.y, key.w, key.h, plate_rect);
             let overlaps_pressed_white = pressed_white_rects.iter().any(|wr| wr.intersects(r));
             if is_pressed {
-                let r_down = r.translate(vec2(0.0, shift_y));
-                key_p.rect_filled(r_down, 2.0 * scale_x, Color32::from_rgb(22, 24, 28));
+                // Darken the recessed top gap under the felt lip
                 key_p.rect_filled(
-                    r_down.shrink2(vec2(2.0 * scale_x, 3.0 * scale_x)),
-                    1.5 * scale_x,
-                    Color32::from_rgb(36, 40, 46),
-                );
-                key_p.rect_filled(
-                    Rect::from_min_size(r.left_top(), vec2(r.width(), 4.0 * scale_x)),
+                    Rect::from_min_max(r.left_top(), pos2(r.right(), r.top() + shift_y + 1.0)),
                     0.0,
-                    Color32::from_black_alpha(95),
+                    Color32::from_rgb(10, 11, 13),
+                );
+                // Paint verbatim baked Fatar TP/40 black key shifted down by `shift_y`
+                assets.paint_plate_region(&key_p, plate_down, key.x, key.y, key.w, key.h);
+                let r_down = r.translate(vec2(0.0, shift_y));
+                // CSS `.key-black.active`: inset top shadow + shorter pressed front skirt
+                key_p.rect_filled(
+                    Rect::from_min_size(r_down.left_top(), vec2(r_down.width(), 3.5 * scale_x)),
+                    0.0,
+                    Color32::from_black_alpha(150),
+                );
+                let skirt_h = (10.0 * scale_x).min(r_down.height() * 0.25);
+                key_p.rect_filled(
+                    Rect::from_min_max(
+                        pos2(r_down.left() + 1.0, r_down.bottom() - skirt_h),
+                        pos2(r_down.right() - 1.0, r_down.bottom() - 1.0),
+                    ),
+                    0.0,
+                    Color32::from_rgba_unmultiplied(0x18, 0x1a, 0x1f, 165),
+                );
+                key_p.line_segment(
+                    [
+                        pos2(r_down.left() + 2.0, r_down.bottom() - skirt_h),
+                        pos2(r_down.right() - 2.0, r_down.bottom() - skirt_h),
+                    ],
+                    egui::Stroke::new(1.0, Color32::from_white_alpha(26)),
                 );
             } else if overlaps_pressed_white {
+                // Restore CSS `.key-black` drop shadow over the pressed white key before painting the black key
+                key_p.rect_filled(
+                    r.translate(vec2(1.5 * scale_x, 2.0 * scale_x)),
+                    2.5 * scale_x,
+                    Color32::from_black_alpha(115),
+                );
+                key_p.rect_filled(
+                    r.translate(vec2(-scale_x, scale_x)),
+                    2.5 * scale_x,
+                    Color32::from_black_alpha(75),
+                );
                 assets.paint_plate_region(&key_p, plate_rect, key.x, key.y, key.w, key.h);
             }
         }
     }
+}
+
+/// Paint a smooth vertical multi-stop linear gradient inside `rect` using a vertex-colored `egui::Mesh`.
+fn paint_vertical_gradient(painter: &Painter, rect: Rect, stops: &[(f32, Color32)]) {
+    if stops.len() < 2 || !rect.is_positive() {
+        return;
+    }
+    let mut mesh = egui::Mesh::default();
+    for pair in stops.windows(2) {
+        let (t0, c0) = pair[0];
+        let (t1, c1) = pair[1];
+        let y0 = rect.top() + rect.height() * t0;
+        let y1 = rect.top() + rect.height() * t1;
+        let base = mesh.vertices.len() as u32;
+        mesh.vertices.push(egui::epaint::Vertex {
+            pos: pos2(rect.left(), y0),
+            uv: egui::epaint::WHITE_UV,
+            color: c0,
+        });
+        mesh.vertices.push(egui::epaint::Vertex {
+            pos: pos2(rect.right(), y0),
+            uv: egui::epaint::WHITE_UV,
+            color: c0,
+        });
+        mesh.vertices.push(egui::epaint::Vertex {
+            pos: pos2(rect.right(), y1),
+            uv: egui::epaint::WHITE_UV,
+            color: c1,
+        });
+        mesh.vertices.push(egui::epaint::Vertex {
+            pos: pos2(rect.left(), y1),
+            uv: egui::epaint::WHITE_UV,
+            color: c1,
+        });
+        mesh.add_triangle(base, base + 1, base + 2);
+        mesh.add_triangle(base, base + 2, base + 3);
+    }
+    painter.add(egui::Shape::mesh(mesh));
 }
 
 #[cfg(test)]
