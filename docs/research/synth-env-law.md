@@ -61,7 +61,7 @@ All 8 attack coefficients agree to 3 digits; the level at key off agrees within 
 
 ## 6. Implications
 
-- Opt-in `--synth-fw-adr-law` (`synth/fw_adr_law.rs`, `SynthLayer::fw_adr_law`, D205) applies the three facts: per voice amp attack `b = ATTACK_B[floor(w G / 128)]`, filter attack `ATTACK_B[w]`, decay record `thr = 0.5` in both chains (also Hold). Default unchanged.
+- Opt-in `--synth-fw-adr-law` (`synth/fw_adr_law.rs`, `SynthLayer::fw_adr_law`, D207) applies the three facts: per voice amp attack `b = ATTACK_B[floor(w G / 128)]`, filter attack `ATTACK_B[w]`, decay record `thr = 0.5` in both chains (also Hold). Default unchanged.
 - The default strip chain attack and decay / release times are off between plateau anchors (section 4). Fixing them changes every default render: owner's call after a clip score.
 
 ## 7. Follow-ups

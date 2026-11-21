@@ -46,9 +46,10 @@ impl Stage4Engine {
         }
 
         if self.firmware_morph {
-            self.synth_morph[0].apply(&ctrl, &mut self.synth_a);
-            self.synth_morph[1].apply(&ctrl, &mut self.synth_b);
-            self.synth_morph[2].apply(&ctrl, &mut self.synth_c);
+            let osc_env = self.synth_osc_env_morph;
+            self.synth_morph[0].apply_with(&ctrl, &mut self.synth_a, osc_env);
+            self.synth_morph[1].apply_with(&ctrl, &mut self.synth_b, osc_env);
+            self.synth_morph[2].apply_with(&ctrl, &mut self.synth_c, osc_env);
         }
 
         let mut raw_layers = [

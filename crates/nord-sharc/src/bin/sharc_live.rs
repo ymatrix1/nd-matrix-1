@@ -1,4 +1,4 @@
-//! `sharc-live IMAGE [--pno|--org|--sy|--smp] [--epdma] [--epchain] [--isrs N] [--ring-dma] [--probe PC]... [--lane SET:PAIR]
+//! `sharc-live IMAGE [--pno|--org|--sy|--smp] [--epdma] [--epchain] [--isrs N] [--fifo-pace N] [--ring-dma] [--probe PC]... [--lane SET:PAIR]
 //! [--window ADDR:COUNT:STRIDE]`: one DSP
 //! chip as a line-protocol server (D138). The ARM harness (`tools/arm_dsp_link.py`) writes the
 //! messages the firmware sends (`M W1 W2`), asks for passes (`P N`) and reads the summary lines;
@@ -26,6 +26,8 @@ struct Parsed {
     preset: &'static str,
     /// Audio frames per pass of the SY chip (`--isrs N`, default 2, D153).
     isrs: u32,
+    /// ARM pacing of the SY/SMP FIFO, pairs per audio interrupt (`--fifo-pace N`, 0 = off, D200).
+    pace: usize,
 }
 
 fn parse(args: &[String]) -> Result<Parsed, String> {
@@ -37,6 +39,7 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
         window: None,
         preset: "pno",
         isrs: 2,
+        pace: 0,
     };
     let mut it = args.iter();
     while let Some(a) = it.next() {
@@ -57,6 +60,13 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
                     [a, n, st] if n > 0 && st > 0 && n <= 64 => p.window = Some((a, n, st)),
                     _ => return Err(bad()),
                 }
+            }
+            "--fifo-pace" => {
+                p.pace = it
+                    .next()
+                    .and_then(|v| v.parse().ok())
+                    .filter(|n| *n <= 64)
+                    .ok_or("--fifo-pace needs 0..64")?;
             }
             "--isrs" => {
                 p.isrs = it
@@ -88,7 +98,7 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
         }
     }
     if p.image.is_empty() {
-        return Err("usage: sharc-live IMAGE [--pno|--org|--sy|--smp] [--epdma] [--epchain] [--isrs N] [--ring-dma] [--probe PC]... [--lane SET:PAIR] [--window ADDR:COUNT:STRIDE]".into());
+        return Err("usage: sharc-live IMAGE [--pno|--org|--sy|--smp] [--epdma] [--epchain] [--isrs N] [--fifo-pace N] [--ring-dma] [--probe PC]... [--lane SET:PAIR] [--window ADDR:COUNT:STRIDE]".into());
     }
     Ok(p)
 }
@@ -105,10 +115,14 @@ fn serve(args: &[String]) -> Result<(), String> {
         irq: periph.start_status(p.irq),
     };
     let mut live = Live::new(core, cfg, p.ping_pong, a.lane, a.probes);
+    let paced = |mut m: SyModel| {
+        m.pace = a.pace;
+        m
+    };
     if p.smp {
-        live = live.with_sy(SyModel::smp(a.isrs));
+        live = live.with_sy(paced(SyModel::smp(a.isrs)));
     } else if p.sy {
-        live = live.with_sy(SyModel::new(a.isrs));
+        live = live.with_sy(paced(SyModel::new(a.isrs)));
     }
     if let Some((addr, n, st)) = a.window {
         live = live.with_window(addr, n, st);
@@ -190,6 +204,10 @@ mod tests {
         assert_eq!((a.preset, a.isrs, a.periph.epchain), ("sy", 1, true));
         assert_eq!(parse(&args(&["sy.bin", "--sy"])).unwrap().isrs, 2);
         assert_eq!(parse(&args(&["smp.bin", "--smp"])).unwrap().preset, "smp");
+        let paced = parse(&args(&["smp.bin", "--smp", "--fifo-pace", "1"])).unwrap();
+        assert_eq!(paced.pace, 1);
+        assert_eq!(parse(&args(&["smp.bin", "--smp"])).unwrap().pace, 0);
+        assert!(parse(&args(&["smp.bin", "--fifo-pace", "65"])).is_err());
     }
 
     #[test]

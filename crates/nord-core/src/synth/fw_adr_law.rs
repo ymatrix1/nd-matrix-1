@@ -1,4 +1,4 @@
-//! Oracle envelope law of the ORG core 2 amp chain (opt-in `SynthLayer::fw_adr_law`, D205).
+//! Oracle envelope law of the ORG core 2 amp chain (opt-in `SynthLayer::fw_adr_law`, D207).
 //!
 //! Two facts measured with the SHARC oracle (`tools/synth_env_law.py`, one run per row: the ARM
 //! rate words injected, the note keyed with the captured key word whose byte 1 is `0x80 + g`,
@@ -29,7 +29,7 @@ use super::{StripVoice, SynthLayer};
 /// `g = 127`, `python tools/synth_env_law.py grid`), 6 significant digits, test
 /// `attack_table_equals_the_oracle_csv`. The older `fw_env_rates.rs` table is the same sweep read
 /// 3 passes after each poke, before the installer rewrote the coefficient (every 16th pass): it
-/// holds one value over 5 or 6 indexes and is up to 2.1 times too high in between (D205).
+/// holds one value over 5 or 6 indexes and is up to 2.1 times too high in between (D207).
 const ATTACK_B: [f32; 128] = [
     9.21616e-2, 7.57028e-2, 6.24776e-2, 5.17954e-2, 4.31244e-2, 3.60526e-2, 3.02589e-2, 2.54918e-2,
     2.15531e-2, 1.82859e-2, 1.55655e-2, 1.32919e-2, 1.13852e-2, 9.78071e-3, 8.42615e-3, 7.27902e-3,

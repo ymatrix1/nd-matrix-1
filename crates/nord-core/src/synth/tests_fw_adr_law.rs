@@ -1,4 +1,4 @@
-//! Engine-level tests of the opt-in oracle envelope law (`fw_adr_law.rs`, D205).
+//! Engine-level tests of the opt-in oracle envelope law (`fw_adr_law.rs`, D207).
 
 use super::fw_velocity::key_byte;
 use super::*;

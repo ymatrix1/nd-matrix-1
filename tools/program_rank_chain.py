@@ -38,6 +38,7 @@ WINDOW = "0xC1F89:8:1"
 # the plain census. 15,000 ticks = 0.625 s = 1.25 beats at 120 bpm.
 ARP_KEY_TICKS = 15_000
 CHAINS = ("PNO1", "PNO2", "ORG2", "SY0")
+SMP_FIELDS = ("kind", "peak_dbfs", "fundamental_cycles", "words")
 SY_FIELDS = ("prepare", "go", "peak", "audio_ticks", "first_audio_tick", "voice0_playing_tick")
 
 
@@ -46,8 +47,11 @@ def entry_of(program: Path) -> str:
     return f"Program/{program.parent.name}/{program.stem}.ns4p"
 
 
-def chips_for(engines: list[str]) -> list[str]:
+def chips_for(engines: list[str], smp: bool = False) -> list[str]:
     """Chips a program needs: the tap of each engine in scene I (`none` and piano: PNO1 only).
+
+    With `smp` (the `--smp` image is given) a piano program also runs the SMP chip: its post
+    stage ring is the piano chain tap (D205).
 
     PNO core 1 carries the organ lane, PNO core 2 the synth voice window, SY the sample voices
     (ORG core 2 never receives a key word, D144, so it is not run). Fewer chips cost less CPU.
@@ -59,6 +63,8 @@ def chips_for(engines: list[str]) -> list[str]:
         chips.append("PNO2")
     if "sample" in engines:
         chips.append("SY0")
+    if smp and "piano" in engines:
+        chips.append("SMP0")
     return chips
 
 
@@ -68,6 +74,7 @@ def chip_args(ns: argparse.Namespace, chips: list[str]) -> list[str]:
         "PNO1": f"PNO:1=pno={ns.pno1}",
         "PNO2": f"PNO:2=org={ns.pno2}={WINDOW}",
         "SY0": f"SY:0=sy={ns.sy}",
+        "SMP0": f"SMP:0=smp={getattr(ns, 'smp', None)}",
     }
     return [a for c in chips for a in ("--chip", spec[c])]
 
@@ -93,6 +100,8 @@ def live_command(
     cmd += chip_args(ns, chips)
     if "SY0" in chips:
         cmd.append("--sy-timeline")
+    if "SMP0" in chips:  # the program's piano sound is served as the SMP flash (D191, D205)
+        cmd += ["--piano-bind", str(ns.backup)]
     if key_ticks:
         cmd += ["--key-ticks", str(key_ticks)]
     return [*cmd, "--return-path"] if audio else cmd
@@ -110,8 +119,10 @@ def extract(result: dict) -> dict:
             "passes": c["passes"], "halted": c["halted"], "errors": len(c["errors"]),
         }  # fmt: skip
     sy = result.get("sy_timeline") or {}
+    tap = (result.get("smp_flash") or {}).get("tap") or {}
     return {
         "chips": chips,
+        "smp": {k: tap.get(k) for k in SMP_FIELDS} if tap else None,
         "sy": {k: sy.get(k) for k in SY_FIELDS},
         "flagged_layers": len(result.get("flagged_layers") or []),
         "arm_messages": result.get("arm_messages", {}),
@@ -205,6 +216,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
     ap.add_argument("--out", type=Path, required=True)
     for name in ("fw-dir", "eeprom", "backup", "pno1", "pno2", "sy", "live"):
         ap.add_argument(f"--{name}", type=Path, required=True)
+    ap.add_argument("--smp", type=Path, help="SMP image: piano programs also run the SMP chip")
     ap.add_argument("--audio-for", type=Path, help="file with one backup entry name per line")
     ap.add_argument("--native", type=Path, required=True, help="program_rank lines (engines)")
     ap.add_argument("--expect", type=Path, help="program_expect.py lines (arp: longer hold)")
@@ -235,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
                 ns,
                 p,
                 entry_of(p) in audio,
-                chips_for(engine_of[entry_of(p)]),
+                chips_for(engine_of[entry_of(p)], ns.smp is not None),
                 key_ticks_for(expect.get(entry_of(p))),
             )
             for p in todo

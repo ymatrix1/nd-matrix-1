@@ -17,11 +17,11 @@ Native synth envelope equals the ORG core 2 oracle (audio-remaining row 3).
 - [x] Amp attack law verified with the oracle on keys 36 / 60 / 84 and 9 key bytes; EMPIRICAL upgraded to VERIFIED with the corrected law `floor(w G / 128)`
 - [x] Decay sustain verified (0.5000 on both chains), ARM write check
 - [x] Opt-in `--synth-fw-adr-law` in native with per-program native vs oracle numbers
-- [x] Tests, research note, DECISIONS D205, spec `synth-engine.md` 4.8
+- [x] Tests, research note, DECISIONS D207, spec `synth-engine.md` 4.8
 - [ ] CI green, PR merged
 
 ## Out of Scope
 Default flips; the settled decay / release table; LFO and input gain into the cutoff (another session).
 
 ## Summary of Changes
-See `docs/research/synth-env-law.md` and D205.
+See `docs/research/synth-env-law.md` and D207.

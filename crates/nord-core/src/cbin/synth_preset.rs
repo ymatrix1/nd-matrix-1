@@ -6,9 +6,9 @@
 use super::bitstream::{BitReader, BitWriter};
 use super::container::CbinError;
 use super::presets::{
-    encode_signed, prepare_buffer, read_morph, table_val_to_idx, write_morph, FxDecoded,
-    MorphDeltas, ENV_ATTACK_MS_TABLE, ENV_DECAY_MS_TABLE, ENV_RELEASE_MS_TABLE,
-    FILTER_CUTOFF_HZ_TABLE, LFO_RATE_HZ_TABLE,
+    encode_signed, prepare_buffer, read_deltas, read_morph, table_val_to_idx, write_deltas,
+    write_morph, FxDecoded, MorphDeltas, ENV_ATTACK_MS_TABLE, ENV_DECAY_MS_TABLE,
+    ENV_RELEASE_MS_TABLE, FILTER_CUTOFF_HZ_TABLE, LFO_RATE_HZ_TABLE,
 };
 use super::synth_arp::SynthArpDecoded;
 use super::synth_osc::map_osc_mode_and_wave;
@@ -18,6 +18,12 @@ use super::synth_raw::{filter_model_of_type, filter_type_bits, hinted_idx, Synth
 use crate::synth::arp_rate::{arp_bpm_from_raw, arp_raw_from_bpm};
 use crate::synth::{EnvKnobs, FilterModel, StripKnobs, SynthOscMode, VaWaveform};
 use serde::{Deserialize, Serialize};
+
+/// VERIFIED: stored morph words of Osc Env Amount hold `depth + 120` (8 bits at `+99 / +107 / +115`);
+/// the ARM cells of FM Harpies layer A `[21, 2, 0, 0]` and layer C `[30, 10, 0, 0]` equal the
+/// decoded words, checked by the decoder test `osc_env_amount_morph_words_decode_as_arm_depths`
+/// (`docs/research/morph-fw-vs-native.md` s8, ARM runs of `tools/arm_program_morph.py --cells`).
+pub(super) const OSC_ENV_AMT_MORPH_MAX: u32 = 120;
 
 /// Decoded single Synth layer configuration (`0x32` Layer + `0x2F` Sound).
 ///
@@ -85,6 +91,11 @@ pub struct SynthLayerDecoded {
     pub lfo_amount_morph: MorphDeltas,
     /// Filter Env Amount morph deltas (`Edt_Syn_kFltEnvAmt`, sound `+294`). The engine has no slot.
     pub filter_env_amount_morph: MorphDeltas,
+    /// Osc Env Amount morph deltas (`Edt_Syn_kOscEnvAmt`, sound `+99 / +107 / +115`, 8 bit words
+    /// that store `depth + 120`): normalized by 120, so `wheel * 120` is the depth in stored
+    /// amount steps (`raw / 6` = panel units, range `-60..60`). Played by the opt-in
+    /// `Stage4Engine::synth_osc_env_morph` (`synth_morph.rs`, D206).
+    pub osc_env_amount_morph: MorphDeltas,
     /// Stored table indices and filter type behind the decoded values (`None`: built in code).
     pub raw: Option<SynthLayerRaw>,
     pub arp_enabled: bool,
@@ -205,6 +216,7 @@ impl Default for SynthLayerDecoded {
             lfo_rate_morph: MorphDeltas::default(),
             lfo_amount_morph: MorphDeltas::default(),
             filter_env_amount_morph: MorphDeltas::default(),
+            osc_env_amount_morph: MorphDeltas::default(),
             raw: None,
             arp_enabled: false,
             arp_bpm: 120.0,
@@ -374,6 +386,8 @@ fn unpack_synth_layer_pair(
     let oenv_dcy = r.read_bits(7)? as usize;
     let oenv_rel = r.read_bits(7)? as usize;
     let oenv_amt = read_signed_bits(r, sound_base + 92, 7)?;
+    r.set_bit_pos(sound_base + 99)?;
+    let osc_env_amount_morph = read_deltas(r, 7, OSC_ENV_AMT_MORPH_MAX)?;
     r.set_bit_pos(sound_base + 123)?;
     let osc_env_to_pitch = r.read_bool()?;
     let osc_env_velocity = r.read_bool()?;
@@ -466,6 +480,7 @@ fn unpack_synth_layer_pair(
         lfo_rate_morph,
         lfo_amount_morph,
         filter_env_amount_morph,
+        osc_env_amount_morph,
         raw: Some(SynthLayerRaw {
             filter_type: filter_type_raw as u8,
             cutoff_idx: flt_freq_raw.min(127) as u8,
@@ -632,6 +647,8 @@ fn pack_synth_layer_pair(
     w.set_bit_pos(sound_base + 92)?;
     let oamt = (layer.osc_env_amount.clamp(-1.0, 1.0) * 10.0 * 6.0).round() as i32;
     w.write_bits(encode_signed(oamt.clamp(-64, 63), 7), 7)?;
+    w.set_bit_pos(sound_base + 99)?;
+    write_deltas(w, layer.osc_env_amount_morph, 7, OSC_ENV_AMT_MORPH_MAX)?;
     w.set_bit_pos(sound_base + 123)?;
     w.write_bool(layer.osc_env_to_pitch)?;
     w.write_bool(layer.osc_env_velocity)?;

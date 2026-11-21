@@ -1,5 +1,6 @@
 //! Synth morph targets the engine had no slot for (firmware morph law, the default since D166):
-//! Osc Ctrl, filter resonance, LFO rate, LFO amount and filter envelope amount.
+//! Osc Ctrl, filter resonance, LFO rate, LFO amount, filter envelope amount and (opt-in, D206) the
+//! oscillator envelope amount.
 //!
 //! The ARM re-dispatches every morph-assigned edit id with `base + sum(delta_i * w_i)` clamped to
 //! `0..127` (VERIFIED, `docs/research/morph-fw-vs-native.md`), so each slot here is a
@@ -18,6 +19,10 @@ pub struct SynthMorphSet {
     pub lfo_rate: MorphParameter,
     pub lfo_amount: MorphParameter,
     pub env_amount: MorphParameter,
+    /// Osc Env Amount (`kOscEnvAmt`, `-60..60` steps): knob position `(steps + 60) / 120`, so the
+    /// bipolar amount `-1..1` is `2 norm - 1` and the file depth `d` steps is `d / 120` here.
+    /// Played only with `synth_osc_env_morph` (D206).
+    pub osc_env_amount: MorphParameter,
     /// Base pulse width of the loaded wave (`pulse_base_width`), needed to redo Osc Ctrl.
     pub pulse_base: f32,
     /// Value of each slot field after the last `apply` (`None` before the first one): a different
@@ -28,7 +33,10 @@ pub struct SynthMorphSet {
 }
 
 /// Number of slots of [`SynthMorphSet`].
-pub const SLOTS: usize = 5;
+pub const SLOTS: usize = 6;
+
+/// Index of the opt-in Osc Env Amount slot.
+pub const OSC_ENV_SLOT: usize = 5;
 
 impl Default for SynthMorphSet {
     fn default() -> Self {
@@ -38,6 +46,7 @@ impl Default for SynthMorphSet {
             lfo_rate: MorphParameter::new(0.0),
             lfo_amount: MorphParameter::new(0.0),
             env_amount: MorphParameter::new(0.0),
+            osc_env_amount: MorphParameter::new(0.5),
             pulse_base: 0.5,
             seen: [None; SLOTS],
             written: [false; SLOTS],
@@ -104,11 +113,13 @@ impl SynthMorphSet {
         s.lfo_rate.base = dec.raw.map_or(0.0, |r| f32::from(r.lfo_rate_idx) / 127.0);
         s.lfo_amount.base = dec.lfo_amount.clamp(0.0, 1.0);
         s.env_amount.base = dec.filter_env_amount.clamp(0.0, 1.0);
+        s.osc_env_amount.base = (dec.osc_env_amount.clamp(-1.0, 1.0) + 1.0) * 0.5;
         copy_deltas(&mut s.osc_ctrl, dec.osc_ctrl_morph);
         copy_deltas(&mut s.resonance, dec.filter_resonance_morph);
         copy_deltas(&mut s.lfo_rate, dec.lfo_rate_morph);
         copy_deltas(&mut s.lfo_amount, dec.lfo_amount_morph);
         copy_deltas(&mut s.env_amount, dec.filter_env_amount_morph);
+        copy_deltas(&mut s.osc_env_amount, dec.osc_env_amount_morph);
         s
     }
 
@@ -120,12 +131,13 @@ impl SynthMorphSet {
             &self.lfo_rate,
             &self.lfo_amount,
             &self.env_amount,
+            &self.osc_env_amount,
         ]
         .into_iter()
         .any(active)
     }
 
-    /// Slot `k` (0 Osc Ctrl, 1 resonance, 2 LFO rate, 3 LFO amount, 4 filter envelope amount).
+    /// Slot `k` (0 Osc Ctrl, 1 resonance, 2 LFO rate, 3 LFO amount, 4 filter envelope amount, 5 Osc Env Amount).
     pub fn slot(&self, k: usize) -> &MorphParameter {
         [
             &self.osc_ctrl,
@@ -133,6 +145,7 @@ impl SynthMorphSet {
             &self.lfo_rate,
             &self.lfo_amount,
             &self.env_amount,
+            &self.osc_env_amount,
         ][k]
     }
 
@@ -144,6 +157,7 @@ impl SynthMorphSet {
             &mut self.lfo_rate,
             &mut self.lfo_amount,
             &mut self.env_amount,
+            &mut self.osc_env_amount,
         ][k]
     }
 
@@ -157,7 +171,16 @@ impl SynthMorphSet {
     /// edit of the field between two calls (the GUI, a host parameter) becomes the new base, so a
     /// live edit sticks instead of being overwritten every frame.
     pub fn apply(&mut self, ctrl: &MorphControllers, synth: &mut SynthLayer) {
+        self.apply_with(ctrl, synth, false);
+    }
+
+    /// [`Self::apply`] with the opt-in Osc Env Amount slot (`osc_env`, D206): off leaves
+    /// `synth.osc_env_amount` alone, so the default render does not change.
+    pub fn apply_with(&mut self, ctrl: &MorphControllers, synth: &mut SynthLayer, osc_env: bool) {
         for k in 0..SLOTS {
+            if k == OSC_ENV_SLOT && !osc_env {
+                continue;
+            }
             if let Some(seen) = self.seen[k] {
                 let now = field(synth, k);
                 if now != seen {
@@ -185,7 +208,8 @@ fn field(synth: &SynthLayer, k: usize) -> f32 {
         1 => synth.resonance,
         2 => synth.lfo_rate_hz,
         3 => synth.lfo_amount,
-        _ => synth.filter_env_amount,
+        4 => synth.filter_env_amount,
+        _ => synth.osc_env_amount,
     }
 }
 
@@ -199,7 +223,9 @@ fn write_field(synth: &mut SynthLayer, k: usize, norm: f32, pulse_base: f32) {
         1 => synth.resonance = norm * 0.95,
         2 => synth.lfo_rate_hz = lfo_norm_to_hz(norm),
         3 => synth.lfo_amount = norm,
-        _ => synth.filter_env_amount = norm,
+        4 => synth.filter_env_amount = norm,
+        // VERIFIED: setter word = `steps / 60` (`synth-knob-laws.md`), `steps = 120 norm - 60`.
+        _ => synth.osc_env_amount = norm * 2.0 - 1.0,
     }
 }
 
@@ -207,6 +233,7 @@ fn write_field(synth: &mut SynthLayer, k: usize, norm: f32, pulse_base: f32) {
 fn field_to_norm(k: usize, value: f32) -> f32 {
     match k {
         0 | 3 | 4 => value.clamp(0.0, 1.0),
+        5 => ((value.clamp(-1.0, 1.0) + 1.0) * 0.5).clamp(0.0, 1.0),
         1 => (value / 0.95).clamp(0.0, 1.0),
         _ => {
             // LFO rate: bisection on the monotonic table interpolation.
