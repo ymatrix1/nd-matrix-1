@@ -258,8 +258,13 @@ impl LayerFxChain {
             } else {
                 0.0
             };
+            let row = self.firmware_fx.compressor_row;
             let stage = self.fw_comp.get_or_insert_with(|| {
-                fw_stage::FwCompressorStage::new(fw_params::compressor_for_amount(amount))
+                fw_stage::FwCompressorStage::new(if row {
+                    fw_params::compressor_for_amount_row(amount)
+                } else {
+                    fw_params::compressor_for_amount(amount)
+                })
             });
             if amount != self.fw_comp_amount {
                 fw_params::set_compressor_amount(stage.compressor_mut(), amount, false);

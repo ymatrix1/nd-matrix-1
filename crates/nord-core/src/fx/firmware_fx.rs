@@ -93,6 +93,17 @@ pub struct FirmwareFx {
     /// [`Self::ALL`] or [`FX_PORT_NAMES`](super::FX_PORT_NAMES): no clip confirms it yet
     /// (`docs/research/amp-types-789.md`). Latency 4 frames on an LP24 / HP24 layer.
     pub lp24: bool,
+    /// Default since D187: the compressor context carries the firmware's own gain-law words (SLOPE 0.75
+    /// / 1.0, REDUCTION_SCALE 1/96, TABLE1 2^-16, LOG_GAIN 6.0, read from the FX image row and not
+    /// written by the ARM or the routine) instead of the ASSUMED ones (`fw_params::CMP_SLOPE`).
+    /// Only read with `compressor`. Not in `FX_PORT_NAMES`: it is a refinement of the `compressor`
+    /// port, on in `ALL` and `PARITY`; `--legacy-compressor-row` and `--legacy-fx-ports` turn it off.
+    pub compressor_row: bool,
+    /// Opt-in (D186): the firmware RM / A-WAH / WAH / PUMP stage runs the frames per call of the
+    /// layer's unit (`LayerFxChain::mod1_unit_frames`: 2 for the organ and piano units, 4 for the
+    /// synth units, the ARM's block count words times two frames) instead of
+    /// `LayerFxChain::mod1_rest_frames`. Only read with `mod1`. Not in `FX_PORT_NAMES`, not in `ALL`.
+    pub mod1_unit_calls: bool,
 }
 
 impl Default for FirmwareFx {
@@ -137,6 +148,8 @@ impl FirmwareFx {
         eq: false,
         mod2: false,
         lp24: false,
+        compressor_row: false,
+        mod1_unit_calls: false,
     };
 
     /// Every firmware port except the two reverb ports: delay laws and time, compressor, Mod 1,
@@ -165,6 +178,8 @@ impl FirmwareFx {
         eq: true,
         mod2: true,
         lp24: false,
+        compressor_row: true,
+        mod1_unit_calls: false,
     };
 }
 

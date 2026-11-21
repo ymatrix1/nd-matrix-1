@@ -49,6 +49,8 @@ impl FirmwareFx {
         self.amp |= other.amp;
         self.pump |= other.pump;
         self.lp24 |= other.lp24;
+        self.compressor_row |= other.compressor_row;
+        self.mod1_unit_calls |= other.mod1_unit_calls;
         for n in PORT_NAMES {
             if other.port(n) {
                 if let Some(p) = self.port_mut(n) {

@@ -47,6 +47,36 @@ mod tests {
         assert!(e.fx_chains.iter().all(|c| !c.idle_skip()));
     }
 
+    #[test]
+    fn compressor_row_is_the_default_and_unit_calls_are_opt_in() {
+        let d = FirmwareOptions::default();
+        assert!(
+            d.fx.compressor_row && !d.fx.mod1_unit_calls,
+            "D187 on, D186 opt-in"
+        );
+        assert!(!d.summary().contains("legacy-compressor-row"));
+        assert!(FirmwareOptions::firmware_all().fx.compressor_row);
+        let legacy = FirmwareOptions::from_args(&args(&["--legacy-compressor-row"])).unwrap();
+        assert!(!legacy.fx.compressor_row);
+        assert!(legacy.summary().contains("legacy-compressor-row"));
+        let o = FirmwareOptions::from_args(&args(&["--mod1-unit-calls"])).unwrap();
+        assert!(o.summary().contains("mod1-unit-calls"));
+        let mut e = Stage4Engine::new(48_000.0);
+        assert!(e.fx_chains.iter().all(|c| c.firmware_fx.compressor_row));
+        o.apply_to(&mut e);
+        assert!(e
+            .fx_chains
+            .iter()
+            .all(|c| c.firmware_fx.compressor_row && c.firmware_fx.mod1_unit_calls));
+        legacy.apply_to(&mut e);
+        assert!(e.fx_chains.iter().all(|c| !c.firmware_fx.compressor_row));
+        FirmwareOptions::default().apply_exact(&mut e);
+        assert!(e
+            .fx_chains
+            .iter()
+            .all(|c| c.firmware_fx.compressor_row && !c.firmware_fx.mod1_unit_calls));
+    }
+
     fn args(a: &[&str]) -> Vec<String> {
         a.iter().map(|s| (*s).to_string()).collect()
     }
