@@ -679,6 +679,10 @@ impl FirmwareOptions {
         o.measured_laws |= has("--measured-laws");
         o.synth_stages |= has("--synth-stages");
         o.synth_fw_resonance |= has("--synth-fw-resonance");
+        if has("--synth-oracle") {
+            o.synth_p = Some(PSpec::Coupled);
+            o.synth_unison_weights = true;
+        }
         o.synth_stage3 |= has("--synth-stage3");
         o.synth_unison_weights |= has("--synth-unison-weights");
         if let Some(v) = value("--synth-unison-gain") {
@@ -1629,6 +1633,36 @@ mod tests {
         assert_eq!(e.synth_b.unison_gain, 1.414);
         assert!(FirmwareOptions::from_args(&["--synth-unison-gain".into(), "x".into()]).is_err());
         assert!(FirmwareOptions::from_args(&["--synth-unison-gain".into(), "99".into()]).is_err());
+    }
+
+    #[test]
+    fn synth_oracle_preset_is_opt_in_and_bundles_the_coupled_rows_and_unison_weights() {
+        let d = FirmwareOptions::default();
+        assert!(!d.synth_unison_weights && !d.synth_stage3);
+        assert_ne!(d.synth_p, Some(PSpec::Coupled));
+        let o = FirmwareOptions::from_args(&["--synth-oracle".into()]).unwrap();
+        assert_eq!(o.synth_p, Some(PSpec::Coupled));
+        assert!(o.synth_unison_weights);
+        assert!(
+            !o.synth_stage3,
+            "stage3 scores worse on the one raw type 3 clip"
+        );
+        assert!(o.summary().contains("Coupled"));
+        // individual flags override the preset
+        let p = FirmwareOptions::from_args(&[
+            "--synth-oracle".into(),
+            "--synth-p".into(),
+            "fitted".into(),
+        ])
+        .unwrap();
+        assert_eq!(p.synth_p, Some(PSpec::Fitted));
+        assert!(p.synth_unison_weights);
+        assert_eq!(
+            FirmwareOptions::from_args(&["--synth-p".into(), "coupled".into()])
+                .unwrap()
+                .synth_p,
+            Some(PSpec::Coupled)
+        );
     }
 
     #[test]
