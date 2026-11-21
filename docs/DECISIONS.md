@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D196](#d196-the-oracle-adds-the-filter-envelope-to-the-cutoff-in-semitones-of-the-stage-coefficient-opt-in---synth-fw-env-law-envelope-is-dsp-pass-driven) | 2026-11-21 | The oracle adds the filter envelope to the cutoff in semitones of the stage coefficient (1 per amount knob step); opt-in `--synth-fw-env-law`; the envelope is DSP-pass driven | proposed |
 | [D195](#d195-amp-to-rotary-type-7-is-the-leslie-chain-the-0x125142-words-are-rom-no-port-until-the-d190-install-is-found) | 2026-11-21 | Amp To Rotary (type 7) is the Leslie chain; the `0x125142` words are ROM; no port until the D190 install is found | proposed |
 | [D194](#d194-the-fitted-shape-triangle--multi--super-rows-are-the-oracle-rows-times-the-missing-filter-gain-opt-in---synth-p-coupled-and---synth-oracle-rows-times-sqrt-2-plus-the-unison-lane-weights-default-flip-is-the-owners-call) | 2026-11-21 | The fitted SHAPE triangle / MULTI / SUPER rows are the oracle rows times the missing filter gain; opt-in `--synth-p coupled` and `--synth-oracle`; flip is the owner's call | proposed |
 | [D193](#d193-amp-lp24--hp24-default-flip-proposed-not-made-type-9-words-verified-multi-call-golden) | 2026-11-21 | Amp LP24 / HP24 default flip proposed, not made; type 9 words VERIFIED; multi-call golden | proposed |
@@ -2078,6 +2079,16 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Claim the clavinet level (rejected: DC). Hold the PR until the voice advances (rejected: the feed and the law are reusable and the blocker is recorded).
 - **Open:** per-voice gate (scheduler, EP DMA completion interrupt, ARM re-init burst), 129 `flash_outside` reads, layers 2 and 3.
 - **Impact:** `smpflash.rs`, `epchain.rs`, `glue.rs`, `live_flash.rs`, `live.rs`, `live_sy.rs` (`other_half`), `tools/arm_smp_flash.py`, `arm_dsp_link.py`, `arm_dsp_live.py`, `arm_dsp_route.py`; tests `smpflash`, `epchain`, `glue`, `live`, `live_smp`, `test_arm_smp_flash.py`, `test_arm_dsp_link.py`; no default, no render path touched.
+
+### D196. The oracle adds the filter envelope to the cutoff in semitones of the stage coefficient; opt-in `--synth-fw-env-law`; the envelope is DSP-pass driven
+
+- **Status:** proposed 2026-11-21
+- **Decided by:** the task of the parent session ([synth-env-oracle-trace](research/synth-env-oracle-trace.md)); owner to confirm, and to decide any default flip.
+- **Context:** audio-remaining row 3 asked how the envelope, LFO and input gain add into the cutoff and which tick drives them. The recall stream carries no ADR, cutoff or env-amount word (the ARM edit path writes them), so D132 left the envelope term open.
+- **Decision:** (1) Measured with the ORG core 2 oracle by injecting the VERIFIED knob-law words (`tools/synth_env_trace.py`): `fc = 13.75 Hz 2^(cutoff_knob / 12) 2^(amount_knob level / 12)`, `R = min(tan(pi fc / 2F), 1.99)`, 2F = 86,804.69 Hz; base within 0.6 %, envelope rows within 0.5 % in `R`. (2) The chains are DSP-pass driven (one step per pass, 2 frames), not ARM-tick driven (D130 stays). (3) New opt-in `SynthLayer::fw_env_law` / `--synth-fw-env-law` (`synth/fw_cutoff_env.rs`) replaces `2^(amount 8 level)` with this law. (4) Amp attack index `word * g / 127` (EMPIRICAL) and the oracle decay sustain 0.5 are recorded, not implemented. LFO and input gain terms stay unmeasured. Default unchanged.
+- **Why:** The law is bit-level evidence from the oracle; the native default sweeps 96 semitones at full amount against 127 and caps at 0.48 fs.
+- **Alternatives:** Change the default (no clip score yet; owner's call). Fit the factor per program (rejected: the law is exact).
+- **Impact:** `crates/nord-core/src/synth/fw_cutoff_env.rs`, `render.rs`, `render_opts.rs` flag; `tools/synth_env_trace.py`, `nord-tools` `synth_env_native`; spec `synth-engine.md` 4.7. Renumber on merge if D196 is taken.
 
 ### D195. Amp To Rotary (type 7) is the Leslie chain; the `0x125142` words are ROM; no port until the D190 install is found
 

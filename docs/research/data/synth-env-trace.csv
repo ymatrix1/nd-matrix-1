@@ -1,0 +1,15 @@
+program,chain,attack_knob,decay_knob,release_knob,attack_index_word,attack_index_oracle,attack_index_native,release_index_word,release_index_oracle,release_index_native,peak_oracle,level_at_off_oracle,level_at_off_native,release_ratio_oracle,release_ratio_native
+12dB Sweep,amp,0,127,53,-64,-48,-64,-11,-10,-16,1.0,0.9499,1.0,0.9996894270981664,0.999545543528166
+12dB Sweep,filter,63,116,86,-1,0,-5,22,22,22,0.5278,0.5278,0.7243,0.9999633980052951,0.9999634169032611
+80s Sci-Fi,amp,0,127,48,-64,-48,-64,-16,-16,-16,1.0,0.9499,1.0,0.99954554346298,0.999545543528166
+80s Sci-Fi,filter,0,68,44,-64,-64,-64,-20,-21,-21,1.0,0.5,0.2131,0.9993753725324791,0.9993223177511243
+Crunch Synth,amp,0,127,30,-64,-48,-64,-34,-32,-37,1.0,0.9499,1.0,0.9978747017386355,0.9971638585979208
+Crunch Synth,filter,32,72,25,-32,-32,-32,-39,-37,-42,1.0,0.5,0.3947,0.996542063007339,0.9953004845838826
+Smooth Lead,amp,22,127,57,-42,-32,-42,-7,-5,-10,1.0,0.9541,1.0,0.9997680486108387,0.9997115433683268
+Smooth Lead,filter,29,120,50,-35,-37,-37,-14,-16,-16,1.0,0.9368,0.93,0.9996105702070466,0.9995455405589174
+
+program,cutoff_knob,filter_env_amount_knob,hz_before_oracle,hz_before_native,hz_max_oracle,hz_max_native,hz_end_of_hold_oracle,hz_end_of_hold_native,hz_released_oracle,hz_released_native
+12dB Sweep,41,74.0,146.8,147.0,1401.1,1526.6,1401.1,1526.6,933.8,1001.7
+80s Sci-Fi,81,41.0,14744.2,1500.0,18990.4,8985.8,16084.6,2196.7,12835.8,1514.5
+Crunch Synth,66,53.0,622.2,622.0,13289.8,6292.2,2876.9,1550.5,622.3,622.0
+Smooth Lead,57,31.0,370.0,370.0,2217.5,1432.3,1980.2,1302.9,453.4,411.7

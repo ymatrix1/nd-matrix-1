@@ -247,6 +247,10 @@ Stage-level check (D122, [synth-filter-stage-vs-model](../research/synth-filter-
 
 Opt-in `--synth-super-lp24 <factor>` (`SynthLayer::super_lp24_scale`, `synth/p_type.rs::row_type_cutoff_scale_with`) replaces only the SUPER wave 0 / LP24 type factor (default 4.4, EMPIRICAL); every other row and type is unchanged, and `--synth-filter-law` still overrides all factors. D116 ([synth-super-lp24-clips](../research/synth-super-lp24-clips.md)): 4.4 is not confirmed on three more Part A clips; 2.0 scores a four-clip mean of 2.44 / 2.58 against 3.17 / 3.95 under two unverified note lists, so the default stays.
 
+### 4.7 Firmware filter envelope law (`synth/fw_cutoff_env.rs`, `SynthLayer::fw_env_law`, opt-in `--synth-fw-env-law`, D196)
+
+The ORG core 2 pass adds the filter envelope to the cutoff in semitones: `fc = 13.75 Hz * 2^(cutoff_knob / 12) * 2^(amount_knob * level / 12)`, `R = min(tan(pi fc / 2F), 1.99)` with `2F = 86,804.69 Hz` (VERIFIED against the oracle tap `DM(0xC2925)`: base 17 points within 0.6 %, envelope 8 points within 0.5 % in `R`; `synth-cutoff-env-oracle.csv`). The default engine uses `2^(amount * 8 * level)` (96 semitones at full amount). The chains are DSP-pass driven, not ARM-tick driven. ASSUMED: the engine `level` equals the oracle chain level times the velocity peak, and key tracking multiplies the Hz cutoff first. Recorded, not implemented: amp attack index `word * g / 127` (EMPIRICAL), decay sustain 0.5. LFO and input gain into `R` are unmeasured. Evidence: [synth-env-oracle-trace](../research/synth-env-oracle-trace.md).
+
 ## 5. Envelopes, LFO & Arpeggiator
 
 - **Amp Envelope (ADR / ADSR):** Exponential Attack (`ENV_ATTACK_MS_TABLE`: $0.5\text{ ms}..45\text{ s}$), Decay/Sustain (`ENV_DECAY_MS_TABLE`: $3.0\text{ ms}..43\text{ s}$, index `127 = Hold/Inf`), and Release (`ENV_RELEASE_MS_TABLE`: $3.0\text{ ms}..45\text{ s}$) with velocity sensitivity switch.
