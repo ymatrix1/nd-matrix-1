@@ -147,7 +147,14 @@ pub(super) fn mul_general(a: u64, b: u64) -> u64 {
 }
 
 /// `PASS Fx` (a denormal reads as zero).
+#[inline(always)]
 pub(super) fn pass(a: u64) -> u64 {
+    fast::pass(a)
+}
+
+/// `PASS Fx` on the 128 bit unpacked form (reference for [`pass`]).
+#[cfg(test)]
+pub(super) fn pass_general(a: u64) -> u64 {
     let (neg, cls, e, man) = unpack(a);
     match cls {
         Class::Norm => {
@@ -159,7 +166,18 @@ pub(super) fn pass(a: u64) -> u64 {
 }
 
 /// `float Rx by Ry`: the integer `x` scaled by `2^scale`.
+#[inline(always)]
 pub(super) fn float_by(x: i32, scale: i32) -> u64 {
+    if x == 0 {
+        0
+    } else {
+        fast::float_by(x, scale)
+    }
+}
+
+/// [`float_by`] on 128 bit integers (reference).
+#[cfg(test)]
+pub(super) fn float_by_general(x: i32, scale: i32) -> u64 {
     if x == 0 {
         0
     } else {

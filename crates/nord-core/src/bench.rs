@@ -9,6 +9,7 @@
 //! dependent; only the hash is deterministic.
 
 use crate::bench_fw_mod2::{fw_mod2_engine, RAW_CHORUS, RAW_SPIN};
+use crate::bench_organ_fw::organ_fw_engine;
 use crate::engine::Stage4Engine;
 use crate::fx::{
     AmpCabinet, DelayFeedbackFx, DelayFilterMode, Mod1Type, Mod2Type, ReverbColor, ReverbModel,
@@ -44,6 +45,10 @@ pub enum Scenario {
     FwChorus,
     /// `worst` with the firmware Mod 2 SPIN (raw type 10) on every chain (D163).
     FwSpin,
+    /// `typical` with the firmware B3 Bass organ stage on Organ A (D71, TD-15).
+    OrganBass,
+    /// `typical` with the firmware Farfisa organ stage on Organ A (D74, TD-15).
+    OrganFarfisa,
 }
 
 impl Scenario {
@@ -55,6 +60,8 @@ impl Scenario {
             Self::Idle => "idle",
             Self::FwChorus => "worst-fw-chorus",
             Self::FwSpin => "worst-fw-spin",
+            Self::OrganBass => "organ-bass",
+            Self::OrganFarfisa => "organ-farfisa",
         }
     }
 
@@ -66,6 +73,8 @@ impl Scenario {
             Self::Idle,
             Self::FwChorus,
             Self::FwSpin,
+            Self::OrganBass,
+            Self::OrganFarfisa,
         ]
         .into_iter()
         .find(|s| s.name() == name)
@@ -83,6 +92,8 @@ impl Scenario {
             Self::Idle => worst_case_engine(sample_rate),
             Self::FwChorus => fw_mod2_engine(sample_rate, RAW_CHORUS, Mod2Type::Chorus),
             Self::FwSpin => fw_mod2_engine(sample_rate, RAW_SPIN, Mod2Type::Spin),
+            Self::OrganBass => organ_fw_engine(sample_rate, true),
+            Self::OrganFarfisa => organ_fw_engine(sample_rate, false),
         }
     }
 }
@@ -330,6 +341,14 @@ pub fn format_report(cfg: BenchConfig, r: &BenchReport) -> String {
         ),
         Scenario::Idle => "7 layers (Scene II), no key held, 7 FX racks + master comp".to_string(),
         Scenario::Typical => "Scene I (3 layers), 10 keys held, default FX".to_string(),
+        Scenario::OrganBass | Scenario::OrganFarfisa => format!(
+            "Scene I (3 layers), 10 keys held, default FX, firmware {} stage on Organ A",
+            if cfg.scenario == Scenario::OrganBass {
+                "B3 Bass"
+            } else {
+                "Farfisa"
+            }
+        ),
         Scenario::FwChorus | Scenario::FwSpin => format!(
             "7 layers (Scene II), {} keys held, 7 FX racks + master comp, firmware Mod 2 {}",
             KEY_RANGE.count(),
@@ -446,6 +465,8 @@ mod tests {
             Scenario::Idle,
             Scenario::FwChorus,
             Scenario::FwSpin,
+            Scenario::OrganBass,
+            Scenario::OrganFarfisa,
         ] {
             assert_eq!(Scenario::parse(sc.name()), Some(sc));
         }

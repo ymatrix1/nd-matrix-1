@@ -6,6 +6,7 @@ pub mod bench_gui_breakdown;
 pub mod bench_gui_cli;
 pub mod bench_gui_prog;
 pub mod bench_gui_reload;
+pub mod bench_organ_fw;
 pub mod cbin;
 pub mod engine;
 pub mod firmware;
