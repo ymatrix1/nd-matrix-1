@@ -7,7 +7,6 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 | # | Date | Decision | Status |
 |---|---|---|---|
 | [D185](#d185-piano-chain-tap-a-bound-piano-sound-reaches-a-live-smp-chip-sharc-live---smp-the-page-refill-is-the-next-blocker) | 2026-11-21 | Piano chain tap: a bound piano sound reaches a live SMP chip (`sharc-live --smp`); the page refill is the next blocker | proposed |
-
 | [D181](#d181-amp-types-8-and-9-lp24--hp24-are-one-state-variable-pair-0x124efa-model-and-recorded-oracle-cases-no-rust-port-yet) | 2026-11-21 | Amp types 8 / 9 (LP24, HP24) are one state variable pair `0x124EFA`; Python model and recorded oracle cases; no Rust port yet | accepted |
 | [D180](#d180-the-fx-rate-match---fx-rate-match-d137-becomes-the-default---legacy-fx-rate-opts-out-rate-matched-chains-for-every-new-layerfxchain) | 2026-11-21 | The FX rate match (`--fx-rate-match`, D137) becomes the default; `--legacy-fx-rate` opts out; rate-matched chains for every new `LayerFxChain` | accepted |
 | [D173](#d173-the-fx-parity-set-firmwarefxparity-delay-laws-and-time-compressor-mod-1-eq-mod-2-amp-becomes-the-default---legacy-fx-ports-opts-out-the-chorus-delay-is-closed---fx-rate-match-stays-opt-in-with-a-recommendation) | 2026-11-20 | The FX parity set becomes the default, `--legacy-fx-ports` opts out, the chorus delay is closed, `--fx-rate-match` stays opt-in | accepted |
