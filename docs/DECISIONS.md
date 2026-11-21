@@ -1893,3 +1893,23 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Why:** Each lead is closed by a census, a listing read or a watch with a positive control. What is left is state the harness lacks: the flash behind the ARM device object (`0xC024C284`) and the file system on it, which would answer the ARM's flash reads and may be the source of the sample directory the stand-in sample bypasses.
 - **Alternatives:** Poke a table into `DM(0x9354A)` from the key law (rejected: that is the existing opt-in model, D65, not evidence); build a flash image and the SPI read model first (deferred: needs a local flash image and the SPI read answers of D147, listed as the next step); spend more runs on the SY ISR sweep (rejected: three rounds found nothing).
 - **Impact:** `tools/sy_flash_census.py`, `tools/tests/test_sy_flash_census.py`, [sy-flash-bus-hunt](research/sy-flash-bus-hunt.md), [sy-pitch-entry-writer](research/sy-pitch-entry-writer.md) s10, [dsp-flash-dma-model](research/dsp-flash-dma-model.md), OQ22, [audio-remaining](research/audio-remaining.md) row 2, ROADMAP 7b.6 (SAMPLES remainder).
+
+### D177. Raw synth filter type 3 (stage `0x1257B2`) modelled bit-exact; opt-in `--synth-stage3`
+
+- **Status:** proposed 2026-11-20
+- **Decided by:** the task of the parent session ([synth-filter-t3](research/synth-filter-t3.md)); owner to confirm. Renumber on merge if D177 is taken.
+- **Context:** D121 found that raw `kFltType` 3 selects stage `0x1257B2` (61 of 988 filter-on factory layers), which the engine plays as `Lp12`. Earlier notes had only an impulse fit (four real poles) and no equations.
+- **Decision:** (1) `tools/synth_filter_t3.py` models the stage word for word (coupled second order form, five states per lane, three 129 word tables); it equals `sharc-org` on 1840 of 1840 words. (2) `crates/nord-core/src/synth/fw_stage3.rs` ports it (`Stage3Coefs`, `FwStage3`) with generated tables and goldens (outputs within `2e-5`). (3) Opt-in `--synth-stage3` (`SynthLayer::fw_stage3`), active only on the strip chain for layers decoded with raw type 3 (`filter_raw3`). Defaults unchanged.
+- **Why:** The stage is a peak / notch equalizer block with unit gain at DC and Nyquist, not a low pass; the `Lp12` stand-in is wrong in kind. No Part A clip carries raw type 3, so there is no clip evidence for a default flip (D22).
+- **Alternatives:** Flip the default (rejected: no clip, cutoff unit ASSUMED). Keep the stand-in (rejected: model exists and is exact).
+- **Impact:** `synth/fw_stage3*.rs`, `fw_filter.rs`, `render.rs`, `synth_params.rs`, `render_opts.rs`, spec `synth-engine.md` s4.1, ROADMAP 7b.6, OQ22; tests `tools/tests/test_synth_filter_t3.py`, `tests_strip.rs`.
+
+### D178. Analog unison lane weights: native is 3 / 6 dB low; opt-in `--synth-unison-weights`; `--synth-fw-filter` rescore does not shrink the gap
+
+- **Status:** proposed 2026-11-20
+- **Decided by:** the task of the parent session ([synth-unison-level](research/synth-unison-level.md)); owner to confirm. Renumber on merge if D178 is taken.
+- **Context:** D140 measured the native analog unison `2.4 .. 8.3 dB` below the oracle lane. D121 scored `--synth-fw-filter` 3.36 against 2.18.
+- **Decision:** (1) The gap is structural: the firmware lane mix has fixed unit-norm weights (`0.92388` / `0.38268`) and no `1/sqrt(N)` term, native normalises by `1/sqrt(N)`: `+3 dB` (unison 1), `+6 dB` (unison 2, 3). The rest is the beat term of the oracle window (ASSUMED). (2) Opt-in `--synth-unison-weights` (per-voice gain 1.0) and `--synth-unison-gain <0.05..8>`. (3) 12 clip rescore on this build: default 2.415, `--synth-fw-filter` 3.652 (gap not shrunk), unison weights move `synth_leaky` -4.64 to +1.05 dB and `synth_phat3` -3.86 to -0.86 dB; `synth_crunch` gets louder (its SHAPE triangle row is +3.5 dB, D140). Defaults unchanged.
+- **Why:** The words are VERIFIED; the fitted rows were tuned with the low level, so a default flip needs the row fixes together (D22).
+- **Alternatives:** Flip the default (rejected: crunch regresses without the row fix). Fix the beat term in the oracle first (follow-up).
+- **Impact:** `render.rs`, `render_opts.rs`, `synth/mod.rs`, spec s4 unison row, OQ22; tests `unison_gain_scales_the_analog_unison_sum_and_defaults_to_one`, `unison_weights_drop_the_voice_count_normalisation`. Default baselines drifted since D121 (`synth_sineplk` 4.73 to 7.48): follow-up.
