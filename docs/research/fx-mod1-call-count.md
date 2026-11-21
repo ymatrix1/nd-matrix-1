@@ -55,6 +55,17 @@ The other row of a module (`None` or 0 in the tool output) belongs to another ro
 - **Rate tables per unit.** The synth rows hold half the piano phase increments for RM (`0x1C200 .. 0x7DB1D00` against `0x38400 .. 0xFB63B00`). With `inc` per frame independent of the call length (s4) a synth layer would run at half the piano Hz. The port uses the piano words for every layer (ASSUMED, [fx-mod-types](fx-mod-types.md) s7.1); this was not changed and `mod1_unit_calls` keeps the piano words.
 - **A-PAN / TREM at 2 frames, PUMP and WAH phase per call:** see the follow-ups.
 
+## 5b. Why `mod1_unit_calls` is not the default yet (the missing measurement)
+
+The default flip of D186 needs one fact this note does not have: **how many Mod 1 calls make one pass on each unit** (organ, piano, synth). The words prove the length of one call (2 or 4 frames); they do not prove that the chip's pass is built from those calls the way the port builds it (one call per layer per host frame batch). Tried without success: `sharc-live` has no FX preset; the ARM install of the 35 chain records is not in the boot log; `sharc-fxlive` with the full boot script gives silence.
+
+Exact measurement that settles it (any one of):
+
+1. Run the FX chip (`sharc-fxlive`, FX core 1 and the PNO core) with the ARM's chain-install records for one program (the 35 records the firmware writes when a program is recalled), and count the calls of each Mod 1 pc (`0x122D93`, `0x122C39`, `0x1239D0`, `0x123E9B`, `0x123DD2`, `0x122D2C`) per output block, per unit instance (`I1` of the unit rows in s3). Needed: calls per block and the block size of the PNO lane and of the FX lane.
+2. Or a hardware clip of RM / WAH on a synth layer next to the same on a piano layer, to read the latency and smoothing time constant (2.2 ms against 4.5 ms per call, s1).
+
+Until then the opt-in `--mod1-unit-calls` stays (default off); the 384-program ranking cannot judge it (mean 2.12 to 2.12, 1 program worse by more than 0.5, Time Warp Saw 5.87 to 6.83).
+
 ## Implications
 
 - The call-count half of OQ38 is answered per unit kind: 2 (organ, piano) and 4 (synth). The proposed default is D186 (owner decides).
