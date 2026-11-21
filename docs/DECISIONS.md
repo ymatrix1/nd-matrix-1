@@ -2091,6 +2091,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** count in a PNO harness (organ only, does not settle piano or synth); infer the call count from the port's design (that is the ASSUMED value we wanted to replace); flip now on the block-count evidence (rejected: the pass structure is still unmeasured).
 - **Open:** where the ARM writes the 35 stage records (OQ38 b), their input pointers per unit, the pass size of the running chip.
 - **Impact:** `tools/fx_mod1_pass_calls.py`, `tools/tests/test_fx_mod1_pass_calls.py`, [fx-mod1-pass-calls](research/fx-mod1-pass-calls.md), [fx-mod1-call-count](research/fx-mod1-call-count.md) s5b, OQ38, ROADMAP 7b.4.
+
 ### D196. SY pitch entry `e`, sixth hunt: the ARM claimed flash service writes only the staging buffer `0x93FF7` (image default of `DM(0xB650F)`), no ARM constant names the pitch window; the D176 candidate path is closed; `--sample-pitch fw` stays opt-in
 
 - **Status:** proposed 2026-11-21
