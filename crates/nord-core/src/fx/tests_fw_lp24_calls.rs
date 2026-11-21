@@ -35,8 +35,10 @@ fn booted(mode: Lp24Mode, freq: f32, mid: f32) -> FwLp24 {
 fn run(mode: Lp24Mode, freq: f32, mid: f32, seed: u32) -> Vec<f32> {
     let mut st = booted(mode, freq, mid);
     lcg_frames(seed, 96)
-        .chunks_exact(4)
-        .flat_map(|b| st.block([b[0], b[1], b[2], b[3]]).into_iter().flatten())
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .flat_map(|b| st.block(*b).into_iter().flatten())
         .collect()
 }
 
@@ -75,7 +77,9 @@ fn the_glide_from_the_template_matters() {
     let mut settled = FwLp24::new(mode, f, md);
     let frames = lcg_frames(SEEDS[1], 96);
     let settled: Vec<f32> = frames
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .flat_map(|b| {
             settled
                 .block([b[0], b[1], b[2], b[3]])
