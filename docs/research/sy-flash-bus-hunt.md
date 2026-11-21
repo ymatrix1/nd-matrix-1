@@ -45,6 +45,8 @@ done
 grep -n -i -E '93df[0-7]|0xb6[0-9a-f]{3}' target/oracle/sy2.lst   # service loop and mailboxes
 ```
 
+Boot loop counts: `tools/arm_boot_chip_objects.py` (tests in `tools/tests/test_arm_boot_chip_objects.py`).
+
 Census output of this run (VERIFIED): offset table zero fill covers = True, data block = False; pitch window zero fill covers = False (the `0x93580` word block), data block = True; SY 290 messages, opcodes `{0: 290}`, pitch hits 0, offset hits 0; SMP 1,540 messages, pitch hits 0, offset hits 1,480; ARM literals only at `0xC024C370..0xC024C384` and `0xC0444E4C..0xC0444E5C`. `sy_isr_stream.scn` needs `target/oracle/weltmeister_s0.stream` (not present in this checkout), so the stream run of D112 was not repeated.
 
 ## 4. The ARM boot function `0xC0247B64` and its message loops (excluded, ASSUMED reading)
@@ -63,6 +65,19 @@ So the 16 K word region `0xB2000..0xB5FFF` is the block buffer of this protocol 
 
 - The SY never receives, from the ARM or from its own DMA, any word for `0x9354A..0x9358D` or `0xB2000..0xB5FFF` in the paths a harness can run; both regions are zero in the image. The remaining explanation is **hardware state the harness does not have**: the flash file system and its device object (`0xC024C284`), which feed the ARM with sample directory data the stand-in sample bypasses.
 - The next productive step is on the ARM side, not the DSP: run the ARM flash driver against a flash model that answers the SPI reads of `DM(0xB6000..)` (read service) and see which sample load or voice start path then sends a message into the two windows. That needs a flash image, which stays local.
+
+## Leads for the DSP-image hunt in NS4 firmware
+
+Addresses and routines to locate (all in `bank0_CODE` unless stated), with the reason:
+
+| # | Locate | Why |
+|---|---|---|
+| 1 | Every ARM store that writes `DM(0xB650F)` (checksum service buffer pointer): `movw` / `movt` forms are absent, so look for a computed address, a store at descriptor `0xC0444E4C` plus an offset, and users of the descriptor object at `0xC0444D28` | Run shows the service's flash DMA can target `0x9354A` when this word points there (`sy_flash_service_crc.scn`); it is the only path found that can fill `e` |
+| 2 | The ARM flash device object builder `0xC024C284` (calls `0xC0068BA4`, device at `[obj + 0xAC]`) and its read API: who calls it and with which SY addresses | It carries the `0xB6000` read mailbox; the sample directory the stand-in bypasses would come through it |
+| 3 | Writers of `DM(0xB6000)` and `DM(0xB6001)` (flash read address and count): no ARM literal exists, so find the SPI write routine variants (`0xC0066E64` callers outside the 10 exercised, 52 sites) | The read service stages flash data at `DM(0x93FF7 ..)`; the ARM may copy its content into the pitch table by messages |
+| 4 | The block download body behind `0xC0240548` (second call site `0xC02495D4`) and the SPI DMA opcode 9 sender | The `0x4000` word descriptor size equals the `0xB2000..0xB5FFF` buffer; a block download into it is unmodelled |
+| 5 | The DSP image side: any `DM(0xB2000 + k)` reader other than `0x1C0C46` in the SY and SMP images, and the SMP routine that fills `0xB2073 + 7 k` | Decides whether `0xB2000..` is a directory or a staging buffer |
+| 6 | `ns` not a multiple of 32 blocks (unpacker handler `0x1C1C44`) and the loop-end call at `0x1C064B` | Open since D112; unrelated to `e` unless a header carries it |
 
 ## Follow-ups
 
