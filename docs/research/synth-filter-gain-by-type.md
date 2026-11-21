@@ -1,4 +1,4 @@
-# Native synth filter gain by filter type, measured against the oracle (D198)
+# Native synth filter gain by filter type, measured against the oracle (D201)
 
 - **Checked:** 2026-11-21
 - **Sources (local, never committed):** ORG core 2 image (`target/synth_env/sram/core2_sram.bin`), OS v1.66 ARM firmware through `tools/arm_dsp_capture.py` (recall plus key 60 velocity 100, four more HighPass programs, [arm-dsp-capture](arm-dsp-capture.md)), `sharc-sys`, native `synth_e2e_native`, `tools/synth_e2e_oracle.py report` (D132 pipeline, unchanged), `tools/emu_vs_hw.py` with the Part A video (`_zksT69H30c`) and the factory backup (16 synth segments of [data/emu_vs_hw_segments.json](data/emu_vs_hw_segments.json)), the two Nord installers named in section 6. Derived numbers only: [data/synth-filter-gain-oracle.csv](data/synth-filter-gain-oracle.csv) (22 programs, 4 new), [data/synth-filter-gain-clips.csv](data/synth-filter-gain-clips.csv) (16 clips x 6 variants). Background: [synth-rows-unison](synth-rows-unison.md) (D194), [synth-osc-gain-oracle](synth-osc-gain-oracle.md) (D140), [synth-e2e-oracle-vs-native](synth-e2e-oracle-vs-native.md) (D132).
