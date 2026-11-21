@@ -126,6 +126,23 @@ def check(code: bytes, cases: list[dict]) -> list[str]:
     return bad
 
 
+RUST_TESTS = """#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tables_have_the_firmware_shape() {
+        assert_eq!(S.len(), 1408);
+        assert_eq!(T1.len(), 1408);
+        assert_eq!(T2.len(), 1408);
+        assert_eq!(R8.len(), 127);
+        assert!(R8.windows(2).all(|w| w[0] < w[1]), "velocity curve rises");
+        assert_eq!((R8[0], R8[63], R8[126]), (17, 203, 656));
+    }
+}
+"""
+
+
 def rust_tables(code: bytes) -> str:
     """Rust source of the tables (generated; see the module docstring)."""
     tab = load_tables(code)
@@ -156,6 +173,7 @@ def rust_tables(code: bytes) -> str:
         out.append("    " + ", ".join(str(v) for v in vals[i : i + 16]) + ",")
     out.append("];")
     out.append("")
+    out.append(RUST_TESTS)
     return "\n".join(out)
 
 

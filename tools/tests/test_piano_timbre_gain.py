@@ -111,6 +111,7 @@ def test_rust_tables_have_every_array() -> None:
     for name, size in (("S", 1408), ("T1", 1408), ("T2", 1408)):
         assert f"pub const {name}: [i32; {size}]" in text
     assert "pub const R8: [u16; 127]" in text
+    assert "#[test]" in text
 
 
 def test_capture_helpers() -> None:

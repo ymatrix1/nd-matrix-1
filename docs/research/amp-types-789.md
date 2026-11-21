@@ -57,7 +57,7 @@ The two SIMD lanes (words `k`, `k + 1`) run the same recursion on left and right
 | Item | Result |
 |---|---|
 | Synth filter type 3 "LP+HP" | The stage is `0x1257B2` and is already ported behind `--synth-stage3` ([synth-filter-t3](synth-filter-t3.md), 1840 / 1840 oracle words). The firmware has no string table for the type names ([oled-strings-vs-firmware](oled-strings-vs-firmware.md) lists the filter type names as not in the string pool); the display words were not located. |
-| Piano Clav EQ (`kEq` 6, 7) | **Negative result.** `Edt_Pno_kEq` (`0x15C`) is stored by the ARM at the layer cell with one store (pc `0xC00CE5A8`) and sends only the 1.0 reload trigger to the SMP path ([piano-dsp-path](piano-dsp-path.md) s5); no EQ coefficient word follows from the edit. The firmware table `0x2F730C` is not the EQ ([fx-eq-words](fx-eq-words.md) s5). Search narrowed to: the consumer of the stored cell (a read at an address the capture did not reach) and the `0x1be108` index math of bean `ns4-98f3`. No routine or coefficient words found, so no port. |
+| Piano Clav EQ (`kEq` 6, 7) | **Superseded 2026-11-21 (D206).** The consumer is the voice-frame builder `0xC00AA520`: the `kEq` handler stores a timbre mode, modes `0x10..=0x1A` become a per-note gain (VERIFIED 108 of 108, [piano-timbre-gain](piano-timbre-gain.md)), opt-in `--firmware-piano-timbre`. The Clav class maps `kEq` to modes below `0x10` (unity there); the rocker audio stays open. |
 
 ## 5. Rust port (opt-in)
 
@@ -105,7 +105,7 @@ Checked 2026-11-21. Sources: `amp_all.csv` (ARM harness capture of the type swit
 
 1. A hardware clip of an LP24 / HP24 program to confirm the cutoff unit (rate scale 1.106 at 48 kHz) and decide the default.
 2. To Rotary: only the Leslie install of D190 / OQ42 (element words) can unblock it; `0x125142` alone is not an effect (section 8).
-3. Clav EQ: find the reader of the `kEq` cell.
+3. Clav EQ: done (D206, [piano-timbre-gain](piano-timbre-gain.md)); the Clav-class rocker modes stay open.
 
 ## Reproduce
 
