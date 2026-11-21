@@ -10,16 +10,23 @@ fn args(v: &[&str]) -> Vec<String> {
 
 #[test]
 fn fx_ports_flag_selects_exactly_the_listed_ports() {
-    let o =
-        FirmwareOptions::from_args(&args(&["--firmware-fx-ports", "mod1,eq,compressor"])).unwrap();
-    assert_eq!(o.fx.ports_on(), ["compressor", "mod1", "mod2", "eq"]);
+    let o = FirmwareOptions::from_args(&args(&["--firmware-fx-ports", "reverb"])).unwrap();
+    assert_eq!(o.fx.ports_on().len(), 7, "PARITY plus the reverb routine");
     let s = o.summary();
-    assert!(s.contains("compressor") && s.contains("mod1") && s.contains("eq"));
+    assert!(s.contains("reverb"), "{s}");
     assert!(!s.contains("fx "), "not every port: {s}");
     assert!(
-        !s.contains("mod2"),
-        "Mod 2 is a default, not an option: {s}"
+        !s.contains("mod1") && !s.contains("eq") && !s.contains("mod2"),
+        "the PARITY ports are defaults, not options (D171): {s}"
     );
+    // `--legacy-fx-ports` wins over a port list, like `--legacy-mod2`.
+    let l = FirmwareOptions::from_args(&args(&[
+        "--firmware-fx-ports",
+        "mod1,eq,compressor",
+        "--legacy-fx-ports",
+    ]))
+    .unwrap();
+    assert_eq!(l.fx.ports_on(), ["mod2"]);
     assert!(FirmwareOptions::from_args(&args(&["--firmware-fx-ports", "x"])).is_err());
     let all = FirmwareOptions::from_args(&args(&["--firmware-fx"])).unwrap();
     assert_eq!(all.fx, FirmwareFx::ALL);
@@ -29,8 +36,10 @@ fn fx_ports_flag_selects_exactly_the_listed_ports() {
 #[test]
 fn apply_exact_sets_and_clears_individual_fx_ports() {
     let mut e = Stage4Engine::new(48_000.0);
-    let mut o = FirmwareOptions::default();
-    o.fx.mod2 = true;
+    let mut o = FirmwareOptions {
+        fx: FirmwareFx::PRE_D171,
+        ..FirmwareOptions::default()
+    };
     o.fx.reverb = true;
     o.apply_exact(&mut e);
     assert!(e
@@ -189,7 +198,10 @@ fn mod2_is_the_default_and_legacy_mod2_turns_it_off() {
     let d = FirmwareOptions::default();
     assert!(d.fx.mod2 && d.summary() == "defaults", "{}", d.summary());
     let l = FirmwareOptions::from_args(&args(&["--legacy-mod2"])).unwrap();
-    assert!(!l.fx.mod2 && l.fx == FirmwareFx::LEGACY);
+    assert!(
+        !l.fx.mod2 && l.fx.eq,
+        "--legacy-mod2 only turns Mod 2 off since D171"
+    );
     assert!(l.summary().contains("legacy-mod2"), "{}", l.summary());
     // `--legacy-mod2` wins over a port list given before it, and `--legacy-all` restores the old FX default.
     let w = FirmwareOptions::from_args(&args(&["--firmware-fx-ports", "mod2,eq", "--legacy-mod2"]))
@@ -201,6 +213,43 @@ fn mod2_is_the_default_and_legacy_mod2_turns_it_off() {
     assert!(e.fx_chains.iter().all(|c| !c.firmware_fx.mod2));
     d.apply_to(&mut e);
     assert!(e.fx_chains.iter().all(|c| c.firmware_fx.mod2));
+}
+
+#[test]
+fn the_parity_ports_are_the_default_and_legacy_fx_ports_opts_out() {
+    // D171: every firmware FX port but the two reverb ports is on in a new engine.
+    let e = Stage4Engine::new(48_000.0);
+    assert!(e
+        .fx_chains
+        .iter()
+        .all(|c| c.firmware_fx == FirmwareFx::PARITY));
+    let d = FirmwareOptions::default();
+    assert_eq!(d.fx, FirmwareFx::PARITY);
+    assert_eq!(d.fx.ports_on().len(), 6);
+    assert!(
+        !d.fx.reverb && !d.fx.reverb_mix,
+        "the reverb ports stay opt-in"
+    );
+    // The opt-out restores the amp and Mod 2 default of D163 to D170, in the options and the engine.
+    let l = FirmwareOptions::from_args(&args(&["--legacy-fx-ports"])).unwrap();
+    assert_eq!(l.fx, FirmwareFx::PRE_D171);
+    assert!(l.summary().contains("legacy-fx-ports"), "{}", l.summary());
+    let mut e = Stage4Engine::new(48_000.0);
+    l.apply_to(&mut e);
+    assert!(e
+        .fx_chains
+        .iter()
+        .all(|c| c.firmware_fx == FirmwareFx::PRE_D171));
+    d.apply_to(&mut e);
+    assert!(e
+        .fx_chains
+        .iter()
+        .all(|c| c.firmware_fx == FirmwareFx::PARITY));
+    // `--legacy-all` still restores the amp-only default of before D163.
+    assert_eq!(FirmwareOptions::legacy_all().fx, FirmwareFx::LEGACY);
+    // The opt-out wins over a port list, and `--legacy-mod2` on top removes Mod 2 as well.
+    let w = FirmwareOptions::from_args(&args(&["--legacy-fx-ports", "--legacy-mod2"])).unwrap();
+    assert!(!w.fx.mod2 && !w.fx.eq && w.fx.amp);
 }
 
 #[test]

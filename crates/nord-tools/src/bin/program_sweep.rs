@@ -5,7 +5,7 @@
 //! Usage: `cargo run --release -p nord-tools --bin program_sweep -- <backup.ns4b>
 //! [--frames N] [--limit N] [--only <substring>] [--every K] [--notes a,b,..] [--velocity V]
 //! [--synth-velocity] [--legacy-synth-velocity] [--legacy-arp]
-//! [--arp-fw-gate] [--legacy-morph] [--piano-touch] [--legacy-piano-touch] [--wheel V] [--aftertouch V]
+//! [--arp-fw-gate] [--legacy-fx-ports] [--legacy-morph] [--piano-touch] [--legacy-piano-touch] [--wheel V] [--aftertouch V]
 //! [--pedal V]`
 //! (`--synth-velocity` is a no-op since D142 made the firmware synth velocity law the default;
 //! `--legacy-synth-velocity` renders both modes with the linear blend; `--legacy-arp` and

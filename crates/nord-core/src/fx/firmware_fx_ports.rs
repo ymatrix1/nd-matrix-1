@@ -111,8 +111,14 @@ mod tests {
         let mut g = FirmwareFx::OFF;
         g.merge_on(&FirmwareFx::DEFAULT);
         assert!(
-            g.amp && g.ports_on() == ["mod2"],
-            "the default is amp and Mod 2 (D163)"
+            g.amp && g.ports_on().len() == 6 && !g.reverb,
+            "the default is PARITY (D171)"
+        );
+        let mut pre = FirmwareFx::OFF;
+        pre.merge_on(&FirmwareFx::PRE_D171);
+        assert!(
+            pre.amp && pre.ports_on() == ["mod2"],
+            "amp and Mod 2 (D163)"
         );
         let mut l = FirmwareFx::OFF;
         l.merge_on(&FirmwareFx::LEGACY);

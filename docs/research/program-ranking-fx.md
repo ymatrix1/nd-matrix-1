@@ -128,6 +128,52 @@ This restates the audit of [firmware-flag-audit](firmware-flag-audit.md) per gro
 - Mod 2 is the default since D163; `--firmware-fx-ports parity` applies the rest of this evidence in one switch, and D163 proposes making it the default once the owner has decided the open items of s4. What stays high after it is reverb (Sine Rain Pad, DistantGrand) and the organ programs.
 - The cheapest items that would let the flip pass D136: a dry-reference Mod 2 clip (chorus delay), the EQ joint mid words, the Mod 1 call count.
 
+## 7. Update 2026-11-20 (D171): PARITY becomes the default; rate match and the chorus delay
+
+- **Checked:** 2026-11-20. Same sources as above plus `emu_vs_hw.py` on the six hardware clips ([emu_vs_hw_parity_rate_match.json](data/emu_vs_hw_parity_rate_match.json), results [emu_vs_hw_parity_rate_match_results.json](data/emu_vs_hw_parity_rate_match_results.json)). New: `program_rank --flip fx_rate_match`, `--legacy-fx-ports`, `program_rank_combo.py --moves`. Data: [program-ranking-fx-parity-flip-384.csv](data/program-ranking-fx-parity-flip-384.csv).
+- **Question:** with the chorus delay explained ([fx-chorus-hw-clip](fx-chorus-hw-clip.md) s8), does the rest of `PARITY` pass as the default, and should `--fx-rate-match` follow?
+
+### 7.1 384 programs, default of D163 to D170 against PARITY (score against the all-firmware render)
+
+| Flipped set | n | Mean | Median | p90 | Max | > 5 | > 10 | Worse by > 0.5 | Tag |
+|---|---|---|---|---|---|---|---|---|---|
+| none (amp + Mod 2) | 384 | 3.77 | 2.74 | 8.24 | 21.15 | 103 | 24 | - | EMPIRICAL |
+| delay + compressor + EQ + Mod 1 (= PARITY) | 384 | 1.66 | 1.04 | 3.84 | 16.61 | 22 | 3 | 8 | EMPIRICAL |
+
+213 programs improve by more than 0.5. The 8 that get worse: Silent Upright 2.62 to 4.89, Innocense 0.83 to 2.54, NS4 Palette 1.80 to 3.50, White Chorus 0.72 to 2.28, Marimba 0.54 to 1.65, Phil Pad 0.21 to 1.08, Detuned Fanfare 1.94 to 2.66, Arctic Choir Whl 1.39 to 2.01. The all-firmware render is the target on both sides, so these eight differ from the firmware render with the new set in a way the chosen subset does not explain (the missing pieces are the reverb ports, kept out by the owner).
+
+### 7.2 Six hardware clips (score of `emu_vs_hw.py`, smaller is better)
+
+| Clip | default | rate-match | parity | parity + rate-match |
+|---|---|---|---|---|
+| organ B3 | 5.42 | 5.42 | 5.45 | 5.45 |
+| organ Vox + Twin (default tone) | 2.53 | 2.02 | 2.74 | 2.24 |
+| organ Vox (vox tone) | 4.90 | 4.57 | 4.69 | 4.34 |
+| piano dry | 2.02 | 2.02 | 2.02 | 2.02 |
+| synth lead | 0.69 | 0.69 | 0.69 | 0.69 |
+| synth SUPER LP24 sidechain | 4.47 | 4.47 | 3.78 | 3.78 |
+| FX amp (Tiny Transistor) | 5.37 | 3.80 | 4.29 | 3.23 |
+
+No clip gets worse by more than 0.21 under PARITY (Vintage Vox 2.53 to 2.74; recovered to 2.24 with the rate match). EMPIRICAL (one take per clip).
+
+### 7.3 `--fx-rate-match`
+
+Flipped alone on the 384 programs it moves the render from the default by a mean of 0.29 score units (median 0.00; 43 programs by more than 1, 12 by more than 3; largest Farfisa II 7.1, Texas Nights J3 6.4, NS4 Palette 5.2); the moves are the amp and cabinet programs, as D137 predicted. No firmware render exists for it (it is a converter), so the direction comes from the clips in 7.2: it never worsens a clip and takes the amp clip from 5.37 to 3.80. The owner has not been asked yet: it stays opt-in; recommendation in D171.
+
+### 7.4 Remaining blockers (not waived by the flip)
+
+Compressor words (6.2), Mod 1 call count (OQ38), PUMP clock (OQ36), EQ joint mid words, CHOR type 5 / ENS / SPIN clips.
+
+Reproduce (the ranking tools now compare against the new default; `--legacy-fx-ports` reproduces the D163 baseline, `--legacy-mod2` the older data):
+
+```bash
+cargo build --release -p nord-tools --bin program_rank
+target/release/program_rank "$B" --jobs 12 --legacy-fx-ports   --flip "fx_rate_match,fx_delay+fx_compressor+fx_eq+fx_mod1,fx_delay+fx_compressor+fx_eq+fx_mod1+fx_rate_match" > flip384.jsonl
+python tools/program_rank_combo.py --flip flip384.jsonl --md --flip-sets "fx_delay+fx_compressor+fx_eq+fx_mod1"
+python tools/program_rank_combo.py --flip flip384.jsonl --moves fx_rate_match
+uv run python tools/emu_vs_hw.py --spec docs/research/data/emu_vs_hw_parity_rate_match.json --video <Part A .webm> --backup "$B" --workdir <scratch> --confirmed-only
+```
+
 ## Follow-ups
 
 1. Owner decision on the rest of D163 (flip `FirmwareFx::DEFAULT` from amp + Mod 2 to `PARITY`, GUI default); `eq` + `mod1` + `mod2` is the smaller step: `eq` + `mod1` + `mod2` takes the worst 20 from 18.14 to 4.74 and all 384 from 5.35 to 2.70 (the tables above).
