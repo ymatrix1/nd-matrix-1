@@ -259,12 +259,27 @@ fn render_dialog_contents(
                 );
             }
             DebugTab::Library => {
+                // Accept .ns4b drag-and-drop directly onto the Settings window
+                if let Some(path) = ctx.input(|i| {
+                    i.raw.dropped_files.iter().find_map(|f| {
+                        f.path.as_ref().filter(|p| {
+                            p.extension()
+                                .and_then(|e| e.to_str())
+                                .is_some_and(|e| e.eq_ignore_ascii_case("ns4b"))
+                        })
+                    })
+                    .cloned()
+                }) {
+                    if let Err(err) = library.open_backup_path(&path) {
+                        library.error_message = Some(err);
+                    }
+                }
                 shadcn_card(
                     ui,
-                    "Backup Library (.ns4b / .ns4p)",
-                    "Open a Nord Stage 4 factory/user backup, sync knobs on preset load, or export.",
+                    "Nord Stage 4 Backup & Sample Browser (.ns4b)",
+                    "Open a factory or user .ns4b backup and browse Programs, Pianos, and Samples directly here.",
                     |ui| {
-                        library.render_top_bar(ui, state);
+                        library.render_browser_inline(ui, state, audio_handle);
                     },
                 );
             }
