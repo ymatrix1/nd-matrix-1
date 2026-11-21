@@ -48,6 +48,42 @@ pub(super) fn encode_signed(val: i32, bits: usize) -> u32 {
     (val as u32) & mask
 }
 
+/// Reads the three morph delta words (`width + 1` bits each, `wheel, aftertouch, ctrl pedal`) at
+/// the current reader position; a stored `v` is the signed depth `v - max_val`, normalized by
+/// `max_val`.
+pub(super) fn read_deltas(
+    r: &mut BitReader,
+    width: usize,
+    max_val: u32,
+) -> Result<MorphDeltas, CbinError> {
+    let max_i = max_val as i32;
+    let max_f = max_val as f32;
+    let mut next = || -> Result<f32, CbinError> {
+        Ok((r.read_bits(width + 1)? as i32 - max_i) as f32 / max_f)
+    };
+    Ok(MorphDeltas {
+        wheel: next()?,
+        aftertouch: next()?,
+        ctrl_pedal: next()?,
+    })
+}
+
+/// Writes the three morph delta words at the current writer position (inverse of [`read_deltas`]).
+pub(super) fn write_deltas(
+    w_out: &mut BitWriter,
+    deltas: MorphDeltas,
+    width: usize,
+    max_val: u32,
+) -> Result<(), CbinError> {
+    let max_i = max_val as i32;
+    let max_f = max_val as f32;
+    for d in [deltas.wheel, deltas.aftertouch, deltas.ctrl_pedal] {
+        let raw = (max_i + (d * max_f).round() as i32).clamp(0, max_i * 2) as u32;
+        w_out.write_bits(raw, width + 1)?;
+    }
+    Ok(())
+}
+
 pub(super) fn read_morph(
     r: &mut BitReader,
     bit_pos: usize,
@@ -56,19 +92,7 @@ pub(super) fn read_morph(
 ) -> Result<(u32, MorphDeltas), CbinError> {
     r.set_bit_pos(bit_pos)?;
     let base = r.read_bits(width)?;
-    let max_i = max_val as i32;
-    let max_f = max_val as f32;
-    let w = (r.read_bits(width + 1)? as i32 - max_i) as f32 / max_f;
-    let at = (r.read_bits(width + 1)? as i32 - max_i) as f32 / max_f;
-    let cp = (r.read_bits(width + 1)? as i32 - max_i) as f32 / max_f;
-    Ok((
-        base,
-        MorphDeltas {
-            wheel: w,
-            aftertouch: at,
-            ctrl_pedal: cp,
-        },
-    ))
+    Ok((base, read_deltas(r, width, max_val)?))
 }
 
 pub(super) fn write_morph(
@@ -81,13 +105,7 @@ pub(super) fn write_morph(
 ) -> Result<(), CbinError> {
     w_out.set_bit_pos(bit_pos)?;
     w_out.write_bits(base.min(max_val), width)?;
-    let max_i = max_val as i32;
-    let max_f = max_val as f32;
-    for d in [deltas.wheel, deltas.aftertouch, deltas.ctrl_pedal] {
-        let raw = (max_i + (d * max_f).round() as i32).clamp(0, max_i * 2) as u32;
-        w_out.write_bits(raw, width + 1)?;
-    }
-    Ok(())
+    write_deltas(w_out, deltas, width, max_val)
 }
 
 pub(super) fn prepare_buffer(raw_payload: &[u8], expected_len: usize, block_tag: u8) -> Vec<u8> {

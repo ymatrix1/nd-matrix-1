@@ -201,4 +201,17 @@ mod tests {
         e.render_frame();
         assert!((e.synth_a.filter_env_amount - 0.8).abs() < 0.01);
     }
+
+    #[test]
+    fn the_osc_env_amount_slot_copies_pastes_and_clears() {
+        let mut e = Stage4Engine::new(48_000.0);
+        e.synth_morph[2].osc_env_amount.delta_wheel = -0.25;
+        let clip = e.capture_morph(MorphSource::ModWheel);
+        e.apply_morph_clip(&clip, MorphSource::Aftertouch);
+        let slot = crate::synth_morph::OSC_ENV_SLOT;
+        assert_eq!(e.synth_morph[2].slot(slot).delta_aftertouch, -0.25);
+        e.clear_morph(MorphSource::ModWheel);
+        assert_eq!(e.synth_morph[2].osc_env_amount.delta_wheel, 0.0);
+        assert_eq!(e.synth_morph[2].osc_env_amount.delta_aftertouch, -0.25);
+    }
 }
