@@ -13,6 +13,7 @@ pub mod fx_wav;
 pub mod jit_diff;
 pub mod live;
 pub mod live_presets;
+pub mod live_smp;
 pub mod live_sy;
 pub mod msg;
 pub mod pass;

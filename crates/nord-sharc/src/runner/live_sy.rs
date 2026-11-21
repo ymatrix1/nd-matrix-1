@@ -14,6 +14,7 @@
 //! | 3 | vector 17 is raised and run to its `RTI` | VERIFIED: one ISR is one stereo frame (`sy_voice_sine.scn`) |
 //!
 //! The frame is read back from the frame buffer word `DM(0x93590)` points at (default `0x932CA`).
+use super::live_smp;
 use crate::core::Core;
 use std::collections::VecDeque;
 
@@ -63,6 +64,10 @@ pub struct SyStats {
 #[derive(Debug)]
 pub struct SyModel {
     pub isrs_per_pass: u32,
+    /// Command FIFO base: `FIFO_BASE` (SY1SY2) or `live_smp::FIFO_BASE` (SMP, no state words,
+    /// no staging refill, output read from the post stage ring).
+    fifo_base: u32,
+    smp: bool,
     queue: VecDeque<(u32, u32)>,
     staged: [bool; VOICES as usize],
     pub stats: SyStats,
@@ -103,6 +108,8 @@ impl SyModel {
     pub fn new(isrs_per_pass: u32) -> Self {
         Self {
             isrs_per_pass: isrs_per_pass.max(1),
+            fifo_base: FIFO_BASE,
+            smp: false,
             queue: VecDeque::new(),
             staged: [false; VOICES as usize],
             stats: SyStats::default(),
@@ -111,11 +118,21 @@ impl SyModel {
         }
     }
 
+    /// The SMP (piano) chip: same interrupt-driven pass, its own FIFO and the ring tap (OQ41).
+    pub fn smp(isrs_per_pass: u32) -> Self {
+        Self {
+            fifo_base: live_smp::FIFO_BASE,
+            smp: true,
+            ..Self::new(isrs_per_pass)
+        }
+    }
+
     /// Queues one ARM message (an opcode 0 pair: store `value` at DM `addr`). A Stage A state
     /// message also switches the ring refill of its voice (prepare and go on, idle and reset off).
     pub fn send(&mut self, addr: u32, value: u32) {
         if let Some(k) = addr
             .checked_sub(STATE_WORD)
+            .filter(|_| !self.smp)
             .filter(|o| o % REC_STRIDE == 0 && o / REC_STRIDE < VOICES)
             .map(|o| o / REC_STRIDE)
         {
@@ -156,7 +173,7 @@ impl SyModel {
             return Ok(0);
         }
         let steps = run_irq(core, FIFO_RESET_VECTOR, ISR_MAX_STEPS)?;
-        let mut at = FIFO_BASE;
+        let mut at = self.fifo_base;
         for (addr, value) in self.queue.drain(..n) {
             let w = core
                 .dm_write(at, addr)
@@ -193,8 +210,13 @@ impl SyModel {
     fn frame(&mut self, core: &mut Core) -> Result<u64, String> {
         let mut steps = self.feed_fifo(core)?;
         self.refill(core)?;
+        let half = live_smp::ring_half(core);
         steps += run_irq(core, AUDIO_VECTOR, ISR_MAX_STEPS)?;
         self.stats.isrs += 1;
+        if self.smp {
+            self.frames.extend(live_smp::ring_frames(core, half));
+            return Ok(steps);
+        }
         let p = core.dm_read(FRAME_POINTER).unwrap_or(0);
         let at = if (0x9_0000..0x10_0000).contains(&p) {
             p
@@ -378,5 +400,29 @@ mod tests {
             l.exec("D 0x93046 2").unwrap().unwrap(),
             "D 93046 95000 1234"
         );
+    }
+
+    #[test]
+    fn the_smp_model_uses_its_own_fifo_never_stages_and_taps_the_ring() {
+        let mut c = core_with_rti_vectors();
+        c.dm_write(FIFO_CAP, 4).unwrap();
+        c.dm_write(live_smp::RING_POINTER, live_smp::RING_HALVES[1])
+            .unwrap();
+        c.dm_write(live_smp::RING_HALVES[1], 0.5f32.to_bits())
+            .unwrap();
+        c.dm_write(live_smp::RING_HALVES[1] + 11, (-1.0f32).to_bits())
+            .unwrap();
+        let mut m = SyModel::smp(1);
+        m.send(STATE_WORD, STATE_PREPARE); // an SY state word is a plain store on the SMP
+        m.send(0x9_3936, 0x3F80_0000);
+        assert_eq!(m.staged_voices(), 0);
+        let (steps, ok) = m.pass(&mut c);
+        assert!(ok && steps > 0, "{:?}", m.take_error());
+        assert_eq!(c.dm_read(live_smp::FIFO_BASE + 2), Ok(0x9_3936));
+        assert_eq!(c.dm_read(FIFO_BASE), Ok(0), "the SY FIFO is untouched");
+        let w = m.level_words();
+        assert_eq!(w.len(), 4, "two stereo frames per interrupt");
+        assert_eq!(f32::from_bits(w[0]), 0.5);
+        assert_eq!(f32::from_bits(w[3]), -1.0);
     }
 }

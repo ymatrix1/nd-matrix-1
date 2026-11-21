@@ -16,10 +16,13 @@ parent: ns4-trkb
 Audio 1:1 with hardware from ARM + SHARC execution only: compare native and chain for piano programs.
 
 ## Acceptance Criteria
-- [ ] Live driver binds a piano sound (`arm_piano_load` stub); program to `.npno` map documented
-- [ ] `smp` preset and model in `sharc-live` (template `live_sy.rs`)
+- [x] Live driver binds a piano sound (`arm_piano_load` stub); program to `.npno` map documented (D185, `arm_piano_bind.py`)
+- [x] `smp` preset and model in `sharc-live` (template `live_sy.rs`) (D185, `live_smp.rs`)
 - [ ] CNSP page refill of the SMP ring from the bound `.npno`
 - [ ] Piano programs in the census and ranking with a level, flag `piano_no_chain_tap` removed
 
 ## Out of Scope
 Default flips, FX chip live (OQ36).
+
+## Summary of Changes (2026-11-21, partial)
+Steps 1 and 2 done, see [piano-chain-tap-smp](../docs/research/piano-chain-tap-smp.md) and D185. Remaining: page refill, census and ranking column. Bean stays `todo`.

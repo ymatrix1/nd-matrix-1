@@ -35,6 +35,7 @@ import json
 import subprocess
 import sys
 import time
+import zipfile
 from pathlib import Path
 
 import arm_dsp_link as dl
@@ -164,6 +165,8 @@ def drive(ns, chips: Chips, router: rt.Router, source=None, before=None) -> dict
             result["flagged_layers"] = cap.bind_samples(
                 session.emu, pl.read_npno(ns.ns4b, cap.SAMPLE_MEMBER, 0x400000)
             )
+        if name == "idle" and ns.piano_bind:
+            result["piano_bind"] = bind_program_piano(session.emu, ns.piano_bind, program)
         now = {s.name: snapshot(link, t0) for s, link in chips.items}
         phases[name] = {"ticks": ticks, **{n: phase_delta(prev[n], now[n]) for n in now}}
         phases[name]["arm_messages"] = seen_delta(seen_prev, router.seen)  # every comm, D170
@@ -187,6 +190,22 @@ def drive(ns, chips: Chips, router: rt.Router, source=None, before=None) -> dict
     if source:
         result["return_path"] = return_report(source, read_log)
     return result
+
+
+def bind_program_piano(emu, backup: Path, program: bytes) -> dict:  # noqa: ANN001  # pragma: no cover
+    """Bind the enabled piano layer A sound of the program (`arm_piano_bind`, OQ41)."""
+    import arm_piano_bind as pb
+    import arm_piano_load as pl
+
+    layers = pb.program_piano_layers(program)
+    layer = next((k for k, v in layers.items() if v["enabled"]), None)
+    if layer is None:
+        return {"layer": None}
+    with zipfile.ZipFile(backup) as archive:
+        member = pb.resolve_member(pb.piano_members(archive.namelist()), layers[layer]["name_hash"])
+    if member is None:
+        return {"layer": layer, "member": None}
+    return {"layer": layer, "member": member, **pb.bind_piano(emu, pl.read_npno(backup, member))}
 
 
 def replay_cmd(spec: rt.ChipSpec, exe: Path, log: Path, passes: int, tap: Path) -> list[str]:
@@ -259,6 +278,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
     ap.add_argument("--key-gap", type=int, default=20, help="ticks between chord notes")
     ap.add_argument("--ns4b", type=Path, help="factory backup: bind a stand-in sample to the "
                     "flagged SAMPLE layers after the idle phase")  # fmt: skip
+    ap.add_argument("--piano-bind", type=Path, metavar="BACKUP", help="bind the program's piano "
+                    "sound (.npno of this backup) after the idle phase (OQ41)")  # fmt: skip
     ap.add_argument("--sy-timeline", action="store_true",
                     help="per-tick SY sample and key-down / free timing (D153)")  # fmt: skip
     ap.add_argument("--insns-per-tick", type=int, default=200_000)
