@@ -190,15 +190,31 @@ impl Live {
                 Ok(Some(format!("H {}", u8::from(on))))
             }
             Some("S") => match &mut self.sy {
-                Some(sy) => Ok(Some(format!("S {}", std::mem::take(&mut sy.snaps).join(" ")))),
+                Some(sy) => Ok(Some(format!(
+                    "S {}",
+                    std::mem::take(&mut sy.snaps).join(" ")
+                ))),
                 None => Err("S: not a sample chip".to_string()),
             },
             Some("G") => {
                 let c = &self.core;
                 let f = |n: &str, a: &[u32; 16]| {
-                    format!(" {n}={}", a.iter().map(|v| format!("{v:x}")).collect::<Vec<_>>().join(","))
+                    format!(
+                        " {n}={}",
+                        a.iter()
+                            .map(|v| format!("{v:x}"))
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    )
                 };
-                Ok(Some(format!("G pc={:x}{}{}{}{}", c.pc, f("r", &c.r), f("s", &c.s), f("i", &c.i), f("l", &c.l))))
+                Ok(Some(format!(
+                    "G pc={:x}{}{}{}{}",
+                    c.pc,
+                    f("r", &c.r),
+                    f("s", &c.s),
+                    f("i", &c.i),
+                    f("l", &c.l)
+                )))
             }
             Some("W") => Ok(Some(self.watch_cmd(num(1).ok(), num(2).ok()))),
             Some("F") => super::live_flash::place(&mut self.core, num(1)?).map(Some),
@@ -411,12 +427,19 @@ mod tests {
     #[test]
     fn w_g_and_s_watch_writes_dump_registers_and_need_a_sample_chip() {
         let mut l = live(vec![]);
-        assert_eq!(l.exec("W 0xB0000 2").unwrap(), Some("W b0000 2".to_string()));
+        assert_eq!(
+            l.exec("W 0xB0000 2").unwrap(),
+            Some("W b0000 2".to_string())
+        );
         l.core.pc = 0x12_0002;
         l.core.dm_write(0xB_0001, 7).unwrap();
         l.core.dm_write(0xB_0005, 9).unwrap(); // outside the window
         assert_eq!(l.exec("W").unwrap(), Some("W 120002:b0001:7".to_string()));
-        assert_eq!(l.exec("W").unwrap(), Some("W".to_string()), "hits are cleared");
+        assert_eq!(
+            l.exec("W").unwrap(),
+            Some("W".to_string()),
+            "hits are cleared"
+        );
         let g = l.exec("G").unwrap().unwrap();
         assert!(g.starts_with("G pc=120002 r=") && g.contains(" l="), "{g}");
         assert!(l.handle("S").unwrap().starts_with("ERR"), "no sample chip");

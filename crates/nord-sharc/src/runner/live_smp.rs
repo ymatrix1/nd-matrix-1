@@ -13,9 +13,9 @@
 //!
 //! The ring holds float words (`bus * 2^-29`) in a 10 word TDM frame: left at `+0`, right at `+1`
 //! of each frame, second frame at `+10`. The page ring refill runs through the external port DMA
-//! chains of `epchain.rs` against the flash image of `smpflash.rs` (`L`, `F` commands, D191); the
-//! voice phase does not advance after the first refill, so the tap still carries no audio
-//! (`docs/research/smp-page-refill.md`, OQ41).
+//! chains of `epchain.rs` against the flash image of `smpflash.rs` (`L`, `F` commands, D191). The voice
+//! advances once the command FIFO index carries the ISR bias [`INDEX_BIAS`] and the batch is capped
+//! by [`FIFO_CAP`] (D196); the tap then carries varying audio (`docs/research/smp-page-refill.md`).
 use crate::core::Core;
 
 /// SMP command FIFO base (`I0` after the FIFO reset interrupt).

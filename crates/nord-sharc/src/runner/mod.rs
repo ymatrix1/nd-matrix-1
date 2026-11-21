@@ -17,6 +17,8 @@ pub mod live_presets;
 pub mod live_smp;
 pub mod live_sy;
 #[cfg(test)]
+mod live_sy_tests;
+#[cfg(test)]
 mod live_tests;
 pub mod msg;
 pub mod pass;

@@ -41,7 +41,7 @@ pub const STATE_RESET: u32 = 0x1C_0794;
 pub const STATE_PREPARE: u32 = 0x1C_07CD;
 pub const STATE_GO: u32 = 0x1C_084C;
 /// Staging buffer base field of a voice record and its length (VERIFIED, `refill.rs`).
-const STAGING_FIELD: u32 = 0x2F;
+pub(crate) const STAGING_FIELD: u32 = 0x2F;
 const STAGING_WORDS: u32 = 0x80;
 /// ASSUMED (D111): a header word the unpacker accepts, so the ring is fed with control flow only.
 pub const STAGING_FILL: u32 = (14 << 19) | 0x40;
@@ -122,8 +122,18 @@ pub fn run_irq_probed(
                 *h += 1;
             }
             if i == 0 && snaps.len() < 256 {
-                let f = |a: &[u32]| a.iter().map(|v| format!("{v:x}")).collect::<Vec<_>>().join(",");
-                snaps.push(format!("r={};i={};l={}", f(&core.r[..8]), f(&core.i[..8]), f(&core.l[..2])));
+                let f = |a: &[u32]| {
+                    a.iter()
+                        .map(|v| format!("{v:x}"))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                };
+                snaps.push(format!(
+                    "r={};i={};l={}",
+                    f(&core.r[..8]),
+                    f(&core.i[..8]),
+                    f(&core.l[..2])
+                ));
             }
         }
         core.step()
@@ -207,7 +217,7 @@ impl SyModel {
     }
 
     /// FIFO reset plus up to `DM(0x92180)` queued pairs written behind it (step 1).
-    fn feed_fifo(&mut self, core: &mut Core) -> Result<u64, String> {
+    pub(crate) fn feed_fifo(&mut self, core: &mut Core) -> Result<u64, String> {
         let cap = core.dm_read(self.cap_addr).unwrap_or(0) as usize;
         let n = self.queue.len().min(cap);
         if n == 0 {
@@ -230,7 +240,7 @@ impl SyModel {
     }
 
     /// Refills the staging buffers of the prepared voices (step 2).
-    fn refill(&mut self, core: &mut Core) -> Result<(), String> {
+    pub(crate) fn refill(&mut self, core: &mut Core) -> Result<(), String> {
         for k in (0..VOICES).filter(|k| self.staged[*k as usize]) {
             let base = core
                 .dm_read(REC_BASE + REC_STRIDE * k + STAGING_FIELD)
@@ -326,210 +336,26 @@ impl SyModel {
 mod tests {
     use super::*;
 
-    /// A core whose vectors are all `RTI` at once (IVT at short word `0x120000`, 12 parcels
-    /// per vector), so a vector run only counts the interrupt.
-    fn core_with_rti_vectors() -> Core {
-        let mut image = vec![0u8; 0x24_0000 + 2 * 12 * 20];
-        for v in 0..20usize {
-            let at = 0x24_0000 + 2 * 12 * v;
-            for (k, p) in [0x0bbeu16, 1, 1].iter().enumerate() {
-                image[at + 2 * k..at + 2 * k + 2].copy_from_slice(&p.to_le_bytes());
-            }
-        }
-        let mut c = Core::new(&image);
-        c.pc = 0x12_0000 + 3 * 100;
-        c.mode1 |= 1 << 12; // MODE1.IRPTEN
-        c.write_ureg(0x7D, 1 << 10); // LIRPTL mask bit of vector 17 (P6I), as the firmware sets it
-        c
+    #[test]
+    fn the_smp_model_has_its_own_fifo_bias_and_cap_word_the_sy_model_none() {
+        let sy = SyModel::new(2);
+        assert_eq!((sy.index_bias, sy.cap_addr), (0, FIFO_CAP));
+        let smp = SyModel::smp(2);
+        assert_eq!(smp.index_bias, live_smp::INDEX_BIAS);
+        assert_eq!(smp.cap_addr, live_smp::FIFO_CAP);
+        assert_eq!(smp.fifo_base, live_smp::FIFO_BASE);
     }
 
     #[test]
-    fn state_messages_switch_the_refill_per_voice() {
-        let mut m = SyModel::new(2);
-        m.send(STATE_WORD + 3 * REC_STRIDE, STATE_PREPARE);
-        assert_eq!(m.staged_voices(), 1);
-        m.send(STATE_WORD + 3 * REC_STRIDE, STATE_GO);
-        assert_eq!(m.staged_voices(), 1);
-        m.send(STATE_WORD + 3 * REC_STRIDE, STATE_RESET);
-        assert_eq!(m.staged_voices(), 0);
-        m.send(STATE_WORD + 1, STATE_PREPARE); // not a state word
-        m.send(STATE_WORD + VOICES * REC_STRIDE, STATE_PREPARE); // voice 56 does not exist
-        assert_eq!((m.staged_voices(), m.queued()), (0, 5));
-    }
-
-    #[test]
-    fn a_batch_is_capped_by_the_isr_pair_limit_and_resets_the_fifo() {
-        let mut c = core_with_rti_vectors();
-        c.dm_write(FIFO_CAP, 2).unwrap();
+    fn the_report_lists_probe_hits_only_when_probes_are_set() {
         let mut m = SyModel::new(1);
-        for k in 0..5 {
-            m.send(0x9_5000 + k, 0x100 + k);
-        }
-        m.feed_fifo(&mut c).unwrap();
-        // two pairs behind the base, the index after them, three still queued, one reset
-        let w: Vec<u32> = (0..5).map(|k| c.dm_read(FIFO_BASE + k).unwrap()).collect();
-        assert_eq!(&w[..4], &[0x9_5000, 0x100, 0x9_5001, 0x101]);
-        assert_eq!(c.dm_read(FIFO_INDEX), Ok(FIFO_BASE + 4));
-        assert_eq!((m.queued(), m.stats.resets, m.stats.pairs), (3, 1, 2));
-        assert_eq!(c.interrupts_taken(), 1);
-        m.feed_fifo(&mut c).unwrap();
-        assert_eq!((m.queued(), m.stats.pairs), (1, 4));
-    }
-
-    #[test]
-    fn no_cap_or_no_message_means_no_fifo_interrupt() {
-        let mut c = core_with_rti_vectors();
-        let mut m = SyModel::new(1);
-        m.send(0x9_5000, 1);
-        assert_eq!(m.feed_fifo(&mut c), Ok(0), "cap 0: nothing is consumed");
-        c.dm_write(FIFO_CAP, 4).unwrap();
-        let mut empty = SyModel::new(1);
-        assert_eq!(empty.feed_fifo(&mut c), Ok(0));
-        assert_eq!(c.interrupts_taken(), 0);
-    }
-
-    #[test]
-    fn refill_fills_only_prepared_voices_with_a_buffer() {
-        let mut c = core_with_rti_vectors();
-        let mut m = SyModel::new(1);
-        m.send(STATE_WORD, STATE_PREPARE);
-        m.send(STATE_WORD + REC_STRIDE, STATE_PREPARE);
-        c.dm_write(REC_BASE + STAGING_FIELD, 0x9_3FF7).unwrap();
-        // voice 1 has no staging base yet: skipped
-        m.refill(&mut c).unwrap();
-        assert_eq!(c.dm_read(0x9_3FF7), Ok(STAGING_FILL));
-        assert_eq!(c.dm_read(0x9_3FF7 + 0x7F), Ok(STAGING_FILL));
-        assert_eq!(c.dm_read(0x9_3FF7 + 0x80), Ok(0));
-        assert_eq!(m.stats.refills, 1);
-    }
-
-    #[test]
-    fn a_pass_runs_isrs_per_pass_audio_interrupts_and_reads_the_frame() {
-        let mut c = core_with_rti_vectors();
-        c.dm_write(FRAME_POINTER, 0x9_4000).unwrap();
-        c.dm_write(0x9_4000, 0.5f32.to_bits()).unwrap();
-        c.dm_write(0x9_4001, (-0.25f32).to_bits()).unwrap();
-        let mut m = SyModel::new(2);
-        let (steps, ok) = m.pass(&mut c);
-        assert!(ok && steps > 0, "{:?}", m.take_error());
-        assert_eq!((m.stats.isrs, c.interrupts_taken()), (2, 2));
-        assert_eq!(m.level_words().len(), 4);
-        assert_eq!(f32::from_bits(m.level_words()[0]), 0.5);
-        assert!(m
-            .report()
-            .starts_with("sy=isrs:2,resets:0,pairs:0,queued:0,"));
-    }
-
-    #[test]
-    fn a_stuck_interrupt_is_reported_not_hung() {
-        let mut c = core_with_rti_vectors();
-        // vector 17 at a pc that never returns: overwrite its RTI with NOPs is not needed, ask
-        // for a step budget of zero instead
-        assert!(run_irq(&mut c, AUDIO_VECTOR, 0).is_err());
-        assert!(run_irq(&mut c, 99, 10).is_err(), "invalid vector");
-    }
-
-    #[test]
-    fn the_live_protocol_queues_messages_and_reports_frames_and_counters() {
-        use super::super::live::Live;
-        use super::super::pass::PassConfig;
-        let mut c = core_with_rti_vectors();
-        c.dm_write(FIFO_CAP, 4).unwrap();
-        c.dm_write(FRAME_POINTER, 0x9_4000).unwrap();
-        c.dm_write(0x9_4000, 0.5f32.to_bits()).unwrap();
-        c.dm_write(0x9_4001, (-0.75f32).to_bits()).unwrap();
-        let cfg = PassConfig {
-            trigger: 0,
-            idle_pc: 0,
-            max_steps: 10,
-            irq: None,
-        };
-        let mut l = Live::new(c, cfg, None, (2, 0), vec![]).with_sy(SyModel::new(2));
-        assert_eq!(l.exec("M 0x95000 0x1234").unwrap(), None);
-        // the message waits in the queue: the data word is untouched until a pass moved it
-        // into the FIFO (the stub ISR here is an RTI, so it is never stored)
-        assert_eq!(l.exec("D 0x95000 1").unwrap().unwrap(), "D 95000 0");
-        let r = l.exec("P 1").unwrap().unwrap();
-        assert!(r.starts_with("P req=1 idle=1 "), "{r}");
+        assert!(!m.report().contains("ihits="));
+        m.probes = vec![0x1C_05D7, 0x1C_0B08];
+        m.probe_hits = vec![3, 0];
         assert!(
-            r.contains("cnt=4") && r.contains("peak=7.500000000e-1"),
-            "{r}"
+            m.report().ends_with(" ihits=1c05d7:3,1c0b08:0"),
+            "{}",
+            m.report()
         );
-        assert!(r.contains("sy=isrs:2,resets:1,pairs:1,queued:0,"), "{r}");
-        assert!(!r.contains("error="), "{r}");
-        assert_eq!(
-            l.exec("D 0x93046 2").unwrap().unwrap(),
-            "D 93046 95000 1234"
-        );
-    }
-
-    #[test]
-    fn the_smp_model_uses_its_own_fifo_never_stages_and_taps_the_ring() {
-        let mut c = core_with_rti_vectors();
-        c.dm_write(live_smp::FIFO_CAP, 4).unwrap();
-        c.dm_write(live_smp::RING_POINTER, live_smp::RING_HALVES[1])
-            .unwrap();
-        c.dm_write(live_smp::RING_HALVES[1], 0.5f32.to_bits())
-            .unwrap();
-        c.dm_write(live_smp::RING_HALVES[1] + 11, (-1.0f32).to_bits())
-            .unwrap();
-        let mut m = SyModel::smp(1);
-        m.send(STATE_WORD, STATE_PREPARE); // an SY state word is a plain store on the SMP
-        m.send(0x9_3936, 0x3F80_0000);
-        assert_eq!(m.staged_voices(), 0);
-        let (steps, ok) = m.pass(&mut c);
-        assert!(ok && steps > 0, "{:?}", m.take_error());
-        assert_eq!(c.dm_read(live_smp::FIFO_BASE + 2), Ok(0x9_3936));
-        assert_eq!(c.dm_read(FIFO_BASE), Ok(0), "the SY FIFO is untouched");
-        // the ISR adds R3 = 0x80000 to the index word: it holds `write address - bias` (OQ41)
-        assert_eq!(
-            c.dm_read(FIFO_INDEX),
-            Ok(live_smp::FIFO_BASE + 4 - live_smp::INDEX_BIAS)
-        );
-        let w = m.level_words();
-        assert_eq!(w.len(), 4, "two stereo frames per interrupt");
-        assert_eq!(f32::from_bits(w[0]), 0.5);
-        assert_eq!(f32::from_bits(w[3]), -1.0);
-    }
-
-    #[test]
-    fn the_smp_batch_is_capped_by_its_own_word_not_the_sy_one() {
-        let mut c = core_with_rti_vectors();
-        c.dm_write(FIFO_CAP, 1).unwrap(); // the SY1SY2 cap word must not limit the SMP
-        c.dm_write(live_smp::FIFO_CAP, 3).unwrap();
-        let mut m = SyModel::smp(1);
-        for k in 0..5 {
-            m.send(0x9_5000 + k, k);
-        }
-        let (_, ok) = m.pass(&mut c);
-        assert!(ok);
-        assert_eq!(m.stats.pairs, 3);
-        assert_eq!(m.queued(), 2);
-    }
-
-    #[test]
-    fn probes_count_executions_and_snapshots_record_registers() {
-        // vector 17 = NOP (3 parcels), RTI: the RTI is the probe
-        let mut image = vec![0u8; 0x24_0000 + 2 * 12 * 20];
-        for v in 0..20usize {
-            let at = 0x24_0000 + 2 * 12 * v;
-            let parcels: &[u16] = if v == 17 { &[0, 0, 0, 0x0bbe, 1, 1] } else { &[0x0bbe, 1, 1] };
-            for (k, p) in parcels.iter().enumerate() {
-                image[at + 2 * k..at + 2 * k + 2].copy_from_slice(&p.to_le_bytes());
-            }
-        }
-        let mut c = Core::new(&image);
-        c.pc = 0x12_0000 + 3 * 100;
-        c.mode1 |= 1 << 12;
-        c.write_ureg(0x7D, 1 << 10);
-        let mut m = SyModel::new(2);
-        m.probes = vec![0x12_0000 + 12 * 17 + 3, 0x12_0000]; // the RTI of vector 17, a pc never run
-        m.probe_hits = vec![0, 0];
-        let (_, ok) = m.pass(&mut c);
-        assert!(ok, "{:?}", m.take_error());
-        assert_eq!(m.probe_hits, vec![2, 0], "two audio interrupts per pass");
-        assert_eq!(m.snaps.len(), 2, "one snapshot per hit of the first probe");
-        assert!(m.report().ends_with("ihits=1200cf:2,120000:0"), "{}", m.report());
-
     }
 }
