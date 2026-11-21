@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D203](#d203---fx-defaults-firmware-flip-proposal-seven-of-the-eight-words-may-flip-alone-reverb_mix-stays-the-boot-log-confirms-the-start-state) | 2026-11-21 | `--fx-defaults firmware` flip proposal: seven of the eight words may flip alone, `reverb_mix` stays; the boot log confirms the start state | proposed |
 | [D202](#d202-piano-voice-census-the-opt-in-pedal-voice-list-equals-the-firmware-list-on-38-of-38-factory-sounds-the-default-pedal-down-path-equals-it-on-none-of-the-two-voice-classes) | 2026-11-21 | Rust census `piano_voice_census`: opt-in pedal-down voice list equals the firmware list at 6,834 of 6,834 points (38 sounds); default legacy path equals it on 0 of 4,680 two-voice points; no engine change | proposed |
 | [D200](#d200-the-oracle-adds-the-filter-envelope-to-the-cutoff-in-semitones-of-the-stage-coefficient-opt-in---synth-fw-env-law-envelope-is-dsp-pass-driven) | 2026-11-21 | The oracle adds the filter envelope to the cutoff in semitones of the stage coefficient (1 per amount knob step); opt-in `--synth-fw-env-law`; the envelope is DSP-pass driven | proposed |
 | [D198](#d198-the-firmware-organ-stages-run-straight-line-generated-routines-the-planner-breaks-instruction-cycles-bit-identical-bass-still-over-the-block-budget) | 2026-11-21 | The firmware organ stages run straight line generated routines; the planner breaks instruction cycles; bit identical, Bass still over the block budget | accepted |
@@ -2095,6 +2096,16 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Claim the clavinet level (rejected: DC). Hold the PR until the voice advances (rejected: the feed and the law are reusable and the blocker is recorded).
 - **Open:** per-voice gate (scheduler, EP DMA completion interrupt, ARM re-init burst), 129 `flash_outside` reads, layers 2 and 3.
 - **Impact:** `smpflash.rs`, `epchain.rs`, `glue.rs`, `live_flash.rs`, `live.rs`, `live_sy.rs` (`other_half`), `tools/arm_smp_flash.py`, `arm_dsp_link.py`, `arm_dsp_live.py`, `arm_dsp_route.py`; tests `smpflash`, `epchain`, `glue`, `live`, `live_smp`, `test_arm_smp_flash.py`, `test_arm_dsp_link.py`; no default, no render path touched.
+
+### D203. `--fx-defaults firmware` flip proposal: seven of the eight words may flip alone, `reverb_mix` stays; the boot log confirms the start state
+
+- **Status:** proposed 2026-11-21 (renumber on merge if D203 is taken)
+- **Decided by:** the task of the parent session ([fx-defaults-flip](research/fx-defaults-flip.md)); the owner decides the flip. Nothing is flipped here.
+- **Context:** D101 derived the 8 differing FX chain default words and applied them opt-in because no init-patch clip existed (OQ34). The parity ports (D173, D180, D187) are the default since; the reverb ports stay out by owner decision.
+- **Decision:** (1) Add `tools/fx_defaults_boot.py` (+ tests): which UI value the booted ARM sent, recovered from the boot log. (2) Add `crates/nord-tools` `fx_defaults_cmp` and bin `fx_defaults_vs_fw` (+ tests): per word, engine default and firmware default against the firmware model, each word alone. (3) Record the result in [fx-defaults-flip](research/fx-defaults-flip.md) and [data/fx-defaults-flip.csv](research/data/fx-defaults-flip.csv). (4) **Proposal:** flip `comp_amount`, `mod1_amount`, `mod2_amount` (the boot sends the default values) and `delay_time_ms`, `delay_mix`, `delay_feedback` (words VERIFIED, start state ASSUMED, no delay words in the boot); `eq_mid_freq_hz` is a 0.1 % no-op. Keep `reverb_mix` 0.15 until a reverb port or level correction is the default. No default is changed.
+- **Why:** The boot sends `kCmpAmt` 95, the `kRvbAmt` 38 wet word and the Mod 1 / Mod 2 amount-64 words, never the engine values: the start state of four words is VERIFIED. Rendered against the firmware model the firmware default is closer for every ported word (0.3 to 9.6 dB band error; a null by construction, so this measures how far the flip moves the audio). The reverb word is right but the engine reverb is louder than the firmware (D91), so its larger amount is farther from the model.
+- **Alternatives:** Flip all eight (rejected: `reverb_mix` widens a known level gap); wait for a hardware clip (rejected for the words the boot confirms); also flip `kFx2Type` 0 (not one of the 8, left open).
+- **Impact:** `tools/fx_defaults_boot.py`, `tools/tests/test_fx_defaults_boot.py`, `crates/nord-tools/src/fx_defaults_cmp.rs`, `src/bin/fx_defaults_vs_fw.rs`, [fx-defaults-flip](research/fx-defaults-flip.md), OQ34, [audio-remaining](research/audio-remaining.md) row 14, [fx-defaults](research/fx-defaults.md). No audio or default change.
 
 ### D197. Mod 1 calls per pass: the dispatcher calls a stage once per pass; the ARM stage install is not reproducible, so the `mod1_unit_calls` flip stays proposed
 
