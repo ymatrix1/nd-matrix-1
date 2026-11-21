@@ -233,7 +233,7 @@ mod tests {
     fn new_switches_reach_the_engine_through_the_command_channel_and_revert() {
         use nord_core::fx::RingAdvance;
         let (handle, rx) = AudioHandle::new();
-        let mut fx = nord_core::fx::FirmwareFx::DEFAULT;
+        let mut fx = nord_core::fx::FirmwareFx::PRE_PARITY;
         fx.enable_ports("reverb,mod1,mod2,eq,compressor").unwrap();
         let mut panel = FirmwarePanelState::new(FirmwareOptions {
             fx,

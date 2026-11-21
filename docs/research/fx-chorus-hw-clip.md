@@ -114,10 +114,46 @@ Positions 0 to 9 fall inside type 4 and step by 12 to 14 `v` each (the 128 `v` s
 
 **What this does not give.** No emulator output was compared with a UP2 render: that needs the official Kontakt Player or a Kontakt readout of `CHORAL_RATE`, `CHORAL_DELAY` and `get_engine_par_disp`. Reverb has no IR here (the `.nkr` `ir_samples` folder is empty).
 
+## 8. Update 2026-11-20 (D173): the 1.7 times is the scope calibration, not the stage
+
+- **Checked:** 2026-11-20. **Sources:** `L.wav` and `R.wav` of the clip (local), the FX image of OS v1.66 (`tools/ns4_dsp_ldr.py <FX image> --sram DIR`), `sharc-fxlive` and `fx_live_native`. **Tools (new):** [tools/fx_chorus_oracle_delay.py](../../tools/fx_chorus_oracle_delay.py), [tools/fx_chorus_comb.py](../../tools/fx_chorus_comb.py), Rust test `fx/tests_mod2_hw_delay.rs`.
+- **Question:** is the firmware chorus delay 1.7 times the hardware's because of the port, the words, or the clip reading (s5 candidates)?
+
+### 8.1 Port against oracle: the delay is the firmware's (VERIFIED)
+
+An impulse train (one impulse per 600 DSP frames, 6 s, `kFx2Rate` 30, `kFx2Amt` 64) through the live FX chain of the SHARC oracle (`fx_oracle_live.py` words for `CHOR 4`) and through the native port, the offset of the copy read per impulse (434 impulses):
+
+| Run | Delay min / max / mean (ms) | Copy over direct | Tag |
+|---|---|---|---|
+| SHARC oracle, rate 30, amount 64 | 0.737 / 3.433 / 2.069 | 0.619 | VERIFIED (`fx_chorus_oracle_delay.py`) |
+| native port, same words | 0.737 / 3.433 / 2.069 | 0.619 | VERIFIED |
+| oracle and port, rate 30, amount 127 | 0.737 / 5.507 / 2.958 | 0.853 | VERIFIED |
+| oracle and port, rate 64, amount 64 | 0.737 / 3.433 / 2.094 | 0.622 | VERIFIED |
+
+The port reproduces the oracle to the frame, so the s5 candidate "engine-rate rescale of the delay words" is excluded as well: the test `chor4_delay_is_the_same_in_seconds_at_44100_hz` pins the same seconds at 44.1 and 48 kHz. The delay words themselves are the ARM words of the dense grid (D90).
+
+### 8.2 The hardware delay from the audio, without the scope (EMPIRICAL)
+
+A chorus `y = x + g x(t - d)` multiplies the spectrum by `|1 + g exp(-j 2 pi f d)|`, a comb of period `1 / d` in Hz. `tools/fx_chorus_comb.py` fits that comb to the partial levels of `L.wav` (0.35 s Hann frames, 110 Hz to 4.5 kHz, detrended, `g` 0.6 to 1.0) and fits a sine to the per-frame delays:
+
+| Input | LFO (Hz) | Range (ms) | Centre (ms) |
+|---|---|---|---|
+| `L.wav` (Nord), g 0.86 | 0.360 | 1.3 to 3.3 | 2.3 |
+| `L.wav`, g 0.6 / 1.0 | 0.360 / 0.356 | 1.1 to 3.3 / 1.1 to 3.3 | 2.2 / 2.2 |
+| `R.wav` (UP2 chorus), g 0.86 | 0.356 | 1.2 to 3.2 | 2.2 |
+| Firmware CHOR 4, v 30, amount 64 (s8.1) | 0.343 | 0.74 to 3.43 | 2.07 |
+| Scope reading (s3), 87.31 Hz assumed | 0.336 | 0.62 to 1.78 | 1.17 |
+
+The maxima of the audio delay fall at 24.3 to 24.7, 27.3 to 27.5 and 30.5 s, the times of the scope maxima (24.5, 27.5, 30.5 s). The audio comb gives a **centre 2.2 / 2.07 = 1.06 times the firmware's, a maximum within 4 %, and the LFO within 5 %**; the scope reading is 1.9 times shorter than the audio. The minimum is the weak end of the fit (1.1 to 1.3 ms against 0.74 to 0.87 ms: the comb period at small `d` is wider than the partial band can resolve, and the 0.2 s hop smears the swing); it does not change the verdict.
+
+### 8.3 Cause and verdict
+
+The scope signal is not the 87.31 Hz F2 note (s3 said so: the folded audio is not a sawtooth), so `delay_ms = sep_px / period_px x 11.454` is scaled by the wrong period: the true scope period is about 1.7 to 1.9 times longer (about 50 Hz, ASSUMED: it is the only value that makes the scope maxima agree with the audio). The firmware stage is not the cause and no hardware clip contradicts its delay. Closed: **CHOR 4 delay range and LFO agree with the hardware within 10 % (centre, maximum), minimum within 0.5 ms**. Still open: type 5 (no clip), stereo behaviour, amount (the wet gain 0.86 suggests amount near 80, `fx-chorus-hw-clip` s4). The D22 bar "no side worse than 3 dB" has no band metric here (no dry reference), so the evidence is the delay law, not a level comparison.
+
 ## Follow-ups
 
 1. From the user: the Nord Mod 2 settings of the recording (Rate knob position and the Amount knob, VARIATION on or off, program or sound, Mod 2 B and which layer), the plugin knob values, and what the scope shows (the signal source, its frequency, the time axis of the scope window).
-2. One more clip with chorus off then on (or a dry reference recorded in the same take) so the audio comb can be fitted, not only the scope.
+2. (Partly done in s8: delay from the audio.) One more clip with chorus off then on (or a dry reference recorded in the same take) so the audio comb can be fitted, not only the scope.
 3. A stereo recording (left and right outputs of the Nord) to settle the right-only wet of the port.
 4. Re-run `uv run python tools/fx_chorus_clip.py grid` with the corrected frequency when the scope frequency is known.
 
@@ -129,4 +165,8 @@ uv run python tools/fx_chorus_clip.py scope .reference/chorus-nord-vs-ultimate-p
 uv run python tools/fx_chorus_clip.py stats docs/research/data/fx-chorus-hw-scope.csv
 uv run python tools/fx_chorus_clip.py grid --workdir <tmp> --out docs/research/data/fx-chorus-probe-grid.csv
 uv run pytest tools/tests/test_fx_chorus_clip.py
+# s8: oracle delay (needs the local FX image: tools/ns4_dsp_ldr.py <FX image> --sram DIR) and audio comb fit
+python tools/fx_chorus_oracle_delay.py DIR/core1_sram.bin <scratch> --rate 30 --amount 64
+python tools/fx_chorus_comb.py comb .reference/chorus-nord-vs-ultimate-pianos2/L.wav
+cargo test --release -p nord-core --lib tests_mod2_hw_delay
 ```

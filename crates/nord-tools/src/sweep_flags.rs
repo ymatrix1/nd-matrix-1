@@ -50,6 +50,10 @@ pub fn apply_legacy_flags(o: &mut FirmwareOptions, args: &[String]) {
     if has("--legacy-morph") {
         o.firmware_morph = false;
     }
+    // D173: the default FX ports are PARITY; the firmware mode (every port on) is left alone.
+    if has("--legacy-fx-ports") && o.fx == nord_core::fx::FirmwareFx::DEFAULT {
+        o.fx = nord_core::fx::FirmwareFx::PRE_PARITY;
+    }
 }
 
 #[cfg(test)]
@@ -69,6 +73,19 @@ mod tests {
         assert!(!o.arp_firmware && o.firmware_morph);
         apply_legacy_flags(&mut o, &args(&["--legacy-morph"]));
         assert!(!o.firmware_morph);
+    }
+
+    #[test]
+    fn legacy_fx_ports_restores_the_d163_ports_in_the_default_mode_only() {
+        use nord_core::fx::FirmwareFx;
+        let mut o = FirmwareOptions::default();
+        apply_legacy_flags(&mut o, &args(&[]));
+        assert_eq!(o.fx, FirmwareFx::PARITY);
+        apply_legacy_flags(&mut o, &args(&["--legacy-fx-ports"]));
+        assert_eq!(o.fx, FirmwareFx::PRE_PARITY);
+        let mut fw = FirmwareOptions::firmware_all();
+        apply_legacy_flags(&mut fw, &args(&["--legacy-fx-ports"]));
+        assert_eq!(fw.fx, FirmwareFx::ALL);
     }
 
     #[test]

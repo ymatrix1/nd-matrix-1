@@ -184,6 +184,8 @@ mod tests_mod2_dense_golden;
 #[cfg(test)]
 mod tests_mod2_golden;
 #[cfg(test)]
+mod tests_mod2_hw_delay;
+#[cfg(test)]
 mod tests_reserve_stages;
 #[cfg(test)]
 mod tests_resonant_golden;

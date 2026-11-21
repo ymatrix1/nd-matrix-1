@@ -297,7 +297,19 @@ mod tests {
             assert!(fx.port_mut(n).is_some(), "{n}");
         }
         fx = FirmwareFx::DEFAULT;
-        assert_eq!(fx.ports_on(), ["mod2"], "Mod 2 is the default since D163");
+        assert_eq!(
+            fx.ports_on(),
+            [
+                "delay-laws",
+                "delay-time",
+                "compressor",
+                "mod1",
+                "mod2",
+                "eq"
+            ],
+            "PARITY is the default since D173"
+        );
+        assert_eq!(FirmwareFx::PRE_PARITY.ports_on(), ["mod2"]);
         assert!(FirmwareFx::LEGACY.ports_on().is_empty());
     }
 

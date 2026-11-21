@@ -353,7 +353,7 @@ pub const FX_MOD2: SwitchInfo = sw(
     "--firmware-fx-ports mod2",
     "Mod 2",
     Mixed,
-    "Firmware CHOR, PHAS, FLANG, ENS and SPIN stages with the kFx2 words (docs/research/fx-mod-types.md). On by default since D163; --legacy-mod2 turns it off.",
+    "Firmware CHOR, PHAS, FLANG, ENS and SPIN stages with the kFx2 words (docs/research/fx-mod-types.md). On by default since D163; --legacy-mod2 turns it off (--legacy-fx-ports also turns off the D173 ports).",
 );
 /// Firmware FX port: Amp EQ.
 pub const FX_EQ: SwitchInfo = sw(
