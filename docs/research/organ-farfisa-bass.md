@@ -364,7 +364,7 @@ Defaults. `--farfisa-processor on` stays opt-in (D22): there is no Farfisa hardw
 
 ## 17. Cost of the firmware stages and what was tried (2026-11-15)
 
-Tool: `cargo run --release -p nord-core --example organ_fw_bench` (three keys, 4 s of audio at 48 kHz, wall time / audio time; the machine was shared with other builds, so figures vary by about 30 % between runs).
+Tool: `cargo run --release -p nord-tools --bin organ_fw_bench` (three keys, 4 s of audio at 48 kHz, wall time / audio time; the machine was shared with other builds, so figures vary by about 30 % between runs).
 
 | Stage | Interpreter, 128 bit float | + 64 bit add / multiply fast path (`b3_bass_fw/fast.rs`) |
 |---|---|---|
@@ -381,7 +381,7 @@ Not done: the drawbar / percussion dependence of the Bass key tables and the key
 
 Checked 2026-11-21. Sources: `organ/b3_bass_fw/compile.rs`, `fastexec.rs`, `fast.rs` (this change), `bench_organ_fw.rs`, [sharc-aot-hot-block](sharc-aot-hot-block.md), [sharc-jit-ceiling-study](sharc-jit-ceiling-study.md). Question: can the Bass (D71) and Farfisa (D74) stages run inside the 0.8 ms block budget (TD-15)?
 
-Tools: `cargo run --release -p nord-core --example organ_fw_bench` (three keys, 4 s, one stage alone, wall time over audio time, prints an FNV hash of every output sample) and `ns4 bench --scenario organ-bass` / `organ-farfisa` (the `typical` workload, Scene I, 10 keys, default FX, with Organ A on the stage). Same host, same session, shared with other builds (about 10 percent noise), release build, `main` at `96253e23` against this branch.
+Tools: `cargo run --release -p nord-tools --bin organ_fw_bench` (three keys, 4 s, one stage alone, wall time over audio time, prints an FNV hash of every output sample) and `ns4 bench --scenario organ-bass` / `organ-farfisa` (the `typical` workload, Scene I, 10 keys, default FX, with Organ A on the stage). Same host, same session, shared with other builds (about 10 percent noise), release build, `main` at `96253e23` against this branch.
 
 | Stage (3 keys held) | Before | After | Machine alone, per call (24,000 calls per second of audio) |
 |---|---|---|---|
