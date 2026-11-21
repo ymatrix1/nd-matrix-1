@@ -3,6 +3,7 @@
 pub mod band_response;
 pub mod csv_cols;
 pub mod fx_cases;
+pub mod fx_defaults_cmp;
 pub mod fx_parity;
 pub mod leslie_probe;
 pub mod piano_voice_census;

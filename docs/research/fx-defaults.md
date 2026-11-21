@@ -57,6 +57,6 @@ The 8 chain fields (`mod1_amount`, `mod2_amount`, `eq_mid_freq_hz`, `comp_amount
 
 ## Follow-ups
 
-- Record an init patch on hardware (all FX enabled) to confirm the start values (OQ34).
+- Record an init patch on hardware (all FX enabled) to confirm the start values (OQ34). Partly answered by the boot log and a per-word render: [fx-defaults-flip](fx-defaults-flip.md), D203.
 - Port the Mod 1 / Mod 2 rate defaults once the per-type rate laws are tabulated.
 - The preset decoder defaults (`FxDecoded::default`) are file-format defaults and stay as they are.
