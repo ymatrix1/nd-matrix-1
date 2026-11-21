@@ -28,6 +28,7 @@ impl FirmwareFx {
             "mod1" => &mut self.mod1,
             "mod2" => &mut self.mod2,
             "eq" => &mut self.eq,
+            "lp24" => &mut self.lp24,
             _ => return None,
         })
     }
@@ -47,6 +48,9 @@ impl FirmwareFx {
     pub fn merge_on(&mut self, other: &FirmwareFx) {
         self.amp |= other.amp;
         self.pump |= other.pump;
+        self.lp24 |= other.lp24;
+        self.compressor_row |= other.compressor_row;
+        self.mod1_unit_calls |= other.mod1_unit_calls;
         for n in PORT_NAMES {
             if other.port(n) {
                 if let Some(p) = self.port_mut(n) {
@@ -69,7 +73,7 @@ impl FirmwareFx {
                 *p = true;
             } else {
                 return Err(format!(
-                    "invalid --firmware-fx-ports entry '{item}' (expected all|parity|{})",
+                    "invalid --firmware-fx-ports entry '{item}' (expected all|parity|lp24|{})",
                     PORT_NAMES.join("|")
                 ));
             }

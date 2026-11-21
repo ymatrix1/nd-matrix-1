@@ -29,6 +29,33 @@ impl LayerFxChain {
         }
     }
 
+    /// Runs the firmware LP24 / HP24 pair on `(l, r)` when `firmware_fx.lp24` is on and the amp is
+    /// one of them; returns whether it did (the caller then skips the engine biquads).
+    fn process_fw_lp24(&mut self, l: &mut f32, r: &mut f32) -> bool {
+        let mode = match self.amp_cabinet {
+            AmpCabinet::LpFilter => fw_lp24::Lp24Mode::Low,
+            AmpCabinet::HpFilter => fw_lp24::Lp24Mode::High,
+            _ => {
+                self.fw_lp24 = None;
+                return false;
+            }
+        };
+        if !self.firmware_fx.lp24 {
+            self.fw_lp24 = None;
+            return false;
+        }
+        let freq = fw_eq::freq_index_of_hz(self.eq_mid_freq_hz);
+        let mid = (self.eq_filter_res / 10.0).clamp(0.0, 1.0) * 120.0 - 60.0;
+        match &mut self.fw_lp24 {
+            Some(st) if st.mode() == mode => st.set(freq, mid, false),
+            slot => *slot = Some(fw_lp24::FwLp24::new(mode, freq, mid)),
+        }
+        if let Some(st) = &mut self.fw_lp24 {
+            [*l, *r] = st.process_frame([*l, *r]);
+        }
+        true
+    }
+
     /// Runs the firmware Amp EQ on `(l, r)` when `firmware_fx.eq` is on; returns whether it did.
     /// `LP24` / `HP24` use the Mid knob as resonance, so the mid band is neutral there.
     fn process_fw_eq(&mut self, l: &mut f32, r: &mut f32) -> bool {
@@ -134,7 +161,9 @@ impl LayerFxChain {
         // `LP24` / `HP24`: 24 dB/oct (2 cascaded 2nd-order sections), cutoff = EQ Mid Freq knob,
         // resonance = Mid knob. VERIFIED: names `LP24`/`HP24` (0x2cc6cc). ASSUMED: Butterworth-4 section Q
         // (0.5412 / 1.3066) with resonance scaling the second section's Q; real topology unknown.
-        if matches!(
+        if self.process_fw_lp24(&mut l, &mut r) {
+            // handled by the firmware pair (opt-in `FirmwareFx::lp24`)
+        } else if matches!(
             self.amp_cabinet,
             AmpCabinet::LpFilter | AmpCabinet::HpFilter
         ) {
@@ -229,8 +258,13 @@ impl LayerFxChain {
             } else {
                 0.0
             };
+            let row = self.firmware_fx.compressor_row;
             let stage = self.fw_comp.get_or_insert_with(|| {
-                fw_stage::FwCompressorStage::new(fw_params::compressor_for_amount(amount))
+                fw_stage::FwCompressorStage::new(if row {
+                    fw_params::compressor_for_amount_row(amount)
+                } else {
+                    fw_params::compressor_for_amount(amount)
+                })
             });
             if amount != self.fw_comp_amount {
                 fw_params::set_compressor_amount(stage.compressor_mut(), amount, false);

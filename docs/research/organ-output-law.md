@@ -149,7 +149,7 @@ One `K` spans a 3.1 dB spread over three different DSP paths, so part of it may 
 
 Readings: (1) one `K` does not fit the three engines on the Transkun streams: 1.8 (Vox) to 4.9 .. 8.4 (B3) is a 13 dB spread, against 3.4 dB on the earlier video-detected notes at velocity 100 (s4); the centring at 2.8 is not supported by the stream replay, whose velocities are ordinal, not the Nord scale. (2) B3 and Pipe are not linear in `K` (chain and `K = 2.8` disagree by 2.3 and 2.6 dB in `k_needed`: soft clip, drive, compressor), Vox is (0.3 dB). (3) The spread is of the size of the rotary drive choice (4.8 dB) plus the velocity scale, so no engine-specific gain word is implied. `K` stays EMPIRICAL at 2.8, `Chain` stays opt-in, no default changes.
 
-### 6.4 The second organ gain word and the Piano-to-Organ recall diff (D188, 2026-11-21)
+### 6.4 The second organ gain word and the Piano-to-Organ recall diff (D189, 2026-11-21)
 
 - **Checked:** 2026-11-21. **Sources (local):** `tools/arm_dsp_capture.py one` (booted ARM, program recall in the Store record, load / idle / key phases) on `Velvet Grand`, `White Grand` (piano) and `B3 Chords n Solo`, `B3 Jazz Split`, `B3 Old Forest`, `Vintage Vox J3`, `Space Drama II` (Pipe2 + synth), `Cathedral Pipes` (Bank B); `target/PNO/core1_sram.bin`, `target/bulk/pno_core1.script`, `docs/research/data/org-system-load-pno1.script`, release `sharc-sys` (`--pno --lane 2:0`). Words per program: [organ_gain_words_by_program.json](data/organ_gain_words_by_program.json).
 - **Question:** the open lead of s6.3: does a Piano to Organ program recall write an organ gain that the oracle runs and the `Chain` law lack?
@@ -176,7 +176,7 @@ Readings: (1) one `K` does not fit the three engines on the Transkun streams: 1.
 
 ## Follow-ups
 
-0. Done in s6.4 (D188): the Piano to Organ recall diff; the second word `0xB2FF0` = 1.3 found.
+0. Done in s6.4 (D189): the Piano to Organ recall diff; the second word `0xB2FF0` = 1.3 found.
 1. Find where the FX unit's organ section scales its input (`K`): the audio-port DMA descriptors of the PNO to FX hand-over, or the organ unit rows `0xB28xx`.
 2. Run `0xC011AB8C` with the real per-layer controller to confirm the squared law dynamically; capture a second swell value (`v = 64`) to check `520 v^2`.
 3. Remove or rescale the Legacy key click on the firmware B3 path; re-run the B3 presence.
