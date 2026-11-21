@@ -391,6 +391,9 @@ pub struct FirmwareOptions {
     pub synth_unison_gain_milli: Option<u16>,
     /// `--synth-unison-weights`: `SynthLayer::unison_fw_weights` (per-voice gain 1, no `1 / sqrt(N)`).
     pub synth_unison_weights: bool,
+    /// `--synth-filter-gain`: `SynthLayer::filter_type_gain` (oracle filter gain by type, D195);
+    /// also selects `--synth-p oracle-rows` unless a later `--synth-p` says otherwise.
+    pub synth_filter_gain: bool,
     /// `--synth-knob-laws` / `--no-synth-knob-laws`: `SynthLayer::knob_laws` (the strip chain takes
     /// the envelope rate indices straight from the stored knobs, `index = knob - 64`, VERIFIED
     /// run; on by default since D57, off in `--legacy-all`).
@@ -478,6 +481,7 @@ impl Default for FirmwareOptions {
             synth_stage3: false,
             synth_unison_gain_milli: None,
             synth_unison_weights: false,
+            synth_filter_gain: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
             sample_kernel_key: true,
@@ -509,6 +513,7 @@ impl FirmwareOptions {
             synth_stage3: false,
             synth_unison_gain_milli: None,
             synth_unison_weights: false,
+            synth_filter_gain: false,
             synth_knob_laws: false,
             synth_velocity_fw: false,
             piano_firmware_level: false,
@@ -564,6 +569,7 @@ impl FirmwareOptions {
             synth_stage3: false,
             synth_unison_gain_milli: None,
             synth_unison_weights: false,
+            synth_filter_gain: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
             sample_kernel_key: true,
@@ -682,6 +688,10 @@ impl FirmwareOptions {
         if has("--synth-oracle") {
             o.synth_p = Some(PSpec::Coupled);
             o.synth_unison_weights = true;
+        }
+        if has("--synth-filter-gain") {
+            o.synth_filter_gain = true;
+            o.synth_p = Some(PSpec::OracleRows);
         }
         o.synth_stage3 |= has("--synth-stage3");
         o.synth_unison_weights |= has("--synth-unison-weights");
@@ -1060,6 +1070,9 @@ impl FirmwareOptions {
         engine.synth_a.unison_fw_weights = self.synth_unison_weights;
         engine.synth_b.unison_fw_weights = self.synth_unison_weights;
         engine.synth_c.unison_fw_weights = self.synth_unison_weights;
+        engine.synth_a.filter_type_gain = self.synth_filter_gain;
+        engine.synth_b.filter_type_gain = self.synth_filter_gain;
+        engine.synth_c.filter_type_gain = self.synth_filter_gain;
         engine.synth_b.unison_gain = uni;
         engine.synth_c.unison_gain = uni;
         engine.synth_a.fw_stage3 = self.synth_stage3;
@@ -1212,6 +1225,9 @@ impl FirmwareOptions {
         }
         if self.synth_unison_weights {
             parts.push("unison-weights".into());
+        }
+        if self.synth_filter_gain {
+            parts.push("filter-gain".into());
         }
         if let Some(m) = self.synth_unison_gain_milli {
             parts.push(format!("synth-unison-gain={:.3}", f32::from(m) / 1000.0));
@@ -1662,6 +1678,30 @@ mod tests {
                 .unwrap()
                 .synth_p,
             Some(PSpec::Coupled)
+        );
+    }
+
+    #[test]
+    fn synth_filter_gain_is_opt_in_selects_the_oracle_rows_and_reaches_the_layers() {
+        let d = FirmwareOptions::default();
+        assert!(!d.synth_filter_gain);
+        assert_ne!(d.synth_p, Some(PSpec::OracleRows));
+        let o = FirmwareOptions::from_args(&["--synth-filter-gain".into()]).unwrap();
+        assert!(o.synth_filter_gain);
+        assert_eq!(o.synth_p, Some(PSpec::OracleRows));
+        assert!(o.summary().contains("filter-gain"));
+        let later = FirmwareOptions::from_args(&[
+            "--synth-filter-gain".into(),
+            "--synth-p".into(),
+            "fitted".into(),
+        ])
+        .unwrap();
+        assert_eq!(later.synth_p, Some(PSpec::Fitted));
+        let mut e = Stage4Engine::new(48_000.0);
+        assert!(!e.synth_a.filter_type_gain);
+        o.apply_to(&mut e);
+        assert!(
+            e.synth_a.filter_type_gain && e.synth_b.filter_type_gain && e.synth_c.filter_type_gain
         );
     }
 

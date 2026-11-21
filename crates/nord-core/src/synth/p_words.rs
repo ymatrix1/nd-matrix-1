@@ -231,7 +231,16 @@ impl PTableSpec {
     /// above the native one on 14 of 18 programs (`docs/research/data/synth-filter-gain-oracle.csv`),
     /// so the three fitted gains are one filter gain times the oracle row, not three free levels.
     pub fn coupled() -> PTableSpec {
-        let g = COUPLED_FILTER_GAIN;
+        Self::coupled_with(COUPLED_FILTER_GAIN)
+    }
+
+    /// The table of `--synth-p oracle-rows` (D195): the oracle rows alone (`g = 1`), for use with
+    /// the native filter gain by type (`--synth-filter-gain`) instead of the coupling factor.
+    pub fn oracle_rows() -> PTableSpec {
+        Self::coupled_with(1.0)
+    }
+
+    fn coupled_with(g: f32) -> PTableSpec {
         let rows = format!(
             ":shape={:.3}/0/1/1/1.75;multi={:.3}/0/1/0.5/2;super={:.3}/0/1/0.5/0.45",
             GAIN_PER_P16 * 0.25 * g,
@@ -399,6 +408,29 @@ mod tests {
         assert_eq!(PSpec::parse("Coupled").unwrap(), PSpec::Coupled);
         assert_eq!(PSpec::Coupled.table(), Some(c));
         assert_ne!(PSpec::Coupled, PSpec::Oracle);
+    }
+
+    #[test]
+    fn oracle_rows_are_the_coupled_rows_without_the_factor() {
+        use crate::synth::PSpec;
+        let (r, o) = (
+            PTableSpec::oracle_rows().table(),
+            PTableSpec::oracle().table(),
+        );
+        for (w, row) in [
+            (PWave::ShapeTriangle, 0.4),
+            (PWave::Multi, GAIN_PER_P16),
+            (PWave::Super, ORACLE_SUPER_ROW),
+        ] {
+            assert!(
+                (r.block(w).gain - row).abs() < 1.5e-3,
+                "{w:?} {}",
+                r.block(w).gain
+            );
+        }
+        assert_eq!(r.block(PWave::ShapeSquare), o.block(PWave::ShapeSquare));
+        assert_eq!(PSpec::parse("Oracle-Rows").unwrap(), PSpec::OracleRows);
+        assert_eq!(PSpec::OracleRows.table(), Some(r));
     }
 
     #[test]

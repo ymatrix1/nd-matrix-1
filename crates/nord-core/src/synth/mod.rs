@@ -22,6 +22,7 @@ mod arp_order;
 mod arp_pool;
 pub mod arp_rate;
 mod dsp;
+pub mod filter_gain;
 mod fw_adr_chain;
 mod fw_coef_memo;
 mod fw_env_rates;
@@ -327,6 +328,9 @@ pub struct SynthLayer {
     /// per-voice weights of the firmware lane mix (`cos` / `sin` of pi/8, no `1 / sqrt(N)`), i.e.
     /// `unison_gain` is applied to a per-voice gain of `1.0` instead of `1 / sqrt(N)`.
     pub unison_fw_weights: bool,
+    /// Opt-in (default off, `--synth-filter-gain`): the filter output is scaled by the oracle gain
+    /// of its type ([`filter_gain::filter_gain`], D195).
+    pub filter_type_gain: bool,
     /// Strip chain only, opt-in (default off, `--synth-stage3`): a `filter_raw3` layer runs the
     /// modelled stage `0x1257B2` (`fw_stage3.rs`) instead of the `Lp12` stand-in.
     pub fw_stage3: bool,
@@ -493,6 +497,7 @@ impl SynthLayer {
             filter_raw3: false,
             unison_gain: 1.0,
             unison_fw_weights: false,
+            filter_type_gain: false,
             fw_stage3: false,
             firmware_velocity: false,
             arp_firmware_walk: false,
@@ -527,6 +532,7 @@ impl SynthLayer {
             filter_raw3: false,
             unison_gain: 1.0,
             unison_fw_weights: false,
+            filter_type_gain: false,
             fw_stage3: false,
             wave_bank: false,
             knob_laws: true,

@@ -552,6 +552,11 @@ impl SynthLayer {
                     v.fw_memo.get(fw_kind, fc, res, self.sample_rate)
                 });
 
+            let type_gain = if self.filter_on && self.filter_type_gain {
+                super::filter_gain::filter_gain(self.filter_model)
+            } else {
+                1.0
+            };
             let filtered_l = if !self.filter_on {
                 raw_osc_l
             } else if let Some(co) = &fw_co {
@@ -584,7 +589,7 @@ impl SynthLayer {
             } else {
                 v.gain
             };
-            let env_gain = v.amp_env * amp_vel * voice_gain * 0.25;
+            let env_gain = v.amp_env * amp_vel * voice_gain * 0.25 * type_gain;
             let (mut out_l, mut out_r) = (filtered_l * env_gain, filtered_l * env_gain);
             if let Some(osc_r) = raw_osc_r {
                 let filtered_r = if !self.filter_on {
