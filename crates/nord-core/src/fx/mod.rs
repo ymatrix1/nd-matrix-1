@@ -49,6 +49,8 @@ mod fw_leslie_main_e;
 mod fw_leslie_ops;
 mod fw_leslie_ring;
 mod fw_live;
+mod fw_lp24;
+mod fw_lp24_tables;
 pub mod fw_map;
 mod fw_mod1;
 mod fw_mod1_data;
@@ -136,9 +138,15 @@ mod tests_fw_leslie_golden;
 #[cfg(test)]
 mod tests_fw_leslie_golden_data;
 #[cfg(test)]
+mod tests_fw_lp24_chain;
+#[cfg(test)]
+mod tests_fw_lp24_golden;
+#[cfg(test)]
 mod tests_fw_map;
 #[cfg(test)]
 mod tests_fw_mod1_chain;
+#[cfg(test)]
+mod tests_fw_mod1_unit_calls;
 #[cfg(test)]
 mod tests_fw_mod2_chain;
 #[cfg(test)]
@@ -207,8 +215,8 @@ pub use fw_leslie_ring::RingAdvance;
 pub use fw_live::{live_install, LiveInstall};
 pub use fw_map::AllpassType;
 pub use fw_params::{
-    compressor_for_amount, set_allpass, set_amp_drive, set_compressor_amount, set_delay,
-    set_tone_stack, CMP_SLOPE,
+    compressor_for_amount, compressor_for_amount_row, set_allpass, set_amp_drive,
+    set_compressor_amount, set_delay, set_tone_stack, CMP_SLOPE,
 };
 pub use fw_rate_match::RateMatch;
 pub use fw_reverb::{FwReverb, FwReverbF32};
@@ -338,6 +346,11 @@ pub struct LayerFxChain {
     /// Frames per call of the firmware RM / A-WAH / WAH / PUMP stage: 2 (default) or 4 (the live
     /// oracle pass, `fx_live_native --pass-frames 4`).
     pub mod1_rest_frames: usize,
+    /// Frames per call the layer's unit gives the RM / A-WAH / WAH / PUMP routines: twice the ARM's
+    /// block count word (VERIFIED boot words: 1 block for the organ and piano units, 2 for the
+    /// synth units; a call processes exactly `2 x count` frames, `docs/research/fx-mod1-call-count.md`).
+    /// 2 here; the engine sets 4 on the synth chains. Used only with `firmware_fx.mod1_unit_calls`.
+    pub mod1_unit_frames: usize,
     /// The firmware chorus (`firmware_fx.mod2`), boxed: the ring is 4 KB.
     fw_mod2: Option<Box<fw_mod2::FwMod2Stage>>,
     fw_vibe: Option<Box<fw_vibe_stage::FwVibeStage>>,
@@ -353,6 +366,8 @@ pub struct LayerFxChain {
     fw_rate_match: Option<Box<RateMatch>>,
     /// The firmware Amp EQ (`firmware_fx.eq`), built when first needed.
     fw_eq: Option<fw_eq::FwEqStage>,
+    /// Firmware Amp LP24 / HP24 (`FirmwareFx::lp24`), built on first use.
+    fw_lp24: Option<fw_lp24::FwLp24>,
     /// The firmware Spring reverb (`firmware_fx.reverb`), built when first needed.
     fw_reverb: Option<Box<FwReverb>>,
     /// The firmware multi-tap reverb (`firmware_fx.reverb`, `kRvbType` 2..11), built when first
@@ -466,6 +481,7 @@ impl LayerFxChain {
             fw_mod1: None,
             fw_mod1_rest: None,
             mod1_rest_frames: 2,
+            mod1_unit_frames: 2,
             fw_mod2: None,
             fw_vibe: None,
             fw_law: None,
@@ -474,6 +490,7 @@ impl LayerFxChain {
             fw_amp: None,
             fw_rate_match: RateMatch::supports(fs).then(|| Box::new(RateMatch::new(fs))),
             fw_eq: None,
+            fw_lp24: None,
             fw_reverb: None,
             fw_reverb_multi: None,
             fw_comp_amount: 0.0,

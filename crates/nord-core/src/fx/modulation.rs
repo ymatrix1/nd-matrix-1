@@ -124,7 +124,11 @@ impl LayerFxChain {
             }
         }
         if let Some(st) = self.fw_mod1_rest.as_deref_mut() {
-            st.set_frames_per_call(self.mod1_rest_frames);
+            st.set_frames_per_call(if self.firmware_fx.mod1_unit_calls {
+                self.mod1_unit_frames
+            } else {
+                self.mod1_rest_frames
+            });
         }
         self.fw_mod1_rest
             .as_mut()

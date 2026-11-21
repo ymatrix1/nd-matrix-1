@@ -92,10 +92,14 @@ pub fn live_install(slot: u8, ty: u8, rate: u32, amount: u32) -> Option<LiveInst
             let (r, s) = st.state();
             (r, from_state(r, s))
         }
-        (3, 0) => {
+        (3, 0 | 1) => {
             // The compressor `0x120630` (the same pc on both cores): 4 frames per call, M3 / M4
-            // are the frame offsets in the context.
-            let c = super::fw_params::compressor_for_amount(amount as f32);
+            // are the frame offsets in the context. Type 1 is the firmware row (D187).
+            let c = if ty == 1 {
+                super::fw_params::compressor_for_amount_row(amount as f32)
+            } else {
+                super::fw_params::compressor_for_amount(amount as f32)
+            };
             let words = c
                 .words()
                 .iter()
@@ -171,7 +175,22 @@ mod tests {
         assert_eq!(c.words[0].0, CTX_I1 - 0x20);
         let loud = live_install(3, 0, 0, 127).unwrap();
         assert_ne!(c.words, loud.words, "the amount reaches the words");
-        assert!(live_install(3, 1, 0, 0).is_none());
+        // type 1 is the firmware row (D187): the same layout, the gain-law words differ
+        let row = live_install(3, 1, 0, 64).unwrap();
+        assert_eq!((row.pc, row.i1, row.words.len()), (c.pc, c.i1, 26));
+        let changed: Vec<u32> = c
+            .words
+            .iter()
+            .zip(&row.words)
+            .filter(|(a, b)| a != b)
+            .map(|(a, _)| a.0.wrapping_sub(CTX_I1))
+            .collect();
+        assert_eq!(
+            changed.len(),
+            6,
+            "SLOPE pair, REDUCTION_SCALE, TABLE1, LOG_GAIN, SMOOTH"
+        );
+        assert!(live_install(3, 2, 0, 0).is_none());
     }
 
     #[test]

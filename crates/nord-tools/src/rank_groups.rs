@@ -41,13 +41,21 @@ pub const GROUPS: [(&str, Revert); GROUP_COUNT] = [
 /// Flip-only sub-groups of `fx_delay` (indices `GROUP_COUNT` and `GROUP_COUNT + 1`): they split the
 /// delay group into its two ports so a default flip of one port can be measured alone
 /// (`program_rank --flip fx_delay_time`). They are not part of the ablation or the 63 subsets.
-pub const SUBGROUPS: [(&str, Revert); 3] = [
+pub const SUBGROUPS: [(&str, Revert); 5] = [
     ("fx_delay_time", |o, d| o.fx.delay_time = d.fx.delay_time),
     ("fx_delay_laws", |o, d| o.fx.delay_laws = d.fx.delay_laws),
     // The rate match (D137, default on since D176) is a converter, not a port: the flip switches
     // it on whatever the firmware options say, so it is only a change against a `--legacy-fx-rate`
     // (or older) baseline.
     ("fx_rate_match", |o, _| o.fx_rate_match = true),
+    // Opt-in refinements of two ports (D186, D187): the all-firmware reference carries them, the
+    // default does not, so a flip is a change against the current default.
+    ("fx_compressor_row", |o, d| {
+        o.fx.compressor_row = d.fx.compressor_row
+    }),
+    ("fx_mod1_unit_calls", |o, d| {
+        o.fx.mod1_unit_calls = d.fx.mod1_unit_calls
+    }),
 ];
 
 /// Name and copy function of group index `g` (a [`GROUPS`] entry, then a [`SUBGROUPS`] entry).
@@ -66,10 +74,14 @@ pub const PARITY_GROUPS: [usize; 5] = [2, 3, 5, 6, 7];
 /// The firmware-derived options the ranking compares against the default (the oracle-verified
 /// model): `--firmware-all` plus `--firmware-routing`.
 pub fn firmware_options() -> FirmwareOptions {
-    FirmwareOptions {
+    let mut o = FirmwareOptions {
         firmware_routing: true,
         ..FirmwareOptions::firmware_all()
-    }
+    };
+    // The firmware's own compressor words and the per-unit Mod 1 call length (D186, D187).
+    o.fx.compressor_row = true;
+    o.fx.mod1_unit_calls = true;
+    o
 }
 
 /// The engine default the ranking compares against: `FirmwareOptions::default()` (the PARITY FX
@@ -178,13 +190,21 @@ mod tests {
         baseline(true, false, false)
     }
 
+    /// `o` with the two opt-in refinements (D186, D187) as the firmware options have them: they
+    /// are [`SUBGROUPS`], not [`GROUPS`], so a group revert leaves them on.
+    fn with_refinements(mut o: FirmwareOptions) -> FirmwareOptions {
+        o.fx.compressor_row = true;
+        o.fx.mod1_unit_calls = true;
+        o
+    }
+
     #[test]
     fn groups_cover_every_difference() {
         let (firmware, base) = (firmware_options(), pre());
         let all: Vec<usize> = (0..GROUP_COUNT).collect();
         assert_eq!(
             reverted_set(&firmware, &base, &all),
-            base,
+            with_refinements(base),
             "a group is missing"
         );
         assert_ne!(firmware, base);
@@ -237,7 +257,7 @@ mod tests {
         let (firmware, base) = (firmware_options(), pre());
         let all_fx: Vec<usize> = (FIRST_FX..GROUP_COUNT).collect();
         let o = reverted_set(&firmware, &base, &all_fx);
-        assert_eq!(o.fx, base.fx);
+        assert_eq!(o.fx, with_refinements(base).fx);
         assert_ne!(o.tone_source, base.tone_source);
     }
 
@@ -245,7 +265,16 @@ mod tests {
     fn flipping_every_group_is_the_firmware_and_none_is_the_base() {
         let (firmware, base) = (firmware_options(), pre());
         let all: Vec<usize> = (0..GROUP_COUNT).collect();
-        assert_eq!(flipped_set(&firmware, &base, &all), firmware);
+        assert_eq!(
+            flipped_set(&firmware, &base, &all),
+            {
+                let mut f = firmware;
+                f.fx.compressor_row = false;
+                f.fx.mod1_unit_calls = false;
+                f
+            },
+            "the refinements are subgroups, not part of the group flip"
+        );
         let none = flipped_set(&firmware, &base, &[]);
         assert_eq!(none.fx, base.fx);
         assert_eq!(none.tone_source, base.tone_source);
@@ -254,7 +283,14 @@ mod tests {
     #[test]
     fn parity_groups_are_the_fx_ports_of_the_parity_preset() {
         let o = flipped_set(&firmware_options(), &pre(), &PARITY_GROUPS);
-        assert_eq!(o.fx, FirmwareFx::PARITY);
+        // `compressor_row` is a subgroup (D187), not a group: the flip from `pre()` leaves it off
+        assert_eq!(
+            o.fx,
+            FirmwareFx {
+                compressor_row: false,
+                ..FirmwareFx::PARITY
+            }
+        );
         assert_eq!(GROUPS[4].0, "fx_reverb", "the one FX group left out");
         assert!(!PARITY_GROUPS.contains(&4));
     }
@@ -308,6 +344,28 @@ mod tests {
             nord_core::fx::FirmwareFx::PARITY
         );
         assert!(firmware_options().fx_rate_match);
+    }
+
+    #[test]
+    fn compressor_row_and_unit_call_subgroups_flip_one_refinement_alone() {
+        let (firmware, base) = (firmware_options(), baseline(false, true, false));
+        assert!(firmware.fx.compressor_row && firmware.fx.mod1_unit_calls);
+        assert!(
+            baseline(false, false, false).fx.compressor_row,
+            "D187 default"
+        );
+        assert!(
+            !base.fx.compressor_row && !base.fx.mod1_unit_calls,
+            "off before D173"
+        );
+        let row = flipped_set(&firmware, &base, &[GROUP_COUNT + 3]);
+        assert!(row.fx.compressor_row && !row.fx.mod1_unit_calls);
+        let calls = flipped_set(&firmware, &base, &[GROUP_COUNT + 4]);
+        assert!(calls.fx.mod1_unit_calls && !calls.fx.compressor_row);
+        assert_eq!(
+            parse_sets("fx_compressor_row+fx_mod1_unit_calls").unwrap(),
+            [vec![GROUP_COUNT + 3, GROUP_COUNT + 4]]
+        );
     }
 
     #[test]
