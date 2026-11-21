@@ -13,7 +13,7 @@
 //! what a default flip of the group would sound like, to compare against the firmware render.
 //!
 //! Usage: `cargo run --release -p nord-tools --bin program_rank -- <backup.ns4b> [--note 60]
-//! [--velocity 100] [--limit N] [--only S] [--every K] [--ablate] [--ablate-fx] [--flip SETS|every-fx] [--legacy-mod2] [--jobs N]`. Release build only (stack depth in the FX
+//! [--velocity 100] [--limit N] [--only S] [--every K] [--ablate] [--ablate-fx] [--flip SETS|every-fx] [--legacy-mod2] [--legacy-fx-ports] [--jobs N]`. Release build only (stack depth in the FX
 //! chains). `tools/program_rank.py` joins the lines with the chain census.
 
 use nord_core::cbin::{CbinFile, Ns4BackupArchive, ProgramDecoded, ProgramSoundRefs};
@@ -150,7 +150,10 @@ fn main() -> Result<(), String> {
         .collect();
     std::panic::set_hook(Box::new(|_| {}));
     let firmware = firmware_options();
-    let base = baseline(args.iter().any(|a| a == "--legacy-mod2"));
+    let base = baseline(
+        args.iter().any(|a| a == "--legacy-mod2"),
+        args.iter().any(|a| a == "--legacy-fx-ports"),
+    );
     for name in names {
         let bytes = archive
             .read_entry(&mut file, &name)

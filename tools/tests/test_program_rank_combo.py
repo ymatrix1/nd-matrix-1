@@ -133,3 +133,23 @@ def test_main_writes_the_csv_and_table(tmp_path, capsys):
     assert pc.main(["--flip", str(flips), "--csv", str(fcsv), "--md"]) == 0
     assert "after_flip_fx_mod2" in fcsv.read_text("utf-8")
     assert "| fx_mod2 | 1 |" in capsys.readouterr().out
+
+
+def test_flip_moves_measure_the_distance_from_the_default_render():
+    a = {
+        "entry": "Program/Bank A/X.ns4p",
+        "default": render(),
+        "firmware": render(),
+        "flip": {"fx_rate_match": shifted(2.0)},
+    }
+    b = {
+        "entry": "Program/Bank A/Y.ns4p",
+        "default": render(),
+        "firmware": render(),
+        "flip": {"fx_rate_match": shifted(0.5)},
+    }
+    m = pc.flip_moves([a, b], "fx_rate_match")
+    assert m["n"] == 2 and m["over1"] == 1 and m["over3"] == 0
+    assert m["largest"][0][0].endswith("X.ns4p")
+    assert abs(m["mean"] - 1.25) < 1e-6
+    assert pc.flip_moves([a], "missing")["n"] == 0

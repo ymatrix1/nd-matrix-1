@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import math
 import statistics as st
 import sys
@@ -155,6 +156,27 @@ def flip_scores(row: dict) -> dict[str, float | None]:
     return out
 
 
+def flip_moves(rows: list[dict], key: str) -> dict:
+    """How far flipping `key` moves each program from the default render (not from the firmware
+    render): the distance `pr.distance(default, flipped)`; used for the rate match, which no
+    firmware render contains."""
+    moves = [
+        (r["entry"], pr.distance(r["default"], r["flip"][key])["score"])
+        for r in rows
+        if key in r["flip"]
+    ]
+    moves = [(e, m) for e, m in moves if m is not None]
+    vals = [m for _, m in moves]
+    return {
+        "n": len(vals),
+        "mean": st.mean(vals) if vals else 0.0,
+        "median": st.median(vals) if vals else 0.0,
+        "over1": sum(v > 1.0 for v in vals),
+        "over3": sum(v > 3.0 for v in vals),
+        "largest": sorted(moves, key=lambda x: -x[1])[:10],
+    }
+
+
 def quantile(xs: list[float], q: float) -> float:
     """Nearest-rank quantile (deterministic, no interpolation)."""
     s = sorted(xs)
@@ -221,9 +243,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--flip-sets", help="comma list of flipped sets to tabulate (default: all)")
     ap.add_argument("--csv", type=Path)
     ap.add_argument("--md", action="store_true")
+    ap.add_argument(
+        "--moves", help="with --flip: print how far this flipped set moves each program"
+    )
     ns = ap.parse_args(argv)
     if bool(ns.ablate_fx) == bool(ns.flip):
         ap.error("give exactly one of --ablate-fx and --flip")
+    if ns.flip and ns.moves:
+        print(json.dumps(flip_moves(list(pr.load_jsonl(ns.flip)), ns.moves), indent=1))
+        return 0
     if ns.flip:
         rows = [{"entry": r["entry"], "sc": flip_scores(r)} for r in pr.load_jsonl(ns.flip)]
         rows.sort(key=lambda r: r["entry"])

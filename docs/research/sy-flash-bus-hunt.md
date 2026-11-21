@@ -70,6 +70,20 @@ So the 16 K word region `0xB2000..0xB5FFF` is the block buffer of this protocol 
 
 The ARM routine after the block download call (`0xC0248888 .. 0xC0248A50`, same function) does, per chip: `0xC0240548(obj, 1)` (writes `1` to `[descriptor + 0xC]` = `DM(0x93DF6)`, the bus claim), then sends `[obj + 0x10]` to `[descriptor + 8]` = `DM(0xB6510)` (the boot log message `0xB6510 <- 0`, pc `0xC02488C4`) and **polls `DM(0xB6510)` through the SPI read `0xC0066E64` until it reads 0** (loop `0xC02488F8`). The DSP side clears it at `0x1C09BF` (`dm(0xb6510) = m0`) when the checksum service has run. So `DM(0xB6510)` is the command word of that service, claimed by `0x93DF6`, and the function carries the string "Ver Flash". Reading (ASSUMED): the checksum service **verifies the sample flash** (xor table lookup per flash byte, result stored through `DM(0xB6511)`), it is not a table loader; this lowers the weight of lead 1 in the list below (the destination `DM(0xB650F)` is a verify buffer). The reading is not run: the harness stubs both the claim and the poll.
 
+### 4.2 Flash model run (2026-11-20)
+
+`tools/arm_flash_model.py` (command state, bank 2 latch, CFI / autoselect / array words, all device values ASSUMED) and `tools/arm_flash_boot.py` (answers the SY / SMP reads of `0xC0066E64` in the `0x04000000` window, feeding the chip's port messages to the model first; the boot's real EMIFA stores are logged with `arm_bulk_tables.real_port_capture`). Result of the harness boot, per chip:
+
+| Step | SY | SMP |
+|---|---|---|
+| Commands before the first read | `0xF0`, `0x90` (27 command or latch messages in all) | same (58 in all) |
+| Autoselect reads | offsets `0`, `1`, `0xE`, `0xF` | same |
+| After `0x98`: CFI reads | five words `0x4000040..44` | five words `0x4000080..84` |
+| Array reads, programs, erases | none | none |
+| Boot result | reaches main loop `0xC00A0248` (433 M instructions), same as with the stub that returns 0 | same |
+
+So the **boot** only identifies the flash (autoselect plus CFI size / command set) and never reads sample data; the sample directory and the pitch entry source are read later, by the file system on a program or sample load, which no harness path drives yet. The model is ready for that step: drive a sample load (`arm_piano_load` style) with the model attached and a flash image behind `FlashChip.array`. No flash image is available locally (the backup holds files only), so the content stays the blocker. Status: the model is VERIFIED to run in the boot (`python tools/arm_flash_boot.py ...`); its device values are ASSUMED.
+
 ## Leads for the DSP-image hunt in NS4 firmware
 
 Addresses and routines to locate (all in `bank0_CODE` unless stated), with the reason:

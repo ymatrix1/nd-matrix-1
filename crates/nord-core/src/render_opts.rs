@@ -624,6 +624,9 @@ impl FirmwareOptions {
         if let Some(v) = value("--firmware-fx-ports") {
             o.fx.enable_ports(v)?;
         }
+        if has("--legacy-fx-ports") {
+            o.fx = FirmwareFx::PRE_PARITY;
+        }
         if has("--legacy-mod2") {
             o.fx.mod2 = false;
         }
@@ -804,11 +807,18 @@ impl FirmwareOptions {
         apply_firmware_options(engine, self.tone_source, self.filter_engine, false);
         for c in engine.fx_chains.iter_mut() {
             c.firmware_fx.merge_on(&self.fx);
+            // The parity ports are on in the engine default (D163, D173), so the opt-outs
+            // (`--legacy-fx-ports`, `--legacy-mod2`) have to switch them off.
             if self.legacy_pump {
                 c.firmware_fx.pump = false;
             }
-            // Mod 2 is on in the engine default (D163), so `--legacy-mod2` has to switch it off.
-            c.firmware_fx.mod2 = self.fx.mod2;
+            for name in crate::fx::FX_PORT_NAMES {
+                if let (false, Some(dst)) =
+                    (name.starts_with("reverb"), c.firmware_fx.port_mut(name))
+                {
+                    *dst = self.fx.port(name);
+                }
+            }
         }
         apply_piano_level(engine, self.piano_firmware_level);
         engine.piano_a.firmware_bus_scale = self.piano_bus_scale;
@@ -1093,8 +1103,22 @@ impl FirmwareOptions {
                     .filter(|p| !FirmwareFx::DEFAULT.port(p))
                     .map(|p| (*p).to_string()),
             );
-            if FirmwareFx::DEFAULT.mod2 && !self.fx.mod2 {
-                parts.push("legacy-mod2".into());
+            let off: Vec<&str> = crate::fx::FX_PORT_NAMES
+                .into_iter()
+                .filter(|p| FirmwareFx::DEFAULT.port(p) && !self.fx.port(p))
+                .collect();
+            if !off.is_empty() {
+                // `legacy-fx-ports` when only the D173 ports are off, else `legacy-mod2` as before.
+                let pre = FirmwareFx::PRE_PARITY;
+                let only_d171 = off.iter().all(|p| !pre.port(p));
+                parts.push(
+                    if only_d171 {
+                        "legacy-fx-ports"
+                    } else {
+                        "legacy-mod2"
+                    }
+                    .into(),
+                );
             }
         }
         if !self.piano_firmware_level {
@@ -1737,17 +1761,20 @@ mod tests {
     #[test]
     fn firmware_reverb_flag_switches_only_the_reverb() {
         let o = FirmwareOptions::from_args(&args(&["--firmware-reverb"])).unwrap();
-        assert!(o.fx.reverb && o.fx.ports_on() == ["reverb", "mod2"]);
+        assert!(o.fx.reverb && o.fx.ports_on().len() == 7 && !o.fx.reverb_mix);
         let mut e = Stage4Engine::new(48_000.0);
         o.apply_to(&mut e);
         assert!(e.fx_chains.iter().all(|c| c.firmware_fx.reverb));
-        assert!(e.fx_chains.iter().all(|c| !c.firmware_fx.delay_laws));
+        assert!(
+            e.fx_chains.iter().all(|c| c.firmware_fx.delay_laws),
+            "PARITY ports stay on (D173)"
+        );
         assert!(o.summary().contains("reverb"));
         o.apply_exact(&mut e);
         assert!(e
             .fx_chains
             .iter()
-            .all(|c| c.firmware_fx.reverb && !c.firmware_fx.compressor));
+            .all(|c| c.firmware_fx.reverb && c.firmware_fx.compressor));
         FirmwareOptions::default().apply_exact(&mut e);
         assert!(e.fx_chains.iter().all(|c| !c.firmware_fx.reverb));
     }

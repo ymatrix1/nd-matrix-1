@@ -33,6 +33,7 @@ fn test_layer_fx_chain_and_master_bus_stability() {
 fn test_delay_feedback_filters_wah_mod2_and_reverb_colors() {
     // Verify LP feedback filter damps high-frequency square-wave echoes relative to Off
     let mut d_off = LayerFxChain::new(48_000.0);
+    d_off.firmware_fx = FirmwareFx::LEGACY; // engine delay filters under test (D173)
     d_off.reverb_model = ReverbModel::Off;
     d_off.delay_enabled = true;
     d_off.delay_time_ms = 12.0;

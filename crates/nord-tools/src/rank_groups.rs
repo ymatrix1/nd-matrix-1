@@ -41,9 +41,12 @@ pub const GROUPS: [(&str, Revert); GROUP_COUNT] = [
 /// Flip-only sub-groups of `fx_delay` (indices `GROUP_COUNT` and `GROUP_COUNT + 1`): they split the
 /// delay group into its two ports so a default flip of one port can be measured alone
 /// (`program_rank --flip fx_delay_time`). They are not part of the ablation or the 63 subsets.
-pub const SUBGROUPS: [(&str, Revert); 2] = [
+pub const SUBGROUPS: [(&str, Revert); 3] = [
     ("fx_delay_time", |o, d| o.fx.delay_time = d.fx.delay_time),
     ("fx_delay_laws", |o, d| o.fx.delay_laws = d.fx.delay_laws),
+    // `--fx-rate-match` (D137) is no firmware-all field (it is a converter, not a port), so the
+    // flip switches it on whatever the firmware options say.
+    ("fx_rate_match", |o, _| o.fx_rate_match = true),
 ];
 
 /// Name and copy function of group index `g` (a [`GROUPS`] entry, then a [`SUBGROUPS`] entry).
@@ -68,14 +71,18 @@ pub fn firmware_options() -> FirmwareOptions {
     }
 }
 
-/// The engine default the ranking compares against: `FirmwareOptions::default()`, or with
-/// `legacy_mod2` the default before D163 (firmware Mod 2 off), which reproduces the committed
-/// ranking data (`docs/research/data/program-ranking*.csv`). Since D163 the `fx_mod2` group is a
-/// no-op against the current default.
-pub fn baseline(legacy_mod2: bool) -> FirmwareOptions {
+/// The engine default the ranking compares against: `FirmwareOptions::default()` (the PARITY FX
+/// ports since D173), with `legacy_fx_ports` the default of D163 to D170 (amp and Mod 2), with
+/// `legacy_mod2` the default before D163 (firmware Mod 2 off). The committed ranking data
+/// (`docs/research/data/program-ranking*.csv`) is the `legacy_mod2` baseline. Against the current
+/// default every FX group of [`PARITY_GROUPS`] is a no-op flip.
+pub fn baseline(legacy_mod2: bool, legacy_fx_ports: bool) -> FirmwareOptions {
     let mut o = FirmwareOptions::default();
+    if legacy_fx_ports {
+        o.fx = nord_core::fx::FirmwareFx::PRE_PARITY;
+    }
     if legacy_mod2 {
-        o.fx.mod2 = false;
+        o.fx = nord_core::fx::FirmwareFx::LEGACY;
     }
     o
 }
@@ -162,7 +169,7 @@ mod tests {
 
     /// The default before D163: every group differs from the firmware options.
     fn pre() -> FirmwareOptions {
-        baseline(true)
+        baseline(true, false)
     }
 
     #[test]
@@ -186,7 +193,7 @@ mod tests {
 
     #[test]
     fn mod2_group_is_a_no_op_against_the_current_default() {
-        let (firmware, now) = (firmware_options(), baseline(false));
+        let (firmware, now) = (firmware_options(), baseline(false, true));
         assert_eq!(GROUPS[7].0, "fx_mod2");
         assert_eq!(
             reverted(&firmware, &now, 7),
@@ -196,7 +203,7 @@ mod tests {
         for g in (0..GROUP_COUNT).filter(|g| *g != 7) {
             assert_ne!(reverted(&firmware, &now, g), firmware, "group {g}");
         }
-        assert!(baseline(false).fx.mod2 && !baseline(true).fx.mod2);
+        assert!(baseline(false, true).fx.mod2 && !baseline(true, false).fx.mod2);
     }
 
     #[test]
@@ -269,7 +276,7 @@ mod tests {
 
     #[test]
     fn delay_subgroups_flip_one_port_alone() {
-        let (firmware, base) = (firmware_options(), baseline(false));
+        let (firmware, base) = (firmware_options(), baseline(false, true));
         let time = flipped_set(&firmware, &base, &[GROUP_COUNT]);
         assert!(time.fx.delay_time && !time.fx.delay_laws);
         let laws = flipped_set(&firmware, &base, &[GROUP_COUNT + 1]);
@@ -281,6 +288,24 @@ mod tests {
         assert_eq!(subset_key(&[GROUP_COUNT + 1, 7]), "fx_mod2+fx_delay_laws");
         let both = flipped_set(&firmware, &base, &[2]);
         assert!(both.fx.delay_time && both.fx.delay_laws);
+    }
+
+    #[test]
+    fn rate_match_subgroup_switches_the_converter_on_alone() {
+        let (firmware, base) = (firmware_options(), baseline(false, true));
+        assert!(!firmware.fx_rate_match && !base.fx_rate_match);
+        let on = flipped_set(&firmware, &base, &[GROUP_COUNT + 2]);
+        assert!(on.fx_rate_match);
+        assert_eq!(
+            FirmwareOptions {
+                fx_rate_match: false,
+                ..on
+            },
+            base
+        );
+        let sets = parse_sets("fx_delay+fx_rate_match").unwrap();
+        assert_eq!(sets, [vec![2, GROUP_COUNT + 2]]);
+        assert_eq!(subset_key(&sets[0]), "fx_delay+fx_rate_match");
     }
 
     #[test]
