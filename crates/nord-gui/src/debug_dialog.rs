@@ -451,11 +451,20 @@ pub fn show_debug_dialog(
                 dlg.open = false;
             }
         } else {
+            vp_ctx.style_mut(|s| {
+                s.visuals.panel_fill = Color32::TRANSPARENT;
+                s.visuals.window_fill = Color32::TRANSPARENT;
+            });
             egui::CentralPanel::default()
-                .frame(Frame::NONE.fill(Color32::TRANSPARENT))
+                .frame(
+                    Frame::NONE
+                        .fill(Color32::TRANSPARENT)
+                        .inner_margin(Margin::same(2)),
+                )
                 .show(vp_ctx, |ui| {
                     rounded_frame.show(ui, |ui| {
-                        ui.set_min_size(ui.available_size());
+                        let inner = ui.available_size() - egui::vec2(2.0, 2.0);
+                        ui.set_min_size(inner.max(egui::Vec2::ZERO));
                         render_dialog_contents(
                             ui,
                             dlg,
