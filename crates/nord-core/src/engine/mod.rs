@@ -218,7 +218,15 @@ fn heap<T>(make: impl FnOnce() -> T) -> Box<T> {
 /// Seven layer FX chains on the heap, one slice element at a time (a slice clones element by
 /// element, where a `Box<[LayerFxChain; 7]>` would copy 40 KB through the stack, TD-05).
 fn boxed_fx_chains(fs: f32) -> Box<[LayerFxChain]> {
-    (0..7).map(|_| LayerFxChain::new(fs)).collect()
+    (0..7)
+        .map(|i| {
+            let mut chain = LayerFxChain::new(fs);
+            // Chains 4..7 are the synth units: the ARM gives their Mod 1 routines two blocks per
+            // call (4 frames), the organ and piano units one block (2 frames), D186.
+            chain.mod1_unit_frames = if i >= 4 { 4 } else { 2 };
+            chain
+        })
+        .collect()
 }
 
 impl Stage4Engine {

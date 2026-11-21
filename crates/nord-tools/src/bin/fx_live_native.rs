@@ -13,7 +13,8 @@
 //!          mod1 / mod2  any firmware Mod 1 / Mod 2 port (`--ty N` = kFx1Type / kFx2Type,
 //!                    `--rate R --amount A` raw 0..127; mod1 `--pass-frames 4` runs the RM / A-WAH /
 //!                    WAH / PUMP routines on 4 frames per call like the live pass), the families of `tools/fx_vs_oracle.py`
-//!          comp      firmware compressor (`kCmpAmt` `--amount` 0..127), `0x120630`
+//!          comp      firmware compressor (`kCmpAmt` `--amount` 0..127), `0x120630`; `--comp-row firmware`
+//!                    uses the firmware's own gain-law words (D187) instead of the ASSUMED ones
 //!          rvbm      firmware multi-tap reverb (`kRvbType` `--ty` 2..11 = Booth, Room, Stage, Hall,
 //!                    Cathedral and their variations) at `--amount` 0..127 through `LayerFxChain`
 //!          off       the same chain with Mod 2 off: must be the identity (self check)
@@ -86,6 +87,13 @@ fn render(
             fx.firmware_fx = FirmwareFx::OFF;
             fx.bypass_reverb = true;
             fx.firmware_fx.compressor = true;
+            // `--comp-row firmware`: the firmware's own gain-law words (D187), else the ASSUMED ones.
+            fx.firmware_fx.compressor_row =
+                match opt(args, "--comp-row", "assumed".to_string())?.as_str() {
+                    "firmware" => true,
+                    "assumed" => false,
+                    other => return Err(format!("bad --comp-row {other:?} (assumed|firmware)")),
+                };
             fx.comp_enabled = true;
             fx.comp_amount = opt(args, "--amount", 64.0f32)? / 127.0;
             for k in 0..n {
@@ -210,6 +218,28 @@ mod tests {
                 "{fam} {ty} silent"
             );
         }
+    }
+
+    #[test]
+    fn the_compressor_row_switch_changes_the_gain_law_and_rejects_garbage() {
+        let loud: Vec<f32> = (0..12_000).map(|i| 0.6 * (i as f32 * 0.07).sin()).collect();
+        let x = vec![loud.clone(), loud];
+        let args = |row: &str| -> Vec<String> {
+            ["--amount", "127", "--comp-row", row]
+                .iter()
+                .map(|s| s.to_string())
+                .collect()
+        };
+        let peak = |row: &str| {
+            let (l, _) = render("comp", &x, &args(row)).unwrap();
+            l[8_000..].iter().fold(0f32, |m, v| m.max(v.abs()))
+        };
+        let (assumed, firmware) = (peak("assumed"), peak("firmware"));
+        assert!(
+            (assumed - firmware).abs() > 0.02 * assumed,
+            "assumed {assumed} firmware {firmware}"
+        );
+        assert!(render("comp", &x, &args("nope")).is_err());
     }
 
     #[test]

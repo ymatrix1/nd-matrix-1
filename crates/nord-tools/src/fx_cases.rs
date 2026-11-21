@@ -148,6 +148,10 @@ pub fn chain(case: &Case, fw: bool) -> LayerFxChain {
         } else if let Some(p) = fx.firmware_fx.port_mut(case.port) {
             *p = true;
         }
+        if case.port == "compressor" {
+            // The firmware model of the compressor carries the image row since D187.
+            fx.firmware_fx.compressor_row = true;
+        }
         if case.port == "mod1" {
             // PUMP (types 10, 11) has its own switch since D134; the other Mod 1 types follow `mod1`.
             fx.firmware_fx.pump = true;
