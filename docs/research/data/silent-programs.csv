@@ -16,4 +16,4 @@ Program/Bank F/Gravity Whl.ns4p,harness,wavetable not delivered to PNO core 2 (L
 Program/Bank F/Moving Chords.ns4p,harness,"arp first step after the 1,500 tick hold",-32.142,-31.484,,0.0,synth_chain_silent,15000,,0.2459,False,True,True,
 Program/Bank F/Scream Lead AT.ns4p,harness,per-program wavetable (L2 byte window) not delivered to PNO core 2,-24.158,-25.756,,0.0,synth_chain_silent,1500,,2.5551,False,True,False,
 Program/Bank F/Shiny Synth Keys.ns4p,harness,per-program wavetable (L2 byte window) not delivered to PNO core 2,-21.841,-21.331,,0.0,synth_chain_silent;piano_no_chain_tap,1500,,2.779,False,True,False,piano_no_chain_tap
-Program/Bank F/Synth Engine.ns4p,open,"arp zigzag custom pattern: ARM key word has voice bank bit 0x01 only, DSP voice silent (both bits: 0.194)",-32.769,-32.576,,0.0,synth_chain_silent,15000,,0.0,False,True,True,synth_chain_silent
+Program/Bank F/Synth Engine.ns4p,harness,"arp pan R step: key word lane bit 0x01 (right lane), census window read the left lane; window 0xC1F89:8:1 peak 0.1944 at 8000 ticks (D175)",-32.769,-32.576,,0.0,synth_chain_silent,8000,,0.1944,False,True,True,

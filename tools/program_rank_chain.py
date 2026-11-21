@@ -29,7 +29,10 @@ from pathlib import Path
 
 import program_rank
 
-WINDOW = "0xC1F89:4:2"  # voice record, 4 samples, stride 2 (D144)
+# Voice record, 8 words, stride 1 (D175): the lanes are interleaved (even words left, odd words
+# right) and an arp step with pan R sounds on the odd lane only; the old window `0xC1F89:4:2`
+# (D144) read the left lane.
+WINDOW = "0xC1F89:8:1"
 # EMPIRICAL (D164, `silent-programs.md`): the first arp step of Gravity Pattern reaches the DSP
 # about 2,900 ARM ticks after the key, so an arp program is held far longer than the 1,500 ticks of
 # the plain census. 15,000 ticks = 0.625 s = 1.25 beats at 120 bpm.
