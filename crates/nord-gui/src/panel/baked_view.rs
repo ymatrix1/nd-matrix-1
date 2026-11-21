@@ -29,6 +29,8 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
     let fit_h = fit_w / aspect;
     let (alloc, _) = ui.allocate_exact_size(vec2(avail.x.max(fit_w), fit_h), Sense::hover());
     let plate_rect = Rect::from_center_size(alloc.center(), vec2(fit_w, fit_h));
+    ui.ctx()
+        .data_mut(|d| d.insert_temp(Id::new("ns4_baked_plate_rect"), plate_rect));
     let scale_x = plate_rect.width() / cw;
 
     let p = ui.painter().clone();
@@ -192,9 +194,16 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             };
             ui.ctx()
                 .data_mut(|d| d.insert_temp(knob_vals_id.with(k.index), val));
-            if k.index == 0 {
-                state.master_volume = val;
-                audio_handle.send_command(AudioCommand::SetMasterVolume(val));
+            match k.index {
+                0 => {
+                    state.master_volume = val;
+                    audio_handle.send_command(AudioCommand::SetMasterVolume(val));
+                }
+                1 => {
+                    state.rotary_drive = val;
+                    audio_handle.send_command(AudioCommand::SetRotaryDrive(val));
+                }
+                _ => {}
             }
         }
         let angle = if k.encoder {
@@ -307,6 +316,8 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                             } else {
                                 RotarySpeed::Fast
                             };
+                            audio_handle
+                                .send_command(AudioCommand::SetRotarySpeed(state.rotary_speed));
                         }
                     }
                 }
@@ -476,14 +487,29 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
         } else {
             0.0
         };
+        let mut fader_changed = false;
         if resp.dragged() || resp.clicked() {
             if let Some(pos) = resp.interact_pointer_pos() {
                 *level_ref = (1.0 - (pos.y - rect.top()) / rect.height().max(1.0)).clamp(0.0, 1.0);
+                fader_changed = true;
             }
         } else if scroll_dy.abs() > 0.1 {
             *level_ref = (*level_ref + scroll_dy * 0.002).clamp(0.0, 1.0);
+            fader_changed = true;
         }
         let val = *level_ref;
+        if fader_changed {
+            let cmd = match idx {
+                0 => AudioCommand::SetOrganLevel(val),
+                1 => AudioCommand::SetOrganBLevel(val),
+                2 => AudioCommand::SetPianoLevel(val),
+                3 => AudioCommand::SetPianoBLevel(val),
+                4 => AudioCommand::SetSynthLevel(val),
+                5 => AudioCommand::SetSynthBLevel(val),
+                _ => AudioCommand::SetSynthCLevel(val),
+            };
+            audio_handle.send_command(cmd);
+        }
         let cy = rect.top() + (0.10 + (1.0 - val) * 0.80) * rect.height();
         let cap = Rect::from_center_size(
             pos2(rect.center().x, cy),
@@ -521,6 +547,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
         } else {
             0.0
         };
+        let mut drawbar_changed = false;
         if resp.dragged() || resp.clicked() {
             if let Some(pos) = resp.interact_pointer_pos() {
                 let n = ((pos.y - rect.top() - 12.0 * scale_x) / (rect.height() * 0.65))
@@ -528,12 +555,20 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                 let step = (n * 8.0).round() as u8;
                 if step != state.organ_drawbars[slot] {
                     state.organ_drawbars[slot] = step;
+                    drawbar_changed = true;
                 }
             }
         } else if scroll_dy.abs() > 0.1 {
             let cur = state.organ_drawbars[slot] as i8;
             let delta = if scroll_dy > 0.0 { -1 } else { 1 };
-            state.organ_drawbars[slot] = (cur + delta).clamp(0, 8) as u8;
+            let next = (cur + delta).clamp(0, 8) as u8;
+            if next != state.organ_drawbars[slot] {
+                state.organ_drawbars[slot] = next;
+                drawbar_changed = true;
+            }
+        }
+        if drawbar_changed {
+            audio_handle.send_command(AudioCommand::SetDrawbars(state.organ_drawbars));
         }
         let step_u8 = state.organ_drawbars[slot];
         let step = step_u8 as f32 / 8.0;
