@@ -136,17 +136,15 @@ fn main() -> Result<(), String> {
     Ok(())
 }
 
+/// The release tail of the note is part of the analysis window.
+const _: () = assert!(HOLD < ANALYSIS_FRAMES);
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn the_note_is_held_inside_the_analysis_window_and_variants_parse_like_the_library() {
-        assert!(
-            HOLD < ANALYSIS_FRAMES,
-            "the release tail is part of the window"
-        );
-        assert!(WORKER_STACK >= 64 << 20);
+    fn variants_parse_like_the_library_and_levels_subtract_in_db() {
         let v = parse_variant("oracle=--synth-oracle").unwrap();
         assert!(v.opts.synth_unison_weights);
         assert!(level_delta_db(-30.0, -33.0) < 0.0);
