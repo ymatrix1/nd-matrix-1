@@ -40,3 +40,8 @@ def test_note_offsets_match_the_committed_key_down_capture() -> None:
         d = kw.decode(int(r["value"], 0))
         assert d["note"] == int(r["note"]) and d["velocity_byte"] == 0xE2 and d["keyboard"]
         assert kw.is_on(int(r["value"], 0)) == (r["phase"] == "on")
+
+
+def test_decode_reports_the_pan_lane() -> None:
+    assert [kw.decode(w)["pan"] for w in (0x0100E200, 0x0200E200, 0x0300E200)] == ["R", "L", "C"]
+    assert kw.decode(0x0000E200)["pan"] is None

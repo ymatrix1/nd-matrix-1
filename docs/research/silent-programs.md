@@ -68,7 +68,9 @@ Result (EMPIRICAL, PNO core 2 voice window peak, key 60, same program, before / 
 
 Gravity Pattern (arp on) has a first arp key word about 2,900 ticks after the key (`log_gp*/PNO2.script`, EMPIRICAL), so a 1,500 tick hold ends before it. With `ARP_KEY_TICKS = 15,000` (0.625 s, 1.25 beats at 120 bpm): Gravity Pattern 0.167, Moving Chords 0.246, Calling Whl 1.264, Gravity Whl 2.780. Same method as [arp-fw-vs-native](arp-fw-vs-native.md): the arp is the firmware's own player, no input forced.
 
-## 6. Synth Engine: the ARM starts the voice with one bank bit, the DSP does not play it
+## 6. Synth Engine: the step is right-panned, the census window read the left lane (answered, D175)
+
+**Answer (2026-11-20, [arp-pan-lanes](arp-pan-lanes.md), VERIFIED):** the two low bits of the key word are the output lane select of the voice record (`0x01` right = odd words, `0x02` left = even words, `0x03` both), set by the pattern pan of the step (`CRLCRC..`; the ARM plays R, L, C, R); the window `0xC1F89:4:2` reads the even words only. The hardware sounds the step; the window `0xC1F89:8:1` reads peak 0.1944 live. The text below is the first reading (EMPIRICAL, bank-bit wording superseded).
 
 Layer A: arp mode 1 (zigzag), 14 step custom pattern (all 14 steps `E`: gate word `0x20000000` sets only step 14, which lies beyond the length), rate raw 68, file BPM 154, no MST CLK, level 1.0, filter Lp24 659 Hz. Findings (EMPIRICAL, runs of 2026-11-19; `tools/arm_key_words.py` logs the key words):
 
@@ -79,7 +81,7 @@ Layer A: arp mode 1 (zigzag), 14 step custom pattern (all 14 steps `E`: gate wor
 | Is that the reason for silence? | Yes at the DSP level. The same run with the router setting bit `0x02` of the on word (`0x0300E200`) gives voice window peak **0.1944** (silent run 0.0, Gravity Pattern 0.1669). A chord (60, 64, 67, 12,000 ticks) alternates banks `0x01` then `0x02` and stays 0.0 in the window (the window sees voice 0 only). |
 | Does native play the same? | Note, step and release yes. `arp_trace` (native, `Synth Engine.ns4p`, key 60): note 60 every 194.8 ms, 97.4 ms on. Firmware: note 60 every 194.7 ms, on for 3,104 ticks = 129.3 ms (2/3 of a step, the known gate difference of D162, opt-in `--arp-fw-gate`); first note at +158 ms against +194.8 ms native (known capture phase, [arp-fw-vs-native](arp-fw-vs-native.md)). The custom zigzag pattern with one key is a repeated note 60 in both. No native change. |
 
-Not decided: why the ARM leaves bank bit `0x02` clear for this step (the key word builder is near `0xC01EC690`; the per-layer flag word `[table + 0xD0 + 4 i]` tested with `tst lr, #2` is the candidate), and whether the hardware sounds the step. Alternation of the bank bits in the chord run suggests round robin voice banks, so a single note may land on a bank the 0xC1F89 window does not show; the window taps voice 0 of one bank only (D144). This stays open as OQ40 (narrowed): next, trace the builder arguments for one arp step and read the voice records of both banks.
+Superseded by the answer above (it was: why the ARM leaves bank bit `0x02` clear for this step (the key word builder is near `0xC01EC690`; the per-layer flag word `[table + 0xD0 + 4 i]` tested with `tst lr, #2` is the candidate), and whether the hardware sounds the step. Alternation of the bank bits in the chord run suggests round robin voice banks, so a single note may land on a bank the 0xC1F89 window does not show; the window taps voice 0 of one bank only (D144). The builder trace and the lane readout answered it.)
 
 ## Reproduce
 
@@ -118,13 +120,13 @@ The level changes come from the wavetable (L2 forwarding) and the longer hold of
 
 ## Implications
 
-- OQ40 is answered for 17 of 18 programs; the native engine is not wrong for any of them. The ranking in [program-ranking](program-ranking.md) stands; only its chain columns for wavetable programs were wrong.
+- OQ40 is answered for all 18 programs (the last one in [arp-pan-lanes](arp-pan-lanes.md), D175); the native engine misses no note for any of them (its hard pan gain was 3 dB high, D175). The ranking in [program-ranking](program-ranking.md) stands; only its chain columns for wavetable programs were wrong.
 - The chain harness had two blind spots: a stale L2 route (wavetable) and a fixed 1,500 tick hold (arp). Both are fixed; a silent tap is now compared to the firmware expectation before it is called a defect.
 - A silent chain tap says nothing about native audio: the piano programs still have no tap (155 programs).
 
 ## Follow-ups
 
 1. ~~Rerun the 384-program census with L2 forwarding~~ done 2026-11-19 (section 7).
-2. Synth Engine: trace the key word builder (`0xC01EC690`) for one arp step, read the voice records of both banks (section 6).
+2. ~~Synth Engine: trace the key word builder~~ done 2026-11-20 (section 6, [arp-pan-lanes](arp-pan-lanes.md), D175). Rerun the census with the two-lane window `0xC1F89:8:1` (the Synth Engine chain flag in `program-ranking.csv` is stale).
 3. A piano tap: not feasible with the harness, blockers in [piano-chain-tap](piano-chain-tap.md) (OQ41).
 4. Sample programs (Wormhole Organ, Nox Split, 24 Frames J3, J3 Grand Layers also carry SAMPLES layers): their SY path is still `sample_layer_lost` / `sample_voiced_no_audio` (D150, D154), not touched here.
