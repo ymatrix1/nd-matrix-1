@@ -1,4 +1,4 @@
-# Mod 1 calls per DSP pass: the dispatcher calls a stage once per pass, the ARM never installs the Mod 1 stages in any harness run (OQ38, D194)
+# Mod 1 calls per DSP pass: the dispatcher calls a stage once per pass, the ARM never installs the Mod 1 stages in any harness run (OQ38, D197)
 
 - **Checked:** 2026-11-21
 - **Sources (local, never committed):** FX image `target/DSP/dsp_image_0_FX.bin` (`python tools/ns4_dsp_ldr.py ... --sram FX`, `core1_sram.bin`), boot script `target/bulk/fx_core1.script` (96,111 ARM messages for all chips, [fx-mod1-call-count](fx-mod1-call-count.md) s3), the ARM harness capture of one program (`tools/arm_dsp_capture.py one`, `70s Phase Mk I`, 15,364 messages: 1,846 to FX core 1, 1,905 to FX core 2), the SHARC oracle `sharc-fxlive` (`--calls-at`). New tool: `tools/fx_mod1_pass_calls.py` (`stage-writes`, `dispatch`, `install`; tests `tools/tests/test_fx_mod1_pass_calls.py`). Builds on [fx-mod1-call-count](fx-mod1-call-count.md) s5b, [fx-chain-install](fx-chain-install.md), [fx-oracle-live](fx-oracle-live.md).

@@ -6,6 +6,8 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D197](#d197-mod-1-calls-per-pass-the-dispatcher-calls-a-stage-once-per-pass-the-arm-stage-install-is-not-reproducible-so-the-mod1_unit_calls-flip-stays-proposed) | 2026-11-21 | Mod 1 calls per pass: the dispatcher calls a stage once per pass; the ARM stage install is not reproducible, so the `mod1_unit_calls` flip stays proposed | accepted |
+| [D195](#d195-amp-to-rotary-type-7-is-the-leslie-chain-the-0x125142-words-are-rom-no-port-until-the-d190-install-is-found) | 2026-11-21 | Amp To Rotary (type 7) is the Leslie chain; the `0x125142` words are ROM; no port until the D190 install is found | proposed |
 | [D194](#d194-the-fitted-shape-triangle--multi--super-rows-are-the-oracle-rows-times-the-missing-filter-gain-opt-in---synth-p-coupled-and---synth-oracle-rows-times-sqrt-2-plus-the-unison-lane-weights-default-flip-is-the-owners-call) | 2026-11-21 | The fitted SHAPE triangle / MULTI / SUPER rows are the oracle rows times the missing filter gain; opt-in `--synth-p coupled` and `--synth-oracle`; flip is the owner's call | proposed |
 | [D193](#d193-amp-lp24--hp24-default-flip-proposed-not-made-type-9-words-verified-multi-call-golden) | 2026-11-21 | Amp LP24 / HP24 default flip proposed, not made; type 9 words VERIFIED; multi-call golden | proposed |
 | [D191](#d191-smp-page-refill-descriptor-to-flash-law-decoded-flash-feed-in-sharc-live---smp-the-voice-does-not-advance-yet) | 2026-11-21 | SMP page refill: descriptor to flash law decoded, flash feed in `sharc-live --smp`; the voice does not advance yet | accepted |
@@ -2078,7 +2080,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Open:** per-voice gate (scheduler, EP DMA completion interrupt, ARM re-init burst), 129 `flash_outside` reads, layers 2 and 3.
 - **Impact:** `smpflash.rs`, `epchain.rs`, `glue.rs`, `live_flash.rs`, `live.rs`, `live_sy.rs` (`other_half`), `tools/arm_smp_flash.py`, `arm_dsp_link.py`, `arm_dsp_live.py`, `arm_dsp_route.py`; tests `smpflash`, `epchain`, `glue`, `live`, `live_smp`, `test_arm_smp_flash.py`, `test_arm_dsp_link.py`; no default, no render path touched.
 
-### D194. Mod 1 calls per pass: the dispatcher calls a stage once per pass; the ARM stage install is not reproducible, so the `mod1_unit_calls` flip stays proposed
+### D197. Mod 1 calls per pass: the dispatcher calls a stage once per pass; the ARM stage install is not reproducible, so the `mod1_unit_calls` flip stays proposed
 
 - **Status:** accepted (measurement recorded); the D186 default flip is not made and not newly proposed.
 - **Decided by:** the session working OQ38 (a measurement result, no behaviour change).
@@ -2088,3 +2090,12 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** count in a PNO harness (organ only, does not settle piano or synth); infer the call count from the port's design (that is the ASSUMED value we wanted to replace); flip now on the block-count evidence (rejected: the pass structure is still unmeasured).
 - **Open:** where the ARM writes the 35 stage records (OQ38 b), their input pointers per unit, the pass size of the running chip.
 - **Impact:** `tools/fx_mod1_pass_calls.py`, `tools/tests/test_fx_mod1_pass_calls.py`, [fx-mod1-pass-calls](research/fx-mod1-pass-calls.md), [fx-mod1-call-count](research/fx-mod1-call-count.md) s5b, OQ38, ROADMAP 7b.4.
+### D195. Amp To Rotary (type 7) is the Leslie chain; the `0x125142` words are ROM; no port until the D190 install is found
+
+- **Status:** proposed 2026-11-21
+- **Decided by:** the amp-lp24 follow-up session ([amp-types-789](research/amp-types-789.md) s8); the owner reviews.
+- **Context:** D188 / D193 left "model `0x125142` and find its word source" for To Rotary.
+- **Decision:** `0x125142` reads PM `0x9437A`, the fixed fs/4 Butterworth ROM table already verified in [fx-dsp-map](research/fx-dsp-map.md) s6, so its words are found. The type 7 install differs from type 8 in 42 chain rows / constants (`0x125371`, `0x121BBA`, `0x1247CE`, `0x12478F`, `0x122857`, `0x124E0B`, `0x125142`): To Rotary is the Leslie chain, not one routine. No port; the D190 / OQ42 install of the element words is the single unlock. Also fixed the D176 reference in `fx/fw_rate_match.rs` (D180).
+- **Why:** a bank port feeds nothing and has no hardware clip to check; the element words, state and ring are unobtainable (D172, D190).
+- **Alternatives:** port the bank alone opt-in (rejected: no audible effect, wiring unverifiable); wait for hardware clip (needed anyway).
+- **Impact:** `docs/research/amp-types-789.md` s1, s8, follow-ups; no code change besides the doc comment.
