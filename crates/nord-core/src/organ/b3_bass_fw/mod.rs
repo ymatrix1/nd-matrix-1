@@ -10,13 +10,17 @@
 //! Real-time safety: construction allocates the DM image; `call` and `run` do not allocate, lock or
 //! perform I/O.
 
+mod compile;
 mod exec;
 mod f40;
 mod fast;
+mod fastexec;
 mod prog_gen;
 mod prog_proc;
 mod tables;
 
+use compile::Program;
+#[cfg(test)]
 use tables::kind;
 
 pub(super) use prog_gen::GEN_ROWS;
@@ -53,6 +57,9 @@ pub(super) struct Machine {
     pub(super) an: [bool; 2],
     pub(super) az: [bool; 2],
     pub(super) mem: Vec<u32>,
+    /// Compiled routines (`compile.rs`): the generator (Bass only) and the processor.
+    gen: Program,
+    main: Program,
 }
 
 impl Machine {
@@ -69,6 +76,8 @@ impl Machine {
             an: [false; 2],
             az: [false; 2],
             mem: vec![0; DM_LEN],
+            gen: Program::default(),
+            main: Program::default(),
         }
     }
 
@@ -99,13 +108,15 @@ impl Machine {
         self.wr(a, v.to_bits());
     }
 
-    /// Runs decoded rows (instructions and loops).
+    /// Runs decoded rows (instructions and loops) on the reference executor.
+    #[cfg(test)]
     pub(super) fn run(&mut self, rows: &[Row]) {
         let mut pd = exec::Pending::default();
         self.run_with(rows, 0, &mut pd);
     }
 
     /// `start` is the absolute row index of `rows[0]` (jump targets are absolute).
+    #[cfg(test)]
     fn run_with(&mut self, rows: &[Row], start: usize, pd: &mut exec::Pending) {
         let mut p = 0;
         while p < rows.len() {
@@ -134,17 +145,34 @@ impl Machine {
         }
     }
 
-    /// One routine call with the `I0` / `I1` presets of the harness.
+    /// Compiles the processor (`main`) and optionally the generator (setup time: allocates).
+    pub(super) fn set_programs(&mut self, gen: Option<&[Row]>, main: &[Row]) {
+        self.gen = gen.map(compile::compile).unwrap_or_default();
+        self.main = compile::compile(main);
+    }
+
+    /// One call of the compiled processor with the `preset`.
+    pub(super) fn call_main(&mut self, preset: (u32, u32)) {
+        let prog = std::mem::take(&mut self.main);
+        self.call_compiled(&prog, preset);
+        self.main = prog;
+    }
+
+    #[cfg(test)]
+    /// One routine call (reference executor) with the `I0` / `I1` presets of the harness.
     pub(super) fn call(&mut self, rows: &[Row], preset: (u32, u32)) {
         self.i[0] = preset.0;
         self.i[1] = preset.1;
         self.run(rows);
     }
 
-    /// One generator + processor call (two frames); returns the two output samples.
+    /// One generator + processor call (two frames) on the compiled programs; returns the two
+    /// output samples. Needs [`Self::set_programs`] with both routines.
     pub(super) fn step(&mut self) -> [f32; 2] {
-        self.call(&GEN_ROWS, GEN_PRESET);
-        self.call(&PROC_ROWS, PROC_PRESET);
+        let gen = std::mem::take(&mut self.gen);
+        self.call_compiled(&gen, GEN_PRESET);
+        self.gen = gen;
+        self.call_main(PROC_PRESET);
         [self.rd_f(OUT_BASE), self.rd_f(OUT_BASE + 2)]
     }
 
@@ -250,6 +278,7 @@ mod tests {
         m.load_image(include_str!(
             "../../../../../docs/research/data/bass-fw-chord-delta.csv"
         ));
+        m.set_programs(Some(&GEN_ROWS), &PROC_ROWS);
         m
     }
 

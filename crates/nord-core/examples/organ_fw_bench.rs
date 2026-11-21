@@ -32,10 +32,15 @@ fn main() {
         let mut o = layer(bass);
         let t = Instant::now();
         let mut peak = 0.0f32;
+        let mut hash = 0xcbf2_9ce4_8422_2325u64;
         for _ in 0..frames {
-            peak = peak.max(o.render_frame()[0].abs());
+            let f = o.render_frame();
+            peak = peak.max(f[0].abs());
+            for v in f {
+                hash = (hash ^ u64::from(v.to_bits())).wrapping_mul(0x100_0000_01b3);
+            }
         }
         let cpu = t.elapsed().as_secs_f64() / 4.0;
-        println!("{name}: {cpu:.3} s CPU per second of audio (peak {peak:.4})");
+        println!("{name}: {cpu:.3} s CPU per second of audio (peak {peak:.4}, fnv {hash:#018x})");
     }
 }

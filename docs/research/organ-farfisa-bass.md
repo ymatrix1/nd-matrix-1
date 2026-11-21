@@ -377,6 +377,46 @@ Tried and dropped: straight line Rust (one `Machine::exec` call with literal row
 
 Not done: the drawbar / percussion dependence of the Bass key tables and the key-up `G` resync (needs new ARM captures of non `888888888` drawbars and percussion; nothing captured in this pass), the Farfisa generator `0x122A71` on the machine (`float` clip, `max`, `fix`, register loop count), `tools/emu_vs_hw.py` (no B3 Bass or Farfisa hardware clip exists; both stages stay opt-in, D22).
 
+## 18. Compiled in place executor: 2.9x (Bass) and 3.1x (Farfisa) cheaper, bit identical, still not real time (2026-11-21)
+
+Checked 2026-11-21. Sources: `organ/b3_bass_fw/compile.rs`, `fastexec.rs`, `fast.rs` (this change), `bench_organ_fw.rs`, [sharc-aot-hot-block](sharc-aot-hot-block.md), [sharc-jit-ceiling-study](sharc-jit-ceiling-study.md). Question: can the Bass (D71) and Farfisa (D74) stages run inside the 0.8 ms block budget (TD-15)?
+
+Tools: `cargo run --release -p nord-core --example organ_fw_bench` (three keys, 4 s, one stage alone, wall time over audio time, prints an FNV hash of every output sample) and `ns4 bench --scenario organ-bass` / `organ-farfisa` (the `typical` workload, Scene I, 10 keys, default FX, with Organ A on the stage). Same host, same session, shared with other builds (about 10 percent noise), release build, `main` at `96253e23` against this branch.
+
+| Stage (3 keys held) | Before | After | Machine alone, per call (24,000 calls per second of audio) |
+|---|---|---|---|
+| B3 Bass | 1.82 to 1.91 s CPU per second of audio | 0.63 to 0.65 | 77 us before (whole stage), 27 us after (0.65 s) |
+| Farfisa | 1.34 to 1.36 | 0.43 to 0.48 | 17.3 us after zero branching, 11.2 us final (0.27 s); the rest is the `FarfisaWheels` ring (0.16 s) |
+
+Block cost (`ns4 bench`, 2000 blocks of 128 frames, 4 outputs, mean ms per block, 3 runs each, deadline 2.667 ms, PRD budget 0.8 ms):
+
+| Scenario | Before | After |
+|---|---|---|
+| `typical` (no stage, reference) | 0.81 to 0.84 | 0.81 |
+| `organ-bass` | 6.3 to 6.8 | 3.1 to 4.1 |
+| `organ-farfisa` | 4.0 to 4.4 | 1.6 to 2.0 |
+
+Output hashes equal before and after (`organ_fw_bench`: Bass `0xd1d697626e610cb9`, Farfisa `0x022b186501a4479b`; `ns4 bench`: `typical` `0x37d60a94ae3b99bd`, `organ-bass` `0x734b8a69c5587b8e`, `organ-farfisa` `0x6cc62194478311d7` on both builds).
+
+What was done, in the order it paid:
+
+1. **Zero operands in the 64 bit path** (`fast.rs`). A zero (exponent 0) fell into the 128 bit general routine. 40 percent of the adds and 45 percent of the multiplies of the Bass chord have a zero operand (1,184 adds and 1,204 multiplies per call, counted with a temporary counter). A zero is now one early branch (zero times finite is a signed zero, zero plus x is x). 1.60 to 1.34 (Bass), 0.96 to 0.68 (Farfisa, whose weight sums are mostly zero: only held keys are non zero).
+2. **A flat compiled program with in place execution** (`compile.rs`, `fastexec.rs`). The reference executor (`exec.rs`) collects the writes of an instruction in a `Pending` buffer to give every item the old state; that buffer, the 256 byte register copy of a conditional instruction and the two level dispatch cost more than the arithmetic. At setup, each instruction's items get a read set and write set (bit masks over data registers, `I M L B`, memory, the accumulators, flags) and are ordered so that plain in place execution reads each value before it is overwritten; an instruction with a cycle, a double register write or a condition keeps the reference path (5 of the 236 generator instructions, 0 of the processor's). All items sit in one flat list (one dispatch per item, hardware loops and jumps are control ops). VERIFIED: the compiled machine and the row machine hold identical registers, index registers, flags, accumulators and the whole DM after every one of 600 chord calls (`fastexec::tests::compiled_chain_equals_the_reference_machine_state_for_state`) and over both Farfisa lattice tables (`farfisa_fw::tests::compiled_processor_equals_the_reference_executor_state_for_state`); the oracle goldens still pass. The reference executor stays as the test oracle.
+3. **No data dependent branch in the float rounding** (`fast.rs`). The cost was data dependent branches (rounding, operand order, add or subtract), not the arithmetic: a micro benchmark of the routines on random operands gave 14 ns per multiply plus add pair with branches, 10 to 11 ns without. Rounding is one add and one shift (`(m + half - 1 + lsb) >> s`, sticky or-ed into bit 0, valid for `s >= 2`; the deep cancellation case with `s < 2` is a cold function), the operand swap and the add / subtract choice are arithmetic selects, a product needs no leading zero count (its top bit is 62 or 63), `float` and `PASS` have 64 bit paths (`float_by`, `pass`). 50 to 36 us per Bass call. VERIFIED equal to the 128 bit general routines on 400,000 random pairs, 200,000 zero cases, 200,000 `float` / `PASS` cases (`fast::tests`).
+4. **Inlined ALU match and one flat item list** (`fastexec.rs`): the common integer operations and the float ones are inlined with the operation match outside the per element loop (36 to 31.6 us), and the two level dispatch (instruction, then item) became one (31.6 to 29.5 us). The zero branch of step 1 in the Bass processor and generator too: 29.0 to 27 us.
+5. Tried and dropped: selecting zero results with masks instead of the branch (Farfisa 17.3 us against 11.2 us with the branch: the zero places are fixed, so the branch predicts); the 128 bit general routines are untouched.
+
+Where the remaining time goes (Bass, 27 us per call, about 2,300 instructions and 4,100 items; Farfisa 11 us, 1,034 instructions): about 5 to 6 ns per float add or multiply (a micro benchmark of 4,096 random operands: 10 to 11 ns per multiply plus add pair, throughput bound, 14 ns before step 3), plus 5 to 7 ns per item for dispatch, register file memory traffic and the loads (removing the whole ALU leaves 13.8 us of the Bass call). Both are the cost of interpreting: an indirect branch per item that the predictor cannot learn over a 4,000 item period, and every register in memory. Neither shrinks without changing the structure.
+
+**Budget.** The cost does not depend on the keys held (a fixed number of SHARC instructions per call) and is paid while a key is down plus the 10,000 call ring-down. At 0.65 s (Bass) and 0.27 s of the stage alone (Farfisa, 0.43 with the wheel ring), a 128 frame block (2.667 ms of audio) costs about 1.7 ms (Bass) and 0.7 to 1.2 ms (Farfisa) on top of the rest of the engine (`typical`, 0.81 ms here): the Farfisa program stays inside the deadline (1.6 to 2.0 ms) but over the 0.8 ms figure, the Bass program is over the deadline (3.1 to 4.1 ms) on this shared host. **Not reached: the 0.8 ms block budget for these programs.** The next steps need a different structure, not tuning:
+
+- Straight line Rust with the registers in locals (s17 failed because the old attempt inlined the full `exec` per row; a generator that emits only the float and integer arithmetic and the addressing would remove the dispatch and the register file traffic, about half of the 27 us, and let the predictor see the zero pattern per site). Cost: a 10,000 line GENERATED source per routine (a size rule exception like `prog_proc.rs`), compile time unknown.
+- SIMD across the two PEs (the same instruction on both elements): SSE2 has `pmuludq` for the product but no lane wise variable shift or leading zero count, so it needs AVX2 or NEON paths and runtime detection.
+- A closed form of the Farfisa processor (weights times ring, three sums, biquads, lattice): the structure is linear in the weights, so the zero weights can be dropped exactly only if the sum order is kept; this is where the 45 percent zeros could disappear entirely.
+- A second core (the stage output is needed one DSP call ahead): needs a lock free pipeline, outside the real-time rules of this task.
+
+New in this change: `ns4 bench --scenario organ-bass` and `organ-farfisa` (`bench_organ_fw.rs`), so the block cost of these programs is measured with the same tool as TD-14.
+
 ## Implications
 
 - The Farfisa generator is fully decoded and ported; the Farfisa audio is not reachable until the ARM weights and the filter table are captured (OQ19). The documented structure (four weighted sums, biquads, 8 lattice sections, four gains) gives the model target.
