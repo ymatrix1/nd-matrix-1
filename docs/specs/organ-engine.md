@@ -348,6 +348,8 @@ Not modelled: the live Percussion and Vibrato On/Off buttons in Drawbar Live mod
 
 Firmware strings confirm the dedicated `LeslieHorn` and `Rotary Mic Distance` parameters inside `DSPO`.
 
+**Firmware chain status (D171, [b3-leslie-chain-link](../research/b3-leslie-chain-link.md)):** the native rotary here is the model; the firmware Leslie stage `0x1256AD` exists only on PNO core 1, no ARM word links it into a chain head (D138, D155), and a hand link runs it but leaves the oracle lane unchanged because the chain input has no feed. `--leslie firmware` stays opt-in; no default changes.
+
 ### Signal Flow
 
 1. **Tube Overdrive Preamp:** Asymmetric soft-clipping waveshaper (`tanh(drive * x) + 0.1 * x^2`).
