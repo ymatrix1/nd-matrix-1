@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D191](#d191-smp-page-refill-descriptor-to-flash-law-decoded-flash-feed-in-sharc-live---smp-the-voice-does-not-advance-yet) | 2026-11-21 | SMP page refill: descriptor to flash law decoded, flash feed in `sharc-live --smp`; the voice does not advance yet | accepted |
 | [D188](#d188-firmware-amp-lp24--hp24-state-variable-pair-0x124efa-ported-opt-in---firmware-fx-ports-lp24) | 2026-11-21 | Firmware Amp LP24 / HP24 (state variable pair `0x124EFA`) ported, opt-in `--firmware-fx-ports lp24` | accepted |
 | [D185](#d185-piano-chain-tap-a-bound-piano-sound-reaches-a-live-smp-chip-sharc-live---smp-the-page-refill-is-the-next-blocker) | 2026-11-21 | Piano chain tap: a bound piano sound reaches a live SMP chip (`sharc-live --smp`); the page refill is the next blocker | proposed |
 | [D181](#d181-amp-types-8-and-9-lp24--hp24-are-one-state-variable-pair-0x124efa-model-and-recorded-oracle-cases-no-rust-port-yet) | 2026-11-21 | Amp types 8 / 9 (LP24, HP24) are one state variable pair `0x124EFA`; Python model and recorded oracle cases; no Rust port yet | accepted |
@@ -2010,3 +2011,14 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Put it in `ALL` / `PARITY` (rejected: no clip evidence, and `PORT_NAMES` is mirrored by the GUI and tests). Keep the biquad stand-in only (rejected: wrong damping, clipping and smoothing).
 - **Open:** the cutoff unit (rate scale at 48 kHz), the mapping of the engine Mid Freq to a table index, the Mid knob to counts mapping (ASSUMED), type 9 words assumed equal to type 8's (the filter list `0xC044398C` is shared, `fx-param-fits.csv`).
 - **Impact:** `fx/fw_lp24.rs`, `fx/fw_lp24_tables.rs`, `fx/amp_eq.rs`, `fx/firmware_fx.rs`, `fx/firmware_fx_ports.rs`, tests `tests_fw_lp24_golden.rs`, `tests_fw_lp24_chain.rs`, `tools/fx_lp24_golden.py`; `docs/research/amp-types-789.md`.
+
+### D191. SMP page refill: descriptor to flash law decoded, flash feed in `sharc-live --smp`; the voice does not advance yet
+
+- **Status:** accepted 2026-11-21
+- **Decided by:** the task of the parent session (OQ41, evidence [smp-page-refill](research/smp-page-refill.md)); owner to confirm. Renumber on merge if taken.
+- **Context:** D185 left the SMP source ring empty (page refill unmodelled), so the piano chain tap was silent. 155 programs keep `piano_no_chain_tap`.
+- **Decision:** (1) The stroke descriptor `rec[-11]`, `rec[-10]`, `rec[-9]` maps to a flash word through `DM(0xB237B + ...)` as in [smp-page-refill](research/smp-page-refill.md) s2; `rec[-10] = (stroke file byte + 148) / (1022 * channels)`. (2) `smpflash.rs` serves external banks 1 to 3 as one 16-bit-word flash (core and DMA reads), opt-in with `--epchain` and the `L` / `F` / `E` / `C` / `H` lines of `sharc-live`; `tools/arm_smp_flash.py` places the file when a descriptor appears. (3) `piano_no_chain_tap`, the census and the ranking are unchanged: the voice phase freezes after the first refill, the tap is silent or a DC plateau.
+- **Why:** The law holds for 4 files (3 stereo, 1 mono): every descriptor passes `law_ok` and the ring head equals the file payload. Claiming a tap level would be false: the clavinet plateau (0.0431) is a stuck sample, not audio.
+- **Alternatives:** Claim the clavinet level (rejected: DC). Hold the PR until the voice advances (rejected: the feed and the law are reusable and the blocker is recorded).
+- **Open:** per-voice gate (scheduler, EP DMA completion interrupt, ARM re-init burst), 129 `flash_outside` reads, layers 2 and 3.
+- **Impact:** `smpflash.rs`, `epchain.rs`, `glue.rs`, `live_flash.rs`, `live.rs`, `live_sy.rs` (`other_half`), `tools/arm_smp_flash.py`, `arm_dsp_link.py`, `arm_dsp_live.py`, `arm_dsp_route.py`; tests `smpflash`, `epchain`, `glue`, `live`, `live_smp`, `test_arm_smp_flash.py`, `test_arm_dsp_link.py`; no default, no render path touched.

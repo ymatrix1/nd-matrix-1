@@ -29,7 +29,7 @@ class FakeLink:
         return "F ok"
 
 
-# the two Astoria Grand strokes of the run (offset from the CNSP base, frames, pages) and their rec[-10]
+# the two Astoria Grand strokes of the run (file offset, frames, pages) and their rec[-10]
 ASTORIA = [(82_933_064, 162_532, 99, 0x9E7E), (80_929_944, 153_593, 93, 0x9AAA)]
 
 

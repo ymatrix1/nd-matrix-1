@@ -231,7 +231,8 @@ def smp_flash_report(flash) -> dict:  # noqa: ANN001  # pragma: no cover
     import arm_smp_flash as sf
 
     feed, link, npno = flash
-    return {**feed.summary(), "chip": link.command("E"), "rings": sf.check_rings(link, npno, feed.strokes)}
+    rings = sf.check_rings(link, npno, feed.strokes)
+    return {**feed.summary(), "chip": link.command("E"), "rings": rings}
 
 
 def replay_cmd(spec: rt.ChipSpec, exe: Path, log: Path, passes: int, tap: Path) -> list[str]:
