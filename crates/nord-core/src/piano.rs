@@ -22,6 +22,7 @@ pub mod smp_slew;
 pub mod smp_unpack;
 pub mod smp_voice;
 pub mod step_q32;
+pub mod timbre_gain;
 pub mod touch_curve;
 pub mod velocity_curve;
 pub mod velocity_level;
@@ -31,6 +32,7 @@ mod extra_voice;
 mod interp_switch;
 mod pedal_voices;
 mod slew_voice;
+mod timbre_gain_tables;
 mod touch_layer;
 
 pub use q31_kernel::{SampleInterp, SmpKernel};
@@ -896,6 +898,11 @@ pub struct PianoLayer {
     /// `tools/arm_piano_pedal.py`) instead of the legacy damper-stroke path. Default `false`
     /// (D22): the pedal-down key-up record placement is not decoded.
     pub firmware_pedal_voices: bool,
+    /// Play the Soft / Mid / Bright timbre as the firmware does: a gain per note from the ROM tables of
+    /// `kEq` (`piano/timbre_gain.rs`, VERIFIED by the ARM run, `docs/research/piano-timbre-gain.md`)
+    /// instead of the engine's IIR contour. Default `false` (D22): the gain at note start is the whole
+    /// model; the firmware's retarget of sounding voices is not played.
+    pub firmware_timbre_gain: bool,
     /// Scale the sample path by the SMP bus convention (`downstream::FIRMWARE_SAMPLE_SCALE`,
     /// 0.5) instead of the legacy 0.55. Default `false`: the Q31 receiver convention is ASSUMED.
     pub firmware_bus_scale: bool,
@@ -993,6 +1000,7 @@ impl PianoLayer {
             firmware_touch: true,
             firmware_slew: false,
             firmware_pedal_voices: false,
+            firmware_timbre_gain: false,
             firmware_bus_scale: false,
             receiver_chain_scale: false,
             firmware_layer_law: false,
@@ -1060,6 +1068,7 @@ impl PianoLayer {
     }
 
     pub fn note_on_with_gain(&mut self, note: u8, velocity: u8, gain: f32) {
+        let gain = gain * self.firmware_timbre_factor(note, velocity);
         let effective_note =
             (i32::from(note) + i32::from(self.octave_shift.clamp(-2, 2)) * 12).clamp(0, 127) as u8;
         let freq = 440.0 * 2.0f32.powf((f32::from(effective_note) - 69.0) / 12.0);
@@ -1403,6 +1412,9 @@ impl PianoLayer {
     }
 
     fn process_timbre(&mut self, sum_l: f32, sum_r: f32, inv_fs: f32) -> [f32; 2] {
+        if self.firmware_timbre_mode().is_some() {
+            return [sum_l, sum_r];
+        }
         let mono = 0.5 * (sum_l + sum_r);
         let lp_hz = match self.timbre {
             PianoTimbre::Soft => 1800.0,

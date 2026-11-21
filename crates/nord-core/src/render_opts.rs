@@ -321,6 +321,9 @@ pub struct FirmwareOptions {
     /// `--firmware-piano-pedal-voices`: `PianoLayer::firmware_pedal_voices` (notes struck with
     /// the damper pedal down take the firmware voice list, VERIFIED by the ARM run; opt-in, D22).
     pub piano_pedal_voices: bool,
+    /// `--firmware-piano-timbre`: `PianoLayer::firmware_timbre_gain` (the Soft / Mid / Bright timbre as
+    /// the per-note gain of the firmware ROM tables, VERIFIED by the ARM run; opt-in, D22).
+    pub piano_timbre_gain: bool,
     /// `--firmware-piano-chain`: `PianoLayer::receiver_chain_scale` (verified FX path 0.7464 per
     /// `y / 8192`; opt-in, engine unit = DAC fraction ASSUMED).
     pub piano_chain_scale: bool,
@@ -466,6 +469,7 @@ impl Default for FirmwareOptions {
             piano_touch: true,
             piano_slew: false,
             piano_pedal_voices: false,
+            piano_timbre_gain: false,
             piano_chain_scale: false,
             piano_layer_law: false,
             fx_defaults: false,
@@ -558,6 +562,7 @@ impl FirmwareOptions {
             piano_touch: true,
             piano_slew: false,
             piano_pedal_voices: false,
+            piano_timbre_gain: false,
             piano_chain_scale: false,
             piano_layer_law: false,
             fx_defaults: false,
@@ -665,6 +670,7 @@ impl FirmwareOptions {
         }
         o.piano_slew |= has("--piano-slew-fw");
         o.piano_pedal_voices |= has("--firmware-piano-pedal-voices");
+        o.piano_timbre_gain |= has("--firmware-piano-timbre");
         o.piano_chain_scale |= has("--firmware-piano-chain");
         o.piano_layer_law |= has("--firmware-piano-layer-law");
         o.fx_defaults |= has("--fx-defaults-firmware");
@@ -870,6 +876,8 @@ impl FirmwareOptions {
         engine.piano_b.firmware_slew = self.piano_slew;
         engine.piano_a.firmware_pedal_voices = self.piano_pedal_voices;
         engine.piano_b.firmware_pedal_voices = self.piano_pedal_voices;
+        engine.piano_a.firmware_timbre_gain = self.piano_timbre_gain;
+        engine.piano_b.firmware_timbre_gain = self.piano_timbre_gain;
         engine.piano_a.receiver_chain_scale = self.piano_chain_scale;
         engine.piano_b.receiver_chain_scale = self.piano_chain_scale;
         engine.piano_a.firmware_layer_law = self.piano_layer_law;
@@ -955,6 +963,8 @@ impl FirmwareOptions {
         engine.piano_b.firmware_slew = self.piano_slew;
         engine.piano_a.firmware_pedal_voices = self.piano_pedal_voices;
         engine.piano_b.firmware_pedal_voices = self.piano_pedal_voices;
+        engine.piano_a.firmware_timbre_gain = self.piano_timbre_gain;
+        engine.piano_b.firmware_timbre_gain = self.piano_timbre_gain;
         engine.piano_a.receiver_chain_scale = self.piano_chain_scale;
         engine.piano_b.receiver_chain_scale = self.piano_chain_scale;
         engine.piano_a.firmware_layer_law = self.piano_layer_law;
@@ -1193,6 +1203,9 @@ impl FirmwareOptions {
         if self.piano_pedal_voices {
             parts.push("piano-pedal-voices".into());
         }
+        if self.piano_timbre_gain {
+            parts.push("piano-timbre".into());
+        }
         if self.piano_chain_scale {
             parts.push("piano-chain".into());
         }
@@ -1416,6 +1429,12 @@ mod tests {
         let mut e = Stage4Engine::new(48_000.0);
         pedal.apply_to(&mut e);
         assert!(e.piano_a.firmware_pedal_voices && e.piano_b.firmware_pedal_voices);
+        assert!(!o.piano_timbre_gain, "the firmware timbre gain is opt-in");
+        let timbre = FirmwareOptions::from_args(&args(&["--firmware-piano-timbre"])).unwrap();
+        assert!(timbre.piano_timbre_gain && timbre.summary().contains("piano-timbre"));
+        let mut e = Stage4Engine::new(48_000.0);
+        timbre.apply_to(&mut e);
+        assert!(e.piano_a.firmware_timbre_gain && e.piano_b.firmware_timbre_gain);
         assert!(!o.piano_chain_scale, "the receiver chain scale is opt-in");
         let chain = FirmwareOptions::from_args(&args(&["--firmware-piano-chain"])).unwrap();
         assert!(chain.piano_chain_scale && chain.summary().contains("piano-chain"));
