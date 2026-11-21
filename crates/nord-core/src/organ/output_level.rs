@@ -28,9 +28,10 @@ pub enum OutputLevel {
     /// bank output, and the layer level squared by the engine.
     Firmware,
     /// The same structure as `Firmware` with the **verified chain** in place of the empirical `K`:
-    /// the organ chain gain word [`ORGAN_CHAIN_GAIN_WORD`] (1.6) times the FX output path
-    /// ([`organ_chain_bus_gain`]), the engine unit read as the DAC fraction (ASSUMED). Opt-in
-    /// (`--organ-level chain`): it lands the organ clips 13 dB under the hardware (OQ24).
+    /// the organ chain gain word [`ORGAN_CHAIN_GAIN_WORD`] (1.6) times the second organ word
+    /// [`ORGAN_SECOND_GAIN_WORD`] (1.3, D188) times the FX output path ([`organ_chain_bus_gain`]),
+    /// the engine unit read as the DAC fraction (ASSUMED). Opt-in (`--organ-level chain`): it
+    /// lands the organ clips about 11 dB under the hardware (OQ24).
     Chain,
 }
 
@@ -105,14 +106,28 @@ pub const LEGACY_BUS_OVER_UNIT: f32 = 0.08 / super::weights::UNIT_WEIGHT;
 /// (`arm-boot-rederive.md` s1), so the oracle lanes at the image default 1.0 are 1.6 times low.
 pub const ORGAN_CHAIN_GAIN_WORD: f32 = 1.6;
 
+/// Second organ gain word the layer sender writes to PNO core 1 (`DM 0xB2FF0`, `0xB2FF1`) in
+/// every organ program: `1.3`, the value of scale cell 1 (`[mixer + 0x154]`, ASSUMED link) at level 1.0. It multiplies the
+/// lane after the chain word (D188): the oracle lane is linear in `0xB2EDE * 0xB2FF0 * 0xB301D`
+/// (`0xB301D` is 1.0 in every captured program), and the earlier chain law missed it.
+///
+/// VERIFIED (run, D188): `arm_dsp_capture.py one` on `B3 Chords n Solo`, `B3 Jazz Split`,
+/// `B3 Old Forest`, `Vintage Vox J3`, `Space Drama II`, `Cathedral Pipes` writes `0x3FA66666` to
+/// `0xB2FF0` / `0xB2FF1` (sender `0xC022E3E8` / `0xC022E288`, tick 234); the piano programs
+/// (`Velvet Grand`, `White Grand`) do not write those two words. `sharc-sys --pno --lane 2:0` with
+/// the real boot and load streams: lane RMS `0.058359` as captured (`1.0119 * 1.3`), `0.044362`
+/// with both words 1.0 (ratio 1.3155 = `1.0119 * 1.3`), zero with either word 0.
+pub const ORGAN_SECOND_GAIN_WORD: f32 = 1.3;
+
 /// Engine gain on an oracle-faithful organ bank output (swell and level 1) that follows the
-/// verified chain: [`ORGAN_CHAIN_GAIN_WORD`] times the FX output path `2 * 0.1866 = 0.3732`
-/// (VERIFIED run, `piano::downstream::fx_dac_fraction`), 0.597 (-4.5 dB).
+/// verified chain: [`ORGAN_CHAIN_GAIN_WORD`] times [`ORGAN_SECOND_GAIN_WORD`] times the FX output
+/// path `2 * 0.1866 = 0.3732` (VERIFIED run, `piano::downstream::fx_dac_fraction`), 0.776 (-2.2 dB;
+/// 0.597 before the second word was found, D188).
 ///
 /// ASSUMED: that the engine unit 1.0 is the DAC full scale (the piano peaks support it within
 /// 2.7 dB; the organ clips need 13.4 dB more, OQ24).
 pub fn organ_chain_bus_gain() -> f32 {
-    ORGAN_CHAIN_GAIN_WORD * crate::piano::downstream::fx_dac_fraction(1.0)
+    ORGAN_CHAIN_GAIN_WORD * ORGAN_SECOND_GAIN_WORD * crate::piano::downstream::fx_dac_fraction(1.0)
 }
 
 impl super::OrganLayer {
@@ -237,11 +252,11 @@ mod tests {
 
     #[test]
     fn chain_law_is_the_verified_word_times_the_fx_path() {
-        // 1.6 (run of 0xC023195C) * 2 * 0.1866 (DM 0xB651A) = 0.5971
+        // 1.6 (0xB2ECF family) * 1.3 (0xB2FF0) * 2 * 0.1866 (DM 0xB651A) = 0.7763
         let g = OutputLevel::Chain.bus_gain();
-        assert!((g - 1.6 * 0.373_2).abs() < 2e-4, "{g}");
+        assert!((g - 1.6 * 1.3 * 0.373_2).abs() < 3e-4, "{g}");
         assert!((g - organ_chain_bus_gain()).abs() < 1e-9);
-        assert!(g < OutputLevel::Firmware.bus_gain() / 4.0, "13 dB under K");
+        assert!(g < OutputLevel::Firmware.bus_gain() / 3.0, "11 dB under K");
         let vox = OutputLevel::Chain.vox_gain();
         assert!(
             (vox * VOX_BAKED_SWELL - g).abs() < 1e-6,
@@ -332,10 +347,32 @@ mod tests {
     #[test]
     fn k_is_within_a_quarter_db_of_the_chain_over_the_slew_gain() {
         // 0.21875 = 0.25 * 0.875, the SMP slew hold gain of the piano (smp-slew.md s6)
-        let lead = organ_chain_bus_gain() / 0.218_75;
+        // the lead of D72 with the first organ word only; D188: the second word 1.3 breaks it
+        let lead =
+            ORGAN_CHAIN_GAIN_WORD * crate::piano::downstream::fx_dac_fraction(1.0) / 0.218_75;
         let db = 20.0 * (ORGAN_BUS_GAIN / lead).log10();
         assert!((lead - 2.729).abs() < 0.01, "{lead}");
         assert!(db.abs() < 0.25, "{db} dB");
+        let full = organ_chain_bus_gain() / 0.218_75;
+        let full_db = 20.0 * (ORGAN_BUS_GAIN / full).log10();
+        assert!((full - 3.548).abs() < 0.01, "{full}");
+        assert!((-2.2..-2.0).contains(&full_db), "{full_db} dB");
+    }
+
+    #[test]
+    fn second_organ_word_is_1_3_and_b3_word_is_level_squared_times_1_6() {
+        // VERIFIED (capture): B3 Chords n Solo writes 0x3F81874A to 0xB2ECF, layer level 101 / 127
+        let word = f32::from_bits(0x3F81_874A);
+        let expected = ORGAN_CHAIN_GAIN_WORD * layer_level_gain(101.0 / 127.0);
+        assert!((word - expected).abs() < 2e-7, "{word} {expected}");
+        // ... and 0x3FA66666 (1.3) to 0xB2FF0 in every organ program
+        assert_eq!(f32::from_bits(0x3FA6_6666), ORGAN_SECOND_GAIN_WORD);
+        // oracle lane RMS, B3 8 keys (`sharc-sys --pno --lane 2:0`): as captured / both words 1.0
+        let ratio = 0.058_359_f32 / 0.044_362;
+        assert!(
+            (ratio - word * ORGAN_SECOND_GAIN_WORD).abs() < 2e-3,
+            "{ratio}"
+        );
     }
 
     #[test]
