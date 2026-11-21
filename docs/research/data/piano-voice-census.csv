@@ -1,0 +1,50 @@
+sound,class,points,two_voice,damper_extra,up_eq,down_default_eq,down_optin_eq
+EGrand 3 Sml 6.1,1,180,180,0,180,0,180
+EP1 Deep Timbre Lrg 6.1,2,180,180,0,180,0,180
+EP2 Ideal Timbre Lrg 6.1,2,180,180,0,180,0,180
+EP3 Shallow Close Lrg 6.1,2,180,180,0,180,0,180
+EP4 Mk5 80s Lrg 6.1,2,180,180,0,180,0,180
+EP5 BrightTines XL 6.1,2,180,180,0,180,0,180
+EP6 Sparkletop XL 6.1,2,180,180,0,180,0,180
+EP7 Amped Tines Med 6.1,2,180,180,0,180,0,180
+EP8 Nefertiti XL 6.2,2,180,180,0,180,0,180
+EP9 Stockholm XL 6.0,2,180,180,0,180,0,180
+Wurlitzer 1  6.3,3,180,180,0,180,0,180
+Wurlitzer 2  6.1,3,180,180,0,180,0,180
+Clavinet D6  6.1,4,180,0,0,180,142,180
+Astoria Grand Lrg 6.1,5,180,180,180,180,0,180
+Bright Grand Sml 6.1,5,180,180,0,180,0,180
+Royal Grand 3D XL 6.1,5,180,180,180,180,0,180
+Silver Grand Med 6.1,5,180,180,108,180,0,180
+Studio Grand 2 Med 6.2,5,180,180,102,180,0,180
+Velvet Grand Med 6.1,5,180,180,108,180,0,180
+White Grand XL 6.3,5,180,180,180,180,0,180
+Amber Upright XL 6.2,6,180,180,180,180,0,180
+Bambino Upright Med 6.2,6,180,180,102,180,0,180
+Black Upright Med 6.1,6,180,180,102,180,0,180
+Felt Upright Lrg 6.2,6,180,180,180,180,0,180
+Mellow Upright Med 6.1,6,180,180,108,180,0,180
+Pearl Upright Lrg 6.0,6,180,180,180,180,0,180
+Romantic Upright Med 6.1,6,180,180,102,180,0,180
+French Harpsi 1D  6.1,7,180,0,0,180,180,180
+Ital Harpsich 1B Long  6.1,7,180,0,0,180,180,180
+Ital Harpsich 1D Lute  6.1,7,180,0,0,180,180,180
+DX RubbaTines Lrg 6.0,14,174,0,0,174,84,174
+DX7 FullTines Lrg 6.0,14,180,0,0,180,76,180
+DigiGrand 1 Sml 6.0,14,180,0,0,180,82,180
+DigiGrand 2 Sml 6.0,14,180,0,0,180,84,180
+Ballad EP1 Med 6.0,15,180,0,0,180,105,180
+Hybrid EP Sml 6.0,15,180,0,0,180,126,180
+Marimba  6.1,16,180,0,0,180,84,180
+Vibraphone  6.0,16,180,0,0,180,72,180
+# per class: sounds points two_voice damper_extra up_eq down_default_eq down_optin_eq
+class 1: 1 180 180 0 180 0 180
+class 2: 9 1620 1620 0 1620 0 1620
+class 3: 2 360 360 0 360 0 360
+class 4: 1 180 0 0 180 142 180
+class 5: 7 1260 1260 858 1260 0 1260
+class 6: 7 1260 1260 954 1260 0 1260
+class 7: 3 540 0 0 540 540 540
+class 14: 4 714 0 0 714 326 714
+class 15: 2 360 0 0 360 231 360
+class 16: 2 360 0 0 360 156 360

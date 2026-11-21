@@ -52,7 +52,7 @@ Lane E beans (`ns4-36hw`, `ns4-doy1`, `ns4-vnp2`, `ns4-qll9`, `ns4-ca0i`, `ns4-a
 | G1 Format interoperability | met for the factory set | Phase 1 11 / 11; OQ31 |
 | G2 Authentic 3-engine, 7-layer pipeline | partly: every engine sounds; 83 % of default path uses assumed | section 5 |
 | G3 Zero-allocation real-time path, under 3 ms per 128 frames | met for the default path (typical 0.67 to 0.70 ms, worst case 2.2 to 2.5 ms, TD-14); Bass and Farfisa firmware stages offline (TD-15) | `ns4 bench` |
-| G4 Morph and split matrix | engine done (Phase 5, 7 / 7); morph slots unmodelled against the firmware | section 4.5 |
+| G4 Morph and split matrix | engine done (Phase 5, 7 / 7); synth morph law matches the firmware (D159, default since D166); drawbar, delay-rate, Leslie and arp morph not captured | section 4.5 |
 | G5 MIDI CC parity | decoder and encoder done (Phase 5) | [midi-and-control](../specs/midi-and-control.md) |
 | G6 100 % tested | met: `check_tests.py` 306 of 306 files covered, baseline 0 | CI |
 
@@ -230,7 +230,7 @@ Status columns: **Fw** = verified against firmware or oracle, **Clip** = fitted 
 | Subsystem | State | Default or opt-in | Evidence | Open gap | Effort | Impact |
 |---|---|---|---|---|---|---|
 | Layer routing, zones | Fw: zone code to key range map equals the ARM zone objects for 384 of 384; empty layer mask reads as layer A | **default** since D73; splits in 48 programs | [zone-key-ranges](zone-key-ranges.md), [engine-routing](engine-routing.md) | OQ33 (organ heard in piano programs): audit finds no routing cause | low | medium |
-| Morph slots, split crossfade | Asm / partial | default | [morph-and-zones](../specs/morph-and-zones.md) | morph slots unmodelled | medium | low |
+| Morph slots, split crossfade | Asm / partial | default | [morph-and-zones](../specs/morph-and-zones.md) | synth morph law firmware-verified (D166); other morph targets not captured | medium | low |
 | Piano Touch curves | Fw curves (D88, D99) | **default** since D165 (`--legacy-piano-touch` opts out) | ARM run; file bits recalled for 384 of 384 programs | no Heavy or Light hardware clip, System-menu MIDI velocity curves, ASSUMED fallback for sounds without a level model | low | high (key force changes the piano a lot) |
 | Mouse velocity | position along the key, 20 to 127, ASSUMED (D84) | default in the GUI | none | listening check | low | low |
 | MIDI | note, CC, pedals, bend; queue `bounded(1024)` | default | [midi-and-control](../specs/midi-and-control.md) | | | |

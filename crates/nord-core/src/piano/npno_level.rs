@@ -200,6 +200,17 @@ impl NpnoLevel {
         chosen
     }
 
+    /// Class byte of the file (offset `0x44`).
+    pub fn class(&self) -> u8 {
+        self.class
+    }
+
+    /// `true` when the root of `note` has a damper-down stroke (kind 1, the layer-1 list): the
+    /// extra voice of grands and uprights is then that stroke, else a second normal stroke.
+    pub fn has_damper_stroke(&self, note: u8) -> bool {
+        self.has_layer(note, 1)
+    }
+
     fn has_layer(&self, note: u8, layer: u8) -> bool {
         self.root_of(note)
             .and_then(|root| self.roots.iter().find(|(r, _)| *r == root))
