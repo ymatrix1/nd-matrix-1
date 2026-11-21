@@ -320,9 +320,8 @@ impl eframe::App for Stage4App {
                                     .on_hover_cursor(egui::CursorIcon::PointingHand)
                                 };
                                 if hw_pill(ui, "OPEN .NS4B").clicked() {
-                                    self.debug_dialog.tab =
-                                        nord_gui::debug_dialog::DebugTab::Library;
-                                    self.debug_dialog.open = true;
+                                    self.debug_dialog
+                                        .open_tab(nord_gui::debug_dialog::DebugTab::Library);
                                 }
                                 let dbg_label = if self.debug_dialog.open {
                                     "HIDE DEBUG"
@@ -330,11 +329,16 @@ impl eframe::App for Stage4App {
                                     "DEBUG"
                                 };
                                 if hw_pill(ui, dbg_label).clicked() {
-                                    self.debug_dialog.open = !self.debug_dialog.open;
+                                    if self.debug_dialog.open {
+                                        self.debug_dialog.open = false;
+                                    } else {
+                                        let tab = self.debug_dialog.tab;
+                                        self.debug_dialog.open_tab(tab);
+                                    }
                                 }
                                 if hw_pill(ui, "? HELP").clicked() {
-                                    self.debug_dialog.tab = nord_gui::debug_dialog::DebugTab::Guide;
-                                    self.debug_dialog.open = true;
+                                    self.debug_dialog
+                                        .open_tab(nord_gui::debug_dialog::DebugTab::Guide);
                                 }
 
                                 // Draggable empty space between left pills and right window icons

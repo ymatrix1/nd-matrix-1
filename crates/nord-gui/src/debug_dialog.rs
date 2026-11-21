@@ -128,6 +128,18 @@ impl DebugTab {
 pub struct DebugDialogState {
     pub open: bool,
     pub tab: DebugTab,
+    /// When set, the separate OS viewport requests focus on the next frame so clicking
+    /// `OPEN .NS4B` / `DEBUG` / `? HELP` brings an already-open Settings window to the front.
+    pub focus_requested: bool,
+}
+
+impl DebugDialogState {
+    /// Open (or focus if already open) the Studio Settings window on `tab`.
+    pub fn open_tab(&mut self, tab: DebugTab) {
+        self.tab = tab;
+        self.open = true;
+        self.focus_requested = true;
+    }
 }
 
 fn shadcn_card(ui: &mut Ui, title: &str, subtitle: &str, body: impl FnOnce(&mut Ui)) {
@@ -508,6 +520,10 @@ pub fn show_debug_dialog(
             dlg.open = false;
             return;
         }
+        if dlg.focus_requested {
+            dlg.focus_requested = false;
+            vp_ctx.send_viewport_cmd(ViewportCommand::Focus);
+        }
         let rounded_frame = Frame::NONE
             .fill(ZINC_950_GLASS)
             .stroke(Stroke::new(1.0, ZINC_800))
@@ -590,10 +606,9 @@ mod tests {
         let mut library = BackupLibraryState::new();
         let mut firmware = FirmwarePanelState::new(Default::default());
         let mut os_update = OsUpdatePanel::new(None, None);
-        let mut dlg = DebugDialogState {
-            open: true,
-            tab: DebugTab::Firmware,
-        };
+        let mut dlg = DebugDialogState::default();
+        dlg.open_tab(DebugTab::Firmware);
+        assert!(dlg.focus_requested);
         for tab in DebugTab::ALL {
             dlg.tab = tab;
             let _ = ctx.run(Default::default(), |ctx| {
