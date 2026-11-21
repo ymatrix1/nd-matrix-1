@@ -109,10 +109,14 @@ impl BackupLibraryState {
     ) {
         ui.horizontal(|ui| {
             ui.label("Backup (.ns4b):");
-            let input_w = (ui.available_width() - 64.0).max(140.0);
+            let input_w = (ui.available_width() - 72.0).max(160.0);
+            let field_h = ui.spacing().interact_size.y;
             let edit = ui.add(
                 egui::TextEdit::singleline(&mut self.path_input)
                     .desired_width(input_w)
+                    .min_size(egui::vec2(input_w, field_h))
+                    .margin(egui::Margin::symmetric(8, 5))
+                    .vertical_align(egui::Align::Center)
                     .hint_text("Path to .ns4b backup (or drag-and-drop file)"),
             );
             let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
@@ -178,12 +182,16 @@ impl BackupLibraryState {
         ui.add_space(4.0);
         ui.horizontal_wrapped(|ui| {
             ui.label("Filter:");
+            let field_h = ui.spacing().interact_size.y;
             ui.add(
                 egui::TextEdit::singleline(&mut self.filter)
-                    .desired_width(200.0)
+                    .desired_width(280.0)
+                    .min_size(egui::vec2(280.0, field_h))
+                    .margin(egui::Margin::symmetric(8, 5))
+                    .vertical_align(egui::Align::Center)
                     .hint_text("Search preset, piano, or sample..."),
             );
-            if !self.filter.is_empty() && ui.small_button("Clear").clicked() {
+            if !self.filter.is_empty() && ui.button("Clear").clicked() {
                 self.filter.clear();
             }
             if self.active_tab == BackupTab::Pianos {

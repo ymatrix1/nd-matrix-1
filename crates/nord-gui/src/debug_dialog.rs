@@ -27,7 +27,8 @@ const ACCENT_RED: Color32 = Color32::from_rgb(184, 37, 42);
 /// ComboBox popups, checkboxes, inputs, and highlights are crisp, opaque, and consistent.
 fn apply_shadcn_theme(ctx: &Context) {
     ctx.style_mut(|s| {
-        s.spacing.button_padding = egui::vec2(10.0, 4.5);
+        s.spacing.interact_size.y = 26.0;
+        s.spacing.button_padding = egui::vec2(10.0, 5.0);
         s.spacing.item_spacing = egui::vec2(8.0, 6.0);
         s.spacing.combo_height = 240.0;
         s.spacing.scroll = egui::style::ScrollStyle {

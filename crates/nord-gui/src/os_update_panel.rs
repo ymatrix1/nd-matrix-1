@@ -120,10 +120,28 @@ impl OsUpdatePanel {
             firmware_setting::DOWNLOAD_MAC,
         );
         ui.label("2. Drop the downloaded file onto this window, or paste its path:");
-        ui.text_edit_singleline(&mut self.input);
-        if ui.button("Use this file").clicked() {
-            self.use_file(&self.input.clone());
-        }
+        ui.add_space(4.0);
+        ui.horizontal(|ui| {
+            let input_w = (ui.available_width() - 112.0).max(180.0);
+            let field_h = ui.spacing().interact_size.y;
+            let edit = ui.add(
+                egui::TextEdit::singleline(&mut self.input)
+                    .desired_width(input_w)
+                    .min_size(egui::vec2(input_w, field_h))
+                    .margin(egui::Margin::symmetric(8, 5))
+                    .vertical_align(egui::Align::Center)
+                    .hint_text("Path to Update Nord Stage 4 OS v1.66 (.zip / .exe / .dmg)"),
+            );
+            let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+            if ui
+                .button("Use this file")
+                .on_hover_cursor(egui::CursorIcon::PointingHand)
+                .clicked()
+                || enter
+            {
+                self.use_file(&self.input.clone());
+            }
+        });
         if let Some(m) = &self.message {
             ui.label(m);
         }
