@@ -10,7 +10,7 @@ Question: what does the SMP need so that the source ring of a voice holds the `.
 |---|---|---|
 | Descriptor to flash law | solved, see s2 | VERIFIED (run, 4 files) |
 | Flash feed in `sharc-live --smp` | works: `L` loads a `.npno`, `F` places it, the page routine reads header and data and fills the stream rings with the file words | VERIFIED (run: ring head equals file payload, `tools/arm_smp_flash.py check_rings`) |
-| Chain tap carries audio | **yes (D199).** The voice never froze: the harness replayed stale FIFO pairs forever and the key start request reset the voice every 10 passes (s4). With the FIFO index and cap fixed, all four programs give a varying tap past the first refill (peaks -7.75, -13.00, -7.36, -19.11 dBFS, 23,872 words each; `arm_smp_flash.tap_stats` kind `audio`) | VERIFIED (run, `data/smp-page-refill.csv` columns `*_fixed`) |
+| Chain tap carries audio | **corrected by D205: the D199 tap was a runaway decode** ([smp-voice-pitch](smp-voice-pitch.md): the kill routine wiped the start history, burst delivery of the ARM pairs); with `--fifo-pace 1` the live history equals the reference decode. D199 text: **yes.** The voice never froze: the harness replayed stale FIFO pairs forever and the key start request reset the voice every 10 passes (s4). With the FIFO index and cap fixed, all four programs give a varying tap past the first refill (peaks -7.75, -13.00, -7.36, -19.11 dBFS, 23,872 words each; `arm_smp_flash.tap_stats` kind `audio`) | VERIFIED (run, `data/smp-page-refill.csv` columns `*_fixed`) |
 | `piano_no_chain_tap` | unchanged, 155 programs | |
 
 ## 2. The law
@@ -79,3 +79,8 @@ python -m pytest tools/tests/test_arm_smp_flash.py
 3. Separate piano layers 2 and 3.
 4. SY1SY2: read `R3` in its audio ISR with `S`, apply the same bias if equal, and check whether the SY census replayed stale pairs.
 5. The EP DMA completion interrupt (vector 20, `0x1C0A71`) is still not modelled; with the voice advancing, check whether a long note (more than one page, 2051 reached at pass 1460) starves.
+
+## Update 2026-11-21 (D205)
+
+The D199 tap was not a piano: its history was wiped by the kill routine (s3 of [smp-voice-pitch](smp-voice-pitch.md)) and the order 3 predictor ran away (wrapped sawtooth, `tap_stats` still said `audio`). The pitch follow-up 2 is answered: the tap kept 2 frames per interrupt and one is a zero (half the apparent pitch), and the step law is `0.80618 * 2^(tuning / 1200)`. With `sharc-live --fifo-pace 1` the live history ring equals the reference decode bit for bit (Astoria Grand, `tools/smp_voice_replay.py`) and 12 of 12 pilot programs give a harmonic tap of the same pitch. The peaks of s1 (-7.75, -13.00, -7.36, -19.11 dBFS) are void; see the new table in [smp-voice-pitch](smp-voice-pitch.md) s4.
+
