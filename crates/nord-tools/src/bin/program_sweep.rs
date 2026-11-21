@@ -3,9 +3,9 @@
 //! program, the resolved sounds, the routing facts and the output-health statistics.
 //!
 //! Usage: `cargo run --release -p nord-tools --bin program_sweep -- <backup.ns4b>
-//! [--frames N] [--limit N] [--only <substring>] [--every K] [--notes a,b,..] [--velocity V]
+//! [--frames N] [--limit N] [--only <substring>] [--every K] [--skip N] [--notes a,b,..] [--velocity V]
 //! [--synth-velocity] [--legacy-synth-velocity] [--legacy-arp]
-//! [--arp-fw-gate] [--legacy-fx-ports] [--legacy-morph] [--piano-touch] [--legacy-piano-touch] [--wheel V] [--aftertouch V]
+//! [--arp-fw-gate] [--legacy-fx-ports] [--legacy-fx-rate] [--legacy-morph] [--piano-touch] [--legacy-piano-touch] [--wheel V] [--aftertouch V]
 //! [--pedal V]`
 //! (`--synth-velocity` is a no-op since D142 made the firmware synth velocity law the default;
 //! `--legacy-synth-velocity` renders both modes with the linear blend; `--legacy-arp` and
@@ -97,6 +97,10 @@ fn main() -> Result<(), String> {
         .and_then(|v| v.parse().ok())
         .unwrap_or(1)
         .max(1);
+    // `--skip N --every K` shards a run over K processes (programs N, N+K, ...).
+    let skip: usize = flag(&args, "--skip")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
     let archive = Ns4BackupArchive::open(path).map_err(|e| e.to_string())?;
     let mut file = File::open(path).map_err(|e| e.to_string())?;
     let mut pianos: PianoCache = HashMap::new();
@@ -106,6 +110,7 @@ fn main() -> Result<(), String> {
         .iter()
         .map(|e| e.name.clone())
         .filter(|n| only.is_none_or(|s| n.contains(s.as_str())))
+        .skip(skip)
         .step_by(every)
         .take(limit)
         .collect();

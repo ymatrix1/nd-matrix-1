@@ -74,6 +74,7 @@ pub fn copy_engine(dst: &mut FirmwareOptions, src: &FirmwareOptions, engine: Eng
         Engine::Fx => {
             dst.fx = src.fx;
             dst.amp_path = src.amp_path;
+            dst.fx_rate_match = src.fx_rate_match;
         }
     }
 }
@@ -108,6 +109,9 @@ mod tests {
         let c = classic();
         assert!(!c.synth_velocity_fw && !c.piano_touch);
         assert!(!c.arp_firmware && !c.arp_firmware_gate && !c.firmware_morph);
+        // D176: the rate-matched amp is on by default and in the Firmware preset, off in Classic.
+        assert!(!c.fx_rate_match && firmware().fx_rate_match);
+        assert!(FirmwareOptions::default().fx_rate_match);
         let f = firmware();
         assert!(f.synth_velocity_fw && f.piano_touch && f.arp_firmware && f.firmware_morph);
         let mut o = f;

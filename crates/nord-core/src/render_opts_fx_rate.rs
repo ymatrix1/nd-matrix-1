@@ -2,7 +2,9 @@
 //!
 //! The firmware Amp drive and cabinet are per-frame stages of the 43,402 Hz DSP frame rate; at the
 //! host rate their response is stretched in frequency (`docs/research/brightness-downstream-oracle.md`).
-//! `on` runs them behind `LayerFxChain::set_fx_rate_match`. Default off.
+//! `on` runs them behind `LayerFxChain::set_fx_rate_match`. Default on since D176 (owner approval of
+//! 2026-11-21); `--legacy-fx-rate` turns it off. Host rates the converter does not support
+//! (`RateMatch::supports`) stay on the per-host-frame path.
 
 use crate::engine::Stage4Engine;
 
@@ -52,25 +54,47 @@ mod tests {
     #[test]
     fn switch_reaches_every_fx_chain_and_is_idempotent() {
         let mut e = Stage4Engine::new(48_000.0);
+        assert!(e.fx_chains.iter().all(|c| c.fx_rate_match()), "default on");
+        apply_fx_rate_match(&mut e, false);
+        apply_fx_rate_match(&mut e, false);
         assert!(e.fx_chains.iter().all(|c| !c.fx_rate_match()));
         apply_fx_rate_match(&mut e, true);
         apply_fx_rate_match(&mut e, true);
         assert!(e.fx_chains.iter().all(|c| c.fx_rate_match()));
-        apply_fx_rate_match(&mut e, false);
+    }
+
+    #[test]
+    fn unsupported_host_rates_stay_on_the_host_frame_path() {
+        let mut e = Stage4Engine::new(192_000.0);
+        assert!(e.fx_chains.iter().all(|c| !c.fx_rate_match()));
+        apply_fx_rate_match(&mut e, true);
+        assert!(e.fx_chains.iter().all(|c| !c.fx_rate_match()));
+        let e = Stage4Engine::new(22_050.0);
         assert!(e.fx_chains.iter().all(|c| !c.fx_rate_match()));
     }
 
     #[test]
-    fn flag_is_opt_in_and_survives_apply_exact_toggles() {
-        assert!(!FirmwareOptions::default().fx_rate_match);
-        assert!(!FirmwareOptions::firmware_all().fx_rate_match);
+    fn flag_is_default_on_and_legacy_fx_rate_opts_out_through_apply_exact() {
+        assert!(FirmwareOptions::default().fx_rate_match);
+        assert!(FirmwareOptions::firmware_all().fx_rate_match);
         assert!(!FirmwareOptions::legacy_all().fx_rate_match);
+        let d = FirmwareOptions::default();
+        assert!(!d.summary().contains("rate"), "{}", d.summary());
+        // `--fx-rate-match` stays accepted and is a no-op on the default.
         let o = FirmwareOptions::from_args(&args(&["--fx-rate-match"])).unwrap();
-        assert!(o.fx_rate_match && o.summary().contains("fx-rate-match"));
+        assert_eq!(o, d);
+        let l = FirmwareOptions::from_args(&args(&["--legacy-fx-rate"])).unwrap();
+        assert!(!l.fx_rate_match && l.summary().contains("legacy-fx-rate"));
+        // The opt-out wins over the old opt-in flag.
+        let w =
+            FirmwareOptions::from_args(&args(&["--fx-rate-match", "--legacy-fx-rate"])).unwrap();
+        assert!(!w.fx_rate_match);
         let mut e = Stage4Engine::new(48_000.0);
-        o.apply_to(&mut e);
+        l.apply_to(&mut e);
+        assert!(e.fx_chains.iter().all(|c| !c.fx_rate_match()));
+        d.apply_exact(&mut e);
         assert!(e.fx_chains.iter().all(|c| c.fx_rate_match()));
-        FirmwareOptions::default().apply_exact(&mut e);
+        l.apply_exact(&mut e);
         assert!(e.fx_chains.iter().all(|c| !c.fx_rate_match()));
     }
 }

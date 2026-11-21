@@ -13,7 +13,7 @@
 //! what a default flip of the group would sound like, to compare against the firmware render.
 //!
 //! Usage: `cargo run --release -p nord-tools --bin program_rank -- <backup.ns4b> [--note 60]
-//! [--velocity 100] [--limit N] [--only S] [--every K] [--ablate] [--ablate-fx] [--flip SETS|every-fx] [--legacy-mod2] [--legacy-fx-ports] [--jobs N]`. Release build only (stack depth in the FX
+//! [--velocity 100] [--limit N] [--only S] [--every K] [--skip N] [--ablate] [--ablate-fx] [--flip SETS|every-fx] [--legacy-mod2] [--legacy-fx-ports] [--legacy-fx-rate] [--jobs N]`. Release build only (stack depth in the FX
 //! chains). `tools/program_rank.py` joins the lines with the chain census.
 
 use nord_core::cbin::{CbinFile, Ns4BackupArchive, ProgramDecoded, ProgramSoundRefs};
@@ -128,6 +128,7 @@ fn main() -> Result<(), String> {
     let note = num("--note", 60).min(127) as u8;
     let velocity = num("--velocity", 100).min(127) as u8;
     let (limit, every) = (num("--limit", usize::MAX), num("--every", 1).max(1));
+    let skip = num("--skip", 0);
     let only = flag(&args, "--only");
     let ablate = args.iter().any(|a| a == "--ablate");
     let ablate_fx = args.iter().any(|a| a == "--ablate-fx");
@@ -145,15 +146,23 @@ fn main() -> Result<(), String> {
         .iter()
         .map(|e| e.name.clone())
         .filter(|n| only.is_none_or(|s| n.contains(s.as_str())))
+        .skip(skip)
         .step_by(every)
         .take(limit)
         .collect();
     std::panic::set_hook(Box::new(|_| {}));
-    let firmware = firmware_options();
     let base = baseline(
         args.iter().any(|a| a == "--legacy-mod2"),
         args.iter().any(|a| a == "--legacy-fx-ports"),
+        args.iter().any(|a| a == "--legacy-fx-rate"),
     );
+    // The target follows the baseline's converter state: the rate match is no firmware render
+    // (D137), so a `--legacy-fx-rate --flip fx_rate_match` run scores both renders against the
+    // same target, as in D173 s7.1.
+    let firmware = FirmwareOptions {
+        fx_rate_match: base.fx_rate_match,
+        ..firmware_options()
+    };
     for name in names {
         let bytes = archive
             .read_entry(&mut file, &name)

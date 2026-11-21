@@ -348,7 +348,8 @@ pub struct LayerFxChain {
     fw_mod2_live: modulation::Mod2Live,
     fw_comp: Option<fw_stage::FwCompressorStage>,
     fw_amp: Option<fw_amp_stage::FwAmpStage>,
-    /// Runs the firmware amp stage at the DSP frame rate (`set_fx_rate_match`), default `None`.
+    /// Runs the firmware amp stage at the DSP frame rate (`set_fx_rate_match`), default on (D176)
+    /// when the host rate is supported.
     fw_rate_match: Option<Box<RateMatch>>,
     /// The firmware Amp EQ (`firmware_fx.eq`), built when first needed.
     fw_eq: Option<fw_eq::FwEqStage>,
@@ -471,7 +472,7 @@ impl LayerFxChain {
             fw_mod2_live: modulation::Mod2Live::None,
             fw_comp: None,
             fw_amp: None,
-            fw_rate_match: None,
+            fw_rate_match: RateMatch::supports(fs).then(|| Box::new(RateMatch::new(fs))),
             fw_eq: None,
             fw_reverb: None,
             fw_reverb_multi: None,
@@ -564,13 +565,15 @@ impl LayerFxChain {
         }
     }
 
-    /// Opt-in: runs the firmware Amp drive and cabinet at the DSP frame rate 43,402 Hz instead of
+    /// Default on since D176: runs the firmware Amp drive and cabinet at the DSP frame rate 43,402 Hz instead of
     /// once per host frame (`fw_rate_match`, `docs/research/brightness-downstream-oracle.md`).
     /// Allocates the kernel tables: call between audio blocks, not inside `process_frame`.
     /// Adds about 0.8 ms of latency on layers whose amp runs the firmware stage; the host rate is
     /// the chain's `sample_rate` at the time of the call. `false` restores the per-host-frame path.
+    /// A host rate `RateMatch::supports` rejects keeps the per-host-frame path (`on` is ignored).
     pub fn set_fx_rate_match(&mut self, on: bool) {
-        self.fw_rate_match = on.then(|| Box::new(RateMatch::new(self.sample_rate)));
+        let fs = self.sample_rate;
+        self.fw_rate_match = (on && RateMatch::supports(fs)).then(|| Box::new(RateMatch::new(fs)));
     }
 
     /// Switches the idle skip (`--fx-idle-skip`, D161) on or off: a rack whose input has been

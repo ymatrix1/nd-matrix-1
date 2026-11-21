@@ -158,7 +158,7 @@ No clip gets worse by more than 0.21 under PARITY (Vintage Vox 2.53 to 2.74; rec
 
 ### 7.3 `--fx-rate-match`
 
-Flipped alone on the 384 programs it moves the render from the default by a mean of 0.29 score units (median 0.00; 43 programs by more than 1, 12 by more than 3; largest Farfisa II 7.0, Texas Nights J3 6.4, NS4 Palette 5.2); the moves are the amp and cabinet programs, as D137 predicted. No firmware render exists for it (it is a converter), so the direction comes from the clips in 7.2: it never worsens a clip and takes the amp clip from 5.37 to 3.80. The owner has not been asked yet: it stays opt-in; recommendation in D173.
+Flipped alone on the 384 programs it moves the render from the default by a mean of 0.29 score units (median 0.00; 43 programs by more than 1, 12 by more than 3; largest Farfisa II 7.0, Texas Nights J3 6.4, NS4 Palette 5.2); the moves are the amp and cabinet programs, as D137 predicted. No firmware render exists for it (it is a converter), so the direction comes from the clips in 7.2: it never worsens a clip and takes the amp clip from 5.37 to 3.80. The owner has not been asked yet: it stayed opt-in in D173 and became the default in D180 (section 8).
 
 ### 7.3b Program sweep
 
@@ -177,6 +177,33 @@ python tools/program_rank_combo.py --flip flip384.jsonl --md --flip-sets "fx_del
 python tools/program_rank_combo.py --flip flip384.jsonl --moves fx_rate_match
 uv run python tools/emu_vs_hw.py --spec docs/research/data/emu_vs_hw_parity_rate_match.json --video <Part A .webm> --backup "$B" --workdir <scratch> --confirmed-only
 ```
+
+## 8. Update 2026-11-21 (D180): the FX rate match becomes the default
+
+- **Checked:** 2026-11-21, on `main` at `0af9c66a` plus the D180 change. Sources: the factory restore backup (384 programs, key 60, velocity 100) and the Part A video (six clips), both local. Tools: `program_rank --legacy-fx-rate --flip fx_rate_match` (new `--skip N --every K` shards a run), `program_sweep` with and without `--legacy-fx-rate`, `tools/emu_vs_hw.py --spec docs/research/data/emu_vs_hw_rate_match_default.json`. Data: [program-ranking-rate-match-default-384.csv](data/program-ranking-rate-match-default-384.csv), [emu_vs_hw_rate_match_default_results.json](data/emu_vs_hw_rate_match_default_results.json), `program-sweep.json` regenerated.
+- **Question:** the owner approved the flip (2026-11-21); does the re-run on current `main` (PUMP D134, Mod 2 D163, PARITY D173) show a clip or many programs clearly worse?
+
+### 8.1 Six hardware clips (score of `emu_vs_hw.py`, smaller is better; EMPIRICAL, one take per clip)
+
+| Clip | `--legacy-fx-rate` (D173 default) | rate match (new default) |
+|---|---|---|
+| organ B3 | 5.45 | 5.45 |
+| organ Vox + Twin (default tone) | 2.74 | 2.25 |
+| organ Vox (vox tone) | 4.70 | 4.35 |
+| piano dry | 2.02 | 2.02 |
+| synth lead | 0.69 | 0.69 |
+| synth SUPER LP24 sidechain | 3.78 | 3.78 |
+| FX amp (Tiny Transistor) | 4.29 | 3.23 |
+
+No clip is worse; three improve and the others score the same (no firmware amp in the program). The numbers repeat the table of 7.2 on the tree after the PUMP default, which that table lacked.
+
+### 8.2 384 programs: the ranking score cannot judge the converter
+
+`program_rank` scores a render by its distance to the all-firmware render, and that render has no converter (it is a converter, not a firmware port, D137). Flipping it therefore can only move an amp program **away** from the target in this metric, whatever the hardware does. Result, same method as 7.3 (target rendered with the same converter setting as the baseline): 44 programs change (the others have no firmware amp); mean move 0.29 score units (median 0.00), 43 programs by more than 1, 13 by more than 3, largest Farfisa II 7.0, Texas Nights J3 6.2, Vibra-Spin Whl 4.6; score mean 1.66 to 1.84, median 1.04 to 1.14, programs above 5 from 22 to 27, above 10 stay 3. 36 programs score more than 0.5 worse **in this metric** (list in the CSV; the largest: Farfisa II 0.93 to 6.57, Texas Nights J3 3.36 to 7.78, Distorted Whl II 2.40 to 6.07, Jealous Upright 1.44 to 5.00, Q and A 0.00 to 3.42, Silent Upright 4.89 to 7.97, Jazz Guitar II 1.02 to 4.05, LoFi Piano 0.65 to 3.57); all of them use a firmware Amp type. These are the same moves as in 7.3 (43 over 1, 13 over 3, mean 0.29); the direction is decided by the clips in 8.1, where every amp clip improves. The effect is the one D137 predicted (cabinet features 1.106 times too high in Hz without the converter).
+
+### 8.3 Program sweep (default render, rate match against `--legacy-fx-rate`)
+
+384 programs, no panic, no non-finite sample. The default render changes in 44 programs (35 by more than 0.1 dB RMS, 2 by more than 1 dB: Vibra-Spin Whl +1.75 dB, LoFi Piano +1.19 dB; none by 3 dB). The default-to-firmware level gap stays mean 0.42 dB (3 programs above 3 dB, 0 above 6, no gap grows by more than 1 dB). Programs with a clipped default sample 29 to 28 (Vox Inna-Gadda 2,987 to 3,167 clipped samples). The converter adds about 0.8 ms of latency on layers whose amp runs the firmware stage (not measured in the sweep).
 
 ## Follow-ups
 
