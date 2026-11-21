@@ -47,6 +47,31 @@ mod tests {
         assert!(e.fx_chains.iter().all(|c| !c.idle_skip()));
     }
 
+    #[test]
+    fn compressor_row_and_unit_calls_are_opt_in_flags_that_reach_every_chain_and_revert() {
+        let d = FirmwareOptions::default();
+        assert!(!d.fx.compressor_row && !d.fx.mod1_unit_calls);
+        assert!(!FirmwareOptions::firmware_all().fx.compressor_row);
+        let o =
+            FirmwareOptions::from_args(&args(&["--compressor-row", "--mod1-unit-calls"])).unwrap();
+        let s = o.summary();
+        assert!(
+            s.contains("compressor-row") && s.contains("mod1-unit-calls"),
+            "{s}"
+        );
+        let mut e = Stage4Engine::new(48_000.0);
+        o.apply_to(&mut e);
+        assert!(e
+            .fx_chains
+            .iter()
+            .all(|c| c.firmware_fx.compressor_row && c.firmware_fx.mod1_unit_calls));
+        FirmwareOptions::default().apply_exact(&mut e);
+        assert!(e
+            .fx_chains
+            .iter()
+            .all(|c| !c.firmware_fx.compressor_row && !c.firmware_fx.mod1_unit_calls));
+    }
+
     fn args(a: &[&str]) -> Vec<String> {
         a.iter().map(|s| (*s).to_string()).collect()
     }

@@ -1951,3 +1951,27 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Keep it opt-in (rejected: owner approved the flip, no clip worse). Fold it into `FirmwareFx` as a port (rejected: it is a converter around the amp port, D137). Rate-match only inside `FirmwareOptions` and leave `LayerFxChain::new` off (rejected: a plugin that builds engines without options would stay 1.106 times off the hardware).
 - **Open:** latency of about 0.8 ms on amp layers; the kernel shape is ASSUMED (flat to 16 kHz within 0.05 dB, tested); no hardware clip for the 36 programs; the Amp EQ tone stack and the cabinet-free stages still run at the host rate (D137).
 - **Impact:** `fx/fw_rate_match.rs` (`supports`), `fx/mod.rs`, `render_opts.rs`, `render_opts_fx_rate.rs` (tests: default on, opt-out, unsupported rates, `apply_exact`), `fx/tests_fw_rate_match_chain.rs`, `bin/ns4.rs` usage, GUI `firmware_panel` (`bar.rs`, `info.rs`, `presets.rs`, `docs/gui-testing.md`), `nord_tools::{rank_groups, sweep_flags}`, `program_rank`, `program_sweep`, `tests/golden_render.rs`, spec `effects-and-routing.md`, ROADMAP 7b.4, audio-remaining row 23, [program-ranking-fx](research/program-ranking-fx.md) s8, `program-sweep.json`, `program-coverage.md`, `emu_vs_hw_rate_match_default*.json`, bean ns4-rmdf.
+
+### D186. Mod 1 call length per unit kind (2 frames organ / piano, 4 frames synth): opt-in `--mod1-unit-calls`; default flip proposed
+
+- **Status:** accepted (opt-in switch); the default flip is proposed.
+- **Decided by:** the opt-in switch by the session working OQ38; the default flip is the owner's decision (not made).
+- **Context:** OQ38 asked whether the running instrument calls the Mod 1 routines (RM, A-WAH, WAH, PUMP, A-PAN, TREM) with 2 or 4 frames; `mod1_rest_frames` was ASSUMED 2 and the oracle pass is 4.
+- **Decision:** (1) `FirmwareFx::mod1_unit_calls` (`--mod1-unit-calls`), off by default, outside `PORT_NAMES`, merged by `merge_on`; when on, RM, A-WAH, WAH and PUMP use `LayerFxChain::mod1_unit_frames` (2 on engine chains 0 to 3, 4 on the synth chains 4 to 6). (2) `rank_groups` gets the subgroup `fx_mod1_unit_calls`; `firmware_options()` turns it on. (3) Proposed flip: make it part of the default.
+- **Why:** the routine loops over a block-count word (1 block = 2 frames); the ARM writes 1 for organ and piano unit rows and 2 for synth rows (VERIFIED, [fx-mod1-call-count](research/fx-mod1-call-count.md)). Pass structure per unit is ASSUMED.
+- **Worse programs (re-run requirement):** 384 programs, [program-ranking-fx](research/program-ranking-fx.md) s9: mean 2.12 to 2.12, 1 program more than 0.5 worse (Time Warp Saw 5.87 to 6.83), 0 better. The ranking sees almost nothing of this switch; no hardware clip for synth Mod 1.
+- **Alternatives:** Keep 2 for all (rejected as a final answer: wrong for synth); 4 for all (wrong for organ and piano); flip now (not mine to decide).
+- **Open:** calls per pass per unit, synth unit rate words, 2-frame A-PAN / TREM (`FwMod1Stage` hard 4), WAH / PUMP phase advance per call.
+- **Impact:** `fx/{firmware_fx,firmware_fx_ports,modulation,mod}.rs`, `engine/mod.rs`, `render_opts*.rs`, `fx/tests_fw_mod1_unit_calls.rs`, `nord_tools::rank_groups`, `tools/fx_mod1_call_count.py`, spec `effects-and-routing.md`, OQ38, ROADMAP 7b.4.
+
+### D187. Firmware compressor row words (slope, log gain, reduction scale, table 1) verified unmodified at runtime; opt-in `--compressor-row`; default flip proposed
+
+- **Status:** accepted (opt-in switch); the default flip is proposed.
+- **Decided by:** the opt-in switch by the session working OQ38; the default flip is the owner's decision (not made).
+- **Context:** the compressor port (default since D173) used ASSUMED words (0.05, 1.0, 0.5, 0.5) while the FX image row holds 0.75, 6.0, 1/96, 2^-16; the image words were not confirmed unmodified at runtime ([program-ranking-fx](research/program-ranking-fx.md) s6.2).
+- **Decision:** (1) `FirmwareFx::compressor_row` (`--compressor-row`), off by default, outside `PORT_NAMES`: the layer compressor uses `fw_params::compressor_for_amount_row` (`CMP_ROW_*`, VERIFIED); `MasterBus::use_fw_compressor_amount_row`. (2) `fx_live_native comp --comp-row`, `fx_live_install 3 1`. (3) `rank_groups` subgroup `fx_compressor_row`. (4) Proposed flip: make it part of the default.
+- **Why:** VERIFIED: five identical image rows, no ARM write at the gain-law offsets, oracle chain null -102 to -108 dB and level 0.00 dB with the row against -36 to -48 dB and 4.5 to 26 dB off with the ASSUMED words ([fx-compressor-row](research/fx-compressor-row.md)).
+- **Worse programs (re-run requirement):** 384 programs, s9: mean 2.12 to 1.66, > 5 from 35 to 22, > 10 from 7 to 3, 50 programs better by more than 0.5, 1 worse by more than 0.5 (Silent Upright 5.12 to 6.09). Target includes the row, so the table is not independent evidence; the oracle chain is. No hardware clip with an audible layer compressor.
+- **Alternatives:** Replace the ASSUMED words outright (rejected: D173 default, owner decides); fit the words by ear (rejected: the firmware words are known).
+- **Open:** master compressor not wired in the engine; hardware clip with an audible compressor; the right threshold word `c[-0x18]` is settled to the `kCmpAmt` value by the port.
+- **Impact:** `fx/{fw_params,amp_eq,master,fw_live,firmware_fx,firmware_fx_ports}.rs`, `render_opts*.rs`, `nord_tools::{rank_groups,bin/fx_live_native}`, `tools/fx_compressor_row.py`, spec `effects-and-routing.md` s4.0a, OQ38, ROADMAP 7b.4.

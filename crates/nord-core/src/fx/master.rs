@@ -56,6 +56,13 @@ impl MasterBus {
         self.set_fw_compressor(Some(compressor_for_amount(ui)));
     }
 
+    /// [`Self::use_fw_compressor_amount`] with the firmware row's gain-law words
+    /// ([`super::fw_params::compressor_for_amount_row`], D187, opt-in).
+    pub fn use_fw_compressor_amount_row(&mut self) {
+        let ui = super::fw_map::unit_to_ui(self.compressor_amount);
+        self.set_fw_compressor(Some(super::fw_params::compressor_for_amount_row(ui)));
+    }
+
     /// Processes the summed 7-layer stereo signal through the Master Compressor and DAC stage.
     pub fn process_frame(&mut self, frame: [f32; 2]) -> [f32; 2] {
         let [l, r] = if self.master_iir_enabled {

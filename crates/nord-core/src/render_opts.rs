@@ -758,6 +758,9 @@ impl FirmwareOptions {
         if has("--legacy-pump") {
             o.legacy_pump = true;
         }
+        // Opt-in refinements of two firmware ports (D186, D187); see `FirmwareFx`.
+        o.fx.compressor_row |= has("--compressor-row");
+        o.fx.mod1_unit_calls |= has("--mod1-unit-calls");
         if let Some(v) = value("--amp-path") {
             o.amp_path = Some(parse_amp_path(v)?);
         }
@@ -1232,6 +1235,12 @@ impl FirmwareOptions {
         }
         if self.legacy_pump {
             parts.push("legacy-pump".into());
+        }
+        if self.fx.compressor_row {
+            parts.push("compressor-row".into());
+        }
+        if self.fx.mod1_unit_calls {
+            parts.push("mod1-unit-calls".into());
         }
         if let Some(a) = self.amp_path {
             parts.push(format!("amp={}", if a { "firmware" } else { "engine" }));
