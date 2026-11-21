@@ -6,6 +6,7 @@ pub mod aot_audio;
 pub mod aot_hot;
 pub mod aot_rank;
 pub mod audio;
+pub mod feed_run;
 pub mod fx_probe;
 pub mod fx_run;
 pub mod fx_wav;
