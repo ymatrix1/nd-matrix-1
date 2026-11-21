@@ -70,9 +70,10 @@ fn the_engine_gives_the_synth_chains_four_frames_and_the_others_two() {
 }
 
 #[test]
-fn the_compressor_row_switch_changes_the_layer_compressor_and_is_off_by_default() {
+fn the_compressor_row_switch_changes_the_layer_compressor_and_is_on_by_default() {
     let (default, all) = (FirmwareFx::DEFAULT, FirmwareFx::ALL);
-    assert!(!default.compressor_row && !all.compressor_row);
+    assert!(default.compressor_row && all.compressor_row, "D187");
+    assert!(!std::hint::black_box(FirmwareFx::PRE_PARITY).compressor_row);
     let make = |row: bool| {
         let mut fx = LayerFxChain::new(48_000.0);
         fx.firmware_fx = FirmwareFx {
@@ -115,7 +116,7 @@ fn merge_on_carries_the_two_refinements() {
     let mut g = FirmwareFx::OFF;
     g.merge_on(&FirmwareFx::ALL);
     assert!(
-        !g.compressor_row && !g.mod1_unit_calls,
-        "ALL leaves them off"
+        g.compressor_row && !g.mod1_unit_calls,
+        "ALL has the row (D187), not the unit calls (D186)"
     );
 }

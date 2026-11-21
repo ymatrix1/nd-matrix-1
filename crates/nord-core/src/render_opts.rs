@@ -760,6 +760,9 @@ impl FirmwareOptions {
         }
         // Opt-in refinements of two firmware ports (D186, D187); see `FirmwareFx`.
         o.fx.compressor_row |= has("--compressor-row");
+        if has("--legacy-compressor-row") {
+            o.fx.compressor_row = false;
+        }
         o.fx.mod1_unit_calls |= has("--mod1-unit-calls");
         if let Some(v) = value("--amp-path") {
             o.amp_path = Some(parse_amp_path(v)?);
@@ -815,6 +818,8 @@ impl FirmwareOptions {
         apply_firmware_options(engine, self.tone_source, self.filter_engine, false);
         for c in engine.fx_chains.iter_mut() {
             c.firmware_fx.merge_on(&self.fx);
+            // On in the engine default (D187): `--legacy-compressor-row` has to switch it off.
+            c.firmware_fx.compressor_row = self.fx.compressor_row;
             // The parity ports are on in the engine default (D163, D173), so the opt-outs
             // (`--legacy-fx-ports`, `--legacy-mod2`) have to switch them off.
             if self.legacy_pump {
@@ -1236,8 +1241,8 @@ impl FirmwareOptions {
         if self.legacy_pump {
             parts.push("legacy-pump".into());
         }
-        if self.fx.compressor_row {
-            parts.push("compressor-row".into());
+        if !self.fx.compressor_row && self.fx.compressor && FirmwareFx::DEFAULT.compressor_row {
+            parts.push("legacy-compressor-row".into());
         }
         if self.fx.mod1_unit_calls {
             parts.push("mod1-unit-calls".into());

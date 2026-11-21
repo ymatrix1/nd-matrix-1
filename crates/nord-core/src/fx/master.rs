@@ -57,7 +57,7 @@ impl MasterBus {
     }
 
     /// [`Self::use_fw_compressor_amount`] with the firmware row's gain-law words
-    /// ([`super::fw_params::compressor_for_amount_row`], D187, opt-in).
+    /// ([`super::fw_params::compressor_for_amount_row`], D187, default).
     pub fn use_fw_compressor_amount_row(&mut self) {
         let ui = super::fw_map::unit_to_ui(self.compressor_amount);
         self.set_fw_compressor(Some(super::fw_params::compressor_for_amount_row(ui)));

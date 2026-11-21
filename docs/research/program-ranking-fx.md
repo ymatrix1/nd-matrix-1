@@ -282,7 +282,7 @@ Compressor instance of FX core 1 (`I1 = 0xB0168`, attack pair at `DM(0xB0148)` a
 
 So the port, which nulls the oracle for its own words, does not reproduce the firmware gain law: `fx-vs-oracle` s3.4 proves the routine, not the words. **Update 2026-11-21 (D187, s9):** confirmed unmodified at runtime (the ARM writes none of the gain-law words, the oracle chain with the row nulls the port at -102 to -108 dB, [fx-compressor-row](fx-compressor-row.md)); the port is opt-in `--compressor-row`. Following change (not in this PR): take SLOPE, REDUCTION_SCALE, TABLE1, LOG_GAIN from the image in `compressor_for_amount`, rerun `fx_vs_oracle.py --only COMP`, then ranked before/after and the default flip decision (opt-out `--legacy-compressor`), with an `ns4 bench` number and the apply_program, edit, render tests. Tracked in `docs/OPEN-QUESTIONS.md` OQ38 note and bean follow-up.
 
-## 9. Update 2026-11-21 (D186, D187): compressor row and Mod 1 unit calls, opt-in, flip proposed
+## 9. Update 2026-11-21 (D186, D187): compressor row (default since D187) and Mod 1 unit calls (opt-in)
 
 `program_rank --flip fx_compressor_row,fx_mod1_unit_calls,fx_compressor_row+fx_mod1_unit_calls` on the current default (4 shards), score against the all-firmware render, which now includes both switches (`rank_groups::firmware_options`). Data: [program-ranking-compressor-row-mod1-units-384.csv](data/program-ranking-compressor-row-mod1-units-384.csv).
 

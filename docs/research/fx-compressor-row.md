@@ -12,7 +12,7 @@
 | Nothing rewrites them at runtime | The ARM boot log (boot and every settle phase, both FX cores, all ten instances) writes only offsets `-0x20 .. -0x1B`, `-0x13`, `-0x12`, `-0x8`, `-0x7`: none of the gain-law offsets `-0x17`, `-0x16`, `-0x15`, `-0x14`, `-0x0B`, `-0x09`. The routine model stores back only LEVEL, EXCESS and MAKEUP (`fw_compressor`, word-for-word against the oracle on 2,100 scenarios, including the changed words). `kCmpResponse` writes no word with a value ([fx-reverb-leslie](fx-reverb-leslie.md) s4) | VERIFIED (`tools/fx_compressor_row.py scan`; model check of the earlier work) |
 | Port with the row against the oracle chain | The oracle chain with the image row (image words, ARM boot words of the row, the `kCmpAmt` words of the port) against `fx_live_native comp --comp-row firmware`: level delta **0.00 dB**, null depth **-102 to -108 dB**. Against the ASSUMED words: level delta -4.5, -11.5, -26.0 dB and null only -36 to -48 dB (s2) | VERIFIED (`tools/fx_compressor_row.py chain`) |
 | Consequence for the default | `FirmwareFx::compressor` is on since D173 with the ASSUMED words: at `kCmpAmt` 127 the port is **26 dB louder** than the firmware on a noise bed that crosses the threshold; D158's "compressor matches the oracle" proved the routine and the `kCmpAmt` words, not the gain law | VERIFIED |
-| Port | `fw_params::compressor_for_amount_row` (words `CMP_ROW_*`), opt-in `FirmwareFx::compressor_row` / `--compressor-row` (layer compressor), `MasterBus::use_fw_compressor_amount_row`, `fx_live_native comp --comp-row firmware`, `fx_live_install 3 1`. Default unchanged | tests `fw_params`, `fx::tests_fw_mod1_unit_calls`, `fx_live_native` |
+| Port | `fw_params::compressor_for_amount_row` (words `CMP_ROW_*`), `FirmwareFx::compressor_row` (default since D187; `--legacy-compressor-row` opts out) (layer compressor), `MasterBus::use_fw_compressor_amount_row`, `fx_live_native comp --comp-row firmware`, `fx_live_install 3 1`. Golden fx segment re-baselined | tests `fw_params`, `fx::tests_fw_mod1_unit_calls`, `fx_live_native` |
 
 ## 2. Oracle chain against the port
 
@@ -36,7 +36,7 @@ The row words are the DSP's initial data. The oracle run uses them with the ARM'
 ## Implications
 
 - The ASSUMED gain-law words were wrong by far more than the 1.7 to 10.9 dB that [fx-vs-oracle](fx-vs-oracle.md) s4.4 attributed to a missing makeup gain: the port was louder than the firmware at every amount, by up to 26 dB at 127. The engine compressor was lower than the ASSUMED port, so the engine and the firmware row may be closer than either is to the old port.
-- Flipping `compressor_row` is the owner's decision (D187): 384-program before / after in [program-ranking-fx](program-ranking-fx.md) s9.
+- `compressor_row` is the default since D187 (owner, on this oracle validation); 384-program before / after in [program-ranking-fx](program-ranking-fx.md) s9; `--legacy-compressor-row` restores the ASSUMED words.
 
 ## Follow-ups
 

@@ -283,7 +283,14 @@ mod tests {
     #[test]
     fn parity_groups_are_the_fx_ports_of_the_parity_preset() {
         let o = flipped_set(&firmware_options(), &pre(), &PARITY_GROUPS);
-        assert_eq!(o.fx, FirmwareFx::PARITY);
+        // `compressor_row` is a subgroup (D187), not a group: the flip from `pre()` leaves it off
+        assert_eq!(
+            o.fx,
+            FirmwareFx {
+                compressor_row: false,
+                ..FirmwareFx::PARITY
+            }
+        );
         assert_eq!(GROUPS[4].0, "fx_reverb", "the one FX group left out");
         assert!(!PARITY_GROUPS.contains(&4));
     }
@@ -341,11 +348,15 @@ mod tests {
 
     #[test]
     fn compressor_row_and_unit_call_subgroups_flip_one_refinement_alone() {
-        let (firmware, base) = (firmware_options(), baseline(false, false, false));
+        let (firmware, base) = (firmware_options(), baseline(false, true, false));
         assert!(firmware.fx.compressor_row && firmware.fx.mod1_unit_calls);
         assert!(
+            baseline(false, false, false).fx.compressor_row,
+            "D187 default"
+        );
+        assert!(
             !base.fx.compressor_row && !base.fx.mod1_unit_calls,
-            "opt-in"
+            "off before D173"
         );
         let row = flipped_set(&firmware, &base, &[GROUP_COUNT + 3]);
         assert!(row.fx.compressor_row && !row.fx.mod1_unit_calls);
