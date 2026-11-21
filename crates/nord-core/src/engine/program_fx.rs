@@ -203,6 +203,12 @@ impl Stage4Engine {
             dec.reverb_amount,
             dec.reverb_amount_morph,
         );
+        set(
+            &mut m.delay_rate,
+            dec.delay_enabled,
+            dec.delay_rate_norm,
+            dec.delay_rate_morph,
+        );
     }
 }
 

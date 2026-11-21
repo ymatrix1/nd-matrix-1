@@ -16,6 +16,7 @@ def test_event_bytes_per_source() -> None:
     assert pm.event_bytes("wheel", 127) == bytes([0xB0, 1, 127])
     assert pm.event_bytes("pedal", 64) == bytes([0xB0, 11, 64])
     assert pm.event_bytes("at", 5) == bytes([0xD0, 5])
+    assert pm.event_bytes("note", 60) == bytes([0x90, 60, pm.NOTE_VELOCITY])
 
 
 def test_event_bytes_rejects_out_of_range() -> None:
@@ -25,6 +26,7 @@ def test_event_bytes_rejects_out_of_range() -> None:
 
 def test_parse_scenario_orders_events() -> None:
     assert pm.parse_scenario("wheel:127,at:64") == [("wheel", 127), ("at", 64)]
+    assert pm.parse_scenario("note:60,wheel:1") == [("note", 60), ("wheel", 1)]
 
 
 @pytest.mark.parametrize("bad", ["knob:1", "wheel", "wheel:x"])

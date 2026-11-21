@@ -94,3 +94,22 @@ fn layer_init_clears_the_extra_slots() {
     e.layer_init(LayerInitTarget::All);
     assert!(!e.synth_morph[2].is_active());
 }
+
+#[test]
+fn fx_delay_rate_morph_is_played_clipped_and_copied() {
+    // ARM run (morph-fw-delay.csv): base 11008, wheel depth +1548 steps, dispatch 11782 at wheel 64.
+    let mut e = Stage4Engine::new(48_000.0);
+    e.fx_chains[3].delay_rate_raw = Some(11_008);
+    let m = &mut e.fx_chains[3].morph.delay_rate;
+    m.base = 11_008.0 / 16_383.0;
+    m.delta_wheel = 1_548.0 / 16_383.0;
+    wheel(&mut e, 64);
+    assert_eq!(e.fx_chains[3].delay_rate_raw, Some(11_782));
+    wheel(&mut e, 127);
+    assert_eq!(e.fx_chains[3].delay_rate_raw, Some(12_556));
+    let clip = e.capture_morph(MorphSource::ModWheel);
+    e.apply_morph_clip(&clip, MorphSource::Aftertouch);
+    assert!((e.fx_chains[3].morph.delay_rate.delta_aftertouch - 1_548.0 / 16_383.0).abs() < 1e-6);
+    e.clear_morph(MorphSource::ModWheel);
+    assert_eq!(e.fx_chains[3].morph.delay_rate.delta_wheel, 0.0);
+}
