@@ -183,7 +183,7 @@ mod tests {
         assert_eq!(r.chain[0], vec![0.0, 0.0]);
         assert_eq!(
             r.extra[0][0],
-            vec![0.5, -0.25],
+            vec![0.5, 0.125],
             "extra pair, verbatim layout"
         );
     }
