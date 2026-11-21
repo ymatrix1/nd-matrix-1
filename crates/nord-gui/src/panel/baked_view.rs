@@ -547,7 +547,46 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                                 mix: state.delay_mix,
                             });
                         }
-                        "rotary-stop" => state.rotary_stop = on,
+                        "rotary-on" => {
+                            audio_handle.send_command(AudioCommand::SetRotaryEnabled(on));
+                        }
+                        "rotary-stop" => {
+                            state.rotary_stop = on;
+                            audio_handle.send_command(AudioCommand::SetRotaryEnabled(!on));
+                        }
+                        "org-vib-on" => {
+                            state.scanner_on = on;
+                            audio_handle.send_command(AudioCommand::SetScannerOn(on));
+                        }
+                        "perc-on" | "perc-soft" | "perc-fast" | "perc-third" => {
+                            match id {
+                                "perc-on" => state.perc_on = on,
+                                "perc-soft" => state.perc_soft = on,
+                                "perc-fast" => state.perc_fast = on,
+                                "perc-third" => state.perc_third = on,
+                                _ => {}
+                            }
+                            audio_handle.send_command(AudioCommand::SetPercussion {
+                                enabled: state.perc_on,
+                                soft: state.perc_soft,
+                                fast: state.perc_fast,
+                                third: state.perc_third,
+                            });
+                        }
+                        "pno-strres" => {
+                            state.string_res = on;
+                            audio_handle.send_command(AudioCommand::SetPianoAcoustics {
+                                string_res: state.string_res,
+                                pedal_noise: state.pedal_noise,
+                            });
+                        }
+                        "pno-pednoise" => {
+                            state.pedal_noise = on;
+                            audio_handle.send_command(AudioCommand::SetPianoAcoustics {
+                                string_res: state.string_res,
+                                pedal_noise: state.pedal_noise,
+                            });
+                        }
                         _ => {}
                     }
                 }
@@ -567,6 +606,14 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                             };
                             audio_handle
                                 .send_command(AudioCommand::SetRotarySpeed(state.rotary_speed));
+                        } else if a_id == "syn-mode-smp" {
+                            state.synth_osc_mode = if !a_on {
+                                SynthOscMode::Sample
+                            } else {
+                                SynthOscMode::Analog
+                            };
+                            audio_handle
+                                .send_command(AudioCommand::SetSynthOscMode(state.synth_osc_mode));
                         }
                     }
                 }
@@ -610,18 +657,15 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                         led_states[li].0 = pl == p_num;
                     }
                 }
-                let (pid, ptitle) = match p_num {
-                    1 => ("A:11", "nd matrix 1"),
-                    2 => ("A:12", "Royal Grand 3D"),
-                    3 => ("A:13", "B3 Gospel Swell"),
-                    4 => ("A:14", "MK1 Suitcase EP"),
-                    5 => ("A:15", "Super Saw Lead"),
-                    6 => ("A:16", "Horizon Whl"),
-                    7 => ("A:17", "Warm Analog Pad"),
-                    _ => ("A:18", "Stage Split Live"),
-                };
-                state.prog_id = pid.to_string();
-                state.prog_title = ptitle.to_string();
+                let mut target_loc = state.program_ui.loc;
+                target_loc.slot = p_num.saturating_sub(1).min(7) as u8;
+                for cmd in state.program_ui.select_loc(target_loc) {
+                    audio_handle.send_command(cmd);
+                }
+                state.prog_id = target_loc.label();
+                if !state.program_ui.title.is_empty() {
+                    state.prog_title = state.program_ui.title.clone();
+                }
             }
             if b.split_btn {
                 let split_indices: Vec<usize> = assets
@@ -682,6 +726,92 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                     if t.group == group_name {
                         tri_states[ti] = t.tri_idx == next;
                     }
+                }
+                match group_name {
+                    "org-model" => {
+                        let models = [
+                            OrganModel::Farfisa,
+                            OrganModel::Vox,
+                            OrganModel::B3,
+                            OrganModel::Pipe1,
+                            OrganModel::Pipe2,
+                            OrganModel::B3,
+                        ];
+                        state.organ_model = models[next % models.len()];
+                        audio_handle.send_command(AudioCommand::SetOrganModel(state.organ_model));
+                    }
+                    "org-vib" => {
+                        let modes = [
+                            ScannerMode::C2,
+                            ScannerMode::V3,
+                            ScannerMode::C3,
+                            ScannerMode::V2,
+                            ScannerMode::C1,
+                            ScannerMode::V1,
+                        ];
+                        state.scanner_mode = modes[next % modes.len()];
+                        audio_handle.send_command(AudioCommand::SetScannerMode(state.scanner_mode));
+                    }
+                    "pno-cat" => {
+                        let cats = [
+                            PianoCategory::Electric,
+                            PianoCategory::Upright,
+                            PianoCategory::Grand,
+                            PianoCategory::Clav,
+                            PianoCategory::Digital,
+                            PianoCategory::Misc,
+                        ];
+                        state.piano_cat = cats[next % cats.len()];
+                        audio_handle.send_command(AudioCommand::SetPianoCategory(state.piano_cat));
+                    }
+                    "fx-mod1" => {
+                        let kinds = [
+                            Mod1Type::AutoPan,
+                            Mod1Type::Tremolo,
+                            Mod1Type::RingMod,
+                            Mod1Type::AutoWah,
+                            Mod1Type::Wah,
+                            Mod1Type::Pump,
+                        ];
+                        state.mod1_type = kinds[next % kinds.len()];
+                        audio_handle.send_command(AudioCommand::SetFxMod1 {
+                            kind: state.mod1_type,
+                            rate: state.mod1_rate,
+                            amount: state.mod1_amount,
+                        });
+                    }
+                    "fx-mod2" => {
+                        let kinds = [
+                            Mod2Type::Phaser,
+                            Mod2Type::Flanger,
+                            Mod2Type::Chorus,
+                            Mod2Type::Vibe,
+                            Mod2Type::Ensemble,
+                            Mod2Type::Spin,
+                        ];
+                        state.mod2_type = kinds[next % kinds.len()];
+                        audio_handle.send_command(AudioCommand::SetFxMod2 {
+                            kind: state.mod2_type,
+                            rate: state.mod2_rate,
+                            amount: state.mod2_amount,
+                        });
+                    }
+                    "fx-rev" => {
+                        let models = [
+                            ReverbModel::Room,
+                            ReverbModel::Booth,
+                            ReverbModel::Spring,
+                            ReverbModel::Stage,
+                            ReverbModel::Hall,
+                            ReverbModel::Cathedral,
+                        ];
+                        state.reverb_model = models[next % models.len()];
+                        audio_handle.send_command(AudioCommand::SetFxReverb {
+                            model: state.reverb_model,
+                            mix: state.reverb_mix,
+                        });
+                    }
+                    _ => {}
                 }
                 ui.ctx()
                     .data_mut(|d| d.insert_temp(tris_id, tri_states.clone()));
@@ -1155,6 +1285,20 @@ mod tests {
                 "knob {} (encoder={}) produced neither an AudioCommand nor a ProgramUi navigation",
                 k.index,
                 k.encoder
+            );
+            // Verify every dispatched AudioCommand applies cleanly to a live Stage4Engine.
+            let mut engine = nord_core::engine::Stage4Engine::new(48_000.0);
+            let mut master_vol = 0.85_f32;
+            for cmd in cmds {
+                crate::audio::apply_audio_command(cmd, &mut engine, &mut master_vol);
+            }
+            let mut l = [0.0_f32; 64];
+            let mut r = [0.0_f32; 64];
+            engine.process_block(&mut l, &mut r);
+            assert!(
+                l.iter().chain(r.iter()).all(|s| s.is_finite()),
+                "knob {} produced non-finite DSP output",
+                k.index
             );
         }
     }
