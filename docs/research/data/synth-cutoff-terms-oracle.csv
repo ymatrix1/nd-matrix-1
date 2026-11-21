@@ -1,0 +1,41 @@
+kind,program,stage,inputs,oracle,model,error
+lfo,12dB Sweep,lp12,amt=32 lfo=0x0ccccccd,6.4575,6.4504,0.0071
+lfo,12dB Sweep,lp12,amt=32 lfo=0xf3333333,-6.4433,-6.4504,0.0071
+lfo,12dB Sweep,lp12,amt=32 lfo=0x1999999a,12.9032,12.9008,0.0024
+lfo,12dB Sweep,lp12,amt=32 lfo=0xe6666666,-12.8981,-12.9008,0.0026
+lfo,12dB Sweep,lp12,amt=64 lfo=0x0ccccccd,12.9032,12.9008,0.0025
+lfo,12dB Sweep,lp12,amt=64 lfo=0xf3333333,-12.8981,-12.9008,0.0026
+lfo,12dB Sweep,lp12,amt=64 lfo=0x1999999a,25.806,25.8016,0.0044
+lfo,12dB Sweep,lp12,amt=64 lfo=0xe6666666,-25.7968,-25.8016,0.0048
+lfo,12dB Sweep,lp12,amt=127 lfo=0x0ccccccd,25.6068,25.6,0.0068
+lfo,12dB Sweep,lp12,amt=127 lfo=0xf3333333,-25.5929,-25.6,0.0071
+lfo,12dB Sweep,lp12,amt=127 lfo=0x1999999a,51.2045,51.2,0.0045
+lfo,12dB Sweep,lp12,amt=127 lfo=0xe6666666,-51.1951,-51.2,0.0049
+m0,12dB Sweep,lp12,m0=-24,-24.0,-24,-0.0
+m0,12dB Sweep,lp12,m0=-12,-12.0,-12,-0.0
+m0,12dB Sweep,lp12,m0=-5,-5.0,-5,-0.0
+m0,12dB Sweep,lp12,m0=0,0.0,0,0.0
+m0,12dB Sweep,lp12,m0=7,7.0,7,-0.0
+m0,12dB Sweep,lp12,m0=12,12.0,12,-0.0
+env,12dB Sweep,lp12,w7=0x7f000000 F-4=0.25,31.7553,31.75,0.0053
+env,12dB Sweep,lp12,w7=0x7f000000 F-4=0.5,63.5078,63.5,0.0078
+env,12dB Sweep,lp12,w7=0x3f000000 F-4=0.25,15.7554,15.75,0.0054
+env,12dB Sweep,lp12,w7=0x3f000000 F-4=0.5,31.5074,31.5,0.0074
+env,12dB Sweep,lp12,w7=0x1f800000 F-4=0.25,7.8782,7.875,0.0032
+env,12dB Sweep,lp12,w7=0x1f800000 F-4=0.5,15.7556,15.75,0.0056
+drive,12dB Sweep,lp12,word1_byte=0,0.0,0.0,0.0
+drive,12dB Sweep,lp12,word1_byte=16,0.0,0.0,0.0
+drive,12dB Sweep,lp12,word1_byte=64,0.0,0.0,0.0
+drive,12dB Sweep,lp12,word1_byte=127,0.0,0.0,0.0
+r_law,80s Sci-Fi,ladder,knob=30,0.1864,0.1864,-0.0
+r_law,80s Sci-Fi,lp12,knob=30,0.0028,0.0028,-0.0
+r_law_key,80s Sci-Fi,ladder,knob=30 note_offset=-12,0.0912,0.0912,0.0
+r_law,80s Sci-Fi,ladder,knob=60,0.4243,0.4243,-0.0
+r_law,80s Sci-Fi,lp12,knob=60,0.0159,0.0159,-0.0
+r_law_key,80s Sci-Fi,ladder,knob=60 note_offset=-12,0.3291,0.3291,0.0
+r_law,80s Sci-Fi,ladder,knob=81,0.5908,0.5908,-0.0
+r_law,80s Sci-Fi,lp12,knob=81,0.0536,0.0536,-0.0
+r_law_key,80s Sci-Fi,ladder,knob=81 note_offset=-12,0.4956,0.4956,0.0
+r_law,80s Sci-Fi,ladder,knob=100,0.7415,0.7415,-0.0
+r_law,80s Sci-Fi,lp12,knob=100,0.1619,0.1619,-0.0
+r_law_key,80s Sci-Fi,ladder,knob=100 note_offset=-12,0.6463,0.6463,0.0

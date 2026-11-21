@@ -48,6 +48,11 @@ impl SynthLayer {
         let mut mix_r = 0.0f32;
 
         let eff_cutoff = match self.lfo_dest {
+            // Opt-in `fw_env_law` (D204): the LFO adds `128 amount lfo` semitones to the index sum.
+            LfoDestination::FilterCutoff if strip.is_some() && self.fw_env_law => {
+                super::fw_cutoff_env::fw_lfo_cutoff_hz(self.cutoff_hz, self.lfo_amount, lfo_val)
+                    .clamp(14.0, 0.48 * self.sample_rate)
+            }
             LfoDestination::FilterCutoff => (self.cutoff_hz
                 * (1.0 + self.lfo_amount * lfo_val * 0.8))
                 .clamp(14.0, 0.48 * self.sample_rate),

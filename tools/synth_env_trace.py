@@ -61,6 +61,9 @@ PASS_S = 2.0 / SY_FRAME_RATE_HZ
 ORACLE_STAGE_RATE_HZ = 2.0 * SY_FRAME_RATE_HZ
 KEY_ON_PASS = 2000  # the strip words settle with tau 256 passes (s4 of synth-adr-and-strip-law)
 HOLD_S, TAIL_S = 0.5, 0.25
+STRIP_WORD1 = 0xE0001
+STAGE_LADDER_ID = 0x12549D  # VERIFIED (synth-filter-type-map s2): Ladder24 reads the ramp table
+KNOB_HZ0 = 13.75  # VERIFIED (D200): cutoff knob 0 is A0 / 2
 RATE_TABLE = Path(__file__).resolve().parent.parent / "docs/research/data/synth-env-rate-table.csv"
 
 
@@ -167,6 +170,52 @@ def r_points(r: np.ndarray, on: int, off: int, rate_hz: float) -> dict:
     return out
 
 
+def knob_of_hz(hz: float) -> float:
+    """Cutoff index in knob semitones of a cutoff in Hz (`13.75 Hz 2^(knob / 12)`)."""
+    return float(12.0 * np.log2(max(hz, 1e-3) / KNOB_HZ0))
+
+
+def knob_of_r(r: float, ladder: bool) -> float:
+    """Cutoff index of an oracle tap `R`: exponential law, or the linear ramp for the ladder stage.
+
+    VERIFIED (`synth-cutoff-terms-oracle.csv`, D204): every stage but the ladder maps the index
+    sum with `fc = 2F atan(R) / pi`; the ladder reads the ramp `0.36083 + 0.0079301 (knob - 52)`.
+    """
+    if ladder:
+        return 52.0 + (r - 0.36083) / 0.0079301
+    return knob_of_hz(r_to_hz(r, ORACLE_STAGE_RATE_HZ))
+
+
+def stage_word(rows: list[dict]) -> int | None:
+    """Last strip 0 word 1 (stage id) of the core 2 recall, or None."""
+    last = None
+    for r in rows:
+        if r["phase"] in ("load", "idle") and r["chip"] == "ORG" and r["core"] == 2:
+            if r["dm"] == STRIP_WORD1:
+                last = r["w2"]
+    return last
+
+
+def key_note_offset(key_script: str) -> int:
+    """Signed note offset (byte 2 of the first note-on word, `note - 60` as the ARM sends it)."""
+    for line in key_script.splitlines():
+        v = int(line.split()[2], 0)
+        if (v >> 24) & 0x0F == 0x0B:
+            b = (v >> 16) & 0xFF
+            return b - 256 if b > 127 else b
+    return 0
+
+
+def knob_points(k: np.ndarray, on: int, off: int) -> dict:
+    """Index at the key-on, its maximum, the end of the hold and the end of the tail."""
+    return {
+        "before": float(k[on - 1]),
+        "max": float(k[on:off].max()),
+        "end_of_hold": float(k[off - 1]),
+        "released": float(k[-1]),
+    }
+
+
 def compare_native(oracle: dict, native: dict) -> dict:
     """Difference rows oracle minus native for one chain (`attack_index`, `level_at_off`, ...)."""
     row = {}
@@ -228,9 +277,12 @@ def run_oracle(
     return f[:, : len(ENV_TAPS)], f[:, len(ENV_TAPS)]
 
 
-def run_native(native: str, program: str, on: int, off: int, passes: int) -> dict:
+def run_native(
+    native: str, program: str, on: int, off: int, passes: int, note_offset: int = 0
+) -> dict:
     r = subprocess.run(
-        [native, program, "--on", str(on), "--off", str(off), "--passes", str(passes)],
+        [native, program, "--on", str(on), "--off", str(off), "--passes", str(passes)]
+        + ["--note-offset", str(note_offset), "--kb-track", "3"],  # oracle: unity tracking
         capture_output=True,
         text=True,
         check=False,
@@ -250,7 +302,9 @@ def report(ns: argparse.Namespace) -> int:  # pragma: no cover - needs local fir
     on = KEY_ON_PASS
     off = on + int(HOLD_S / PASS_S)
     passes = off + int(TAIL_S / PASS_S)
-    nat = run_native(ns.native, ns.program, on, off, passes)
+    key_text = o.key_script(rows, on, off)
+    offset = key_note_offset(key_text)
+    nat = run_native(ns.native, ns.program, on, off, passes, offset)
     words = program_words(nat["knobs"], nat["cutoff_knob"], int(nat["filter_env_amount_knob"]))
     (work / "load.script").write_text(o.core2_load_script(rows))
     (work / "adr.script").write_text(inject_script(words))
@@ -278,6 +332,19 @@ def report(ns: argparse.Namespace) -> int:  # pragma: no cover - needs local fir
         "filter_env_amount_knob": nat["filter_env_amount_knob"],
         "oracle_r": r_points(r, on, off, ORACLE_STAGE_RATE_HZ),
         "native_r": r_points(np.array(nat["r"]), on, off, SY_FRAME_RATE_HZ),
+    }
+    w1 = stage_word(rows)
+    ladder = w1 is not None and (w1 & 0xFFFFFF) == STAGE_LADDER_ID
+    kn = np.array([knob_of_r(x, ladder) for x in r])
+    out["cutoff_index"] = {
+        "stage_word1": w1,
+        "ladder": ladder,
+        "note_offset": offset,
+        "oracle": knob_points(kn, on, off),
+        "native_default": knob_points(
+            np.array([knob_of_hz(h) for h in nat["hz_default"]]), on, off
+        ),
+        "native_fw_law": knob_points(np.array([knob_of_hz(h) for h in nat["hz_fw"]]), on, off),
     }
     np.save(work / "oracle_env.npy", env)
     np.save(work / "oracle_r.npy", r)
@@ -372,9 +439,47 @@ def csv_rows(rep: dict) -> tuple[list[dict], dict]:
     return rows, cut
 
 
+INDEX_FIELDS = (
+    "program", "stage", "note_offset", "point", "oracle", "native_default", "native_fw_law",
+    "err_default", "err_fw_law",
+)  # fmt: skip
+
+
+def index_rows(rep: dict) -> list[dict]:
+    """Per-program cutoff index rows (knob semitones): oracle, default law, firmware law."""
+    c = rep["cutoff_index"]
+    rows = []
+    for pt in ("before", "max", "end_of_hold", "released"):
+        o, d, f = c["oracle"][pt], c["native_default"][pt], c["native_fw_law"][pt]
+        rows.append(
+            {
+                "program": rep["program"], "stage": "ladder" if c["ladder"] else "other",
+                "note_offset": c["note_offset"], "point": pt, "oracle": round(o, 2),
+                "native_default": round(d, 2), "native_fw_law": round(f, 2),
+                "err_default": round(d - o, 2), "err_fw_law": round(f - o, 2),
+            }
+        )  # fmt: skip
+    return rows
+
+
+def write_index_csv(reps: list[dict]) -> str:
+    """CSV text of `index_rows` for several reports."""
+    import io
+
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=INDEX_FIELDS, lineterminator=chr(10))
+    w.writeheader()
+    for rep in reps:
+        w.writerows(index_rows(rep))
+    return buf.getvalue()
+
+
 def summarise(ns: argparse.Namespace) -> int:  # pragma: no cover - CLI wiring
     """Two CSV blocks (chains, cutoff) of several `report` JSON files on stdout."""
     reps = [json.loads(Path(p).read_text(encoding="utf-8")) for p in ns.reports]
+    if ns.index:
+        sys.stdout.write(write_index_csv(reps))
+        return 0
     chains, cuts = [], []
     for rep in reps:
         a, b = csv_rows(rep)
@@ -410,6 +515,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - CLI wiring
     sw.add_argument("--words", default="-60,-40,-20,0,20,40")
     q = sub.add_parser("csv")
     q.add_argument("reports", nargs="+", help="report JSON files")
+    q.add_argument("--index", action="store_true", help="cutoff index rows (D204) instead")
     ns = ap.parse_args(argv)
     if ns.cmd == "csv":
         return summarise(ns)

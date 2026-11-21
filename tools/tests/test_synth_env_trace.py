@@ -179,3 +179,49 @@ def test_effective_index_is_exact_on_the_table_and_interpolates_between(tables) 
     assert -20.0 <= got <= -19.0
     d = t.effective_index(dec[10], dec, rising=False)
     assert abs(dec[int(round(d))] - dec[10]) < 1e-3
+
+
+def test_knob_of_r_uses_the_ramp_for_the_ladder_and_the_exponential_law_otherwise() -> None:
+    # oracle taps of cutoff knob 81 (synth-cutoff-terms-oracle.csv): ladder 0.5908, others 0.0536
+    assert t.knob_of_r(0.5908, True) == pytest.approx(81.0, abs=0.05)
+    assert t.knob_of_r(0.0536, False) == pytest.approx(81.0, abs=0.1)
+    assert t.knob_of_hz(13.75) == pytest.approx(0.0)
+    assert t.knob_of_hz(440.0) == pytest.approx(60.0)
+
+
+def test_stage_word_and_key_note_offset_read_the_recall_and_key_script() -> None:
+    rows = [
+        {"phase": "load", "chip": "ORG", "core": 2, "dm": t.STRIP_WORD1, "w2": 5},
+        {"phase": "idle", "chip": "ORG", "core": 2, "dm": t.STRIP_WORD1, "w2": 0x8612549D},
+        {"phase": "load", "chip": "ORG", "core": 1, "dm": t.STRIP_WORD1, "w2": 7},
+    ]
+    assert t.stage_word(rows) == 0x8612549D
+    assert t.stage_word([]) is None
+    assert t.key_note_offset("2000 0xc1dcc 0x0bf4e200\n") == -12
+    assert t.key_note_offset("2000 0xc1dcc 0x0b0ce200\n") == 12
+    assert t.key_note_offset("2000 0xc1dcc 0x08f4e200\n") == 0  # note-off word only
+
+
+def test_index_rows_and_csv_text() -> None:
+    pt = {"before": 41.0, "max": 80.0, "end_of_hold": 79.0, "released": 70.0}
+    rep = {
+        "program": "X",
+        "cutoff_index": {
+            "ladder": True, "note_offset": -12, "oracle": pt,
+            "native_default": {k: v + 1 for k, v in pt.items()},
+            "native_fw_law": {k: v - 1 for k, v in pt.items()},
+        },
+    }  # fmt: skip
+    rows = t.index_rows(rep)
+    assert [r["point"] for r in rows] == ["before", "max", "end_of_hold", "released"]
+    assert rows[0]["stage"] == "ladder" and rows[0]["err_default"] == 1.0
+    assert rows[1]["err_fw_law"] == -1.0
+    text = t.write_index_csv([rep])
+    assert text.splitlines()[0].startswith("program,stage,note_offset")
+    assert len(text.splitlines()) == 5
+
+
+def test_knob_points_picks_before_max_end_and_last() -> None:
+    k = np.array([0.0, 1.0, 5.0, 3.0, 2.0, 1.0])
+    p = t.knob_points(k, 2, 4)
+    assert p == {"before": 1.0, "max": 5.0, "end_of_hold": 3.0, "released": 1.0}

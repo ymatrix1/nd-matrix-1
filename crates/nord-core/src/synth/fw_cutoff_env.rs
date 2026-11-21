@@ -20,6 +20,12 @@
 //! through `fc0` against the panel table (13.75 Hz is `A0 / 2`, 440 Hz at knob 60). That the engine
 //! `level` is the oracle chain level times the velocity peak, and that key tracking multiplies
 //! the Hz cutoff before this law, are ASSUMED. Spec: `docs/specs/synth-engine.md` s4.3.
+//!
+//! D204 adds the other terms of the same index sum (`tools/synth_cutoff_terms.py`,
+//! `docs/research/data/synth-cutoff-terms-oracle.csv`): the LFO term `512 * depth * lfo`
+//! semitones (`fw_lfo_semitones`), the stage dependent map from the sum to `R`
+//! (`fw_stage_r_of_knob`: exponential for every stage but the ladder, which reads the linear ramp),
+//! and the facts that the filter drive byte and the key tracking offset add nothing else.
 
 use super::SY_FRAME_RATE_HZ;
 
@@ -39,6 +45,29 @@ pub const FW_R_CLIP: f32 = 1.99;
 pub const FW_ENV_SEMITONES_PER_KNOB: f32 = 1.0;
 /// Cutoff at knob 0, `A0 / 2`: VERIFIED (17 base knobs, `R` within 0.6 %).
 pub const FW_CUTOFF_KNOB0_HZ: f32 = 13.75;
+
+/// Semitones of the cutoff at full filter envelope amount and level (`w7 = 0x7F000000`).
+///
+/// VERIFIED: the envelope term is `128 * w7 * F-4` index units with `w7 = 127/128` (image default
+/// of strip word 7) and `F-4 = level * amount` (float): 6 oracle rows, `w7` and `F-4` varied, within
+/// 0.01 semitone (`synth-cutoff-terms-oracle.csv`, kind `env`, tests below).
+pub const FW_ENV_FULL_SEMITONES: f32 = 127.0;
+/// Semitones per unit product of the Q31 LFO depth word and the Q31 LFO word.
+///
+/// VERIFIED: `(w5 + m1) * lfo << 2` in index units of `2^24`, 12 oracle rows within 0.01 semitone
+/// (kind `lfo`); the depth is the strip word 5 steady state, the LFO word `DM(0xC1E37)`.
+pub const FW_LFO_SEMITONES_PER_UNIT: f32 = 512.0;
+/// Depth word of `kLFOAmt = 127` with the destination on the cutoff, as a Q31 fraction (0.5).
+///
+/// VERIFIED: the ARM writes `amt / 127 * 0x40000000` to common word 3 for amt 0, 32, 64, 127
+/// (`synth-lfo-arm-words.csv`, `tools/synth_lfo_words.py`).
+pub const FW_LFO_DEPTH_FULL: f32 = 0.5;
+/// LFO stage output at full scale as a Q31 fraction.
+///
+/// ASSUMED (EMPIRICAL lower bound): the LFO stages `0x12539E` and `0x1253AE` settle at 0.49997
+/// and `0x1253BA` at 0.25 in the oracle with no rate word; no running LFO was traced, so full
+/// scale 0.5 is the largest value seen. Confirm with a clip of an LFO to cutoff program.
+pub const FW_LFO_OUTPUT_FULL: f32 = 0.5;
 
 /// `R = tan(pi fc / 2F)` of a cutoff in Hz.
 #[inline]
@@ -67,9 +96,38 @@ pub fn fw_env_cutoff_hz(hz: f32, amount: f32, level: f32) -> f32 {
     if amount == 0.0 || level <= 0.0 {
         return hz;
     }
-    let knob = amount.clamp(-1.0, 1.0) * 127.0;
+    let knob = amount.clamp(-1.0, 1.0) * FW_ENV_FULL_SEMITONES;
     let semitones = FW_ENV_SEMITONES_PER_KNOB * knob * level;
     (hz * (semitones / 12.0).exp2()).min(fw_hz_of_r(FW_R_CLIP))
+}
+
+/// Semitones the LFO adds to the cutoff for a `kLFOAmt` knob `amount` (0..1) and an LFO value
+/// `lfo` of the native engine (-1..1): `512 * (0.5 amount) * (0.5 lfo) = 128 amount lfo`.
+#[inline]
+pub fn fw_lfo_semitones(amount: f32, lfo: f32) -> f32 {
+    FW_LFO_SEMITONES_PER_UNIT
+        * (FW_LFO_DEPTH_FULL * amount.clamp(0.0, 1.0))
+        * (FW_LFO_OUTPUT_FULL * lfo.clamp(-1.0, 1.0))
+}
+
+/// Cutoff in Hz after the LFO term, capped at the `R` clip.
+#[inline]
+pub fn fw_lfo_cutoff_hz(hz: f32, amount: f32, lfo: f32) -> f32 {
+    (hz * (fw_lfo_semitones(amount, lfo) / 12.0).exp2()).min(fw_hz_of_r(FW_R_CLIP))
+}
+
+/// Oracle tap `R` of a cutoff index `knob` (semitone units, 13.75 Hz at 0).
+///
+/// VERIFIED (kind `r_law`): every stage but the ladder maps the index sum with the exponential
+/// law (`tan(pi fc / 2F)`); the ladder stage `0x12549D` reads the linear ramp table
+/// (`fw_strip_cutoff_r` at word `(knob - 52) << 24`) as its cutoff position, so its tap sits at
+/// 0.59 for knob 81 where the exponential law gives 0.054. The two laws share the index sum.
+pub fn fw_stage_r_of_knob(knob: f32, ladder: bool) -> f32 {
+    if ladder {
+        super::fw_strip_cutoff_r(((knob - 52.0) * (1 << 24) as f32).round() as i32)
+    } else {
+        fw_r_of_hz(fw_cutoff_hz_of_knob(knob)).min(FW_R_CLIP)
+    }
 }
 
 #[cfg(test)]
@@ -179,5 +237,140 @@ mod tests {
             (top - fw_hz_of_r(FW_R_CLIP)).abs() < 1.0,
             "capped at the R clip: {top}"
         );
+    }
+
+    const TERMS: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../docs/research/data/synth-cutoff-terms-oracle.csv"
+    ));
+
+    /// `(stage, inputs, oracle)` rows of one kind of the term measurement.
+    fn term_rows(kind: &str) -> Vec<(String, String, f32)> {
+        TERMS
+            .lines()
+            .skip(1)
+            .filter_map(|l| {
+                let f: Vec<&str> = l.split(',').collect();
+                (f[0] == kind).then(|| (f[2].to_string(), f[3].to_string(), f[4].parse().unwrap()))
+            })
+            .collect()
+    }
+
+    fn field<'a>(inputs: &'a str, key: &str) -> &'a str {
+        inputs
+            .split(' ')
+            .find_map(|p| p.strip_prefix(key).and_then(|v| v.strip_prefix('=')))
+            .unwrap_or_else(|| panic!("{key} in {inputs}"))
+    }
+
+    fn q31(word: &str) -> f32 {
+        (u32::from_str_radix(word.trim_start_matches("0x"), 16).unwrap() as i32) as f32
+            / 2_147_483_648.0
+    }
+
+    #[test]
+    fn lfo_rows_follow_512_depth_lfo() {
+        let rows = term_rows("lfo");
+        assert_eq!(rows.len(), 12);
+        for (_, inputs, oracle) in rows {
+            let amt: f32 = field(&inputs, "amt").parse().unwrap();
+            let lfo = q31(field(&inputs, "lfo")) / FW_LFO_OUTPUT_FULL;
+            let got = fw_lfo_semitones(amt / 127.0, lfo);
+            assert!(
+                (got - oracle).abs() < 0.02,
+                "{inputs}: {got} against {oracle}"
+            );
+        }
+    }
+
+    #[test]
+    fn lfo_depth_word_is_the_arm_word_law() {
+        // `synth-lfo-arm-words.csv`: dst 3 writes common word 3 = amt / 127 * 0x40000000.
+        let csv = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../docs/research/data/synth-lfo-arm-words.csv"
+        ));
+        let mut n = 0;
+        for l in csv.lines().skip(1) {
+            let f: Vec<&str> = l.split(',').collect();
+            if f[0] == "3" && f[2] == "0xe02eb" {
+                let amt: f64 = f[1].parse().unwrap();
+                let word = u32::from_str_radix(f[3].trim_start_matches("0x"), 16).unwrap();
+                let law = (amt / 127.0 * f64::from(0x4000_0000u32)).round();
+                // the ARM float path keeps 24 significant bits: a few units of the low byte
+                assert!((f64::from(word) - law).abs() <= 4.0, "amt {amt}: {word:#x}");
+                n += 1;
+            }
+        }
+        assert_eq!(n, 4);
+        assert_eq!(fw_lfo_semitones(1.0, 1.0), 128.0);
+        assert_eq!(fw_lfo_semitones(0.0, 1.0), 0.0);
+    }
+
+    #[test]
+    fn env_rows_follow_127_semitones_per_unit_of_level_times_amount() {
+        let mut n = 0;
+        for (_, inputs, oracle) in term_rows("env") {
+            if !inputs.starts_with("w7=0x7f000000") {
+                continue;
+            }
+            let f4: f32 = field(&inputs, "F-4").parse().unwrap();
+            assert!(
+                (FW_ENV_FULL_SEMITONES * f4 - oracle).abs() < 0.02,
+                "{inputs}: {oracle}"
+            );
+            n += 1;
+        }
+        assert_eq!(n, 2);
+    }
+
+    #[test]
+    fn drive_byte_adds_nothing_and_key_offset_adds_its_semitones() {
+        for (_, inputs, oracle) in term_rows("drive") {
+            assert!(oracle.abs() < 1e-3, "{inputs}: drive moves R by {oracle}");
+        }
+        for (_, inputs, oracle) in term_rows("m0") {
+            let m0: f32 = field(&inputs, "m0").parse().unwrap();
+            assert!((m0 - oracle).abs() < 0.01, "{inputs}: {oracle}");
+        }
+    }
+
+    #[test]
+    fn stage_law_is_exponential_except_for_the_ladder_ramp() {
+        let (mut ladder, mut exp) = (0, 0);
+        for (name, inputs, oracle) in term_rows("r_law") {
+            let is_ladder = name == "ladder";
+            let knob: f32 = field(&inputs, "knob").parse().unwrap();
+            let got = fw_stage_r_of_knob(knob, is_ladder);
+            assert!(
+                (got / oracle - 1.0).abs() < 0.006,
+                "{name} {inputs}: {got} {oracle}"
+            );
+            if is_ladder {
+                ladder += 1;
+            } else {
+                exp += 1;
+            }
+        }
+        assert_eq!((ladder, exp), (4, 4));
+        // key tracking moves the index sum, the ladder reads the same ramp (note offset -12).
+        for (_, inputs, oracle) in term_rows("r_law_key") {
+            let knob: f32 = field(&inputs, "knob").parse().unwrap();
+            let got = fw_stage_r_of_knob(knob - 12.0, true);
+            assert!(
+                (got / oracle - 1.0).abs() < 0.006,
+                "{inputs}: {got} {oracle}"
+            );
+        }
+    }
+
+    #[test]
+    fn lfo_cutoff_is_symmetric_in_semitones_and_capped() {
+        let up = fw_lfo_cutoff_hz(1_000.0, 0.1, 1.0) / 1_000.0;
+        let down = fw_lfo_cutoff_hz(1_000.0, 0.1, -1.0) / 1_000.0;
+        assert!((up * down - 1.0).abs() < 1e-4, "{up} {down}");
+        assert_eq!(fw_lfo_cutoff_hz(1_000.0, 0.0, 1.0), 1_000.0);
+        let top = fw_lfo_cutoff_hz(10_000.0, 1.0, 1.0);
+        assert!((top - fw_hz_of_r(FW_R_CLIP)).abs() < 1.0, "{top}");
     }
 }
