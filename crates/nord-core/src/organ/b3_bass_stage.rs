@@ -76,6 +76,7 @@ impl B3BassStage {
         let mut machine = Machine::new();
         machine.load_image(IMAGE);
         machine.set_programs(Some(&GEN_ROWS), &PROC_ROWS);
+        machine.use_native_bass();
         Self {
             machine,
             state: BassState::new(),

@@ -67,13 +67,13 @@ Reading, with the limit stated:
 
 ## Implications
 
-- Flip proposal: D199. Seven of the eight words may flip alone; `reverb_mix` stays at 0.15 until the reverb path matches the firmware level.
+- Flip proposal: D203. Seven of the eight words may flip alone; `reverb_mix` stays at 0.15 until the reverb path matches the firmware level.
 - OQ34 narrows from "does the hardware start from the words" to "does the delay start from them" (no boot words); no hardware init-patch clip is needed for the other words, one with the delay on settles the rest.
 - `kFx2Type` default 0 (PHAS) is a candidate ninth word, not applied.
 
 ## Follow-ups
 
-1. Owner decides the flip (D199); `render_hash` needs a re-baseline only if a bare-engine hash exists.
+1. Owner decides the flip (D203); `render_hash` needs a re-baseline only if a bare-engine hash exists.
 2. Trace what writes `kRvbAmt` 127 in the boot.
 3. A delay-on init-patch clip, or the delay install path of the boot, for the three delay words.
 

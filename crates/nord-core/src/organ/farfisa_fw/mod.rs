@@ -46,6 +46,7 @@ impl FarfisaFw {
         let mut machine = Machine::new();
         machine.load_image(IMAGE);
         machine.set_programs(None, &FARFISA_ROWS);
+        machine.use_native_farfisa();
         Self { machine }
     }
 
@@ -211,5 +212,24 @@ mod tests {
         assert_eq!(m.machine.rd(0x9_6020 + 0xD0), 0);
         m.set_bias(true);
         assert_eq!(m.machine.rd(0xC_2D59), BIAS);
+    }
+
+    #[test]
+    fn the_straight_line_routine_equals_the_interpreter_state_for_state() {
+        // both lattice tables, three held keys, a ring that changes every call
+        for flag in [false, true] {
+            let (mut a, mut b) = (chord_machine(flag), chord_machine(flag));
+            a.machine.use_interpreter();
+            for call in 0..300 {
+                let ring: [f32; RING_LEN] =
+                    std::array::from_fn(|k| ((call * 7 + k) as f32 * 0.37).sin() * 0.25);
+                for f in [&mut a, &mut b] {
+                    f.set_ring(0, &ring);
+                    f.set_ring(1, &ring);
+                }
+                assert_eq!(a.step(), b.step(), "output, call {call}");
+                a.machine.assert_same_state(&b.machine, call);
+            }
+        }
     }
 }
