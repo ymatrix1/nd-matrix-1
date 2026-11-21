@@ -57,7 +57,7 @@ The two SIMD lanes (words `k`, `k + 1`) run the same recursion on left and right
 | Item | Result |
 |---|---|
 | Synth filter type 3 "LP+HP" | The stage is `0x1257B2` and is already ported behind `--synth-stage3` ([synth-filter-t3](synth-filter-t3.md), 1840 / 1840 oracle words). The firmware has no string table for the type names ([oled-strings-vs-firmware](oled-strings-vs-firmware.md) lists the filter type names as not in the string pool); the display words were not located. |
-| Piano Clav EQ (`kEq` 6, 7) | **Superseded 2026-11-21 (D206).** The consumer is the voice-frame builder `0xC00AA520`: the `kEq` handler stores a timbre mode, modes `0x10..=0x1A` become a per-note gain (VERIFIED 108 of 108, [piano-timbre-gain](piano-timbre-gain.md)), opt-in `--firmware-piano-timbre`. The Clav class maps `kEq` to modes below `0x10` (unity there); the rocker audio stays open. |
+| Piano Clav EQ (`kEq` 6, 7) | **Superseded 2026-11-21 (D209).** The consumer is the voice-frame builder `0xC00AA520`: the `kEq` handler stores a timbre mode, modes `0x10..=0x1A` become a per-note gain (VERIFIED 108 of 108, [piano-timbre-gain](piano-timbre-gain.md)), opt-in `--firmware-piano-timbre`. The Clav class maps `kEq` to modes below `0x10` (unity there); the rocker audio stays open. |
 
 ## 5. Rust port (opt-in)
 

@@ -4,7 +4,7 @@
 - **Sources (local, never committed):** OS v1.66 firmware (`target/fw_unpacked/bank0_CODE.bin`, `bank0_SRAM.bin`, ARM base `0xC0000000`), settled snapshot `target/keydown.snap`, the ARM harness (`tools/arm_*.py`), factory backup `.ns4b` (`Piano/Clavinet/Clavinet D6  6.1.npno` as the loaded sound). Committed: derived tables (`crates/nord-core/src/piano/timbre_gain_tables.rs`) and 108 oracle cases (`docs/research/data/piano-timbre-gain-cases.json`).
 - **Question:** audio-remaining row 22 lists the Clav EQ and the LP+HP filter type as unmodelled. Which firmware routine consumes the piano `kEq` value, what does it do, and can it be ported with a check against an oracle render?
 
-Tags follow `.agents/rules/provenance-in-code.md`. Decision D206. Earlier negative result: [amp-types-789](amp-types-789.md) s4 (the edit sends only a reload trigger; the consumer was not found).
+Tags follow `.agents/rules/provenance-in-code.md`. Decision D209. Earlier negative result: [amp-types-789](amp-types-789.md) s4 (the edit sends only a reload trigger; the consumer was not found).
 
 ## 1. Result
 
