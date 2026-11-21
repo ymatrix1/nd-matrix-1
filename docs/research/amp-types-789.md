@@ -81,7 +81,7 @@ Largest moves: Unclocked Pad 46.45 to 0.87, Dance Lead 27.93 to 0.87 (both HP24)
 
 **What this proves and does not.** The score is the distance of one of our renders to another render of the same engine with every verified port on. It proves the wiring (LP24 / HP24 layers now carry the verified routine) and how far the engine biquads sit from it. It does **not** prove the sound matches the hardware: the oracle verifies the routine word for word (D188, s6), but no hardware clip of an LP24 / HP24 program exists, and three inputs stay ASSUMED: the Mid knob to `kAmpMid` counts mapping, the engine Mid Freq to table index, and the rate scale (the stage runs at the engine rate here, the firmware at 43,402 Hz; the rate match of D180 is applied through the same path as the drive stage).
 
-**Proposed, not made:** switch `FirmwareFx::lp24` on by default (into `PARITY`) once one hardware clip of an LP24 or HP24 program, e.g. Unclocked Pad or Dance Lead (largest before score), confirms the cutoff unit and the Mid mapping. Until then it stays opt-in (D189).
+**Proposed, not made:** switch `FirmwareFx::lp24` on by default (into `PARITY`) once one hardware clip of an LP24 or HP24 program, e.g. Unclocked Pad or Dance Lead (largest before score), confirms the cutoff unit and the Mid mapping. Until then it stays opt-in (D193).
 
 ## Implications
 
