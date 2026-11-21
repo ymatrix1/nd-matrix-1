@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D189](#d189-amp-lp24--hp24-default-flip-proposed-not-made-type-9-words-verified-multi-call-golden) | 2026-11-21 | Amp LP24 / HP24 default flip proposed, not made; type 9 words VERIFIED; multi-call golden | proposed |
 | [D188](#d188-firmware-amp-lp24--hp24-state-variable-pair-0x124efa-ported-opt-in---firmware-fx-ports-lp24) | 2026-11-21 | Firmware Amp LP24 / HP24 (state variable pair `0x124EFA`) ported, opt-in `--firmware-fx-ports lp24` | accepted |
 | [D185](#d185-piano-chain-tap-a-bound-piano-sound-reaches-a-live-smp-chip-sharc-live---smp-the-page-refill-is-the-next-blocker) | 2026-11-21 | Piano chain tap: a bound piano sound reaches a live SMP chip (`sharc-live --smp`); the page refill is the next blocker | proposed |
 | [D181](#d181-amp-types-8-and-9-lp24--hp24-are-one-state-variable-pair-0x124efa-model-and-recorded-oracle-cases-no-rust-port-yet) | 2026-11-21 | Amp types 8 / 9 (LP24, HP24) are one state variable pair `0x124EFA`; Python model and recorded oracle cases; no Rust port yet | accepted |
@@ -2010,3 +2011,13 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Put it in `ALL` / `PARITY` (rejected: no clip evidence, and `PORT_NAMES` is mirrored by the GUI and tests). Keep the biquad stand-in only (rejected: wrong damping, clipping and smoothing).
 - **Open:** the cutoff unit (rate scale at 48 kHz), the mapping of the engine Mid Freq to a table index, the Mid knob to counts mapping (ASSUMED), type 9 words assumed equal to type 8's (the filter list `0xC044398C` is shared, `fx-param-fits.csv`).
 - **Impact:** `fx/fw_lp24.rs`, `fx/fw_lp24_tables.rs`, `fx/amp_eq.rs`, `fx/firmware_fx.rs`, `fx/firmware_fx_ports.rs`, tests `tests_fw_lp24_golden.rs`, `tests_fw_lp24_chain.rs`, `tools/fx_lp24_golden.py`; `docs/research/amp-types-789.md`.
+
+### D189. Amp LP24 / HP24: default flip proposed, not made; type 9 words VERIFIED; multi-call golden
+
+- **Status:** proposed 2026-11-21
+- **Decided by:** the amp-lp24 follow-up session; the owner decides the flip.
+- **Context:** D188 ported the routine opt-in with type 9 words assumed equal to type 8 and a single-call golden. The coordinating session asked for the missing validation and a ranking.
+- **Decision:** (1) type 9 words captured separately: equal to type 8 at all 249 indices, tag upgraded to VERIFIED; (2) a 24-call golden from the booted template with the table words, under 1e-5 against the oracle; (3) `program_rank --amp-filters --flip fx_amp_lp24`: the 26 programs with an LP24 / HP24 amp go from mean 5.29 to 1.59 against the all-firmware render (13 improve, 13 unchanged, 0 worse). **Propose** `lp24` into `PARITY`; do not make it.
+- **Why:** the ranking proves wiring only. The oracle proves the routine, not the sound on hardware; no LP24 / HP24 hardware clip exists, and the Mid mapping, Mid Freq index and rate scale are ASSUMED (D22).
+- **Alternatives:** flip now (rejected: no hardware evidence); leave out of the reference (rejected: the ranking could not show the port).
+- **Impact:** `tools/fx_lp24_capture.py`, `tools/program_rank_amp.py`, `crates/nord-tools` (`--amp-filters`, `fx_amp_lp24` flip group, `lp24` in the ranking reference), `fx/tests_fw_lp24_calls*.rs`, data CSVs, `docs/research/amp-types-789.md` s6, s7.

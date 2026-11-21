@@ -13,8 +13,8 @@
 //! what a default flip of the group would sound like, to compare against the firmware render.
 //!
 //! Usage: `cargo run --release -p nord-tools --bin program_rank -- <backup.ns4b> [--note 60]
-//! [--velocity 100] [--limit N] [--only S] [--every K] [--skip N] [--ablate] [--ablate-fx] [--flip SETS|every-fx] [--legacy-mod2] [--legacy-fx-ports] [--legacy-fx-rate] [--jobs N]`. Release build only (stack depth in the FX
-//! chains). `tools/program_rank.py` joins the lines with the chain census.
+//! [--velocity 100] [--limit N] [--only S] [--every K] [--skip N] [--ablate] [--ablate-fx] [--flip SETS|every-fx] [--legacy-mod2] [--legacy-fx-ports] [--legacy-fx-rate] [--amp-filters] [--jobs N]`. Release build only (stack depth in the FX
+//! chains). `--amp-filters` renders only the programs with an enabled LP24 / HP24 amp. `tools/program_rank.py` joins the lines with the chain census.
 
 use nord_core::cbin::{CbinFile, Ns4BackupArchive, ProgramDecoded, ProgramSoundRefs};
 use nord_core::render::render_timeline;
@@ -105,6 +105,27 @@ fn run_parallel<T: Sync, R: Send>(items: &[T], jobs: usize, f: impl Fn(&T) -> R 
     v.into_iter().map(|(_, r)| r).collect()
 }
 
+/// Enabled Amp slots of `prog` set to LP24 (`kAmpTypeNew` 8) and HP24 (9), over the organ chain
+/// (counted twice: it feeds both organ layers), both piano and the three synth chains.
+fn amp_filter_uses(prog: &ProgramDecoded) -> [usize; 2] {
+    let chains = [
+        &prog.organ.fx,
+        &prog.organ.fx,
+        &prog.piano.fx_a,
+        &prog.piano.fx_b,
+        &prog.synth.fx_a,
+        &prog.synth.fx_b,
+        &prog.synth.fx_c,
+    ];
+    let count = |mode: u8| {
+        chains
+            .iter()
+            .filter(|f| f.amp_enabled && f.amp_mode() == mode)
+            .count()
+    };
+    [count(8), count(9)]
+}
+
 fn metrics_json(m: &Result<NoteMetrics, String>) -> Value {
     match m {
         Ok(m) => json!({
@@ -132,6 +153,7 @@ fn main() -> Result<(), String> {
     let only = flag(&args, "--only");
     let ablate = args.iter().any(|a| a == "--ablate");
     let ablate_fx = args.iter().any(|a| a == "--ablate-fx");
+    let amp_only = args.iter().any(|a| a == "--amp-filters");
     let jobs = num("--jobs", 1).max(1);
     let flips: Vec<Vec<usize>> = match flag(&args, "--flip") {
         Some(list) if list == "every-fx" => fx_subsets(),
@@ -170,6 +192,10 @@ fn main() -> Result<(), String> {
         let prog = CbinFile::parse(&bytes)
             .and_then(|c| c.decode_program())
             .map_err(|e| format!("{name}: {e}"))?;
+        let amp_filters = amp_filter_uses(&prog);
+        if amp_only && amp_filters == [0, 0] {
+            continue;
+        }
         let refs = archive.resolve_program_sounds(&prog);
         load_sounds(&archive, &mut file, &refs, &mut pianos, &mut synths);
         let run = |o: &FirmwareOptions| measure(&prog, &refs, &pianos, &synths, o, note, velocity);
@@ -181,6 +207,7 @@ fn main() -> Result<(), String> {
             "scene_1": sections(prog.global.section_enable_i),
             "scene_2": sections(prog.global.section_enable_ii),
             "layers": layers(&prog, &refs),
+            "amp_filters": { "lp24": amp_filters[0], "hp24": amp_filters[1] },
             "note": note,
             "velocity": velocity,
             "default": metrics_json(&default),
@@ -271,6 +298,25 @@ mod tests {
             assert_eq!(r, (0..20).map(|x| x * 2).collect::<Vec<_>>());
         }
         assert!(run_parallel(&Vec::<u32>::new(), 4, |x| *x).is_empty());
+    }
+
+    #[test]
+    fn amp_filter_census_counts_lp24_and_hp24_slots() {
+        let mut prog = ProgramDecoded::default();
+        assert_eq!(amp_filter_uses(&prog), [0, 0]);
+        prog.synth.fx_a.amp_enabled = true;
+        prog.synth.fx_a.amp_type_new = 8;
+        prog.piano.fx_b.amp_enabled = true;
+        prog.piano.fx_b.amp_type_new = 9;
+        prog.organ.fx.amp_enabled = true;
+        prog.organ.fx.amp_type_new = 9;
+        assert_eq!(
+            amp_filter_uses(&prog),
+            [1, 3],
+            "the organ chain feeds two layers"
+        );
+        prog.synth.fx_a.amp_enabled = false;
+        assert_eq!(amp_filter_uses(&prog), [0, 3]);
     }
 
     #[test]
