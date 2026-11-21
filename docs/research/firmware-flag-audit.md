@@ -124,7 +124,7 @@ Statements and sources. "No firmware-validated implementation" = the code runs a
 | MIDI velocity curves (System menu) | not modelled; the firmware Touch curves exist (D88) but "the System-menu MIDI velocity curves" are named as an unverified link in D117 | D117, piano-touch-curves s6 |
 | Mouse velocity in the GUI | ASSUMED linear 20 to 127 | audio-remaining row 5 (D84) |
 | Arpeggiator octave walk | **default since D166** (`--legacy-arp` opts out): firmware pool walk and single-note retrigger, ARM-verified on 30 replays | audio-remaining row 19, D166 |
-| Arpeggiator gate (2/3 of a step) | **opt-in** `--arp-fw-gate` (D166): verified only in the replayed boot state, flag writer unknown, no hardware clip; flip is one line once a clip or a writer exists | audio-remaining row 19 (D130, D166, OQ32) |
+| Arpeggiator gate (2/3 of a step) | **default since D168** (`--no-arp-gate` / `--legacy-arp` opt out): flag written only by the constructor, 2/3 on 53 ARM-played layers of 30 arpeggiator programs; no hardware clip | [arp-gate-flag-trace](arp-gate-flag-trace.md), audio-remaining row 19 (D130, D166, D168, OQ32) |
 | Morph law (`--firmware-morph`) | **default since D166** (`--legacy-morph` opts out): weight `v / 128`, clamp on the sum, cutoff sender step drop, five extra synth targets; VERIFIED against the ARM | [morph-fw-vs-native](morph-fw-vs-native.md), D159, D166 |
 | PUMP clock | engine free-runs; firmware PUMP follows the Master Clock (#490, open) | audio-remaining row 17, D134 PR |
 | Real-time Bass and Farfisa organ stages | bit exact but offline only | audio-remaining row 16, D71, D74 |

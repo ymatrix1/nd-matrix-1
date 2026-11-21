@@ -12,6 +12,7 @@ mod delay;
 mod focus;
 mod ids;
 mod lists;
+mod mod_touch;
 mod modulation;
 mod reverb;
 #[cfg(test)]

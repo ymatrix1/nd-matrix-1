@@ -73,6 +73,8 @@ pub struct GuiBenchReport {
     pub press_max_ms: f64,
     pub hash: u64,
     pub peak: f32,
+    /// Timed frames the master bus hard-clamped at plus or minus 1.0 (audible as distortion).
+    pub clamped: u64,
 }
 
 /// The engine of `cfg` before any key is pressed.
@@ -154,6 +156,7 @@ pub struct Timed {
     pub pressed: Vec<bool>,
     pub hash: u64,
     pub peak: f32,
+    pub clamped: u64,
 }
 
 /// Renders `cfg` once on the engine `setup` leaves and times every block.
@@ -168,8 +171,12 @@ pub fn time_blocks(cfg: GuiBenchConfig, setup: impl FnOnce(&mut Stage4Engine)) -
     let mut pressed = Vec::with_capacity(cfg.blocks);
     let (mut hash, mut peak) = (FNV_BASIS, 0.0f32);
     let mut buf = vec![[0.0f32; 2]; cfg.frames];
+    let mut clamp_start = 0;
     for i in 0..cfg.warmup_blocks + cfg.blocks {
         let timed = i >= cfg.warmup_blocks;
+        if i == cfg.warmup_blocks {
+            clamp_start = e.master_bus.clamped_frames;
+        }
         let churn = cfg.keys > 0 && cfg.churn_every > 0 && i % cfg.churn_every == 0 && i > 0;
         let t0 = Instant::now();
         if churn {
@@ -196,6 +203,7 @@ pub fn time_blocks(cfg: GuiBenchConfig, setup: impl FnOnce(&mut Stage4Engine)) -
         pressed,
         hash,
         peak,
+        clamped: e.master_bus.clamped_frames - clamp_start,
     }
 }
 
@@ -220,6 +228,7 @@ pub fn report(cfg: GuiBenchConfig, t: Timed) -> GuiBenchReport {
         pressed,
         hash,
         peak,
+        clamped,
     } = t;
     let deadline_ms = cfg.frames as f64 / f64::from(SAMPLE_RATE) * 1000.0;
     let (worst_index, max_ms) =
@@ -253,6 +262,7 @@ pub fn report(cfg: GuiBenchConfig, t: Timed) -> GuiBenchReport {
         press_max_ms: press.iter().copied().fold(0.0, f64::max),
         hash,
         peak,
+        clamped,
     }
 }
 

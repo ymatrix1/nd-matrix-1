@@ -15,6 +15,7 @@ use nord_core::engine::{FxSharing, Stage4Engine};
 use nord_core::fx::DELAY_SYNC_BEATS;
 
 use crate::fx_params::FX_LAYERS;
+use crate::program_overrides::ProgramOverrides;
 
 /// Master Clock delay division (manual p.51: 1/2 to 1/32 with straight, swing, triplet, dotted).
 /// Index `n >= 1` is `DELAY_SYNC_BEATS[n - 1]` (EMPIRICAL order, see `nord_core::fx::DELAY_SYNC_BEATS`).
@@ -148,10 +149,19 @@ impl LayerFxSharingBank {
     /// Copy every value into the engine (no allocation; audio-thread safe).
     ///
     /// The engine applies the sharing copies itself at the start of `process_block`.
-    pub fn sync_to_engine(&self, engine: &mut Stage4Engine) {
-        for (p, fx) in self.layers.iter().zip(engine.fx_chains.iter_mut()) {
+    ///
+    /// Mod 2 VARIATION follows the host only where it overrides the loaded program (D169).
+    pub fn sync_to_engine(&self, engine: &mut Stage4Engine, overrides: &ProgramOverrides) {
+        for (i, (p, fx)) in self
+            .layers
+            .iter()
+            .zip(engine.fx_chains.iter_mut())
+            .enumerate()
+        {
             fx.mod1_variation = p.mod1_variation.value();
-            fx.mod2_variation = p.mod2_variation.value();
+            if overrides.mod2_overrides(i) {
+                fx.mod2_variation = p.mod2_variation.value();
+            }
             fx.mod1_ped = p.mod1_ped.value();
             fx.mod1_ped_pos = p.mod1_ped_pos.value();
             fx.delay_sync_beats = p.delay_beats.value().beats();
@@ -184,7 +194,7 @@ mod tests {
     fn defaults_match_engine_defaults() {
         let reference = Stage4Engine::new(48_000.0);
         let mut e = Stage4Engine::new(48_000.0);
-        LayerFxSharingBank::default().sync_to_engine(&mut e);
+        LayerFxSharingBank::default().sync_to_engine(&mut e, &ProgramOverrides::all_armed());
         for (a, b) in e.fx_chains.iter().zip(reference.fx_chains.iter()) {
             assert_eq!(a.mod1_variation, b.mod1_variation);
             assert_eq!(a.mod2_variation, b.mod2_variation);
@@ -214,7 +224,7 @@ mod tests {
         bank.layers[5].group = flag("g");
         bank.layers[0].group = flag("g"); // organ: no group
         let mut e = Stage4Engine::new(48_000.0);
-        bank.sync_to_engine(&mut e);
+        bank.sync_to_engine(&mut e, &ProgramOverrides::all_armed());
         assert_eq!(e.fx_sharing.reverb_global, Some(3));
         assert_eq!(e.fx_sharing.piano_group, Some(3));
         assert_eq!(e.fx_sharing.synth_group, Some(5));
@@ -248,7 +258,7 @@ mod tests {
         e.fx_chains[0].delay_clock_sync = true;
         e.fx_chains[0].delay_mix = 1.0;
         configure(&mut bank.layers[0], &mut e.fx_chains[0]);
-        bank.sync_to_engine(&mut e);
+        bank.sync_to_engine(&mut e, &ProgramOverrides::all_armed());
         let fx = &mut e.fx_chains[0];
         (0..24_000)
             .map(|n| {
@@ -304,7 +314,7 @@ mod tests {
         }
         e.synth_a.note_on(60, 100);
         configure(&mut bank, &mut e);
-        bank.sync_to_engine(&mut e);
+        bank.sync_to_engine(&mut e, &ProgramOverrides::all_armed());
         let (mut l, mut r) = (vec![0.0f32; 12_000], vec![0.0f32; 12_000]);
         e.process_block(&mut l, &mut r);
         l.into_iter().zip(r).collect()

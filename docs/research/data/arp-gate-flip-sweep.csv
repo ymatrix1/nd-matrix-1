@@ -1,0 +1,385 @@
+program,arp_layers,morph_slot,default_changed,firmware_changed
+Bank A/12dB Sweep,,False,False,False
+Bank A/4 Osc Funk Bass,,True,False,False
+Bank A/70s Phase Mk I,,False,False,False
+Bank A/80s Sci-Fi,,False,False,False
+Bank A/Acoustic Guitar,,False,False,False
+Bank A/Aeon Pad Whl,,True,False,False
+Bank A/Astoria Grand,,True,False,False
+Bank A/B3 Chords n Solo,,False,False,False
+Bank A/B3 Jazz Split,,False,False,False
+Bank A/B3 Old Forest,,True,False,False
+Bank A/B3 Praise Split,,False,False,False
+Bank A/B3 Shade,,False,False,False
+Bank A/Believer,,True,False,False
+Bank A/Boxxx,A:0:0 B:1:58 C:0:0,False,True,True
+Bank A/Bright Vibe Mk I,,False,False,False
+Bank A/Bubbles Mk I,,False,False,False
+Bank A/Classic Wah Clav,,False,False,False
+Bank A/Classic Wurly,,False,False,False
+Bank A/Crunch Synth,,False,False,False
+Bank A/Digi Keys Pad,,False,False,False
+Bank A/Dual Gates,A:2:57 B:2:57 C:2:126,False,False,False
+Bank A/Felt Upright,,False,False,False
+Bank A/Filter Bank Ld,,False,False,False
+Bank A/Glowing Amber,,False,False,False
+Bank A/Grand Pad,,True,False,False
+Bank A/Horizon Whl,A:0:0 C:0:47,True,True,True
+Bank A/Hybrid Str Whl,,True,False,False
+Bank A/In Stereo Mk I ,,False,False,False
+Bank A/Intense Score,,False,False,False
+Bank A/J3 Open Sky,,True,False,False
+Bank A/Jazz Guitar II,,False,False,False
+Bank A/Leaky Stabs II,,False,False,False
+Bank A/M Lead Pad Split,,False,False,False
+Bank A/Mega Line Whl,,True,False,False
+Bank A/Midnight Upright,,False,False,False
+Bank A/Mm-Oh Choir Whl,,True,False,False
+Bank A/Momentum Whl,A:1:28 B:1:14,True,True,True
+Bank A/NS4 Palette,,True,False,False
+Bank A/Oo Pad Whl,,True,False,False
+Bank A/Pearl Upright,,False,False,False
+Bank A/Phat 3 Osc MiniM,,False,False,False
+Bank A/Pinky Lead,A:0:15,True,True,True
+Bank A/Shimmer Upright,,False,False,False
+Bank A/Shoreline Whl,A:0:0,True,False,False
+Bank A/Sidechain Whl II,B:0:0,True,False,False
+Bank A/Silk Pad,,True,False,False
+Bank A/Silver Rush,,False,False,False
+Bank A/Silverface Mk I ,,False,False,False
+Bank A/Sine-Saw Plk Whl,,True,False,False
+Bank A/Smooth Lead,,True,False,False
+Bank A/Soft Padding Whl,,True,False,False
+Bank A/Space Drama II,,False,False,False
+Bank A/Spin EP Whl,,True,False,False
+Bank A/Stereo Wah Clav,,False,False,False
+Bank A/String Quintet,,False,False,False
+Bank A/Supreme Mdrn Whl,,True,False,False
+Bank A/Texas Nights J3,,False,False,False
+Bank A/The Gospel II,,False,False,False
+Bank A/The Long Dark Whl,,True,False,False
+Bank A/Tines Layer,,False,False,False
+Bank A/Tiny Transistor,,False,False,False
+Bank A/Velvet Grand,,False,False,False
+Bank A/Vintage Vox J3,,False,False,False
+Bank A/White Grand,,False,False,False
+Bank B/12 Strings Pad,,True,False,False
+Bank B/B3 Bassline,,False,False,False
+Bank B/B3 Dual Samba,,False,False,False
+Bank B/Ballad Layer Whl,,True,False,False
+Bank B/Bass Chorus Whl,,True,False,False
+Bank B/Blues Amp Mk I ,,False,False,False
+Bank B/Burning Lead,,True,False,False
+Bank B/Cathedral Pipes,,False,False,False
+Bank B/Choral Pad,,False,False,False
+Bank B/Chorus Caster,,False,False,False
+Bank B/Chrome Layer,,True,False,False
+Bank B/Cinematic Grand,,False,False,False
+Bank B/Clav LFO Wah Whl,,True,False,False
+Bank B/Continuo,,False,False,False
+Bank B/Coral Whl,,True,False,False
+Bank B/Dark Matter Mk I,,False,False,False
+Bank B/Detuned Fanfare,,True,False,False
+Bank B/Dyn FM Keys,,False,False,False
+Bank B/FM Cloud Whl,B:2:95 C:0:56,True,True,True
+Bank B/Fan Club Piano,,True,False,False
+Bank B/Favorite Video,B:0:0,False,True,True
+Bank B/Felt Soft Str,,False,False,False
+Bank B/French Harpsi,,False,False,False
+Bank B/Frozen Time Whl,,True,False,False
+Bank B/Funk Hit Split,,False,False,False
+Bank B/Gradient Whl,A:1:0,True,True,True
+Bank B/Grand EP Whl,,True,False,False
+Bank B/Grand Vibra Bs,,False,False,False
+Bank B/Guitar Concerto,,True,False,False
+Bank B/Heart Strings II,,False,False,False
+Bank B/Hi-Fi Grand,,False,False,False
+Bank B/HiFi Grand Str,,False,False,False
+Bank B/Hot Brass,,False,False,False
+Bank B/Hybrid Strings 2,,False,False,False
+Bank B/J3 80 Underscore,,False,False,False
+Bank B/Koln Grand,,False,False,False
+Bank B/Live CP Grand,,False,False,False
+Bank B/Logical Wurly,,False,False,False
+Bank B/Lush 12db Pad,,False,False,False
+Bank B/Marcus Solo J3,,False,False,False
+Bank B/Marimba,,False,False,False
+Bank B/Newschool Old J3,,False,False,False
+Bank B/Organ Pipe Mix,,False,False,False
+Bank B/PWM Pan Pad,,True,False,False
+Bank B/Piano Room,,False,False,False
+Bank B/Q and A,,True,False,False
+Bank B/Replica Lead,,False,False,False
+Bank B/Roto EP Ondre J,,True,False,False
+Bank B/Snappy Syn Brass,,True,False,False
+Bank B/Soft Mk I,,False,False,False
+Bank B/Solo n Walk B3,,False,False,False
+Bank B/Soul Bass Split,,False,False,False
+Bank B/Str Big Band II,,False,False,False
+Bank B/Strings Trem Whl,,True,False,False
+Bank B/Studio Keys 1,,True,False,False
+Bank B/Sync Pulse Whl,,True,False,False
+Bank B/Taped Wurly,,False,False,False
+Bank B/Unity Whl,A:0:0 B:1:0,True,True,True
+Bank B/Velvet Strings,,False,False,False
+Bank B/Vintage Str Whl,,True,False,False
+Bank B/Waits Upright,,False,False,False
+Bank B/Warm Syn Brass,,False,False,False
+Bank B/Wind Section 1,,False,False,False
+Bank B/Wormhole Organ,,True,False,False
+Bank C/Allround Lead,,False,False,False
+Bank C/Andromeda,,True,False,False
+Bank C/B3 70s Rock,,False,False,False
+Bank C/Bounce Clav,,False,False,False
+Bank C/C and G,,True,False,False
+Bank C/Chord N Melody,,True,False,False
+Bank C/Clean OB Sawz,,False,False,False
+Bank C/Cool Vibe Mk I ,,False,False,False
+Bank C/Crackle n Pd Whl,,True,False,False
+Bank C/Daft Lead,,False,False,False
+Bank C/Dance Lead,,True,False,False
+Bank C/Digi Heaven,,False,False,False
+Bank C/Distorted Whl II,,True,False,False
+Bank C/Dyn Octave Pad,,False,False,False
+Bank C/Dyno Pan Mk I,,False,False,False
+Bank C/EP Chop Whl,,True,False,False
+Bank C/Farfisa II,,False,False,False
+Bank C/Flautando Pad,,False,False,False
+Bank C/Ghost Melody,,False,False,False
+Bank C/Gravity Pattern,A:0:0,False,True,True
+Bank C/Gray Pad Whl,,True,False,False
+Bank C/Hangar Choir,,False,False,False
+Bank C/Horn Room,,False,False,False
+Bank C/Ice Pad,,False,False,False
+Bank C/J3 Warm 80s Brs,,False,False,False
+Bank C/LoFi Piano,,False,False,False
+Bank C/LoveBallad Layer,,False,False,False
+Bank C/Lush Pluck Whl,,True,False,False
+Bank C/Lyle Lead J3,,False,False,False
+Bank C/Melody Pearls,,True,False,False
+Bank C/Night Gaunts Whl,A:0:18,True,False,False
+Bank C/OB Fanfare,,False,False,False
+Bank C/Orchestra Pd Whl,,True,False,False
+Bank C/PWM Strings,,False,False,False
+Bank C/Paisley Synth,,True,False,False
+Bank C/Phased Out Wurly,,False,False,False
+Bank C/Piano Soft Orch,,True,False,False
+Bank C/Piano Str Pad,,True,False,False
+Bank C/Pizz Quintet Spl,,False,False,False
+Bank C/Pop Brass 3,,False,False,False
+Bank C/Powerful Upright,,False,False,False
+Bank C/Rising Sun,,False,False,False
+Bank C/Royal Grand 3D,,False,False,False
+Bank C/Samba Mk II,,False,False,False
+Bank C/Santoor Pluck,,False,False,False
+Bank C/Saw Horn,,False,False,False
+Bank C/Stage Pianos 1,,True,False,False
+Bank C/Stereo AnaStr II,,True,False,False
+Bank C/Superior Sequel,C:0:38,False,True,True
+Bank C/Supreme Soul Fp,,False,False,False
+Bank C/Sweet Bells,,False,False,False
+Bank C/Sweet Supreme,,False,False,False
+Bank C/Syn Flute,,False,False,False
+Bank C/Synth Saga,,False,False,False
+Bank C/TapePiano AT,,True,False,False
+Bank C/Ultimate Ballad,,False,False,False
+Bank C/Velvet Bop,,False,False,False
+Bank C/Vintage OB Pad,,False,False,False
+Bank C/Vintage Pan Mk I,,False,False,False
+Bank C/Vintage Wurly,,False,False,False
+Bank C/Vista Layer Whl,,True,False,False
+Bank C/Vox Like Me,,False,False,False
+Bank C/Vox Rising Sun,,False,False,False
+Bank C/Winter Breeze Db,,False,False,False
+Bank D/16th Note Bass,A:0:0 B:0:0 C:0:0,False,True,True
+Bank D/3 Vlns Mellotron,,False,False,False
+Bank D/70s CP Strings,,False,False,False
+Bank D/Amber Upright,,False,False,False
+Bank D/Amped Phase Clav,,False,False,False
+Bank D/Arctic Choir Whl,,True,False,False
+Bank D/B3 Reggae,,False,False,False
+Bank D/Bell Collection,,False,False,False
+Bank D/Big Analog Pluck,,False,False,False
+Bank D/Broken Chip,,False,False,False
+Bank D/CP Chorus Grand,,False,False,False
+Bank D/Calling Whl,A:1:0 B:1:0 C:2:43,True,True,True
+Bank D/Chip Bass,,True,False,False
+Bank D/Cinematic Str II,,False,False,False
+Bank D/Danceflr Peak MW,,True,False,False
+Bank D/Door Knob,,False,False,False
+Bank D/Dramatic Opening,A:0:42,False,True,True
+Bank D/Dynamic Orch,,False,False,False
+Bank D/Dyno Chorus Mk I,,False,False,False
+Bank D/Dyno Stone Mk I ,,False,False,False
+Bank D/Fast Quintet,,False,False,False
+Bank D/Finger Bass,,False,False,False
+Bank D/Flute Mellotron ,,False,False,False
+Bank D/Glow Chords Whl,,True,False,False
+Bank D/Grand Strings,,False,False,False
+Bank D/HP Splash Whl,,True,False,False
+Bank D/Hera Pad Whl,,True,False,False
+Bank D/Ice Grand,,False,False,False
+Bank D/Innocense,,False,False,False
+Bank D/Jealous Upright,,False,False,False
+Bank D/Lush Synth Str,,True,False,False
+Bank D/Marimba Pad Whl,,True,False,False
+Bank D/Mellotron Voices,,True,False,False
+Bank D/Melody Pad,,False,False,False
+Bank D/Memory Glitch,B:2:0 C:2:0,False,False,False
+Bank D/Mirror Image Pad,C:1:29,False,True,True
+Bank D/Nox Split,,False,False,False
+Bank D/PWM and Noise,,True,False,False
+Bank D/Perfect Grand,,False,False,False
+Bank D/Phil Pad,,False,False,False
+Bank D/Pno Brass Punch,,True,False,False
+Bank D/Quintet Bass Spl,,False,False,False
+Bank D/Rehearsal Pipes,,False,False,False
+Bank D/Rich FM Pad Whl,,True,False,False
+Bank D/Rose Synth Piano,,False,False,False
+Bank D/Rotor Clav,,False,False,False
+Bank D/Rotor EP,,False,False,False
+Bank D/Sidechain String,,False,False,False
+Bank D/Slightly Detuned,,False,False,False
+Bank D/Soft Vocal,,False,False,False
+Bank D/Soul Str Layer,,False,False,False
+Bank D/Space Bass,,True,False,False
+Bank D/Studio Keys 2,,True,False,False
+Bank D/Sundae Lead,,False,False,False
+Bank D/Sunrise Mello,,False,False,False
+Bank D/Super Org Punch,,False,False,False
+Bank D/Sweet EP Pad,,False,False,False
+Bank D/Trumpet Synth,,False,False,False
+Bank D/Upright Bass,,False,False,False
+Bank D/Vibra Band,,False,False,False
+Bank D/Vibraphone Whl,,True,False,False
+Bank D/Vox Inna-Gadda,,False,False,False
+Bank D/White Chorus,,False,False,False
+Bank D/Windhoek B3 II,,False,False,False
+Bank E/24 Frames J3,A:1:42 B:1:23,False,True,True
+Bank E/Affection Whl,,True,False,False
+Bank E/Americana II,,False,False,False
+Bank E/B3 Squabble,,False,False,False
+Bank E/B3 Synth Layer,,False,False,False
+Bank E/Babylon EP Whl,,True,False,False
+Bank E/Big Band Saws,,False,False,False
+Bank E/Big Felt Pad Whl,,True,False,False
+Bank E/Big White Scape,,False,False,False
+Bank E/Brass and Wind,,False,False,False
+Bank E/Breath Pad,,False,False,False
+Bank E/Calm Before Whl,,True,False,False
+Bank E/Church Layer 1,,True,False,False
+Bank E/Cinema Rise,,False,False,False
+Bank E/Classic Syn Bass,,False,False,False
+Bank E/Cut Trough Lead,,True,False,False
+Bank E/English Horn,,False,False,False
+Bank E/Fast Octaves,,False,False,False
+Bank E/Felt Clouds,,True,False,False
+Bank E/Flammable AT,,True,False,False
+Bank E/Forlorn Whl,,True,False,False
+Bank E/Gospel 1993,,False,False,False
+Bank E/Helium Whl,A:1:0,True,True,True
+Bank E/Horns n Strings,,False,False,False
+Bank E/Hybrid Knock EP,,True,False,False
+Bank E/J3 E Pno Pad,,True,False,False
+Bank E/J3 Electric Pno,,False,False,False
+Bank E/J3 Grand Layers,,True,False,False
+Bank E/J3 HardPan 80 EP,,False,False,False
+Bank E/J3 Soul Lead,,False,False,False
+Bank E/J3 Split Special,,True,False,False
+Bank E/J3 Super Sawz,,True,False,False
+Bank E/J3 White Grand,,False,False,False
+Bank E/Lost Cause EP,,False,False,False
+Bank E/Modern Descender,,False,False,False
+Bank E/Pillow Fight,,False,False,False
+Bank E/PineScape Synth,,False,False,False
+Bank E/Pushed Twin Mk I,,False,False,False
+Bank E/Ready ta Scream,,False,False,False
+Bank E/RoomUpright Whl,,True,False,False
+Bank E/Short Chords,,False,False,False
+Bank E/Simple Tune,,True,False,False
+Bank E/Sine Rain Pad,,True,False,False
+Bank E/Singing Upright,,False,False,False
+Bank E/Slow Octaves,,False,False,False
+Bank E/Snappy D6,,False,False,False
+Bank E/Solo Flute,,False,False,False
+Bank E/Solo Trumpet,,False,False,False
+Bank E/Spin Wurly II,,True,False,False
+Bank E/Square Shape Pad,,False,False,False
+Bank E/Statement Syn Bs,,False,False,False
+Bank E/Steam Piano,,False,False,False
+Bank E/Sub Surface,,False,False,False
+Bank E/Swell Saws,,False,False,False
+Bank E/Topliner,,True,False,False
+Bank E/Turtle Lead,,False,False,False
+Bank E/Velour Uprights,,False,False,False
+Bank E/Vibra-Spin Whl,,True,False,False
+Bank E/Vox Im Down,,False,False,False
+Bank E/Wah EP Ondre J,,False,False,False
+Bank E/Wet Funk Syn Bs,,False,False,False
+Bank E/Widthh,,True,False,False
+Bank E/Wind Section 2,,False,False,False
+Bank E/Worn Out Poly,,False,False,False
+Bank F/1905 Orchestra,,True,False,False
+Bank F/5th Poly Arp,A:1:0,False,True,True
+Bank F/90s Organ,,False,False,False
+Bank F/Aerial Gaze,,False,False,False
+Bank F/Analog Creature,,False,False,False
+Bank F/Analog PWM,,True,False,False
+Bank F/Atmos Lead Whl,,True,False,False
+Bank F/B3 Meditation II,,False,False,False
+Bank F/B3 Praise Bass,,False,False,False
+Bank F/Bell Pad,,False,False,False
+Bank F/Bell Strings,,False,False,False
+Bank F/Big Synth Whl,,True,False,False
+Bank F/Bright Bambino,,False,False,False
+Bank F/Cassette Pad AT,,True,False,False
+Bank F/Chamber Upright,,False,False,False
+Bank F/Chop Sync Whl,,True,False,False
+Bank F/Circus Box,,False,False,False
+Bank F/Clean Marimba AT,,True,False,False
+Bank F/Concert Grand,,False,False,False
+Bank F/Cute Orchestra,,False,False,False
+Bank F/DistantGrand,,False,False,False
+Bank F/Dreamy Syn Tines,,False,False,False
+Bank F/Dynamic Trumpet,,False,False,False
+Bank F/EP Steps,,False,False,False
+Bank F/Eddie OB,,False,False,False
+Bank F/FM Harpies,A:0:7 C:1:0,True,True,True
+Bank F/FM Keys Pad Whl,,True,False,False
+Bank F/Fat Wheel,,True,False,False
+Bank F/Felt Tines,,False,False,False
+Bank F/Forever Split,,True,False,False
+Bank F/Fresh Air Keys,,False,False,False
+Bank F/Glass Pad,,False,False,False
+Bank F/Gravity Whl,C:0:0,True,True,True
+Bank F/Hip split,,True,False,False
+Bank F/Long EP Ondre J,,False,False,False
+Bank F/Moving Chords,A:1:0,False,True,True
+Bank F/Necklace Upright,,False,False,False
+Bank F/OD Rock Bass,,False,False,False
+Bank F/Old Room Upright,,False,False,False
+Bank F/Ostinato Whl,A:0:0,True,True,True
+Bank F/Patch Fields,,False,False,False
+Bank F/Pearl Str Fl Whl,,True,False,False
+Bank F/Plucked EP,,False,False,False
+Bank F/Resonant Peaks,,False,False,False
+Bank F/Rich Velvet,,False,False,False
+Bank F/Rudiments,A:1:0 B:0:39 C:0:127,True,True,True
+Bank F/ScissorSplit Whl,A:0:0 B:0:0,True,False,False
+Bank F/Scream Lead AT,,True,False,False
+Bank F/Shiny Synth Keys,,False,False,False
+Bank F/Silent Upright,,False,False,False
+Bank F/Slow Motion Pad,,False,False,False
+Bank F/Strings and Saws,,False,False,False
+Bank F/Symph Str Legato,,False,False,False
+Bank F/Synth Clarinet,,False,False,False
+Bank F/Synth Engine,A:1:0,False,True,True
+Bank F/Synth Orchestra,,False,False,False
+Bank F/Taped Section,,True,False,False
+Bank F/Time Warp Saw,A:2:0,True,False,False
+Bank F/Unclocked Pad,A:1:29 B:0:36,False,True,True
+Bank F/Unstable CP,,False,False,False
+Bank F/Vintage Strings,,False,False,False
+Bank F/Vox DC5,,False,False,False
+Bank F/Wooden Queen,,False,False,False
+Bank F/ZigZag Arp J3,A:0:63,True,True,True

@@ -13,8 +13,47 @@ Tags follow `.agents/rules/provenance-in-code.md`: **VERIFIED** = reproduced by 
 | Can the whole chain (ARM + SHARC oracle) render all 384 programs to audio? | **No.** The live link has one audio-like tap per engine and none for the piano: PNO core 1 lane `2:0` (B3 / organ), PNO core 2 voice window `0xC1F89` (synth voice), SY ring peak (SAMPLE, D150). Piano programs: the chain voices nothing (155 programs have a piano layer in scene I). FX, pan, layer mix and master are not in any tap. A per-program level and spectrum comparison against native is therefore only possible at taps that do not exist for most programs. | VERIFIED (runs, s3) |
 | What is the ranked distance then? | **Native default against native with every oracle-verified firmware option** (`--firmware-all --firmware-routing`: firmware tone wheels, firmware filter engine, six FX ports). It measures how far the default path is from the firmware paths that are already verified against the oracle, not from the hardware. Score = `abs(level delta dB) + RMS of band share deltas dB + 6 x abs(centroid delta in octaves)`; median 3.9, p90 12.6, max 22.2; 61 programs above 10, 60 below 1. | EMPIRICAL (numbers), ASSUMED (weights) |
 | What carries the worst 20? | **FX is the only group that moves them; one FX group does not always explain them.** Only single-group reverts were run. Reverting the best single FX group leaves a score of at most 2 in 7 programs, 2 to 5 in 7, and **above 5 in 6** (Melody Pad 11.4, PineScape Synth 10.9, Time Warp Saw 8.0, Crackle n Pd Whl 7.6, Bounce Clav 6.3, Roto EP Ondre J 5.0), so those need two or more FX groups together, which was not tested. Best-single-group carriers: Mod 2 12 programs, Mod 1 3, delay 2, EQ, reverb, compressor 1 each. Organ tone wheels and the synth filter engine reduce the score in none of the 20. | EMPIRICAL (ablation, s4) |
-| Which programs does the chain not voice? | At key 60, velocity 100, 1,500 ticks held: **13 synth programs** (PNO core 2 window silent while native plays at -24 .. -40 dB RMS), **5 organ programs** (PNO core 1 lane silent), **3 SAMPLE programs** with no voice prepare (B3 Old Forest, Grand Vibra Bs, Unclocked Pad, as D154). Cause not diagnosed in the paths run. | EMPIRICAL |
+| Which programs does the chain not voice? | After the L2 wavetable forwarding, the firmware expectation and the arp hold (census rerun 2026-11-19, D170, [silent-programs](silent-programs.md)): **1 synth program** (Synth Engine: the ARM key word carries one voice bank bit, OQ40), **5 organ programs that the firmware itself keeps silent at key 60** (`organ_expected_silent`), **3 SAMPLE programs** with no voice prepare (B3 Old Forest, Grand Vibra Bs, Unclocked Pad, as D154). The first census (13 synth programs flagged) was a harness artefact: 12 of them now voice. | EMPIRICAL |
 | Which programs lose a layer? | **24 SAMPLE programs** start fewer voices than they have scene I layers (22 have 3 layers and 2 voices, D154: the ARM starts 2 voices for 3 bound layers); native plays all layers. | EMPIRICAL |
+
+## 1b. Re-run on the D163 to D166 defaults (2026-11-19)
+
+The tables of s3 below are the first run (2026-11-17, before the Mod 2, Touch, arp walk and morph defaults). The committed CSV files are regenerated on the current defaults: the engine default is amp + firmware Mod 2 (D163), piano Touch (D165), arp walk and firmware morph (D166), against `--firmware-all --firmware-routing`. Same 384 renders (key 60, velocity 100), same chain columns as on `main` (`tools/program_rank_chain.py` is not touched).
+
+| Statistic over 384 | 2026-11-17 | 2026-11-19 |
+|---|---|---|
+| mean score | 5.35 | 3.77 |
+| median | 3.92 | 2.74 |
+| p90 | 12.72 | 8.24 |
+| max | 22.15 | 21.15 |
+| programs above 5 / above 10 / below 1 | 162 / 61 / 60 | 104 / 24 / 80 |
+
+New worst 20 and carrier (the one group whose revert to the engine default leaves the smallest score, `--ablate`; the fx_mod2 revert is a no-op now):
+
+| # | Program | Engines | dLevel dB | dBands dB | dCentroid oct | Score | Carrier (score left when reverted) |
+|---|---|---|---|---|---|---|---|
+| 1 | Bank A/Bubbles Mk I | piano | -2.54 | 15.10 | +0.59 | 21.15 | fx_mod1 (0.27) |
+| 2 | Bank E/PineScape Synth | synth | -12.29 | 6.99 | +0.29 | 21.03 | fx_delay (10.96) |
+| 3 | Bank B/Clav LFO Wah Whl | piano | +2.16 | 15.14 | +0.15 | 18.21 | fx_mod1 (2.34) |
+| 4 | Bank A/Classic Wah Clav | piano | -1.25 | 16.04 | -0.04 | 17.55 | fx_mod1 (0.39) |
+| 5 | Bank E/Sine Rain Pad | synth | -5.13 | 11.45 | -0.01 | 16.62 | fx_reverb (0.01) |
+| 6 | Bank C/Crackle n Pd Whl | piano+synth | -2.28 | 9.44 | +0.71 | 15.95 | fx_eq (3.30) |
+| 7 | Bank C/TapePiano AT | piano+synth | +2.62 | 6.49 | -0.94 | 14.79 | fx_delay (0.00) |
+| 8 | Bank F/DistantGrand | piano | -3.76 | 5.71 | -0.88 | 14.73 | fx_delay (4.97) |
+| 9 | Bank A/Stereo Wah Clav | piano | +2.26 | 11.82 | -0.02 | 14.18 | fx_mod1 (1.26) |
+| 10 | Bank C/Bounce Clav | piano+synth | +7.88 | 5.95 | -0.04 | 14.05 | fx_compressor (6.81) |
+| 11 | Bank A/Jazz Guitar II | sample | +6.69 | 5.99 | -0.14 | 13.54 | fx_eq (3.33) |
+| 12 | Bank F/Time Warp Saw | synth | -2.52 | 10.08 | +0.09 | 13.16 | fx_mod1 (6.45) |
+| 13 | Bank E/24 Frames J3 | organ+piano+sample | +8.30 | 4.02 | +0.13 | 13.12 | fx_compressor (1.58) |
+| 14 | Bank E/J3 Super Sawz | synth | -2.76 | 9.95 | +0.03 | 12.92 | fx_mod1 (3.77) |
+| 15 | Bank E/B3 Squabble | organ | -0.18 | 11.27 | -0.21 | 12.72 | organ_tone (0.42) |
+| 16 | Bank E/Wah EP Ondre J | piano | -2.13 | 7.58 | +0.45 | 12.42 | fx_mod1 (4.99) |
+| 17 | Bank F/Synth Orchestra | synth | -2.26 | 9.45 | +0.01 | 11.75 | fx_mod1 (0.68) |
+| 18 | Bank C/Gray Pad Whl | synth | -2.42 | 8.97 | +0.02 | 11.51 | fx_reverb (1.23) |
+| 19 | Bank B/Fan Club Piano | piano | +9.28 | 0.88 | +0.18 | 11.25 | fx_compressor (2.77) |
+| 20 | Bank E/RoomUpright Whl | piano | -2.79 | 3.76 | -0.70 | 10.78 | fx_delay (4.12) |
+
+Carriers of the worst 20: **Mod 1 in 8** (Bubbles Mk I, Clav LFO Wah Whl, Classic Wah Clav, Stereo Wah Clav, Wah EP Ondre J, Time Warp Saw, Synth Orchestra, J3 Super Sawz; the Wah and A-WAH types among them), **delay in 4** (PineScape Synth, TapePiano AT, DistantGrand, RoomUpright Whl), compressor in 3 (Bounce Clav, 24 Frames J3, Fan Club Piano), EQ in 2 (Crackle n Pd Whl, Jazz Guitar II), reverb in 2 (Sine Rain Pad, Gray Pad Whl), organ tone wheels in 1 (B3 Squabble, 12.72 with 0.42 left). Mod 2 left the list: it carried 12 of the old 20. Combined revert sets (63 per program) are in [program-ranking-fx-combos.csv](data/program-ranking-fx-combos.csv) and [program-ranking-fx](program-ranking-fx.md) s6. `program-sweep.json` is regenerated too (`program_sweep`, both modes, notes 48 55 64 72).
 
 ## 2. Method
 
@@ -28,18 +67,7 @@ Tags follow `.agents/rules/provenance-in-code.md`: **VERIFIED** = reproduced by 
 
 ### 3.1 Distribution by engine (scene I, `data/program-ranking.csv`)
 
-| Engines (scene I) | Programs | Median score | Max score | Programs with a chain flag (not counting `piano_no_chain_tap`) |
-|---|---|---|---|---|
-| organ | 23 | 5.04 | 12.72 | 0 |
-| organ+piano+sample | 3 | 5.45 | 12.76 | 3 |
-| organ+piano+synth | 2 | 7.40 | 7.40 | 1 |
-| organ+sample | 8 | 8.19 | 13.03 | 5 |
-| organ+synth | 2 | 4.04 | 4.04 | 1 |
-| piano | 83 | 3.65 | 22.15 | 0 |
-| piano+sample | 22 | 2.02 | 22.01 | 8 |
-| piano+synth | 45 | 5.58 | 19.04 | 3 |
-| sample | 80 | 2.64 | 14.83 | 32 |
-| synth | 116 | 5.15 | 21.54 | 9 |
+
 
 (`sample` = a synth layer plays a SAMPLES multisample; `synth` = analog oscillators.) By dominant term: bands 233 programs (median 5.2), level 130 (median 2.3), centroid 21 (median 2.9). The level delta of firmware options against the default spans -12.3 .. +9.5 dB (median +0.3). No program is silent in one render and not in the other.
 
@@ -74,9 +102,9 @@ In all twenty, only FX groups reduce the score when reverted (s4); for 6 of them
 
 | Flag | Programs | Notes |
 |---|---|---|
-| `piano_no_chain_tap` | 155 | piano layer in scene I; PNO core 1 lane stays 0 for every piano program run (B3 control: lane peak 0.0746). No verdict possible. |
-| `synth_chain_silent` | 13 | Dance Lead, Gravity Pattern, 70s CP Strings, Broken Chip, Calling Whl, Super Org Punch, 90s Organ, Dreamy Syn Tines, Gravity Whl, Moving Chords, Scream Lead AT, Shiny Synth Keys, Synth Engine. Native plays them at -21.8 .. -39.6 dB RMS. Diagnosed in [silent-programs](silent-programs.md) (D164): 10 lost the per-program wavetable (L2 stores dropped by the Router, fixed), 4 are arp programs held too short (2 overlap), 1 (Synth Engine) is open. Native is not wrong. The numbers in this table are from the first census; rerun pending. |
-| `organ_chain_silent` | 5 | Ballad Layer Whl, Wormhole Organ (Pipe 1), Nox Split (Pipe 2), 24 Frames J3, J3 Grand Layers. The other 33 organ programs (B3 20 of 23, Vox 7 of 7, Farfisa 2 of 2, Pipe 1 2 of 3, Pipe 2 2 of 3) voice on PNO core 1. Diagnosed in [silent-programs](silent-programs.md) (D164): all 5 are legitimate firmware silences at key 60 (zone ends below the key, or stored level 0). |
+| `piano_no_chain_tap` | 155 | piano layer in scene I; a piano key sends no message to the SMP chip in the census harness ([piano-chain-tap](piano-chain-tap.md), OQ41). No verdict possible. |
+| `synth_chain_silent` | 1 | Synth Engine (arp zigzag custom pattern, ARM key word with bank bit `0x01` only, [silent-programs](silent-programs.md) s6, OQ40). The 12 other programs of the first census (Dance Lead, Gravity Pattern, 70s CP Strings, Broken Chip, Calling Whl, Super Org Punch, 90s Organ, Dreamy Syn Tines, Gravity Whl, Moving Chords, Scream Lead AT, Shiny Synth Keys) voice after the L2 forwarding and the arp hold (D170). |
+| `organ_expected_silent` | 5 | Ballad Layer Whl, Wormhole Organ (Pipe 1), Nox Split (Pipe 2), 24 Frames J3, J3 Grand Layers: the firmware keeps the organ layer silent at key 60 (zone gain 0 or stored level 0; `tools/program_expect.py`). The other 33 organ programs voice. |
 | `sample_layer_lost` | 24 | 22 with 3 layers (2 voices), Momentum Whl (2 layers, 1 voice), Quintet Bass Spl and Pizz Quintet Spl (1 voice). Same cause as D154 section 4.3: the third layer gets no voice in the harness. |
 | `sample_no_voice` | 3 | B3 Old Forest, Grand Vibra Bs, Unclocked Pad (D154 follow-up 3). |
 | `sample_voiced_no_audio` | 19 | of the 31 programs with a return-path run, 19 prepare a voice and the SY ring peak is 0 (the desync of D112 / D150); the 12 with audio all read 0.05394 (5 digits, identical across programs): that is the stand-in sample bound by `--ns4b`, **not** a program level. The SY ring peak carries no per-program level information. |
@@ -97,7 +125,7 @@ Carrier = best single-group revert; **only single-group reverts were run**, no p
 
 1. **Not hardware.** The reference of the score is the firmware-derived native path, which is verified against the oracle per stage, not against recordings. A program near 0 can still be far from the hardware (organ level K, D113; reverb tails).
 2. **Chain audio per engine is missing** for the piano (no tap), for FX output and for the master. The ranking cannot see errors common to default and firmware paths (the piano engine, the organ K level, SAMPLE pitch entry `e`).
-3. The chain census is one key (60), one velocity, 1,500 ticks held; the flags of 13 synth and 5 organ programs may be a property of that hold, not a chain defect.
+3. The chain census is one key (60), one velocity, 1,500 ticks held (15,000 for arp programs). Peak columns are empty where the chip of that column was not run for the program's engines (`chips_for`): a number means run, `0.0` means silent.
 4. Score weights are ASSUMED; the CSV keeps level, band and centroid parts apart.
 
 ## Implications
@@ -109,9 +137,9 @@ Carrier = best single-group revert; **only single-group reverts were run**, no p
 ## Follow-ups
 
 1. ~~Ablate pairs of FX groups for the 6 programs with a residual above 5~~ Done in [program-ranking-fx](program-ranking-fx.md) (D163): all 63 FX combinations for the worst 20 (Mod 2 plus EQ explain most; the six residual programs need three or four groups), and the before / after of an FX default flip on all 384. Still open: programs 21 to 384 have no carrier (`--ablate-fx`, about 15 s per program with `--jobs 20`).
-2. ~~Diagnose the 13 `synth_chain_silent` and 5 `organ_chain_silent` programs~~ done in [silent-programs](silent-programs.md) (D164); rerun the census with `--expect`; Synth Engine open.
+2. ~~Diagnose the 13 `synth_chain_silent` and 5 `organ_chain_silent` programs~~ done in [silent-programs](silent-programs.md) (D164, D170): census rerun, Synth Engine open (OQ40).
 3. A piano tap: PNO core 1 with the SMP stream (OQ in `docs/OPEN-QUESTIONS.md`).
-4. Re-run after any FX default flip: `tools/program_rank.py` regenerates both CSV files.
+4. Re-run after any FX default flip: `tools/program_rank.py` regenerates both CSV files (done 2026-11-19, s1b; six per-bank `program_rank --only "Bank X/"` shards give the same lines as one run).
 
 ## Refactor check (`program_sweep` -> `sweep_load.rs`)
 

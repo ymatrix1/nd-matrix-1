@@ -1,0 +1,409 @@
+{
+ "summary": {
+  "runs": 9,
+  "natural_runs": 7,
+  "flag_writes": 0,
+  "flags_not_one": 0,
+  "constructor_calls_after_boot": 0,
+  "site_hits": 4664,
+  "site_hits_on_pattern_object": 0,
+  "sites_reached": [
+   "0xc00fd030",
+   "0xc00fd1ec",
+   "0xc00fd20c",
+   "0xc00fd814",
+   "0xc00fd844",
+   "0xc00fd960",
+   "0xc00fda10",
+   "0xc011cf1c",
+   "0xc011cfbc",
+   "0xc0240784",
+   "0xc02407f8",
+   "0xc0240830",
+   "0xc0240f64",
+   "0xc02418bc",
+   "0xc02418fc",
+   "0xc0241a1c",
+   "0xc0241a90",
+   "0xc0241af4",
+   "0xc0241b60",
+   "0xc0241bc8",
+   "0xc0242010",
+   "0xc024203c",
+   "0xc0242514",
+   "0xc02425c4",
+   "0xc0242b4c",
+   "0xc0242b7c",
+   "0xc0242c04",
+   "0xc0242ea0",
+   "0xc0242f6c"
+  ],
+  "gate_fractions": {
+   "0.662": 1,
+   "0.667": 10,
+   "0.669": 1
+  }
+ },
+ "rows": [
+  {
+   "program": "Horizon Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [],
+   "force_flag": 0,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [],
+   "force_flag": 0,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [],
+   "force_flag": 0,
+   "layer": "C",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mst_clk=0",
+    "C.mst_clk=0"
+   ],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 9,
+   "first_on_ms": 76.04,
+   "step_ms": 112.67,
+   "gate_ms": 75.33,
+   "gate_fraction": 0.669
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mst_clk=0",
+    "C.mst_clk=0"
+   ],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mst_clk=0",
+    "C.mst_clk=0"
+   ],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 10,
+   "first_on_ms": 57.38,
+   "step_ms": 94.67,
+   "gate_ms": 62.67,
+   "gate_fraction": 0.662
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mst_clk=0",
+    "C.mst_clk=0"
+   ],
+   "force_flag": 0,
+   "layer": "A",
+   "notes_on": 9,
+   "first_on_ms": 76.04,
+   "step_ms": 112.67,
+   "gate_ms": 75.33,
+   "gate_fraction": 0.669
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mst_clk=0",
+    "C.mst_clk=0"
+   ],
+   "force_flag": 0,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mst_clk=0",
+    "C.mst_clk=0"
+   ],
+   "force_flag": 0,
+   "layer": "C",
+   "notes_on": 10,
+   "first_on_ms": 57.38,
+   "step_ms": 94.67,
+   "gate_ms": 62.67,
+   "gate_fraction": 0.662
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mode=2",
+    "C.mode=2"
+   ],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.92,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mode=2",
+    "C.mode=2"
+   ],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mode=2",
+    "C.mode=2"
+   ],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 6,
+   "first_on_ms": 149.92,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.kb_sync=1",
+    "C.kb_sync=1"
+   ],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.kb_sync=1",
+    "C.kb_sync=1"
+   ],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.kb_sync=1",
+    "C.kb_sync=1"
+   ],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.pattern_on=1",
+    "C.pattern_on=1"
+   ],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.pattern_on=1",
+    "C.pattern_on=1"
+   ],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.pattern_on=1",
+    "C.pattern_on=1"
+   ],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mode=1",
+    "C.mode=1"
+   ],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mode=1",
+    "C.mode=1"
+   ],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.mode=1",
+    "C.mode=1"
+   ],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.rate=20",
+    "C.rate=20"
+   ],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 1,
+   "first_on_ms": 799.88,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.rate=20",
+    "C.rate=20"
+   ],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [
+    "A.rate=20",
+    "C.rate=20"
+   ],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 1,
+   "first_on_ms": 799.88,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null
+  }
+ ]
+}

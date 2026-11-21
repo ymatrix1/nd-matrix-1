@@ -17,6 +17,10 @@ pub struct MasterBus {
     env: f32,
     recon_lp_l: f32,
     recon_lp_r: f32,
+    /// Frames whose summed bus exceeded plus or minus 1.0 before the hard clamp below (a counter
+    /// only: the output is unchanged). The GUI meter reports it, because the clamp sits before
+    /// the output meter and its over-0-dBFS count cannot see it.
+    pub clamped_frames: u64,
 }
 
 impl Default for MasterBus {
@@ -29,6 +33,7 @@ impl Default for MasterBus {
             env: 0.0,
             recon_lp_l: 0.0,
             recon_lp_r: 0.0,
+            clamped_frames: 0,
         }
     }
 }
@@ -60,7 +65,7 @@ impl MasterBus {
         };
         if let Some(stage) = &mut self.fw_compressor {
             let [cl, cr] = stage.process_frame([l, r]);
-            return self.reconstruct([cl.clamp(-1.0, 1.0), cr.clamp(-1.0, 1.0)]);
+            return self.clamp_and_reconstruct(cl, cr);
         }
         let peak = l.abs().max(r.abs());
         self.env = 0.99 * self.env + 0.01 * peak;
@@ -72,7 +77,14 @@ impl MasterBus {
             1.0 + 0.15 * amt
         };
 
-        self.reconstruct([(l * gain).clamp(-1.0, 1.0), (r * gain).clamp(-1.0, 1.0)])
+        self.clamp_and_reconstruct(l * gain, r * gain)
+    }
+
+    /// The master bus hard clamp at plus or minus 1.0 (counted), then the DAC stage.
+    #[inline]
+    fn clamp_and_reconstruct(&mut self, l: f32, r: f32) -> [f32; 2] {
+        self.clamped_frames += u64::from(l.abs() > 1.0 || r.abs() > 1.0);
+        self.reconstruct([l.clamp(-1.0, 1.0), r.clamp(-1.0, 1.0)])
     }
 
     /// Post-DAC Burr-Brown PCM1791A + NJM4580M stage:
@@ -97,6 +109,29 @@ mod tests {
                 bus.process_frame([x, -x])
             })
             .collect()
+    }
+
+    #[test]
+    fn frames_over_full_scale_are_clamped_and_counted_without_changing_the_output() {
+        let mut bus = MasterBus::default();
+        let quiet = bus.process_frame([0.2, -0.2]);
+        assert_eq!(bus.clamped_frames, 0);
+        assert!(quiet[0].abs() < 1.0);
+        // A sustained +3.0 / -2.0 bus: every frame is clamped (and counted), the output stays inside.
+        let mut peak = 0.0f32;
+        for _ in 0..200 {
+            let [l, r] = bus.process_frame([3.0, -2.0]);
+            peak = peak.max(l.abs()).max(r.abs());
+        }
+        assert_eq!(bus.clamped_frames, 200);
+        assert!(peak <= 1.0 && peak > 0.9, "{peak}");
+        // Fw compressor path counts too.
+        let mut fw = MasterBus::default();
+        fw.set_fw_compressor(Some(FwCompressor::new()));
+        for _ in 0..64 {
+            fw.process_frame([5.0, 5.0]);
+        }
+        assert!(fw.clamped_frames > 0);
     }
 
     #[test]

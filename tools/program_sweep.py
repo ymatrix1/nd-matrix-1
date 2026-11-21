@@ -23,6 +23,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import subprocess
 import sys
@@ -790,6 +791,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ns4b", type=Path, help="factory backup to render")
     ap.add_argument("--jsonl", type=Path, help="reuse the example output instead of rendering")
     ap.add_argument("--frames", type=int, default=96000, help="frames per render (hold = 3/4)")
+    ap.add_argument(
+        "--checked",
+        default=datetime.date.today().isoformat(),
+        help="date written as Checked (default: today)",
+    )
     ap.add_argument("--meta", type=Path, help="JSON with checked/backup/implications/followups")
     ap.add_argument("--no-write", action="store_true", help="print a summary only")
     args = ap.parse_args(argv)
@@ -801,7 +807,7 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("give --ns4b or --jsonl")
     result = analyze(records)
     meta = {
-        "checked": "unset",
+        "checked": args.checked,
         "backup": "Nord Stage 4 Factory Restore RevK v1.66.ns4b",
         "tool": "tools/program_sweep.py",
         "frames": args.frames,

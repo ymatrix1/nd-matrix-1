@@ -15,6 +15,8 @@ pub fn standalone_engine(sample_rate: f32) -> Stage4Engine {
         level.base = 0.0_f32;
     }
     engine.synth_a.waveform = VaWaveform::SuperSaw;
+    // Firmware FX stage boxes are made here, not on the audio thread (TD-18).
+    engine.reserve_audio_stages();
     engine
 }
 

@@ -191,3 +191,16 @@ def test_main_dispatches_per_platform_formats(tmp_path, monkeypatch, capsys):
     assert code == 0
     assert calls == [("win", "v1.2.3-dev")]
     assert "fake-setup.exe" in capsys.readouterr().out
+
+
+# freedesktop.org registered categories (menu-spec "Registered Categories") that the
+# desktop entry may use; appimagetool's desktop-file-validate rejects anything else
+# that does not start with "X-" (release run 44458756513 failed on "Synthesizer").
+_REGISTERED_CATEGORIES = {"AudioVideo", "Audio", "Music", "Midi", "Player", "Recorder"}
+
+
+def test_desktop_entry_categories_are_registered():
+    line = next(x for x in ri.DESKTOP_ENTRY.splitlines() if x.startswith("Categories="))
+    cats = [c for c in line.removeprefix("Categories=").split(";") if c]
+    assert cats, "Categories must not be empty"
+    assert set(cats) <= _REGISTERED_CATEGORIES, cats

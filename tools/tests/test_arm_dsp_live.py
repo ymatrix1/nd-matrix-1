@@ -8,6 +8,7 @@ from pathlib import Path
 
 import arm_dsp_link as dl
 import arm_dsp_live as live
+import arm_dsp_live_parts as parts
 import arm_dsp_route as rt
 import arm_emu as ae
 
@@ -159,3 +160,15 @@ def test_poll_advance_feeds_the_messages_then_runs_one_sy_pass() -> None:
     assert order == ["feed", "run1", "feed", "run1"]  # every 2nd read of the address
     off = live.return_source(items, None, 0, before).live[(3, 0)]
     assert off == link.dump  # poll 0: the plain dump
+
+
+def test_seen_delta_reports_only_the_names_that_grew() -> None:
+    before = {"PNO1p2": 5, "SMP0p1": 7, "FX1p2": 2}
+    after = {"PNO1p2": 9, "SMP0p1": 7, "FX1p2": 2, "SY0p1": 3}
+    assert live.seen_delta(before, after) == {"PNO1p2": 4, "SY0p1": 3}
+    assert live.seen_delta(after, after) == {}
+
+
+def test_driver_re_exports_the_split_out_parts() -> None:
+    for name in ("Chips", "Feeder", "phase_delta", "progress", "seen_delta", "snapshot"):
+        assert getattr(live, name) is getattr(parts, name)

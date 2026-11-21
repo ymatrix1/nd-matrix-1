@@ -38,6 +38,23 @@ pub const GROUPS: [(&str, Revert); GROUP_COUNT] = [
     ("fx_mod2", |o, d| o.fx.mod2 = d.fx.mod2),
 ];
 
+/// Flip-only sub-groups of `fx_delay` (indices `GROUP_COUNT` and `GROUP_COUNT + 1`): they split the
+/// delay group into its two ports so a default flip of one port can be measured alone
+/// (`program_rank --flip fx_delay_time`). They are not part of the ablation or the 63 subsets.
+pub const SUBGROUPS: [(&str, Revert); 2] = [
+    ("fx_delay_time", |o, d| o.fx.delay_time = d.fx.delay_time),
+    ("fx_delay_laws", |o, d| o.fx.delay_laws = d.fx.delay_laws),
+];
+
+/// Name and copy function of group index `g` (a [`GROUPS`] entry, then a [`SUBGROUPS`] entry).
+fn group(g: usize) -> (&'static str, Revert) {
+    if g < GROUP_COUNT {
+        GROUPS[g]
+    } else {
+        SUBGROUPS[g - GROUP_COUNT]
+    }
+}
+
 /// The groups of `FirmwareFx::PARITY` (every FX group but `fx_reverb`): delay, compressor, EQ,
 /// Mod 1, Mod 2.
 pub const PARITY_GROUPS: [usize; 5] = [2, 3, 5, 6, 7];
@@ -77,14 +94,17 @@ pub fn reverted_set(
 }
 
 /// `base` with the groups in `set` switched to the firmware value (what a default flip of those
-/// groups would render); the other groups keep `base`.
+/// groups would render); the other groups keep `base`. `set` may name a [`SUBGROUPS`] index.
 pub fn flipped_set(
     firmware: &FirmwareOptions,
     base: &FirmwareOptions,
     set: &[usize],
 ) -> FirmwareOptions {
-    let keep: Vec<usize> = (0..GROUP_COUNT).filter(|g| !set.contains(g)).collect();
-    reverted_set(firmware, base, &keep)
+    let mut o = *base;
+    for &g in set {
+        group(g).1(&mut o, firmware);
+    }
+    o
 }
 
 /// Parses `fx_mod1+fx_mod2,fx_eq` (sets separated by `,`, groups by `+`) into group indices;
@@ -98,9 +118,8 @@ pub fn parse_sets(list: &str) -> Result<Vec<Vec<usize>>, String> {
             }
             item.split('+')
                 .map(|n| {
-                    GROUPS
-                        .iter()
-                        .position(|(g, _)| *g == n.trim())
+                    (0..GROUP_COUNT + SUBGROUPS.len())
+                        .find(|&g| group(g).0 == n.trim())
                         .ok_or_else(|| format!("unknown group '{n}'"))
                 })
                 .collect()
@@ -121,7 +140,7 @@ pub fn reverted(
 pub fn subset_key(set: &[usize]) -> String {
     let mut s = set.to_vec();
     s.sort_unstable();
-    s.iter().map(|&g| GROUPS[g].0).collect::<Vec<_>>().join("+")
+    s.iter().map(|&g| group(g).0).collect::<Vec<_>>().join("+")
 }
 
 /// Every non-empty combination of the FX groups (indices into [`GROUPS`]), by mask 1..2^6.
@@ -246,6 +265,22 @@ mod tests {
         assert_eq!(parse_sets("all-fx").unwrap()[0].len(), 6);
         assert!(parse_sets("fx_bogus").is_err());
         assert!(parse_sets("").unwrap().is_empty());
+    }
+
+    #[test]
+    fn delay_subgroups_flip_one_port_alone() {
+        let (firmware, base) = (firmware_options(), baseline(false));
+        let time = flipped_set(&firmware, &base, &[GROUP_COUNT]);
+        assert!(time.fx.delay_time && !time.fx.delay_laws);
+        let laws = flipped_set(&firmware, &base, &[GROUP_COUNT + 1]);
+        assert!(laws.fx.delay_laws && !laws.fx.delay_time);
+        assert_eq!(
+            parse_sets("fx_delay_time+fx_delay_laws").unwrap(),
+            [vec![GROUP_COUNT, GROUP_COUNT + 1]]
+        );
+        assert_eq!(subset_key(&[GROUP_COUNT + 1, 7]), "fx_mod2+fx_delay_laws");
+        let both = flipped_set(&firmware, &base, &[2]);
+        assert!(both.fx.delay_time && both.fx.delay_laws);
     }
 
     #[test]

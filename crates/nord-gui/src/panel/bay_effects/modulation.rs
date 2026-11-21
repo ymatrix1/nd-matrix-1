@@ -4,7 +4,7 @@
 
 use super::ctx::{from_log, to_log, Fx};
 use super::ids::NO_CLOCK;
-use crate::audio::{FxEdit, FxFloat};
+use super::mod_touch::{keep, Touch};
 use crate::panel::param_hint::fmt;
 use crate::panel::prelude::Stage4PanelState;
 use crate::panel::ui_state::fx::{next_supported, ChainUi, Unit, MOD1, MOD2, MST_LABELS};
@@ -74,8 +74,7 @@ fn view(c: &mut ChainUi, unit: Unit) -> View<'_> {
 }
 
 fn unit(f: &mut Fx, st: &mut Stage4PanelState, slot: usize, s: &Spec) {
-    let mut changed = false;
-    let amount_only;
+    let mut touch = Touch::default();
     {
         let mut v = view(&mut st.fx_ui.chains[slot], s.unit);
         let on_rect = f.rect(s.on);
@@ -88,7 +87,7 @@ fn unit(f: &mut Fx, st: &mut Stage4PanelState, slot: usize, s: &Spec) {
         let tip = format!("{} ON", s.title);
         if f.button(s.on, on_rect, *v.on, false, &tip).is_some() {
             *v.on = !*v.on;
-            changed = true;
+            touch.add(Touch::TYPE);
         }
 
         let sel_rect = f.rect(s.selector);
@@ -113,15 +112,18 @@ fn unit(f: &mut Fx, st: &mut Stage4PanelState, slot: usize, s: &Spec) {
         match f.button(s.selector, sel_rect, *v.on, true, &tip) {
             Some(Trigger::Primary) => {
                 *v.sel = (s.next)(*v.sel);
-                changed = true;
+                touch.add(Touch::TYPE);
             }
-            Some(Trigger::Shifted) => {
-                match (&mut v.ped, v.has_ped) {
-                    (Some((ped, _)), true) => **ped = !**ped,
-                    _ => *v.var = !*v.var,
+            Some(Trigger::Shifted) => match (&mut v.ped, v.has_ped) {
+                (Some((ped, _)), true) => {
+                    **ped = !**ped;
+                    touch.add(Touch::PED);
                 }
-                changed = true;
-            }
+                _ => {
+                    *v.var = !*v.var;
+                    touch.add(Touch::VARIATION);
+                }
+            },
             _ => {}
         }
         let (text, active) = match &v.ped {
@@ -148,7 +150,7 @@ fn unit(f: &mut Fx, st: &mut Stage4PanelState, slot: usize, s: &Spec) {
             (Some((ped, pos)), _) if *ped && v.has_ped => {
                 let tip = "PED position (no pedal attached: static position; Pump ducks when it rises through half)";
                 if f.knob(s.rate, pos, (0.0, 1.0), tip, None) {
-                    changed = true;
+                    touch.add(Touch::PED_POS);
                     f.hint(s.rate, &format!("Pos {:.0} %", *pos * 100.0));
                 }
                 f.name(s.rate, "POS");
@@ -159,7 +161,9 @@ fn unit(f: &mut Fx, st: &mut Stage4PanelState, slot: usize, s: &Spec) {
                 let tip = format!("{} MST CLK division: {}", s.title, MST_LABELS[*mst]);
                 if f.knob(s.rate, &mut x, (0.0, steps), &tip, None) {
                     let next = x.round().clamp(0.0, steps) as usize;
-                    changed |= next != *mst;
+                    if next != *mst {
+                        touch.add(Touch::MST);
+                    }
                     *mst = next;
                     f.hint(s.rate, MST_LABELS[next]);
                 }
@@ -180,7 +184,7 @@ fn unit(f: &mut Fx, st: &mut Stage4PanelState, slot: usize, s: &Spec) {
                 };
                 if f.knob(s.rate, &mut n, (0.0, 1.0), &tip, None) {
                     *v.rate = from_log(n, s.rate_range.0, s.rate_range.1);
-                    changed = true;
+                    touch.add(Touch::RATE);
                     let text = if v.auto_wah {
                         format!("Sens {:.2}", *v.rate)
                     } else {
@@ -192,28 +196,15 @@ fn unit(f: &mut Fx, st: &mut Stage4PanelState, slot: usize, s: &Spec) {
             }
         }
         let tip = format!("{} AMOUNT ({:.0} %)", s.title, *v.amount * 100.0);
-        let amount = f.knob(s.amount, v.amount, (0.0, 1.0), &tip, None);
-        amount_only = amount && !changed;
-        changed |= amount;
+        if f.knob(s.amount, v.amount, (0.0, 1.0), &tip, None) {
+            touch.add(Touch::AMOUNT);
+        }
         f.name(s.amount, "AMOUNT");
     }
-    if changed {
+    if !touch.is_empty() {
+        // Send only what the touched control owns (see `mod_touch`).
         let mut edits = st.fx_ui.after_edit(slot, s.unit);
-        if amount_only {
-            // Only the amount moved. The full unit set would also resend type, rate and
-            // variation: the Mod 2 type edit clears the firmware words of a loaded program and
-            // swaps the firmware stage for the engine one (an audible jump on the first touch),
-            // and a stale view of the variation would overwrite the loaded one.
-            let param = match s.unit {
-                Unit::Mod1 => FxFloat::Mod1Amount,
-                _ => FxFloat::Mod2Amount,
-            };
-            edits.retain(|e| match e {
-                FxEdit::Sharing(_) => true,
-                FxEdit::Float { param: p, .. } => *p == param,
-                _ => false,
-            });
-        }
+        edits.retain(|e| keep(touch, e));
         f.send(edits);
     }
 }

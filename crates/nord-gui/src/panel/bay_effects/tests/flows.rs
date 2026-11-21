@@ -431,3 +431,116 @@ fn mod_amount_knob_sends_only_the_amount_and_keeps_a_loaded_mod2() {
         );
     }
 }
+
+#[test]
+fn every_mod_control_sends_only_its_own_edits() {
+    // Each touch must leave the other parameters of the unit alone: the full set would resend a
+    // stale view (a loaded variation) and, for Mod 2, clear the firmware raw words.
+    type Pick = fn(&FxEdit) -> bool;
+    let is_type: Pick = |e| matches!(e, FxEdit::Mod1Type { .. } | FxEdit::Mod2Type { .. });
+    let is_var: Pick = |e| {
+        matches!(
+            e,
+            FxEdit::Flag {
+                param: FxFlag::Mod1Variation | FxFlag::Mod2Variation,
+                ..
+            }
+        )
+    };
+    let is_rate = |e: &FxEdit, p: FxFloat| matches!(e, FxEdit::Float { param, .. } if *param == p);
+    for unit in ["mod1", "mod2"] {
+        let rate_p = if unit == "mod1" {
+            FxFloat::Mod1Rate
+        } else {
+            FxFloat::Mod2Rate
+        };
+        let amt_p = if unit == "mod1" {
+            FxFloat::Mod1Amount
+        } else {
+            FxFloat::Mod2Amount
+        };
+        let (on, sel, rate, amt) = (
+            format!("{unit}.on"),
+            format!("{unit}.selector"),
+            format!("{unit}.rate"),
+            format!("{unit}.amount"),
+        );
+        // ON: type edit only.
+        let mut s = Session::new();
+        s.click(&on);
+        let e = s.fx_edits();
+        assert!(e.iter().any(is_type), "{unit} ON sends the type");
+        assert!(
+            e.iter().all(|x| is_type(x)
+                || matches!(
+                    x,
+                    FxEdit::Mod1Sync { .. }
+                        | FxEdit::Flag {
+                            param: FxFlag::Mod1Ped,
+                            ..
+                        }
+                )),
+            "{unit} ON: {e:?}"
+        );
+        // Type selector: same.
+        let mut s = Session::new();
+        s.click(&sel);
+        let e = s.fx_edits();
+        assert!(e.iter().any(is_type));
+        assert!(
+            e.iter()
+                .all(|x| !is_var(x) && !matches!(x, FxEdit::Float { .. })),
+            "{unit} type: {e:?}"
+        );
+        // Shift+selector: variation only (Mod 1 type 0 has no PED).
+        let mut s = Session::new();
+        s.shift_click(&sel);
+        let e = s.fx_edits();
+        assert!(e.iter().any(is_var), "{unit} shift sends the variation");
+        assert!(e.iter().all(is_var), "{unit} shift: {e:?}");
+        // RATE: the rate only.
+        let mut s = Session::new();
+        s.drag_up(&rate, 20.0);
+        let e = s.fx_edits();
+        assert!(e.iter().any(|x| is_rate(x, rate_p)));
+        assert!(e.iter().all(|x| is_rate(x, rate_p)), "{unit} rate: {e:?}");
+        // AMOUNT: the amount only.
+        let mut s = Session::new();
+        s.drag_up(&amt, 20.0);
+        let e = s.fx_edits();
+        assert!(e.iter().all(|x| is_rate(x, amt_p)), "{unit} amount: {e:?}");
+    }
+}
+
+#[test]
+fn mod1_ped_knob_and_ped_toggle_send_only_their_edit() {
+    let mut s = Session::new();
+    s.state.fx_ui.chains[0].mod1_on = true;
+    s.state.fx_ui.chains[0].mod1_sel = 4; // WAH has PED
+    s.shift_click("mod1.selector");
+    let e = s.fx_edits();
+    assert!(
+        e.iter().all(|x| matches!(
+            x,
+            FxEdit::Flag {
+                param: FxFlag::Mod1Ped,
+                ..
+            }
+        )),
+        "PED toggle: {e:?}"
+    );
+    assert!(!e.is_empty());
+    s.drag_up("mod1.rate", 20.0);
+    let e = s.fx_edits();
+    assert!(
+        e.iter().all(|x| matches!(
+            x,
+            FxEdit::Float {
+                param: FxFloat::Mod1PedPos,
+                ..
+            }
+        )),
+        "PED position: {e:?}"
+    );
+    assert!(!e.is_empty());
+}

@@ -69,3 +69,65 @@ The glitches are the firmware FX racks running at about 1.3 times the block budg
 - Reverb cost: the register machine does a linear window search per memory access (`Core::slot`) and a `V` enum per register element; a specialised straight-line f32 path would need an error bound against the oracle (opt-in, `FwReverbMultiF32` already exists).
 - Share one reverb between racks with identical settings (the program stores one reverb for the layers? needs the firmware evidence), then default the idle skip once the owner agrees.
 - Master bus: an opt-in soft limiter instead of the hard clamp, and count clamped frames in the GUI meter.
+
+## 6. Round 2 (2026-11-19, D167): the crackle that survives D161 with the new defaults
+
+- **Checked:** 2026-11-19 (`main` @ `6a8ba992` plus this branch). **Sources:** `nord-stage4 --audio-probe` (new: the real cpal callback without a window), `ns4 bench --gui --reload` (new), cpal 0.15.3 `host/wasapi/stream.rs`, Windows 11, Ryzen 9 5900XT (16 cores), default output device 48 kHz F32, driver default buffer 480 frames (10 ms). **Question:** after D161 and the heavier defaults (firmware Mod 2, Touch, arp walk, morph), what still makes the GUI crackle?
+
+### 6.1 Findings
+
+| # | Finding | Evidence |
+|---|---|---|
+| 1 | **The callback thread runs at normal priority with no MMCSS class.** cpal's `boost_current_thread_priority` calls `SetThreadPriority(HANDLE(GetCurrentThreadId() as isize), TIME_CRITICAL)`: a thread id is not a handle, the call fails and the result is discarded | probe: `thread priority 15 (was 0)` (`GetThreadPriority` before our call reads 0 on cpal's thread) |
+| 2 | Under CPU contention the unboosted callback loses blocks even when the render is cheap (Scene II, 88 keys, default engine, 26 percent load): 13 late blocks, worst callback 20.9 ms, 11 callbacks started more than 1.5 periods late | table 6.2, row C |
+| 3 | The default configuration is **not render bound** on this host: A:16 Horizon Whl Scene I with arp 25 to 30 percent load, 0 late idle; the default start-up engine in Scene II with 88 keys 25 to 26 percent | table 6.2, rows A, C |
+| 4 | `--firmware-fx` (opt-in) is render bound on Horizon Whl: 86 to 88 percent load, 115 to 198 of about 1200 callbacks late with an idle host, and a boost cannot fix a render that is longer than the buffer | table 6.2, row B |
+| 5 | **The master bus hard clamp is audible as distortion on hot patches.** The default start-up engine in Scene II clamps 34 151 of 576 000 frames (5.9 percent) of the probe chord (88 keys) and `ns4 bench --gui --layers 7 --keys 10` clamps 13 percent of the frames (Scene II 4 keys: 2 percent, Scene I 4 keys: 0). The meter's over-0-dBFS count stays 0 because the clamp sits before it; the meter now counts `clamped` frames | probe row C `clamped 34151`; bench line `master clamp hit` |
+| 6 | Program load is not a timing problem with these defaults: `apply_program` costs 0.007 to 0.011 ms on average and 0.3 to 0.8 ms at worst; the first block after a load is 0.03 to 0.07 ms slower than the next two on average (0.45 to 1.4 ms worst) on 128 frame blocks, so lazy stage builds are real but small. It was still an allocation and a free on the audio thread (a program box, Mod 2 stage boxes, a replaced sound bank), now off it | `--reload 300 --reload-pool 59`; counting allocator test |
+| 7 | Host scheduling spikes (the 9 to 17 ms of the brief) are the same effect as finding 1 | rows C and B under contention |
+
+### 6.2 Real callback (`--audio-probe 12`, driver default buffer 480 frames), before = `--no-thread-boost`, after = boost on
+
+Contention = 40 busy-loop processes (a Python `multiprocessing` spin loop) at normal priority on the same host. Blocks is the callback count in 12 s (1200 when nothing starves; fewer means the device ran dry and callbacks slipped). Render, firmware flags and chord are identical in a row pair; only the thread class differs.
+
+| Case | Host | Boost | Blocks | Late | Worst callback | Slow gaps | Load |
+|---|---|---|---|---|---|---|---|
+| A Horizon Whl defaults, Scene I, 6 keys, arp up | idle | before | 1201 | 0 | 6.05 ms | 0 | 30% |
+| | idle | after | 1200 | 0 | 4.93 ms | 0 | 25% |
+| | contention | before | 1200 | 0 | 8.39 ms | 0 | 37% |
+| | contention | after | 1201 | 0 | 5.63 ms | 0 | 37% |
+| B Horizon Whl `--firmware-fx` | idle | before | 1194 | 115 | 16.73 ms | 4 | 86% |
+| | idle | after | 1176 | 198 | 16.90 ms | 16 | 88% |
+| | contention | before | 807 | 705 | 68.49 ms | 330 | 138% |
+| | contention | after | 899 | 678 | 23.86 ms | 246 | 125% |
+| C default engine, Scene II, 88 keys | idle | before | 1200 | 0 | 5.49 ms | 0 | 26% |
+| | idle | after | 1201 | 0 | 6.10 ms | 0 | 25% |
+| | contention | before | 1204 | **13** | **20.94 ms** | **11** | 38% |
+| | contention | after | 1207 | **0** | **4.47 ms** | **0** | 36% |
+| D Horizon Whl `--firmware-fx --fx-idle-skip` | idle | before | 1200 | 24 | 14.35 ms | 0 | 33% |
+| | idle | after | 1201 | 0 | 9.83 ms | 0 | 35% |
+| | contention | before | 1048 | 247 | 43.18 ms | 128 | 63% |
+| | contention | after | 1084 | 233 | 20.83 ms | 105 | 55% |
+
+Reading: the boost removes the scheduler losses (C: 13 to 0 late, 20.9 to 4.5 ms; B and D under contention: worst callback 68 to 24 and 43 to 21 ms); it cannot help when the render alone is longer than the buffer (B idle: 115 and 198 late, the same render, the difference is host noise). D idle "before" shows 24 late because the 4 s sleep timer of the idle skip is still running during the first two measured seconds; the boost row is 0 late. `--fx-idle-skip` under contention stays late (233 of 1084): the racks that sound still cost 5 to 6 ms and the busy processes share the cores with them. **Proposal for the owner: make `--fx-idle-skip` default when `--firmware-fx` is on.** Evidence: row B to D on the idle host, 86 percent load and 115 to 198 late to 33 to 35 percent and 0 to 24 late (the output hash is equal while no rack wakes, not bit-identical once a sleeping rack wakes, D161).
+
+### 6.3 What changed
+
+| Change | Output | Default |
+|---|---|---|
+| `priority::boost_current_thread` (TIME_CRITICAL + MMCSS `Pro Audio`) on the first callback; `--no-thread-boost` opts out | none (scheduling) | on |
+| Meter: callback gap, slow gaps, clamped frames, thread class; `MasterBus::clamped_frames` | bit-identical (`ns4 bench --gui --layers 3 --keys 4 --frames 480 --blocks 100 --warmup 100` prints hash `0x550c3621bf91cf88` before and after) | on |
+| `garbage.rs` queue and `ns4-reaper`: the callback no longer frees program boxes or replaced sound banks | none | on |
+| `reserve_firmware_stages`, in-place stage re-init (TD-18) | bit-identical (`fx::tests_reserve_stages`) | on in `standalone_engine` |
+| `nord-stage4 --audio-probe`, `ns4 bench --gui --reload / --reload-pool / --program2`, master clamp line in `ns4 bench --gui` | tools | |
+
+## Implications (round 2)
+
+The crackle with default settings has two causes that no bench shows: an unprioritised callback thread (fixed) and the master bus hard clamp on loud patches (measured, not changed). A render longer than the buffer (`--firmware-fx` on seven reverbs) stays over budget; idle skip is the cheap lever and needs the owner's decision.
+
+## Follow-ups (round 2)
+
+- Opt-in soft limiter (or a higher-ceiling knee) instead of the hard clamp, measured with the new `clamped` counter on real programs; default flip is the owner's call.
+- `--fx-idle-skip` default with `--firmware-fx` (numbers above).
+- Render-ahead thread with an adaptive ring (renders in a high-priority thread, the callback only copies): hides a render that is longer than one buffer at a latency cost. Not done: the boost fixed the measured losses and `--audio-buffer 960` gives the same headroom today.
+- The plugin does not call `reserve_audio_stages` or raise a thread (the host owns the audio thread).

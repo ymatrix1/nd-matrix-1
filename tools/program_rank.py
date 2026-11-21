@@ -21,6 +21,7 @@ import argparse
 import csv
 import json
 import math
+import statistics
 from pathlib import Path
 
 BANDS = 8
@@ -221,7 +222,7 @@ def by_engine(rows: list[dict]) -> list[list]:
     out = []
     for g, rs in sorted(groups.items()):
         sc = sorted(r["dist"]["score"] for r in rs if r["dist"]["score"] is not None)
-        med = sc[len(sc) // 2] if sc else None
+        med = statistics.median(sc) if sc else None
         flagged = sum(
             1 for r in rs if [x for x in r["chain"]["flags"] if x != "piano_no_chain_tap"]
         )

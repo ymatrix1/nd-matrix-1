@@ -11,6 +11,7 @@
 pub mod audio_out;
 pub mod aux_pedal_params;
 pub mod editor;
+pub mod firmware_params;
 pub mod fx_extra_params;
 pub mod fx_params;
 pub mod fx_selectors;
@@ -29,6 +30,7 @@ pub mod params;
 pub mod pedal_assign_params;
 pub mod piano_extra_params;
 pub mod piano_params;
+pub mod program_overrides;
 pub mod program_params;
 pub mod settings_params;
 pub mod state;
@@ -38,6 +40,7 @@ pub mod synth_params;
 pub mod synth_pattern_params;
 
 use nih_plug::prelude::*;
+use nord_core::cbin::{CbinError, CbinFile, ProgramDecoded};
 use nord_core::engine::Stage4Engine;
 use params::Stage4Params;
 use std::sync::Arc;
@@ -47,6 +50,9 @@ pub struct NordStage4Plugin {
     pub params: Arc<Stage4Params>,
     pub engine: Stage4Engine,
     pub sample_rate: f32,
+    /// The program last loaded with [`NordStage4Plugin::load_program`], re-applied whenever the
+    /// engine is rebuilt (`initialize`, `reset`) so a host reset does not drop it.
+    pub program: Option<Box<ProgramDecoded>>,
     /// Producer end of the keybed queue, handed to the editor.
     pub note_tx: editor::notes::NoteSender,
     /// Consumer end, drained at the start of every `process()` block.
@@ -60,9 +66,38 @@ impl Default for NordStage4Plugin {
             params: Arc::new(Stage4Params::default()),
             engine: Stage4Engine::new(44100.0),
             sample_rate: 44100.0,
+            program: None,
             note_tx,
             note_rx,
         }
+    }
+}
+
+impl NordStage4Plugin {
+    /// Fresh engine at the current sample rate with the loaded program (if any) applied, then the
+    /// host parameters synced on top (D169: only overridden Touch / Mod 2 replace the program).
+    fn rebuild_engine(&mut self) {
+        self.engine = Stage4Engine::new(self.sample_rate);
+        if let Some(prog) = &self.program {
+            self.engine.apply_program(prog);
+        }
+        self.params.sync_to_engine(&mut self.engine);
+    }
+
+    /// Applies a decoded program to the engine and makes it win over every host parameter that
+    /// still sits at the value it had now (D169). Not real-time safe: call it from the thread that
+    /// owns the plugin while it is not processing (tests, a future loader task).
+    pub fn load_program(&mut self, prog: ProgramDecoded) {
+        self.engine.apply_program(&prog);
+        self.params.program_overrides.rebaseline(&self.params);
+        self.program = Some(Box::new(prog));
+    }
+
+    /// Parses `.ns4p` bytes and calls [`Self::load_program`].
+    pub fn load_program_bytes(&mut self, bytes: &[u8]) -> Result<(), CbinError> {
+        let prog = ProgramDecoded::from_cbin_file(&CbinFile::parse(bytes)?)?;
+        self.load_program(prog);
+        Ok(())
     }
 }
 
@@ -98,15 +133,13 @@ impl Plugin for NordStage4Plugin {
         _context: &mut impl InitContext<Self>,
     ) -> bool {
         self.sample_rate = buffer_config.sample_rate;
-        self.engine = Stage4Engine::new(self.sample_rate);
-        self.params.sync_to_engine(&mut self.engine);
+        self.rebuild_engine();
         true
     }
 
     fn reset(&mut self) {
         // Reset engine states upon host reset / playhead reposition
-        self.engine = Stage4Engine::new(self.sample_rate);
-        self.params.sync_to_engine(&mut self.engine);
+        self.rebuild_engine();
     }
 
     fn process(

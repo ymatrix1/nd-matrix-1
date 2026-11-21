@@ -1,0 +1,2262 @@
+{
+ "summary": {
+  "runs": 32,
+  "natural_runs": 32,
+  "flag_writes": 0,
+  "flags_not_one": 0,
+  "constructor_calls_after_boot": 0,
+  "site_hits": 21908,
+  "site_hits_on_pattern_object": 0,
+  "sites_reached": [
+   "0xc00fd030",
+   "0xc00fd1ec",
+   "0xc00fd20c",
+   "0xc00fd814",
+   "0xc00fd844",
+   "0xc00fd960",
+   "0xc00fda10",
+   "0xc011cf1c",
+   "0xc011cfbc",
+   "0xc0240784",
+   "0xc02407f8",
+   "0xc0240830",
+   "0xc0240f64",
+   "0xc02418bc",
+   "0xc02418fc",
+   "0xc0241a1c",
+   "0xc0241a90",
+   "0xc0241af4",
+   "0xc0241b60",
+   "0xc0241bc8",
+   "0xc0242010",
+   "0xc024203c",
+   "0xc0242514",
+   "0xc02425c4",
+   "0xc0242b4c",
+   "0xc0242b7c",
+   "0xc0242c04",
+   "0xc0242ea0",
+   "0xc0242f6c"
+  ],
+  "gate_fractions": {
+   "0.222": 2,
+   "0.333": 5,
+   "0.444": 2,
+   "0.665": 4,
+   "0.666": 1,
+   "0.667": 31,
+   "0.668": 2,
+   "0.669": 1
+  }
+ },
+ "rows": [
+  {
+   "program": "Boxxx",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 1,
+   "first_on_ms": 599.92,
+   "step_ms": null,
+   "gate_ms": 400.0,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 100.1,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 100.1,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Boxxx",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Boxxx",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.333,
+   "native_off": {
+    "notes_on": 2,
+    "step_ms": 300.02,
+    "gate_ms": 75.0,
+    "gate_fraction": 0.25
+   },
+   "native_on": {
+    "notes_on": 2,
+    "step_ms": 300.02,
+    "gate_ms": 100.0,
+    "gate_fraction": 0.333
+   }
+  },
+  {
+   "program": "Dual Gates",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 5,
+   "first_on_ms": 149.92,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Dual Gates",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 5,
+   "first_on_ms": 149.92,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Dual Gates",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.333,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 4,
+    "step_ms": 150.0,
+    "gate_ms": 150.0,
+    "gate_fraction": 1.0
+   },
+   "native_on": {
+    "notes_on": 4,
+    "step_ms": 150.0,
+    "gate_ms": 100.0,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 3,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 3,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Horizon Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 4,
+    "step_ms": 150.0,
+    "gate_ms": 150.0,
+    "gate_fraction": 1.0
+   },
+   "native_on": {
+    "notes_on": 4,
+    "step_ms": 150.0,
+    "gate_ms": 100.0,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "Momentum Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 125.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 150.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Momentum Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 2,
+    "step_ms": 300.02,
+    "gate_ms": 125.0,
+    "gate_fraction": 0.417
+   },
+   "native_on": {
+    "notes_on": 2,
+    "step_ms": 300.02,
+    "gate_ms": 150.0,
+    "gate_fraction": 0.5
+   }
+  },
+  {
+   "program": "Momentum Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Pinky Lead",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 3,
+    "step_ms": 300.02,
+    "gate_ms": 300.02,
+    "gate_fraction": 1.0
+   },
+   "native_on": {
+    "notes_on": 3,
+    "step_ms": 300.02,
+    "gate_ms": 200.0,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "Pinky Lead",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Pinky Lead",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Shoreline Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Shoreline Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Shoreline Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Sidechain Whl II",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Sidechain Whl II",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Sidechain Whl II",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Favorite Video",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Favorite Video",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 2,
+   "first_on_ms": 462.75,
+   "step_ms": 500.0,
+   "gate_ms": 333.33,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 199.98,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 199.98,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Favorite Video",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "FM Cloud Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "FM Cloud Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 7,
+   "first_on_ms": 99.42,
+   "step_ms": 136.33,
+   "gate_ms": 90.67,
+   "gate_fraction": 0.665,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "FM Cloud Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 12,
+   "first_on_ms": 46.08,
+   "step_ms": 82.67,
+   "gate_ms": 55.33,
+   "gate_fraction": 0.669,
+   "native_off": {
+    "notes_on": 8,
+    "step_ms": 82.88,
+    "gate_ms": 82.88,
+    "gate_fraction": 1.0
+   },
+   "native_on": {
+    "notes_on": 8,
+    "step_ms": 82.88,
+    "gate_ms": 55.25,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "Gradient Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 550.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 24,
+    "step_ms": 0.0,
+    "gate_ms": 100.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Gradient Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Gradient Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Unity Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.92,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 4,
+    "step_ms": 150.0,
+    "gate_ms": 150.0,
+    "gate_fraction": 1.0
+   },
+   "native_on": {
+    "notes_on": 4,
+    "step_ms": 150.0,
+    "gate_ms": 100.0,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "Unity Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 400.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 150.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Unity Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Gravity Pattern",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 128.04,
+   "step_ms": 164.67,
+   "gate_ms": 110.0,
+   "gate_fraction": 0.668,
+   "native_off": {
+    "notes_on": 4,
+    "step_ms": 164.85,
+    "gate_ms": 82.42,
+    "gate_fraction": 0.5
+   },
+   "native_on": {
+    "notes_on": 4,
+    "step_ms": 164.85,
+    "gate_ms": 109.9,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "Gravity Pattern",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Gravity Pattern",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Night Gaunts Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 1,
+   "first_on_ms": 599.92,
+   "step_ms": null,
+   "gate_ms": 400.0,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 100.1,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 100.1,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Night Gaunts Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 3,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 3,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Night Gaunts Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 3,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 3,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Superior Sequel",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Superior Sequel",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Superior Sequel",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 4,
+   "first_on_ms": 208.75,
+   "step_ms": 246.0,
+   "gate_ms": 164.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 2,
+    "step_ms": 245.92,
+    "gate_ms": 227.04,
+    "gate_fraction": 0.923
+   },
+   "native_on": {
+    "notes_on": 2,
+    "step_ms": 245.92,
+    "gate_ms": 163.94,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "16th Note Bass",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 4,
+    "step_ms": 150.0,
+    "gate_ms": 150.0,
+    "gate_fraction": 1.0
+   },
+   "native_on": {
+    "notes_on": 4,
+    "step_ms": 150.0,
+    "gate_ms": 100.0,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "16th Note Bass",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 5,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 3,
+    "step_ms": 150.01,
+    "gate_ms": 75.0,
+    "gate_fraction": 0.5
+   },
+   "native_on": {
+    "notes_on": 3,
+    "step_ms": 150.01,
+    "gate_ms": 100.0,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "16th Note Bass",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 1,
+   "first_on_ms": 599.88,
+   "step_ms": null,
+   "gate_ms": 100.0,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 75.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 100.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Calling Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 2,
+   "first_on_ms": 449.96,
+   "step_ms": 450.0,
+   "gate_ms": 150.0,
+   "gate_fraction": 0.333,
+   "native_off": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 124.99,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 124.99,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Calling Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 2,
+   "first_on_ms": 449.96,
+   "step_ms": 450.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.222,
+   "native_off": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 75.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 99.99,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Calling Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 6,
+   "first_on_ms": 149.96,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Dramatic Opening",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.92,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 3,
+    "step_ms": 225.01,
+    "gate_ms": 150.0,
+    "gate_fraction": 0.667
+   },
+   "native_on": {
+    "notes_on": 4,
+    "step_ms": 150.0,
+    "gate_ms": 100.0,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "Dramatic Opening",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Dramatic Opening",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Memory Glitch",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Memory Glitch",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Memory Glitch",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Mirror Image Pad",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Mirror Image Pad",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Mirror Image Pad",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 6,
+   "first_on_ms": 116.04,
+   "step_ms": 153.33,
+   "gate_ms": 102.0,
+   "gate_fraction": 0.665,
+   "native_off": {
+    "notes_on": 24,
+    "step_ms": 0.0,
+    "gate_ms": 76.52,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 24,
+    "step_ms": 0.0,
+    "gate_ms": 102.04,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "24 Frames J3",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 6,
+   "first_on_ms": 149.88,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 18,
+    "step_ms": 0.0,
+    "gate_ms": 75.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 18,
+    "step_ms": 0.0,
+    "gate_ms": 100.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "24 Frames J3",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 3,
+   "first_on_ms": 299.88,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 400.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 150.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "24 Frames J3",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 3,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 3,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Helium Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.333,
+   "native_off": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 75.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 100.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Helium Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Helium Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "5th Poly Arp",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 400.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 150.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "5th Poly Arp",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "5th Poly Arp",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "FM Harpies",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 7,
+   "first_on_ms": 299.92,
+   "step_ms": 75.0,
+   "gate_ms": 50.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 3,
+    "step_ms": 300.01,
+    "gate_ms": 75.0,
+    "gate_fraction": 0.25
+   },
+   "native_on": {
+    "notes_on": 3,
+    "step_ms": 300.01,
+    "gate_ms": 75.0,
+    "gate_fraction": 0.25
+   }
+  },
+  {
+   "program": "FM Harpies",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 7,
+   "first_on_ms": 299.92,
+   "step_ms": 75.0,
+   "gate_ms": 50.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "FM Harpies",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 400.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 2,
+    "step_ms": 300.02,
+    "gate_ms": 150.0,
+    "gate_fraction": 0.5
+   }
+  },
+  {
+   "program": "Gravity Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 3,
+   "first_on_ms": 299.96,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Gravity Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 1,
+   "first_on_ms": 599.96,
+   "step_ms": null,
+   "gate_ms": 400.0,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Gravity Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 5,
+   "first_on_ms": 149.96,
+   "step_ms": 150.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 3,
+    "step_ms": 225.01,
+    "gate_ms": 75.0,
+    "gate_fraction": 0.333
+   },
+   "native_on": {
+    "notes_on": 3,
+    "step_ms": 225.01,
+    "gate_ms": 100.0,
+    "gate_fraction": 0.444
+   }
+  },
+  {
+   "program": "Moving Chords",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 4,
+   "first_on_ms": 148.04,
+   "step_ms": 185.33,
+   "gate_ms": 123.33,
+   "gate_fraction": 0.665,
+   "native_off": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 92.6,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 12,
+    "step_ms": 0.0,
+    "gate_ms": 123.47,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Moving Chords",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Moving Chords",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Ostinato Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 3,
+   "first_on_ms": 299.92,
+   "step_ms": 300.0,
+   "gate_ms": 200.0,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 2,
+    "step_ms": 300.02,
+    "gate_ms": 200.0,
+    "gate_fraction": 0.667
+   },
+   "native_on": {
+    "notes_on": 2,
+    "step_ms": 300.02,
+    "gate_ms": 150.0,
+    "gate_fraction": 0.5
+   }
+  },
+  {
+   "program": "Ostinato Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Ostinato Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Rudiments",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 9,
+   "first_on_ms": 74.88,
+   "step_ms": 112.5,
+   "gate_ms": 50.0,
+   "gate_fraction": 0.444,
+   "native_off": {
+    "notes_on": 42,
+    "step_ms": 0.0,
+    "gate_ms": 37.5,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 42,
+    "step_ms": 0.0,
+    "gate_ms": 50.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Rudiments",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 9,
+   "first_on_ms": 74.88,
+   "step_ms": 112.5,
+   "gate_ms": 50.0,
+   "gate_fraction": 0.444,
+   "native_off": {
+    "notes_on": 7,
+    "step_ms": 75.01,
+    "gate_ms": 37.5,
+    "gate_fraction": 0.5
+   },
+   "native_on": {
+    "notes_on": 7,
+    "step_ms": 75.01,
+    "gate_ms": 50.0,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "Rudiments",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 2,
+   "first_on_ms": 449.88,
+   "step_ms": 450.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.222,
+   "native_off": {
+    "notes_on": 2,
+    "step_ms": 450.02,
+    "gate_ms": 75.0,
+    "gate_fraction": 0.167
+   },
+   "native_on": {
+    "notes_on": 2,
+    "step_ms": 450.02,
+    "gate_ms": 99.99,
+    "gate_fraction": 0.222
+   }
+  },
+  {
+   "program": "ScissorSplit Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 1,
+   "first_on_ms": 599.92,
+   "step_ms": null,
+   "gate_ms": 400.0,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 100.1,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 100.1,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "ScissorSplit Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 4,
+   "first_on_ms": 149.92,
+   "step_ms": 300.0,
+   "gate_ms": 100.0,
+   "gate_fraction": 0.333,
+   "native_off": {
+    "notes_on": 3,
+    "step_ms": 225.01,
+    "gate_ms": 75.0,
+    "gate_fraction": 0.333
+   },
+   "native_on": {
+    "notes_on": 3,
+    "step_ms": 225.01,
+    "gate_ms": 100.0,
+    "gate_fraction": 0.444
+   }
+  },
+  {
+   "program": "ScissorSplit Whl",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Synth Engine",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 5,
+   "first_on_ms": 158.08,
+   "step_ms": 194.67,
+   "gate_ms": 130.0,
+   "gate_fraction": 0.668,
+   "native_off": {
+    "notes_on": 18,
+    "step_ms": 0.0,
+    "gate_ms": 97.4,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 18,
+    "step_ms": 0.0,
+    "gate_ms": 129.88,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Synth Engine",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Synth Engine",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Time Warp Saw",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 2,
+   "first_on_ms": 320.04,
+   "step_ms": 357.33,
+   "gate_ms": 238.0,
+   "gate_fraction": 0.666,
+   "native_off": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 6,
+    "step_ms": 0.0,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Time Warp Saw",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Time Warp Saw",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Unclocked Pad",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 5,
+   "first_on_ms": 148.08,
+   "step_ms": 185.33,
+   "gate_ms": 123.33,
+   "gate_fraction": 0.665,
+   "native_off": {
+    "notes_on": 18,
+    "step_ms": 0.0,
+    "gate_ms": 92.6,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 18,
+    "step_ms": 0.0,
+    "gate_ms": 123.46,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Unclocked Pad",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "Unclocked Pad",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 1,
+    "step_ms": null,
+    "gate_ms": 700.0,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "ZigZag Arp J3",
+   "patches": [],
+   "force_flag": null,
+   "layer": "A",
+   "notes_on": 20,
+   "first_on_ms": 12.75,
+   "step_ms": 50.0,
+   "gate_ms": 33.33,
+   "gate_fraction": 0.667,
+   "native_off": {
+    "notes_on": 12,
+    "step_ms": 49.83,
+    "gate_ms": 49.83,
+    "gate_fraction": 1.0
+   },
+   "native_on": {
+    "notes_on": 14,
+    "step_ms": 49.83,
+    "gate_ms": 33.23,
+    "gate_fraction": 0.667
+   }
+  },
+  {
+   "program": "ZigZag Arp J3",
+   "patches": [],
+   "force_flag": null,
+   "layer": "B",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  },
+  {
+   "program": "ZigZag Arp J3",
+   "patches": [],
+   "force_flag": null,
+   "layer": "C",
+   "notes_on": 0,
+   "first_on_ms": null,
+   "step_ms": null,
+   "gate_ms": null,
+   "gate_fraction": null,
+   "native_off": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   },
+   "native_on": {
+    "notes_on": 0,
+    "step_ms": null,
+    "gate_ms": null,
+    "gate_fraction": null
+   }
+  }
+ ]
+}

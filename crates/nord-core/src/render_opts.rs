@@ -339,7 +339,7 @@ pub struct FirmwareOptions {
     pub synth_layer_law: bool,
     /// The Vox key timeline and the synth gain de-zipper run on the measured 24 kHz ARM timer tick
     /// (default on, VERIFIED: `docs/research/arm-tick-timers.md`, D131);
-    /// `--legacy-1khz-tick` restores the 1 ms tick. The arp gate (`--arp-fw-gate`, OQ32) and PUMP
+    /// `--legacy-1khz-tick` restores the 1 ms tick. The arp gate (`--no-arp-gate`, D168) and PUMP
     /// (OQ36) are not part of this switch.
     pub measured_tick: bool,
     /// `--synth-sustain-pedal`: the sustain pedal (CC 64) also holds the three synth layers
@@ -356,9 +356,11 @@ pub struct FirmwareOptions {
     /// default since D166 (owner approval 2026-11-18); `--legacy-arp` and `--legacy-all` turn it
     /// off (and the gate with it). `--arp-fw-walk` and `--arp-firmware` stay accepted.
     pub arp_firmware: bool,
-    /// `--arp-fw-gate`: Arp / Poly `E` steps and the plain arpeggio last 2/3 of a step
-    /// (`SynthLayer::arp_firmware_gate`). **Opt-in** (default off, D166): VERIFIED only in the
-    /// replayed boot state, no hardware clip (OQ32, D130). Not part of `--firmware-all` either.
+    /// Arp / Poly `E` steps and the plain arpeggio last 2/3 of a step
+    /// (`SynthLayer::arp_firmware_gate`). On by default since D168: the ARM never writes the
+    /// pattern object flag after its constructor (`docs/research/arp-gate-flag-trace.md`), 2/3 in
+    /// 53 ARM-played layers of 30 of the 32 arpeggiator programs. `--no-arp-gate` and `--legacy-arp`
+    /// turn it off; `--arp-fw-gate` stays accepted. No hardware clip (OQ32).
     pub arp_firmware_gate: bool,
     /// `--measured-laws`: `SynthLayer::measured_laws` (EMPIRICAL, Audible Genius clips).
     pub measured_laws: bool,
@@ -458,7 +460,7 @@ impl Default for FirmwareOptions {
             synth_sustain_pedal: false,
             firmware_morph: true,
             arp_firmware: true,
-            arp_firmware_gate: false,
+            arp_firmware_gate: true,
             measured_laws: false,
             synth_shape_milli: None,
             synth_p: Some(PSpec::Table(PTableSpec::BUILTIN)),
@@ -537,7 +539,7 @@ impl FirmwareOptions {
             synth_sustain_pedal: false,
             firmware_morph: true,
             arp_firmware: true,
-            arp_firmware_gate: false,
+            arp_firmware_gate: true,
             measured_laws: false,
             synth_shape_milli: None,
             synth_p: Some(PSpec::Table(PTableSpec::BUILTIN)),
@@ -638,6 +640,9 @@ impl FirmwareOptions {
         }
         o.arp_firmware |= has("--arp-firmware") || has("--arp-fw-walk");
         o.arp_firmware_gate |= has("--arp-fw-gate");
+        if has("--no-arp-gate") {
+            o.arp_firmware_gate = false;
+        }
         if has("--legacy-arp") {
             o.arp_firmware = false;
             o.arp_firmware_gate = false;
@@ -1108,8 +1113,8 @@ impl FirmwareOptions {
         if !self.arp_firmware {
             parts.push("legacy-arp".into());
         }
-        if self.arp_firmware_gate {
-            parts.push("arp-fw-gate".into());
+        if self.arp_firmware && !self.arp_firmware_gate {
+            parts.push("no-arp-gate".into());
         }
         if let Some(m) = self.synth_shape_milli {
             parts.push(format!("shape={:.2}", f32::from(m) / 1000.0));

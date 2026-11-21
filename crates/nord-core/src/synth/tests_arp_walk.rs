@@ -110,7 +110,10 @@ fn the_default_engine_plays_the_firmware_arp_after_a_program_load() {
     let mut e = Stage4Engine::new(FS);
     e.apply_synth_section(&preset);
     assert!(e.synth_c.arp_firmware_walk, "walk survives the layer init");
-    assert!(!e.synth_c.arp_firmware_gate, "the gate stays opt-in");
+    assert!(
+        e.synth_c.arp_firmware_gate,
+        "the gate is on by default (D168)"
+    );
     assert_eq!(e.synth_c.arp_range_raw, 47);
     e.synth_c.arp_rate_bpm = 480.0;
     for k in [60, 64, 67] {

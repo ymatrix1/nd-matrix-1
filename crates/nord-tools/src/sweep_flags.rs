@@ -34,11 +34,14 @@ pub fn controller_events(
 }
 
 /// `--legacy-arp` / `--legacy-morph` restore the pre-D166 arpeggiator walk and morph law;
-/// `--arp-fw-gate` turns the opt-in 2/3 gate on (`--legacy-arp` wins and turns it off too).
+/// `--no-arp-gate` turns the 2/3 gate (default since D168) off; `--legacy-arp` turns it off too.
 pub fn apply_legacy_flags(o: &mut FirmwareOptions, args: &[String]) {
     let has = |name: &str| args.iter().any(|a| a == name);
     if has("--arp-fw-gate") {
         o.arp_firmware_gate = true;
+    }
+    if has("--no-arp-gate") {
+        o.arp_firmware_gate = false;
     }
     if has("--legacy-arp") {
         o.arp_firmware = false;
@@ -61,7 +64,7 @@ mod tests {
     fn legacy_flags_turn_the_arp_and_morph_defaults_off_in_both_modes() {
         let mut o = FirmwareOptions::default();
         apply_legacy_flags(&mut o, &args(&[]));
-        assert!(o.arp_firmware && o.firmware_morph && !o.arp_firmware_gate);
+        assert!(o.arp_firmware && o.firmware_morph && o.arp_firmware_gate);
         apply_legacy_flags(&mut o, &args(&["--legacy-arp"]));
         assert!(!o.arp_firmware && o.firmware_morph);
         apply_legacy_flags(&mut o, &args(&["--legacy-morph"]));
@@ -69,7 +72,10 @@ mod tests {
     }
 
     #[test]
-    fn the_gate_is_opt_in_and_legacy_arp_wins() {
+    fn the_gate_is_default_no_arp_gate_opts_out_and_legacy_arp_wins() {
+        let mut o = FirmwareOptions::default();
+        apply_legacy_flags(&mut o, &args(&["--no-arp-gate"]));
+        assert!(o.arp_firmware && !o.arp_firmware_gate);
         let mut o = FirmwareOptions::default();
         apply_legacy_flags(&mut o, &args(&["--arp-fw-gate"]));
         assert!(o.arp_firmware && o.arp_firmware_gate);

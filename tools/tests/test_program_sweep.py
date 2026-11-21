@@ -309,3 +309,12 @@ def test_regeneration_preserves_the_hand_written_notes(tmp_path, monkeypatch):
     assert ps.main(["--jsonl", str(jsonl)]) == 0
     again = doc.read_text(encoding="utf-8").replace("\r\n", "\n")
     assert "Kept note.\n\n- second" in again and "- do it" in again
+
+
+def test_checked_date_is_never_unset():
+    """The generator takes `--checked` (default today) instead of writing a fixed 'unset'."""
+    import inspect
+
+    src = inspect.getsource(ps.main)
+    assert '"checked": args.checked' in src
+    assert '"unset"' not in src

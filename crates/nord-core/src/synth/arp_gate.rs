@@ -1,4 +1,5 @@
-//! Firmware gate length of the Arp / Poly steps (`SynthLayer::arp_firmware_gate`, D166).
+//! Firmware gate length of the Arp / Poly steps (`SynthLayer::arp_firmware_gate`, D166; default on
+//! since D168).
 //!
 //! The ARM pattern player ends an `E` step at the second grid point of its step. The pattern
 //! objects boot with the grid `0xC02BC1A0` (flag `[obj + 0xC] = 1`), whose points inside one step
@@ -14,8 +15,10 @@ use super::*;
 /// 150.0 ms step = 0.667 (`docs/research/data/arp-fw-events-a16.json`, `tools/arp_fw_compare.py`,
 /// re-run 2026-11-18) and the boot grid points of the pattern compiler
 /// (`tools/ns4_arp_player.py gates`, `docs/research/arm-tick-timers.md` s6). Not seen on
-/// hardware: the writer of the grid flag was not found (OQ32), so the real gate rests on the
-/// replayed boot state.
+/// hardware. D168 ([arp-gate-flag-trace](../../../../docs/research/arp-gate-flag-trace.md),
+/// `tools/arm_arp_flag_trace.py`, `tools/arp_flag_census.py`): the flag `[obj + 0xC]` is written
+/// only by the constructor (6 calls in boot, 0 after, 0 stores in 41 runs), and 53 ARM-played
+/// layers of 30 of the 32 arpeggiator programs give 2/3 of their grid step.
 pub(super) const FIRMWARE_E_FRACTION: f32 = 2.0 / 3.0;
 
 /// The `E` gate in eighths of a step (`pattern_presets::gate_eighths(b'E')`).

@@ -1,0 +1,8 @@
+{
+  "_comment": "Host parameter values of a session saved before D169 (display strings by id, ids unchanged). Touch Heavy and a Mod 2 Chorus on Piano A were set by hand then, because a program never reached the plugin.",
+  "piano_touch": "2",
+  "fxsel_mod2_type_3": "Chorus",
+  "fxsel_mod2_rate_3": "3.0",
+  "piano_category": "1",
+  "master_level": "0.7"
+}

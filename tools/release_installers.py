@@ -33,7 +33,7 @@ Name=Nord Stage 4 Emulator
 Comment=Source-available DSP sound engine and front-panel emulator for the Nord Stage 4
 Exec=nord-stage4
 Icon=nord-stage4
-Categories=AudioVideo;Audio;Music;Synthesizer;
+Categories=AudioVideo;Audio;Music;Midi;
 Terminal=false
 """
 

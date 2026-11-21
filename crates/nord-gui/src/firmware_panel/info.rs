@@ -169,15 +169,15 @@ pub const ARP: SwitchInfo = sw(
     "--legacy-arp",
     "Firmware arpeggiator",
     Mixed,
-    "Up / Down / Up-Down walk the whole octave pool and a single held key retriggers every step, as the ARM pattern player does (30 A:16 replays, range law fitted to 14 raw values); on by default since D166 (owner approval 2026-11-18). --legacy-arp restores the engine walk (and turns the gate switch off).",
+    "Up / Down / Up-Down walk the whole octave pool and a single held key retriggers every step, as the ARM pattern player does (30 A:16 replays, range law fitted to 14 raw values); on by default since D166 (owner approval 2026-11-18). --legacy-arp restores the engine walk and turns the gate off too; --no-arp-gate turns off only the gate.",
 );
-/// Synth arpeggiator gate (`--arp-fw-gate`, opt-in).
+/// Synth arpeggiator gate (`--no-arp-gate`, default on since D168).
 pub const ARP_GATE: SwitchInfo = sw(
     "Synth",
-    "--arp-fw-gate",
+    "--no-arp-gate",
     "Arp gate 2/3 step",
     Assumed,
-    "E steps and the plain arpeggio end at 2/3 of the step (A:16 replay: gate 100 of 150 ms in 30 of 30 captures). Opt-in: the 2/3 is the replayed boot state of the pattern grid, the flag writer is unknown and no hardware clip exists (OQ32, D130), so it is not verified on the instrument. Off keeps the engine gate (E = 4/8 of a step, a plain arpeggio note held to the next step)."
+    "E steps and the plain arpeggio end at 2/3 of the step (on by default since D168: the ARM never rewrites the pattern flag after boot and 53 ARM-played layers of 30 arpeggiator programs have gate 2/3 of the grid step. No hardware clip exists (OQ32), so it is not verified on the instrument. --no-arp-gate keeps the engine gate (E = 4/8 of a step, a plain arpeggio note held to the next step)."
 );
 /// Synth morph (`--firmware-morph` / `--legacy-morph`).
 pub const MORPH: SwitchInfo = sw(

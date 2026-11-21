@@ -105,6 +105,17 @@ pub(super) fn render_strip(
             ..Face::black()
         },
     );
+    // Printed on the button like the Piano and Synth ON buttons.
+    let on_rect = rc("organ.on");
+    crate::widgets::label_fit(
+        ui.painter(),
+        on_rect.center(),
+        "ON",
+        crate::widgets::MIN_FONT_PX,
+        on_rect.width() - 4.0,
+        Color32::from_gray(235),
+        egui::Align2::CENTER_CENTER,
+    );
     match t {
         Some(Trigger::Primary) => {
             let changed = state.organ_on_tap();
@@ -325,9 +336,10 @@ mod tests {
     }
 
     /// Regression (owner screenshot, ORGAN header): the ON LED printed above the button, outside
-    /// the header tab on the red panel, and SOLO ran past the tab's right edge.
+    /// the header tab on the red panel. SOLO's width is checked on the painted text in
+    /// `header_tab_tests`.
     #[test]
-    fn on_button_led_and_solo_legend_stay_inside_the_header_tab() {
+    fn on_button_led_stays_inside_the_header_tab() {
         use crate::panel::layout_px::to_px;
         let o = egui::pos2(0.0, 0.0);
         let tab = to_px(
@@ -339,12 +351,5 @@ mod tests {
         let on = rect_or_empty("organ.on", o);
         let led = crate::panel::ctl::led_left_of(on);
         assert!(tab.contains(led), "ON LED {led:?} outside tab {tab:?}");
-        // SOLO legend: LED + text start right of the button; the text is 19 px wide at the
-        // 7.5 px minimum (measured in the 2x screenshot), and keeps 3 px from the tab edge.
-        let solo_end = on.right() + 7.0 + crate::panel::ctl::LEGEND_LED_GAP + 19.0;
-        assert!(
-            solo_end + 3.0 <= tab.right(),
-            "SOLO ends {solo_end}, tab {tab:?}"
-        );
     }
 }

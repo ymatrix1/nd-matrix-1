@@ -437,9 +437,9 @@ pub struct SynthLayer {
     /// span while it still projects onto `arp_octave_range` and `perf.range_extra_thirds`.
     pub arp_range_raw: u8,
     /// Arp / Poly notes end after the firmware gate (2/3 of a step for the plain arpeggio and an
-    /// `E` step, see `arp_gate.rs`) instead of lasting to the next step. **Opt-in** (default off,
-    /// D166): the 2/3 is VERIFIED only in the replayed boot state, the grid flag writer is unknown
-    /// and there is no hardware clip (OQ32, D130).
+    /// `E` step, see `arp_gate.rs`) instead of lasting to the next step. On by default (D168): the
+    /// ARM never writes the pattern object flag after its constructor, so 2/3 is the firmware
+    /// state (`docs/research/arp-gate-flag-trace.md`); no hardware clip (OQ32).
     pub arp_firmware_gate: bool,
     pub arp_rate_bpm: f32,
     arp_step: usize,
@@ -577,7 +577,7 @@ impl SynthLayer {
             arp_octave_range: 1,
             arp_firmware_walk: true,
             arp_range_raw: 0,
-            arp_firmware_gate: false,
+            arp_firmware_gate: true,
             arp_rate_bpm: 120.0,
             arp_step: 0,
             arp_sample_counter: 0.0,
@@ -598,10 +598,18 @@ impl SynthLayer {
     /// Loads or clears a pre-decoded multisample instrument for `SynthOscMode::Sample`.
     /// Call outside the audio thread; playback reads the shared immutable buffer without locking or allocating.
     pub fn load_sample(&mut self, sound: Option<Arc<SynthSampleSound>>) {
+        drop(self.replace_sample(sound));
+    }
+
+    /// [`Self::load_sample`] that returns the previous bank (see `PianoLayer::replace_sound`).
+    pub fn replace_sample(
+        &mut self,
+        sound: Option<Arc<SynthSampleSound>>,
+    ) -> Option<Arc<SynthSampleSound>> {
         for v in &mut self.voices {
             v.active = false;
         }
-        self.sample_sound = sound;
+        std::mem::replace(&mut self.sample_sound, sound)
     }
 
     /// Returns the name of the currently loaded multisample sound, if any.

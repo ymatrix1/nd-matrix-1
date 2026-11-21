@@ -78,6 +78,8 @@ Cause of the native chord order (`synth/arp.rs`): UpDown without a fractional ra
 
 ## 7. Direction, range and gate captures (2026-11-18, D166)
 
+**Follow-up D168:** the gate is the default now; the flag trace and the 32-program census are in [arp-gate-flag-trace](arp-gate-flag-trace.md). The "opt-in" wording below is the D166 state.
+
 Question: do the gate (2/3) and the octave walk hold beyond the one A:16 setting of s4, so that the firmware arpeggiator can be the default?
 
 Method: the original `.ns4p` bits of A:16 were patched (direction and RANGE of layers A and C; the `ns4 convert` JSON round trip is lossy and silenced the patched copies) and replayed with `tools/arm_arp_events.py` (tempo 100, MST CLK, velocity 100, 2.5 s). Layer A sounds for keys 40 43 47 and layer C for 60 64 67 (key zones). Result table: `docs/research/data/arp-fw-range.json` (30 rows: layer, keys, direction, raw RANGE, step, gate fraction, playing order; derived numbers only).

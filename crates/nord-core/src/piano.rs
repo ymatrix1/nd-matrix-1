@@ -1015,10 +1015,16 @@ impl PianoLayer {
 
     /// Assigns or unloads a pre-decoded `.npno` or SFZ sound library.
     pub fn set_sound(&mut self, sound: Option<Arc<NpnoSound>>) {
+        drop(self.replace_sound(sound));
+    }
+
+    /// [`Self::set_sound`] that returns the previous sound, so the caller (the audio thread) can
+    /// hand it to another thread instead of freeing a large sample bank itself.
+    pub fn replace_sound(&mut self, sound: Option<Arc<NpnoSound>>) -> Option<Arc<NpnoSound>> {
         for v in &mut self.voices {
             v.active = false;
         }
-        self.sound = sound;
+        std::mem::replace(&mut self.sound, sound)
     }
 
     pub fn note_on(&mut self, note: u8, velocity: u8) {

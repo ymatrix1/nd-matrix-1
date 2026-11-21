@@ -6,6 +6,7 @@
 //! than the audio it produced (`frames / sample_rate`), the point where a device buffer of that
 //! size would run dry unless the driver holds more buffers than one.
 
+use super::priority::ThreadBoost;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering::Relaxed};
 
 /// Per-block figures the audio callback hands to [`AudioMeter::record`].
@@ -23,6 +24,12 @@ pub struct BlockSample {
     pub peak: f32,
     /// Samples written with `|sample| > 1.0` (above 0 dBFS, clipped by the device).
     pub over_0db: u32,
+    /// Time from the start of the previous callback to the start of this one (`0` on the first).
+    /// The device paces the callbacks, so a gap well above the period means the thread was not
+    /// scheduled in time, whatever the render cost.
+    pub gap_ns: u64,
+    /// Frames the master bus hard-clamped at plus or minus 1.0 in this block (`MasterBus::clamped_frames`).
+    pub clamped: u32,
 }
 
 /// Peak / over-0 dBFS accumulator for the samples of one block.
@@ -58,9 +65,15 @@ pub struct AudioMeter {
     worst_ns: AtomicU64,
     worst_drain_ns: AtomicU64,
     worst_publish_ns: AtomicU64,
+    worst_gap_ns: AtomicU64,
+    /// Callbacks that started more than 1.5 periods after the previous one.
+    slow_gaps: AtomicU64,
     peak_bits: AtomicU32,
     over_0db: AtomicU64,
+    clamped: AtomicU64,
     reset_requested: AtomicBool,
+    /// Packed [`ThreadBoost`] of the callback thread (written once, kept over resets).
+    boost: AtomicU32,
 }
 
 /// One read of the meter.
@@ -78,8 +91,18 @@ pub struct MeterSnapshot {
     pub worst_ms: f64,
     pub worst_drain_ms: f64,
     pub worst_publish_ms: f64,
+    /// Longest start-to-start interval of two callbacks.
+    pub worst_gap_ms: f64,
+    /// Callbacks that started more than 1.5 periods after the previous one (the thread was
+    /// preempted or the driver stalled).
+    pub slow_gaps: u64,
     pub peak: f32,
     pub over_0db: u64,
+    /// Frames the master bus clamped hard at plus or minus 1.0 (audible as distortion; the
+    /// over-0-dBFS count cannot see them because the clamp sits before it).
+    pub clamped: u64,
+    /// Scheduling class of the callback thread (empty until the first block).
+    pub boost: ThreadBoost,
 }
 
 impl MeterSnapshot {
@@ -108,7 +131,7 @@ impl MeterSnapshot {
             return "audio: no block yet".into();
         }
         format!(
-            "audio: {} frames @ {} Hz ({:.2} ms), {} blocks, late {}, load {:.0}% (mean {:.3} / worst {:.3} ms), peak {:.1} dBFS, over 0 dBFS {}",
+            "audio: {} frames @ {} Hz ({:.2} ms), {} blocks, late {}, load {:.0}% (mean {:.3} / worst {:.3} ms), peak {:.1} dBFS, over 0 dBFS {}, clamped {}, gap worst {:.2} ms (slow {}), {}",
             self.frames,
             self.sample_rate,
             self.deadline_ms(),
@@ -118,7 +141,11 @@ impl MeterSnapshot {
             self.mean_ms,
             self.worst_ms,
             self.peak_dbfs(),
-            self.over_0db
+            self.over_0db,
+            self.clamped,
+            self.worst_gap_ms,
+            self.slow_gaps,
+            self.boost.summary()
         )
     }
 }
@@ -127,6 +154,11 @@ impl AudioMeter {
     /// Audio thread, once at stream start.
     pub fn set_sample_rate(&self, hz: u32) {
         self.sample_rate.store(hz, Relaxed);
+    }
+
+    /// Audio thread, once on the first block: what the OS reports for the callback thread.
+    pub fn set_boost(&self, b: ThreadBoost) {
+        self.boost.store(b.pack(), Relaxed);
     }
 
     /// GUI: zero the counters at the next block (the audio thread is the only one that writes).
@@ -145,7 +177,10 @@ impl AudioMeter {
                 &self.worst_ns,
                 &self.worst_drain_ns,
                 &self.worst_publish_ns,
+                &self.worst_gap_ns,
+                &self.slow_gaps,
                 &self.over_0db,
+                &self.clamped,
             ] {
                 a.store(0, Relaxed);
             }
@@ -163,7 +198,14 @@ impl AudioMeter {
         self.worst_ns.fetch_max(b.total_ns, Relaxed);
         self.worst_drain_ns.fetch_max(b.drain_ns, Relaxed);
         self.worst_publish_ns.fetch_max(b.publish_ns, Relaxed);
+        self.worst_gap_ns.fetch_max(b.gap_ns, Relaxed);
+        // ASSUMED: 1.5 periods. The device paces callbacks one period apart, so 1.5 separates a
+        // missed slot from jitter; unvalidated against driver behaviour, only against the probe.
+        if b.gap_ns > deadline_ns + deadline_ns / 2 {
+            self.slow_gaps.fetch_add(1, Relaxed);
+        }
         self.over_0db.fetch_add(u64::from(b.over_0db), Relaxed);
+        self.clamped.fetch_add(u64::from(b.clamped), Relaxed);
         // Non-negative floats order like their bit patterns.
         self.peak_bits.fetch_max(b.peak.max(0.0).to_bits(), Relaxed);
     }
@@ -187,8 +229,12 @@ impl AudioMeter {
             worst_ms: ms(self.worst_ns.load(Relaxed)),
             worst_drain_ms: ms(self.worst_drain_ns.load(Relaxed)),
             worst_publish_ms: ms(self.worst_publish_ns.load(Relaxed)),
+            worst_gap_ms: ms(self.worst_gap_ns.load(Relaxed)),
+            slow_gaps: self.slow_gaps.load(Relaxed),
             peak: f32::from_bits(self.peak_bits.load(Relaxed)),
             over_0db: self.over_0db.load(Relaxed),
+            clamped: self.clamped.load(Relaxed),
+            boost: ThreadBoost::unpack(self.boost.load(Relaxed)),
         }
     }
 }
@@ -205,6 +251,8 @@ mod tests {
             publish_ns: total_ns / 20,
             peak,
             over_0db: over,
+            gap_ns: 0,
+            clamped: 0,
         }
     }
 
@@ -276,6 +324,43 @@ mod tests {
     }
 
     #[test]
+    fn callbacks_that_start_late_are_counted_as_slow_gaps() {
+        let m = meter();
+        // period 2.667 ms: 2.7 ms is on time, 4.1 ms is over 1.5 periods, 30 ms is a stall.
+        for gap in [0, 2_700_000, 4_100_000, 30_000_000] {
+            m.record(BlockSample {
+                gap_ns: gap,
+                ..block(1_000_000, 0.1, 0)
+            });
+        }
+        let s = m.snapshot();
+        assert_eq!(s.slow_gaps, 2);
+        assert!((s.worst_gap_ms - 30.0).abs() < 1e-9);
+        assert!(s.summary().contains("gap worst 30.00 ms (slow 2)"));
+        m.request_reset();
+        m.record(block(1, 0.1, 0));
+        assert_eq!(m.snapshot().slow_gaps, 0);
+    }
+
+    #[test]
+    fn clamped_frames_accumulate_and_reset() {
+        let m = meter();
+        m.record(BlockSample {
+            clamped: 5,
+            ..block(1_000_000, 0.9, 0)
+        });
+        m.record(BlockSample {
+            clamped: 2,
+            ..block(1_000_000, 0.9, 0)
+        });
+        assert_eq!(m.snapshot().clamped, 7);
+        assert!(m.snapshot().summary().contains("clamped 7"));
+        m.request_reset();
+        m.record(block(1, 0.1, 0));
+        assert_eq!(m.snapshot().clamped, 0);
+    }
+
+    #[test]
     fn empty_meter_reports_nothing() {
         let s = AudioMeter::default().snapshot();
         assert_eq!(s.load(), 0.0);
@@ -289,5 +374,15 @@ mod tests {
         let t = m.snapshot().summary();
         assert!(t.contains("128 frames @ 48000 Hz"), "{t}");
         assert!(t.contains("late 1"), "{t}");
+        assert!(t.contains("thread priority: n/a"), "{t}");
+        m.set_boost(ThreadBoost {
+            before: Some(0),
+            after: Some(15),
+            mmcss: true,
+        });
+        m.request_reset();
+        m.record(block(1, 0.1, 0));
+        let t = m.snapshot().summary();
+        assert!(t.contains("priority 15 (was 0), MMCSS Pro Audio"), "{t}");
     }
 }

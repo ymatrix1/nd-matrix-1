@@ -39,7 +39,7 @@ The version lives in two places. Change both in the release PR; nothing else nee
 | File | Field | Notes |
 |---|---|---|
 | `Cargo.toml` | `[workspace.package] version` | Every crate uses `version.workspace = true`; `ns4 info` and the plugin report it via `CARGO_PKG_VERSION` |
-| `pyproject.toml` | `[project] version` | Python tooling only; a unit test fails if it differs from `Cargo.toml` |
+| `pyproject.toml` + `uv.lock` | `[project] version` (run `uv lock`) | Python tooling only; a unit test fails if it differs from `Cargo.toml` |
 
 Then run `cargo check --workspace` so `Cargo.lock` picks up the new version, and commit the lock file with the bump.
 The tag must equal `v` plus the `Cargo.toml` version (`v0.2.0` for `0.2.0`, `v0.2.0-rc.1` for `0.2.0-rc.1`).

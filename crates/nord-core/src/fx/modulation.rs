@@ -9,6 +9,16 @@ fn soft_square(x: f32, k: f32) -> f32 {
     (k * x).tanh() / k.tanh()
 }
 
+/// Which firmware Mod 2 stage box is processing frames (the others are parked, see
+/// `LayerFxChain::reserve_firmware_stages`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Mod2Live {
+    None,
+    Chorus,
+    Law,
+    Vibe,
+}
+
 impl LayerFxChain {
     /// Mod 1 LFO rate: Master Clock (`mod1_sync_beats`) for A-Pan / Trem / Wah / Pump, else the Rate knob.
     #[inline]
@@ -235,51 +245,78 @@ impl LayerFxChain {
     /// to 11 with its raw values (engine path otherwise). Types 0 to 3 and 8 to 11 run through
     /// the law stage (`PHAS`, `FLANG`, `ENS`, `SPIN`), 4 and 5 through the chorus, 6 and 7 through
     /// `VIBE`; only one stage is kept alive.
-    fn process_fw_mod2(&mut self, l: f32, r: f32) -> Option<[f32; 2]> {
+    pub(super) fn process_fw_mod2(&mut self, l: f32, r: f32) -> Option<[f32; 2]> {
         let (ty, rate) = (self.mod2_type_raw?, self.mod2_rate_raw?);
         let amount = (self.mod2_amount.clamp(0.0, 1.0) * 127.0).round() as u32;
         let rate = u32::from(rate);
+        let fs = self.sample_rate;
+        // A box that is not the live one is re-initialised in place: the stage constructors build
+        // on the stack, so a type change makes no heap allocation and frees nothing (TD-18).
         if (6..=7).contains(&ty) {
-            self.fw_mod2 = None;
-            self.fw_law = None;
+            let live = self.fw_mod2_live == Mod2Live::Vibe;
             match &mut self.fw_vibe {
-                Some(st) => st.set_params(rate, amount),
-                slot => {
-                    *slot = Some(Box::new(fw_vibe_stage::FwVibeStage::new(
-                        rate,
-                        amount,
-                        self.sample_rate,
-                    )));
-                }
+                Some(st) if live => st.set_params(rate, amount),
+                Some(st) => **st = fw_vibe_stage::FwVibeStage::new(rate, amount, fs),
+                slot => *slot = Some(Box::new(fw_vibe_stage::FwVibeStage::new(rate, amount, fs))),
             }
+            self.fw_mod2_live = Mod2Live::Vibe;
             return self.fw_vibe.as_mut().map(|st| st.process_frame([l, r]));
         }
-        self.fw_vibe = None;
         if !(4..=5).contains(&ty) {
-            self.fw_mod2 = None;
+            let live = self.fw_mod2_live == Mod2Live::Law;
             match &mut self.fw_law {
-                Some(st) if st.ty() == ty => st.set_params(rate, amount),
-                slot => {
-                    *slot = fw_mod2_law_stage::FwLawStage::new(ty, rate, amount, self.sample_rate)
-                        .map(Box::new);
-                }
+                Some(st) if live && st.ty() == ty => st.set_params(rate, amount),
+                slot => match (
+                    slot.as_deref_mut(),
+                    fw_mod2_law_stage::FwLawStage::new(ty, rate, amount, fs),
+                ) {
+                    (Some(old), Some(new)) => *old = new,
+                    (None, Some(new)) => *slot = Some(Box::new(new)),
+                    (_, None) => {
+                        self.fw_mod2_live = Mod2Live::None;
+                        return None;
+                    }
+                },
             }
+            self.fw_mod2_live = Mod2Live::Law;
             return self.fw_law.as_mut().map(|st| st.process_frame([l, r]));
         }
-        self.fw_law = None;
         let variation = ty == 5;
+        let live = self.fw_mod2_live == Mod2Live::Chorus;
         match &mut self.fw_mod2 {
-            Some(st) if st.variation() == variation => st.set_params(rate, amount),
+            Some(st) if live && st.variation() == variation => st.set_params(rate, amount),
+            Some(st) => **st = fw_mod2::FwMod2Stage::new(variation, rate, amount, fs),
             slot => {
                 *slot = Some(Box::new(fw_mod2::FwMod2Stage::new(
-                    variation,
-                    rate,
-                    amount,
-                    self.sample_rate,
+                    variation, rate, amount, fs,
                 )));
             }
         }
+        self.fw_mod2_live = Mod2Live::Chorus;
         self.fw_mod2.as_mut().map(|st| st.process_frame([l, r]))
+    }
+
+    /// Allocates every firmware Mod 1 / Mod 2 stage box once (the chorus, `PHAS`/`FLANG`/`ENS`/
+    /// `SPIN` law, `VIBE` and RM / WAH / PUMP stages, a few KB each) so that a program load or an
+    /// FX type change only re-initialises them in place. Called when the engine is built for the
+    /// audio thread (`standalone_engine`, the plugin); a chain that never calls it allocates the
+    /// boxes on first use as before. Output is unchanged: the parked boxes are re-initialised
+    /// with the constructor before use (`reserved_stages_render_like_lazy_ones`).
+    pub fn reserve_firmware_stages(&mut self) {
+        let fs = self.sample_rate;
+        if self.fw_mod2.is_none() {
+            self.fw_mod2 = Some(Box::new(fw_mod2::FwMod2Stage::new(false, 0, 0, fs)));
+        }
+        if self.fw_law.is_none() {
+            self.fw_law = fw_mod2_law_stage::FwLawStage::new(0, 0, 0, fs).map(Box::new);
+        }
+        if self.fw_vibe.is_none() {
+            self.fw_vibe = Some(Box::new(fw_vibe_stage::FwVibeStage::new(0, 0, fs)));
+        }
+        if self.fw_mod1_rest.is_none() {
+            self.fw_mod1_rest = fw_mod1_rest::FwMod1Rest::new(4, 0, 0, fs).map(Box::new);
+            self.retire_fw_mod1_rest();
+        }
     }
 
     pub(super) fn process_mod2(&mut self, l: f32, r: f32, inv_fs: f32) -> [f32; 2] {

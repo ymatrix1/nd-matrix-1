@@ -112,15 +112,42 @@ def extract(result: dict) -> dict:
         "sy": {k: sy.get(k) for k in SY_FIELDS},
         "flagged_layers": len(result.get("flagged_layers") or []),
         "arm_messages": result.get("arm_messages", {}),
+        "key_arm_messages": result.get("phases", {}).get("key", {}).get("arm_messages", {}),
         "ticks": result.get("ticks"),
     }
 
 
-def finished(path: Path) -> set[str]:
-    """Entries already in the output file (resume)."""
+def read_records(path: Path) -> list[dict]:
+    """Records of the output file (empty when it does not exist)."""
     if not path.exists():
-        return set()
-    return {json.loads(line)["entry"] for line in path.read_text("utf-8").splitlines() if line}
+        return []
+    return [json.loads(line) for line in path.read_text("utf-8").splitlines() if line]
+
+
+def is_complete(rec: dict, need_audio: set[str]) -> bool:
+    """Complete: the census ran and, for an `--audio-for` entry, the return-path run too."""
+    return bool(rec.get("census")) and (rec["entry"] not in need_audio or bool(rec.get("audio")))
+
+
+def finished(path: Path, need_audio: set[str] | None = None) -> set[str]:
+    """Entries with a complete record in the output file (resume).
+
+    A failed entry (`census` is `null`, or a missing return-path run of an `--audio-for` entry: the
+    harness crashed or timed out) is not finished: a rerun runs it again (D170; the earlier code
+    skipped it and kept the failure for good).
+    """
+    return {r["entry"] for r in read_records(path) if is_complete(r, need_audio or set())}
+
+
+def drop_failed(path: Path, need_audio: set[str] | None = None) -> int:
+    """Rewrites the output file without the incomplete records, so a retry leaves one line per
+    entry; returns how many were dropped."""
+    records = read_records(path)
+    kept = [r for r in records if is_complete(r, need_audio or set())]
+    if len(kept) != len(records):
+        text = "".join(json.dumps(r, sort_keys=True) + chr(10) for r in kept)
+        path.write_text(text, encoding="utf-8")
+    return len(records) - len(kept)
 
 
 def run_live(
@@ -151,6 +178,11 @@ def record(
     return rec
 
 
+def audio_entries(path: Path) -> set[str]:
+    """Backup entry names of `--audio-for` (one per line; CRLF and blank lines tolerated)."""
+    return {line.strip() for line in path.read_text("utf-8").splitlines() if line.strip()}
+
+
 def key_ticks_for(expect: dict | None) -> int | None:
     """Hold length of a program: `ARP_KEY_TICKS` when a scene I synth layer has its arpeggiator on
     (line of `tools/program_expect.py`), else the census default (`None`)."""
@@ -175,17 +207,23 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
     ap.add_argument("--expect", type=Path, help="program_expect.py lines (arp: longer hold)")
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--only")
+    ap.add_argument("--entries", type=Path, help="run only the backup entries listed in this file")
     ap.add_argument("--every", type=int, default=1)
     ap.add_argument("--limit", type=int, default=10**9)
     ns = ap.parse_args(argv)
     ns.out.mkdir(parents=True, exist_ok=True)
     target = ns.out / "chain.jsonl"
+    audio = audio_entries(ns.audio_for) if ns.audio_for else set()
+    dropped = drop_failed(target, audio)
+    if dropped:
+        print(f"retrying {dropped} failed entries", flush=True)
     engine_of = {r["entry"]: program_rank.engines(r) for r in program_rank.load_jsonl(ns.native)}
-    audio = set(ns.audio_for.read_text("utf-8").split("\n")) if ns.audio_for else set()
+    only_entries = audio_entries(ns.entries) if ns.entries else None
     expect = {r["entry"]: r for r in program_rank.load_jsonl(ns.expect)} if ns.expect else {}
+    done = finished(target, audio)
     todo = [
         p for p in programs_of(ns.programs, ns.only, ns.every, ns.limit)
-        if entry_of(p) not in finished(target)
+        if entry_of(p) not in done and (only_entries is None or entry_of(p) in only_entries)
     ]  # fmt: skip
     with ThreadPoolExecutor(ns.workers) as pool, target.open("a", encoding="utf-8") as fh:
         jobs = [

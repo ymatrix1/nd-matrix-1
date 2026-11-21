@@ -18,6 +18,7 @@ use nord_core::fx::{
 };
 
 use crate::fx_params::FX_LAYERS;
+use crate::program_overrides::{ProgramOverrides, MOD2_RATE_DEFAULT_HZ};
 
 macro_rules! mirror_enum {
     ($(#[$m:meta])* $name:ident => $core:ty { $($var:ident = $label:literal),+ $(,)? }) => {
@@ -113,7 +114,7 @@ impl Default for LayerFxSelectors {
             mod1_type: EnumParam::new("Mod 1 Type", Mod1Sel::Off),
             mod1_rate_hz: rate("Mod 1 Rate", 4.0, 20.0),
             mod2_type: EnumParam::new("Mod 2 Type", Mod2Sel::Off),
-            mod2_rate_hz: rate("Mod 2 Rate", 0.8, 10.0),
+            mod2_rate_hz: rate("Mod 2 Rate", MOD2_RATE_DEFAULT_HZ, 10.0),
             cabinet: EnumParam::new("Amp Cabinet", CabinetSel::Off),
             comp_fast: BoolParam::new("Comp Fast", false),
             delay_sync: BoolParam::new("Delay Sync", false),
@@ -129,13 +130,18 @@ impl Default for LayerFxSelectors {
 
 impl LayerFxSelectors {
     /// Writes host values into one engine FX chain (no allocation; plain field stores).
-    pub fn apply_to(&self, fx: &mut LayerFxChain) {
+    ///
+    /// `mod2_host_wins`: write the Mod 2 type and rate and drop the loaded program's firmware
+    /// words. When false the program's Mod 2 (and its raw words, D163) stays (D169).
+    pub fn apply_to(&self, fx: &mut LayerFxChain, mod2_host_wins: bool) {
         fx.mod1_type = self.mod1_type.value().into();
         fx.mod1_rate_hz = self.mod1_rate_hz.value();
-        fx.mod2_type = self.mod2_type.value().into();
-        fx.mod2_rate_hz = self.mod2_rate_hz.value();
-        // Host values win over a loaded program; the firmware Mod 2 reads only the raw words (D163).
-        fx.clear_mod2_firmware_words();
+        if mod2_host_wins {
+            fx.mod2_type = self.mod2_type.value().into();
+            fx.mod2_rate_hz = self.mod2_rate_hz.value();
+            // The firmware Mod 2 reads only the raw words (D163), so a host edit must drop them.
+            fx.clear_mod2_firmware_words();
+        }
         fx.amp_cabinet = self.cabinet.value().into();
         fx.comp_fast = self.comp_fast.value();
         fx.delay_clock_sync = self.delay_sync.value();
@@ -164,10 +170,16 @@ impl Default for LayerFxSelectorBank {
 }
 
 impl LayerFxSelectorBank {
-    /// Copies every layer's selectors into the engine.
-    pub fn sync_to_engine(&self, engine: &mut Stage4Engine) {
-        for (p, fx) in self.layers.iter().zip(engine.fx_chains.iter_mut()) {
-            p.apply_to(fx);
+    /// Copies every layer's selectors into the engine; Mod 2 only where the host overrides the
+    /// loaded program (`ProgramOverrides`).
+    pub fn sync_to_engine(&self, engine: &mut Stage4Engine, overrides: &ProgramOverrides) {
+        for (i, (p, fx)) in self
+            .layers
+            .iter()
+            .zip(engine.fx_chains.iter_mut())
+            .enumerate()
+        {
+            p.apply_to(fx, overrides.mod2_overrides(i));
         }
     }
 }
@@ -186,7 +198,7 @@ mod tests {
             fx.reverb_model = ReverbModel::Cathedral;
             fx.delay_ping_pong = true;
         }
-        LayerFxSelectorBank::default().sync_to_engine(&mut e);
+        LayerFxSelectorBank::default().sync_to_engine(&mut e, &ProgramOverrides::default());
         for (a, b) in e.fx_chains.iter().zip(reference.fx_chains.iter()) {
             assert_eq!(a.mod1_type, b.mod1_type);
             assert_eq!(a.mod1_rate_hz, b.mod1_rate_hz);
@@ -212,7 +224,7 @@ mod tests {
         bank.layers[2].delay_ping_pong = BoolParam::new("p", true);
         bank.layers[2].mod2_rate_hz = rate("r2", 5.0, 10.0);
         let mut e = Stage4Engine::new(48_000.0);
-        bank.sync_to_engine(&mut e);
+        bank.sync_to_engine(&mut e, &ProgramOverrides::all_armed());
         assert_eq!(e.fx_chains[2].mod1_type, Mod1Type::RingMod);
         assert_eq!(e.fx_chains[2].reverb_model, ReverbModel::Spring);
         assert!(e.fx_chains[2].delay_ping_pong);
@@ -227,10 +239,22 @@ mod tests {
         e.fx_chains[2].mod2_type_raw = Some(4);
         e.fx_chains[2].mod2_rate_raw = Some(80);
         e.fx_chains[3].mod2_type_raw = Some(4);
-        LayerFxSelectorBank::default().sync_to_engine(&mut e);
+        LayerFxSelectorBank::default().sync_to_engine(&mut e, &ProgramOverrides::all_armed());
         assert_eq!(e.fx_chains[2].mod2_type_raw, None);
         assert_eq!(e.fx_chains[2].mod2_rate_raw, None);
         assert_eq!(e.fx_chains[3].mod2_type_raw, None);
+    }
+
+    #[test]
+    fn an_untouched_host_keeps_the_words_of_a_loaded_program() {
+        let mut e = Stage4Engine::new(48_000.0);
+        e.fx_chains[2].mod2_type_raw = Some(4);
+        e.fx_chains[2].mod2_rate_raw = Some(80);
+        e.fx_chains[2].mod2_type = Mod2Type::Spin;
+        LayerFxSelectorBank::default().sync_to_engine(&mut e, &ProgramOverrides::default());
+        assert_eq!(e.fx_chains[2].mod2_type_raw, Some(4));
+        assert_eq!(e.fx_chains[2].mod2_rate_raw, Some(80));
+        assert_eq!(e.fx_chains[2].mod2_type, Mod2Type::Spin);
     }
 
     #[test]

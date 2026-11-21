@@ -16,6 +16,16 @@ pub(super) fn feedback_fx_of(raw: u8) -> crate::fx::DelayFeedbackFx {
 }
 
 impl Stage4Engine {
+    /// Allocates the lazily built firmware Mod 1 / Mod 2 stages of every FX chain once, so a
+    /// program load or an FX type change on the audio thread only re-initialises them in place
+    /// (TD-18, `LayerFxChain::reserve_firmware_stages`). Call it where the engine is built for the
+    /// audio thread. Rendering is unchanged.
+    pub fn reserve_audio_stages(&mut self) {
+        for fx in self.fx_chains.iter_mut() {
+            fx.reserve_firmware_stages();
+        }
+    }
+
     /// Applies a decoded program FX block to a layer chain, exactly as a program load does
     /// (public for the offline measurement tools, `nord-tools` `fx_engine_vs_fw`).
     pub fn apply_fx_chain(fx: &mut LayerFxChain, dec: &crate::cbin::FxDecoded) {

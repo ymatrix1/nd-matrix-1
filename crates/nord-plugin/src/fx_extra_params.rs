@@ -10,6 +10,7 @@ use nih_plug::prelude::*;
 use nord_core::engine::Stage4Engine;
 
 use crate::fx_params::FX_LAYERS;
+use crate::program_overrides::{ProgramOverrides, MOD2_AMOUNT_DEFAULT};
 
 /// Manual p.51: the MID FREQ knob sweeps 200 Hz to 8 kHz.
 const MID_FREQ_MIN: f32 = 200.0;
@@ -47,7 +48,7 @@ impl Default for LayerFxExtraParams {
     fn default() -> Self {
         Self {
             mod1_amount: unit("Mod 1 Amount", 0.4),
-            mod2_amount: unit("Mod 2 Amount", 0.35),
+            mod2_amount: unit("Mod 2 Amount", MOD2_AMOUNT_DEFAULT),
             eq_mid_freq: FloatParam::new(
                 "EQ Mid Freq",
                 1000.0,
@@ -83,10 +84,19 @@ impl Default for LayerFxExtraBank {
 
 impl LayerFxExtraBank {
     /// Copy every value into the engine (no allocation; audio-thread safe).
-    pub fn sync_to_engine(&self, engine: &mut Stage4Engine) {
-        for (p, fx) in self.layers.iter().zip(engine.fx_chains.iter_mut()) {
+    ///
+    /// Mod 2 AMOUNT follows the host only where it overrides the loaded program (D169).
+    pub fn sync_to_engine(&self, engine: &mut Stage4Engine, overrides: &ProgramOverrides) {
+        for (i, (p, fx)) in self
+            .layers
+            .iter()
+            .zip(engine.fx_chains.iter_mut())
+            .enumerate()
+        {
             fx.mod1_amount = p.mod1_amount.value();
-            fx.mod2_amount = p.mod2_amount.value();
+            if overrides.mod2_overrides(i) {
+                fx.mod2_amount = p.mod2_amount.value();
+            }
             fx.eq_mid_freq_hz = p.eq_mid_freq.value();
             fx.eq_filter_res = p.filter_res.value();
             fx.amp_variation = p.amp_variation.value();
@@ -105,7 +115,7 @@ mod tests {
     fn defaults_match_engine_defaults() {
         let reference = Stage4Engine::new(48_000.0);
         let mut e = Stage4Engine::new(48_000.0);
-        LayerFxExtraBank::default().sync_to_engine(&mut e);
+        LayerFxExtraBank::default().sync_to_engine(&mut e, &ProgramOverrides::all_armed());
         for (a, b) in e.fx_chains.iter().zip(reference.fx_chains.iter()) {
             assert_eq!(a.mod1_amount, b.mod1_amount);
             assert_eq!(a.mod2_amount, b.mod2_amount);
@@ -132,7 +142,7 @@ mod tests {
             },
         );
         let mut e = Stage4Engine::new(48_000.0);
-        bank.sync_to_engine(&mut e);
+        bank.sync_to_engine(&mut e, &ProgramOverrides::all_armed());
         assert_eq!(e.fx_chains[5].mod1_amount, 0.9);
         assert!(e.fx_chains[5].amp_variation && e.fx_chains[5].delay_analog);
         assert_eq!(e.fx_chains[5].eq_mid_freq_hz, 4000.0);
@@ -146,7 +156,7 @@ mod tests {
             let mut bank = LayerFxExtraBank::default();
             bank.layers[0].mod1_amount = unit("m", amount);
             let mut e = Stage4Engine::new(48_000.0);
-            bank.sync_to_engine(&mut e);
+            bank.sync_to_engine(&mut e, &ProgramOverrides::all_armed());
             let fx: &mut LayerFxChain = &mut e.fx_chains[0];
             fx.mod1_type = Mod1Type::Tremolo;
             fx.mod1_rate_hz = 5.0;
@@ -179,5 +189,16 @@ mod tests {
         s.dedup();
         assert_eq!(s.len(), ids.len());
         assert!(ids.contains(&"eq_mid_freq_7".to_string()));
+    }
+
+    #[test]
+    fn an_untouched_host_keeps_a_loaded_program_mod2_amount() {
+        let mut e = Stage4Engine::new(48_000.0);
+        e.fx_chains[2].mod2_amount = 0.9;
+        let bank = LayerFxExtraBank::default();
+        bank.sync_to_engine(&mut e, &ProgramOverrides::default());
+        assert_eq!(e.fx_chains[2].mod2_amount, 0.9);
+        bank.sync_to_engine(&mut e, &ProgramOverrides::all_armed());
+        assert_eq!(e.fx_chains[2].mod2_amount, MOD2_AMOUNT_DEFAULT);
     }
 }

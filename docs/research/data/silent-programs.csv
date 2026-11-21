@@ -8,7 +8,7 @@ Program/Bank D/Broken Chip.ns4p,harness,per-program wavetable (L2 byte window) n
 Program/Bank D/Calling Whl.ns4p,harness,wavetable not delivered to PNO core 2 (L2) plus arp hold,-26.669,-25.192,,0.0,synth_chain_silent;piano_no_chain_tap,15000,,1.2643,False,True,True,piano_no_chain_tap
 Program/Bank D/Nox Split.ns4p,legitimate,organ layer zone ends below key 60,-39.944,-41.157,0.0,0.0,organ_chain_silent,1500,0.0,0.0,False,True,False,organ_expected_silent
 Program/Bank D/Super Org Punch.ns4p,harness,per-program wavetable (L2 byte window) not delivered to PNO core 2,-32.918,-35.363,,0.0,synth_chain_silent,1500,,2.5284,False,True,False,
-Program/Bank E/24 Frames J3.ns4p,legitimate,organ layer zone ends below key 60,-26.734,-18.496,0.0,0.0,organ_chain_silent;piano_no_chain_tap,15000,0.0,0.0,False,True,True,organ_expected_silent;piano_no_chain_tap
+Program/Bank E/24 Frames J3.ns4p,legitimate,organ layer zone gain 0 at key 60 and stored level 0,-26.734,-18.496,0.0,0.0,organ_chain_silent;piano_no_chain_tap,15000,0.0,0.0,False,True,True,organ_expected_silent;piano_no_chain_tap
 Program/Bank E/J3 Grand Layers.ns4p,legitimate,"organ layer stored level 0, no morph",-27.864,-27.277,0.0,0.19553,organ_chain_silent;piano_no_chain_tap,1500,0.0,0.1955,False,False,False,organ_expected_silent;piano_no_chain_tap
 Program/Bank F/90s Organ.ns4p,harness,per-program wavetable (L2 byte window) not delivered to PNO core 2,-28.054,-27.577,0.02016,0.0,synth_chain_silent,1500,0.0202,1.6001,True,True,False,
 Program/Bank F/Dreamy Syn Tines.ns4p,harness,per-program wavetable (L2 byte window) not delivered to PNO core 2,-26.206,-26.979,,0.0,synth_chain_silent,1500,,1.4992,False,True,False,
@@ -16,4 +16,4 @@ Program/Bank F/Gravity Whl.ns4p,harness,wavetable not delivered to PNO core 2 (L
 Program/Bank F/Moving Chords.ns4p,harness,"arp first step after the 1,500 tick hold",-32.142,-31.484,,0.0,synth_chain_silent,15000,,0.2459,False,True,True,
 Program/Bank F/Scream Lead AT.ns4p,harness,per-program wavetable (L2 byte window) not delivered to PNO core 2,-24.158,-25.756,,0.0,synth_chain_silent,1500,,2.5551,False,True,False,
 Program/Bank F/Shiny Synth Keys.ns4p,harness,per-program wavetable (L2 byte window) not delivered to PNO core 2,-21.841,-21.331,,0.0,synth_chain_silent;piano_no_chain_tap,1500,,2.779,False,True,False,piano_no_chain_tap
-Program/Bank F/Synth Engine.ns4p,open,"arp mode 1 zigzag, 14 step custom pattern: key words arrive, no voice record",-32.769,-32.576,,0.0,synth_chain_silent,15000,,0.0,False,True,True,synth_chain_silent
+Program/Bank F/Synth Engine.ns4p,open,"arp zigzag custom pattern: ARM key word has voice bank bit 0x01 only, DSP voice silent (both bits: 0.194)",-32.769,-32.576,,0.0,synth_chain_silent,15000,,0.0,False,True,True,synth_chain_silent

@@ -360,6 +360,16 @@ fn main() -> eframe::Result<()> {
             std::process::exit(2);
         }
     };
+    if nord_gui::audio::probe::requested(&argv).is_some() {
+        match nord_gui::audio::probe::run(&argv) {
+            Ok(report) => println!("{report}"),
+            Err(e) => {
+                eprintln!("nord-stage4 --audio-probe: {e}");
+                std::process::exit(1);
+            }
+        }
+        return Ok(());
+    }
     let headless = HeadlessRequest::from_args(&argv);
     if headless.is_headless() {
         if headless.dump_options {

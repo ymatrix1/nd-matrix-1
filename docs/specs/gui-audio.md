@@ -1,6 +1,6 @@
 # GUI audio callback and underrun meter
 
-Checked: 2026-11-17. Code: `crates/nord-gui/src/audio/{callback,meter,meter_ui,io}.rs`, bench `crates/nord-core/src/bench_gui*.rs`.
+Checked: 2026-11-19. Code: `crates/nord-gui/src/audio/{callback,meter,meter_ui,io,priority,garbage,probe}.rs`, bench `crates/nord-core/src/bench_gui*.rs`.
 
 ## Callback
 
@@ -40,3 +40,24 @@ The GUI shows it in the bottom bar (`late n/blocks  worst x/deadline ms  load  p
 - Worst block index changes from run to run, also with no key held or one layer, so tail spikes are host scheduling, not a render stage. Remaining lever: device buffer size (`--audio-buffer`; a size the device rejects is reported and the default buffer is used instead, a size outside the supported range is clamped).
 - **Firmware FX load (2026-11-17, D161):** the tail of the status bar is not a render stage, but the render itself can exceed the buffer: with `--firmware-fx` a program whose seven racks run a firmware reverb (A:16 Horizon Whl) costs 12 to 15 ms per 480 frame block, against 10 ms of audio. `ns4 bench --gui --backup <.ns4b> --program <entry> --arp up --repeat 3` reproduces it (`--repeat` keeps each block's fastest time to remove host noise); `--fx-idle-skip` stops the racks of silent layers (opt-in), see [gui-audio-glitches](../research/gui-audio-glitches.md). The master bus clamps hard at 1.0 before the meter, so the meter's over-0-dB count cannot see a clipped chord.
 - Device seen: 44.1 kHz stereo F32, driver default buffer (size not reported by CPAL; the meter shows the real callback size).
+
+## Thread class, gap meter, clamp counter, garbage queue (D167, 2026-11-19)
+
+Code: `audio/{priority,garbage,probe}.rs`, `audio/callback.rs`, `fx/master.rs`, `fx/modulation.rs` (`reserve_firmware_stages`), bench `bench_gui_reload.rs`.
+
+| Piece | Behaviour |
+|---|---|
+| Thread priority | The first callback calls `priority::boost_current_thread`: `SetThreadPriority(GetCurrentThread(), TIME_CRITICAL)` and the MMCSS task `Pro Audio`. cpal 0.15.3 (`host/wasapi/stream.rs`, `boost_current_thread_priority`) passes the thread id as the `HANDLE`, so its own boost fails silently; a probe on this host read priority 0 and no MMCSS before the call. The boost is one system call outside the first block's timing. `--no-thread-boost` skips it (comparison runs). Other hosts: no-op |
+| Meter: gap | `BlockSample::gap_ns` is the start-to-start time of two callbacks. The device paces them, so a gap over 1.5 periods (`slow_gaps`) means the thread was not scheduled in time, whatever the render cost. `worst_gap_ms` is the longest |
+| Meter: clamp | `MasterBus::clamped_frames` counts frames whose summed bus exceeded plus or minus 1.0 before the hard clamp (the output is unchanged). `BlockSample::clamped` is the per-block delta; the summary prints `clamped N`. The over-0-dBFS count cannot see the clamp because it sits after it |
+| Meter: thread | `ThreadBoost` (priority before and after, MMCSS) is packed into one atomic and printed in the summary |
+| Garbage queue | `LoadProgram` (`Box<ProgramDecoded>`), `LoadPianoSound` and `LoadSynthSample` (the replaced `Arc`) no longer free on the callback: `apply_realtime` puts them into a bounded queue (`try_send`, no allocation, never blocks, a full queue leaks) and the `ns4-reaper` thread drops them |
+| Stage boxes | `standalone_engine` calls `Stage4Engine::reserve_audio_stages`: every firmware Mod 1 / Mod 2 stage box exists from the start and a type change re-initialises a box in place (the constructors build on the stack). Output is bit-identical (`fx::tests_reserve_stages`); `tests/no_alloc_fx_stages.rs` counts 0 allocator calls for ten program loads with different Mod 1 / Mod 2 types, against more than 20 on an engine that does not reserve |
+
+### Real callback probe
+
+`nord-stage4 --audio-probe <secs> [--backup <.ns4b> --program "Program/Bank A/Horizon Whl.ns4p"] [--arp up] [--keys 6] [--layers 3|7] [--audio-buffer N] [--no-thread-boost] [firmware flags]` opens the default output device like the GUI (same `AudioCallback`, buffer and boost flags), plays the bench engine for `<secs>` after 2 s of warm-up and prints the meter. It makes sound and needs a device. `ns4 bench --gui` times the render alone; the probe adds the driver, the thread class and the scheduler.
+
+### Program reload bench
+
+`ns4 bench --gui --backup <.ns4b> --program <entry> --reload N [--reload-pool K] [--program2 <entry>]` plays a chord, applies N programs in turn (the named ones, then K programs spread over the archive) with `apply_program` and times the call and the three blocks after it: the cost of a program change inside the callback and of the stages it builds lazily.

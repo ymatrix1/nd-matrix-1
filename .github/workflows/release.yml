@@ -123,7 +123,7 @@ jobs:
           save-if: false # release runs are rare; do not pay for a cache upload
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -135,7 +135,7 @@ jobs:
           for i in 1 2 3 4 5; do
             echo "Attempt $i: Updating apt and installing dependencies..."
             if sudo apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout=20 && \
-               sudo apt-get install -y --no-install-recommends -o Acquire::Retries=5 libasound2-dev libudev-dev libjack-jackd2-dev libgl-dev libx11-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxi-dev libxext-dev libxfixes-dev libxrender-dev libxinerama-dev pkg-config; then
+               sudo apt-get install -y --no-install-recommends -o Acquire::Retries=5 libasound2-dev libudev-dev libjack-jackd2-dev libgl-dev libx11-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxi-dev libxext-dev libxfixes-dev libxrender-dev libxinerama-dev pkg-config desktop-file-utils; then
               echo "Dependencies installed successfully."
               break
             fi
@@ -198,7 +198,7 @@ jobs:
           python tools/release_installers.py "${args[@]}"
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.target }}
           path: |
@@ -223,7 +223,7 @@ jobs:
       contents: write # create the release and upload assets; no other job has this
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: true
@@ -237,7 +237,7 @@ jobs:
           ls -l
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.plan.outputs.tag }}
           prerelease: ${{ contains(needs.plan.outputs.tag, '-') }}

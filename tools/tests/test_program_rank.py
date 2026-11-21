@@ -169,3 +169,13 @@ def test_expected_silence_is_not_a_chain_defect() -> None:
     assert pr.chain_flags(n, chain())["flags"] == ["organ_chain_silent", "synth_chain_silent"]
     rows = pr.build_rows([n], [chain()], [{"entry": n["entry"], **silent}])
     assert rows[0]["chain"]["flags"] == ["organ_expected_silent", "synth_expected_silent"]
+
+
+def test_by_engine_median_of_an_even_count_is_the_mean_of_the_two_middle_scores() -> None:
+    """Regression: `sc[len(sc) // 2]` is the upper median (scores 1, 2, 3, 10 gave 3, not 2.5)."""
+    rows = [
+        {"engines": "synth", "dist": {"score": s}, "chain": {"flags": []}}
+        for s in (10.0, 1.0, 3.0, 2.0)
+    ]
+    (row,) = pr.by_engine(rows)
+    assert row[1] == 4 and row[2] == 2.5 and row[3] == 10.0

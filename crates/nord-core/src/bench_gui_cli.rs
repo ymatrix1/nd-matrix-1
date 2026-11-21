@@ -50,7 +50,7 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     let fx = crate::bench_gui_prog::fx_summary(&probe);
     let r = run_with(cfg, base);
     let mut out = format!(
-        "ns4 bench --gui: {} layers, {} keys, {} frames @ 48000 Hz (deadline {:.3} ms), churn {}, options {}\nFX racks:\n{}\n{}\nhash {:#018x} (peak {:.3})",
+        "ns4 bench --gui: {} layers, {} keys, {} frames @ 48000 Hz (deadline {:.3} ms), churn {}, options {}\nFX racks:\n{}\n{}\nhash {:#018x} (peak {:.3}, master clamp hit {} of {} frames)",
         cfg.layers,
         cfg.keys,
         cfg.frames,
@@ -60,13 +60,34 @@ pub fn cli(args: &[String]) -> Result<String, String> {
         fx,
         format_row("render_frame path", &r),
         r.hash,
-        r.peak
+        r.peak,
+        r.clamped,
+        r.blocks * cfg.frames
     );
     if cfg.churn_every > 0 {
         out.push_str(&format!(
             "\nkey-press blocks: mean {:.3} max {:.3} ms; other blocks: mean {:.3} ms",
             r.press_mean_ms, r.press_max_ms, r.quiet_mean_ms
         ));
+    }
+    if let Some(loads) = num::<usize>(args, "--reload")? {
+        let src = source
+            .as_ref()
+            .filter(|s| !s.backup.is_empty())
+            .ok_or("--reload needs --backup and --program")?;
+        let second = args
+            .iter()
+            .position(|a| a == "--program2")
+            .and_then(|i| args.get(i + 1))
+            .map(String::as_str);
+        let programs = crate::bench_gui_reload::decode_programs(
+            src,
+            second,
+            num::<usize>(args, "--reload-pool")?.unwrap_or(0),
+        )?;
+        let rep = crate::bench_gui_reload::run(&cfg, src, &programs, loads)?;
+        out.push('\n');
+        out.push_str(&rep.format());
     }
     if args.iter().any(|a| a == "--breakdown") {
         out.push_str("\nbreakdown (ms per block):");

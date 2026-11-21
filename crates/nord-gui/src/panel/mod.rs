@@ -22,6 +22,8 @@ mod ctl_legend;
 #[cfg(test)]
 mod frame_cost_tests;
 mod frames;
+#[cfg(test)]
+mod header_tab_tests;
 mod kb_zone;
 mod keybed;
 mod keybed_velocity;

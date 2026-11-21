@@ -155,3 +155,52 @@ cargo test --release -p nord-tools --lib fx_parity
 uv run pytest tools/tests/test_program_rank_combo.py
 cargo run --release -p nord-tools --bin render_hash -- rh.f32le && sha256sum rh.f32le
 ```
+
+## 6. Re-run on the D163 to D166 defaults (2026-11-19)
+
+- **Checked:** 2026-11-19. Same sources and tools as above plus `program_rank --flip fx_delay_time,fx_delay_laws` (new sub-groups of `fx_delay`, flip only, `rank_groups::SUBGROUPS`). Data: the five `program-ranking*.csv` files regenerated, `program-sweep.json` regenerated.
+- Engine default now = amp + Mod 2 (D163), Touch (D165), arp walk and morph (D166). Ranking: mean 3.77, median 2.74, p90 8.24, max 21.15; above 5: 104, above 10: 24 ([program-ranking](program-ranking.md) s1b).
+
+Flip of one more group on top of the current default, all 384 programs (score against the all-firmware render):
+
+| Flipped set | Mean | Median | p90 | Max | > 5 | > 10 | Worse by > 0.5 |
+|---|---|---|---|---|---|---|---|
+| none (default) | 3.77 | 2.74 | 8.24 | 21.15 | 104 | 24 | - |
+| fx_mod1 | 3.33 | 2.31 | 7.25 | 21.03 | 85 | 15 | 7 |
+| fx_compressor | 3.29 | 2.15 | 6.84 | 21.15 | 79 | 18 | 14 |
+| fx_delay | 3.56 | 2.61 | 7.63 | 21.15 | 93 | 20 | 11 |
+| fx_delay_laws only | 3.58 | 2.67 | 7.67 | 21.15 | 95 | 20 | 11 |
+| fx_delay_time only | 3.75 | 2.72 | 8.18 | 22.35 | 104 | 25 | 7 |
+| fx_eq | 3.15 | 1.98 | 7.20 | 21.15 | 70 | 22 | 24 |
+| fx_eq+fx_mod1 | 2.70 | 1.71 | 6.30 | 16.61 | 54 | 15 | 24 |
+| fx_delay+fx_compressor+fx_eq+fx_mod1 | 1.66 | 1.04 | 3.84 | 16.61 | 22 | 3 | 8 |
+
+The `fx_delay_laws only` and `fx_delay_time only` rows come from a run of `program_rank --flip fx_delay_time,fx_delay_laws,fx_delay` whose per-program lines were **not committed** (only the summary is kept; rerun with the command in s6 header to reproduce, about 8 min with six per-bank shards). The delay gain sits in the mix law (`delay_laws`, role EMPIRICAL, no delay clip); the time law alone (oracle verified) moves nothing and makes PineScape Synth worse (21.03 to 22.35).
+
+### 6.1 Why no further group is flipped in this change
+
+| Group | Evidence for a flip | Blocker |
+|---|---|---|
+| Mod 1 (8 of the worst 20) | A-PAN, TREM, RM, A-WAH, WAH, PUMP routines null the oracle (fx-vs-oracle s3.2) | OQ38: call length. Boot words say 1 block of 2 frames for the piano unit and 2 blocks for the synth unit; the port uses 2 frames for types 4 to 11 and the oracle pass is 4 frames (null -16 to -26 dB at 2). Also a possible factor 2 in the LFO Hz. Needs a call-count trace |
+| Delay (4) | time law VERIFIED on 264 words | the part that moves the score is the mix law, role EMPIRICAL, no clip |
+| Compressor (3) | routine nulls the oracle (-117 dB or better, level delta 0.00) | **new finding below**: the context words around the routine were ASSUMED and are not the firmware's |
+| EQ (2) | tone stack routine | not run live (2-frame port against the 4-frame pass), joint mid words ASSUMED |
+| Reverb (2) | routines null the oracle | owner veto by ear (D163) |
+
+### 6.2 Finding: the firmware compressor row is in the FX image and differs from `FwCompressor::new` (VERIFIED, local image)
+
+Compressor instance of FX core 1 (`I1 = 0xB0168`, attack pair at `DM(0xB0148)` as written by the ARM boot log), read from the static FX image (`tools/ns4_dsp_ldr.py dsp_image_0_FX.bin --sram`, word at `4 * address` of `core1_sram.bin`):
+
+| Word | Offset | Firmware image | `FwCompressor::new` / `compressor_for_amount` (ASSUMED) |
+|---|---|---|---|
+| attack pair | -0x20 | 0.1021, 1.0 | 0.102071 (ARM), 1.0 |
+| release pair | -0x1E | 0.0004889, 0.04 | 0.000460684 (ARM), 0.04 |
+| SLOPE | -0x17 | **0.75** | 0.05 |
+| REDUCTION_SCALE | -0x15 | **0.0104167 (1/96)** | 0.5 |
+| TABLE1 | -0x14 | **1.52588e-05 (2^-16)** | 0.5 |
+| LOG_GAIN | -0x0B | **6.0** | 1.0 |
+| TABLE0 | -0x0A | 1.0 | 1.0 |
+| SMOOTH | -0x09 | 0.99078 | 0.9908 |
+| MANT_SCALE, FIX_SCALE | -0x0D, -0x0C | -31, 31 | -31, 31 |
+
+So the port, which nulls the oracle for its own words, does not reproduce the firmware gain law: `fx-vs-oracle` s3.4 proves the routine, not the words. Caveat: these are the static-image words; they are not confirmed unmodified at runtime (the ARM boot log writes only the attack, release, makeup and threshold words, and the DSP code could still rewrite the others). Following change (not in this PR): take SLOPE, REDUCTION_SCALE, TABLE1, LOG_GAIN from the image in `compressor_for_amount`, rerun `fx_vs_oracle.py --only COMP`, then ranked before/after and the default flip decision (opt-out `--legacy-compressor`), with an `ns4 bench` number and the apply_program, edit, render tests. Tracked in `docs/OPEN-QUESTIONS.md` OQ38 note and bean follow-up.

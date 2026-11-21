@@ -158,6 +158,14 @@ pub struct Stage4Params {
     #[nested(id_prefix = "menx", group = "Menu Extras")]
     pub menu_extra: crate::menu_extra_params::MenuExtraParams,
 
+    /// Firmware-law switches (`fwx_*`, D169).
+    #[nested(group = "Firmware")]
+    pub firmware: crate::firmware_params::FirmwareFlagParams,
+
+    /// Which of Touch / Mod 2 the host overrides over a loaded program (D169). Not persisted:
+    /// derived from the restored values, see `program_overrides.rs`.
+    pub program_overrides: crate::program_overrides::ProgramOverrides,
+
     /// Editor window size, persisted with the plugin state (not a host parameter).
     #[persist = "editor-state"]
     pub editor_state: std::sync::Arc<nih_plug_egui::EguiState>,
@@ -399,6 +407,8 @@ impl Default for Stage4Params {
             piano_extra: crate::piano_extra_params::PianoExtraBank::default(),
             layer_fx_extra: crate::fx_extra_params::LayerFxExtraBank::default(),
             layer_fx_sharing: crate::fx_sharing_params::LayerFxSharingBank::default(),
+            firmware: crate::firmware_params::FirmwareFlagParams::default(),
+            program_overrides: crate::program_overrides::ProgramOverrides::default(),
             editor_state: crate::editor::default_editor_state(),
             layer_fx_variation: crate::fx_variation_params::LayerFxVariationBank::default(),
             aftertouch: FloatParam::new(
@@ -658,10 +668,15 @@ impl Stage4Params {
             };
         }
 
+        // Host changes since the program load decide who wins for Touch and Mod 2 (D169).
+        self.program_overrides.observe(self);
+        self.firmware.sync_to_engine(engine);
+
         // Morph assignments (depths only; base values are written below)
         self.morph_assign.sync_to_engine(engine);
         self.layer_fx.sync_to_engine(engine);
-        self.layer_fx_selectors.sync_to_engine(engine);
+        self.layer_fx_selectors
+            .sync_to_engine(engine, &self.program_overrides);
         self.piano_layers.sync_to_engine(engine);
         self.synth_layers.sync_to_engine(engine);
         self.program.sync_to_engine(engine);
@@ -676,8 +691,10 @@ impl Stage4Params {
         self.synth_gate.sync_to_engine(engine);
         self.synth_pattern.sync_to_engine(engine);
         self.organ_layers.sync_to_engine(engine);
-        self.layer_fx_extra.sync_to_engine(engine);
-        self.layer_fx_sharing.sync_to_engine(engine);
+        self.layer_fx_extra
+            .sync_to_engine(engine, &self.program_overrides);
+        self.layer_fx_sharing
+            .sync_to_engine(engine, &self.program_overrides);
         self.layer_fx_variation.sync_to_engine(engine);
 
         // Morph controllers
@@ -762,8 +779,8 @@ impl Stage4Params {
             4 => PianoTimbre::Dyno2,
             _ => PianoTimbre::Mid,
         };
-        // The one global parameter overwrites both layers, so the Touch a program stores per
-        // layer (D99, D165) never reaches the plugin engine; the host sets it by hand.
+        // The one global parameter replaces both layers' Touch only once the host moved it from
+        // its value at the program load (D169); until then the per-layer program Touch plays.
         let touch = match self.piano_touch.value() {
             1 => VelocityTouch::Light,
             2 => VelocityTouch::Heavy,
@@ -774,8 +791,10 @@ impl Stage4Params {
         engine.piano_b.category = cat;
         engine.piano_a.timbre = timbre;
         engine.piano_b.timbre = timbre;
-        engine.piano_a.touch = touch;
-        engine.piano_b.touch = touch;
+        if self.program_overrides.touch_overrides() {
+            engine.piano_a.touch = touch;
+            engine.piano_b.touch = touch;
+        }
         engine.piano_a.string_resonance_enabled = self.piano_string_res.value();
         engine.piano_b.string_resonance_enabled = self.piano_string_res.value();
         engine.piano_a.pedal_noise_enabled = self.piano_pedal_noise.value();

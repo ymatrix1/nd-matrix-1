@@ -11,15 +11,20 @@ mod command;
 pub mod control;
 mod edits;
 mod frame;
+pub mod garbage;
 mod handle;
 #[cfg(feature = "app")]
 mod io;
 pub mod meter;
 pub mod meter_ui;
 pub mod midi_ports;
+pub mod priority;
+#[cfg(feature = "app")]
+pub mod probe;
 mod standalone;
 
 pub use apply::apply_audio_command;
+pub use callback::apply_realtime;
 pub use command::AudioCommand;
 pub use edits::{
     chain_of_slot, CopyItem, FxEdit, FxFlag, FxFloat, MorphTarget, OrganEdit, PatternParam,

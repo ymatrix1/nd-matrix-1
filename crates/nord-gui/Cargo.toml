@@ -22,6 +22,10 @@ required-features = ["app"]
 default = ["app"]
 app = ["dep:eframe", "dep:cpal", "dep:midir"]
 
+[target.'cfg(windows)'.dependencies]
+# Audio thread priority (MMCSS "Pro Audio" + THREAD_PRIORITY_TIME_CRITICAL), `audio/priority.rs`.
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Threading"] }
+
 [dependencies]
 nord-core = { path = "../nord-core" }
 nord-panel = { path = "../nord-panel" }

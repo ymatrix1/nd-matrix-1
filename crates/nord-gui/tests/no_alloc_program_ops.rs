@@ -12,54 +12,11 @@ use nord_core::morph::{LayerId, MorphSource};
 use nord_gui::audio::{
     apply_audio_command, standalone_engine, AudioCommand, AudioHandle, CopyItem, ProgramEdit,
 };
-use std::alloc::{GlobalAlloc, Layout, System};
-use std::cell::Cell;
-
-thread_local! {
-    static ARMED: Cell<bool> = const { Cell::new(false) };
-    static EVENTS: Cell<usize> = const { Cell::new(0) };
-}
-
-struct Counting;
-
-fn note_event() {
-    let _ = ARMED.try_with(|armed| {
-        if armed.get() {
-            let _ = EVENTS.try_with(|n| n.set(n.get() + 1));
-        }
-    });
-}
-
-// SAFETY: forwards unchanged arguments to `System`; counting touches only const thread-locals.
-unsafe impl GlobalAlloc for Counting {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        note_event();
-        unsafe { System.alloc(layout) }
-    }
-    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-        note_event();
-        unsafe { System.alloc_zeroed(layout) }
-    }
-    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        note_event();
-        unsafe { System.realloc(ptr, layout, new_size) }
-    }
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        note_event();
-        unsafe { System.dealloc(ptr, layout) }
-    }
-}
+mod support;
+use support::{count_allocator_calls, Counting};
 
 #[global_allocator]
 static ALLOC: Counting = Counting;
-
-fn count_allocator_calls(f: impl FnOnce()) -> usize {
-    EVENTS.with(|n| n.set(0));
-    ARMED.with(|a| a.set(true));
-    f();
-    ARMED.with(|a| a.set(false));
-    EVENTS.with(Cell::get)
-}
 
 /// A standalone handle with its shadow attached, plus the engine the audio thread would own.
 fn rig() -> (

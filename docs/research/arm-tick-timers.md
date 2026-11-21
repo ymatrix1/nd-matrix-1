@@ -85,6 +85,8 @@ The `--firmware-fx` render of A:25 measured **6.11 Hz** ([synth-super-lp24-clips
 
 ## 6. Arpeggiator gate (OQ32)
 
+**Follow-up D168 (2026-11-19):** the flag writers were traced dynamically ([arp-gate-flag-trace](arp-gate-flag-trace.md)): only the constructor writes it; the gate is 2/3 on 53 ARM-played layers of 30 arpeggiator programs and the default since D168. The text below is the D130 state.
+
 Path: constructor `0xC00FD7B8` builds the six pattern objects (`0xE0` bytes, vtable `0xC02B79FC`) and stores `[obj + 0xC] = 1` (`0xC00FD814`), `[obj + 8] = 4`, `[obj + 0x10]` = a grid pointer. The Glue update `0xC011A51C` (free-run branch, `[glue + 0xCC] != 1`) tests `[obj + 0xC]`: 0 selects the grid `0xC02BBF98` (straight), non-zero the grid `0xC02BC1A0`; in the Master Clock branch it picks the table entry at `+0x410` (flag 0) or `+0x434` (flag 1). The player `0xC023B3EC` sends a note-off at the second grid point of a step.
 
 Measured with the real compiler and player (`python tools/ns4_arp_player.py CODE gates`, run again here): free-run grid `0, 0x40000, 0x80000, 0xC0000, ...` (half a beat) and **boot grid `0, 0x55555, 0x80000, 0xD5555, ...`** (`0x55555 / 0x80000` = **2/3**); "player events == one record per grid point, all patterns". The pattern objects are created with flag 1, so the boot state uses the second grid and an `E` step ends at 2/3 of the step.

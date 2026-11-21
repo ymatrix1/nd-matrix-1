@@ -27,9 +27,11 @@ pub fn start_audio_and_midi(active_keys: Arc<[AtomicBool; 128]>) -> AudioHandle 
     let to_audio = handle.cmd_sender.clone();
     let telemetry = handle.telemetry().cell();
     let meter = Arc::clone(handle.meter());
-    let buffer = buffer_frames_from_args(&std::env::args().collect::<Vec<_>>());
+    let argv: Vec<String> = std::env::args().collect();
+    let buffer = buffer_frames_from_args(&argv);
+    let boost = !argv.iter().any(|a| a == "--no-thread-boost");
     std::thread::spawn(move || {
-        run_cpal_audio(audio_rx, control, to_audio, telemetry, meter, buffer);
+        run_cpal_audio(audio_rx, control, to_audio, telemetry, meter, buffer, boost);
     });
 
     // 2. Spawn MIDI In Listener
@@ -49,7 +51,9 @@ fn run_cpal_audio(
     telemetry: Arc<TelemetryCell>,
     meter: Arc<AudioMeter>,
     buffer_frames: Option<u32>,
+    boost: bool,
 ) {
+    let bin = super::garbage::spawn_reaper();
     let host = cpal::default_host();
     let device = match host.default_output_device() {
         Some(d) => d,
@@ -101,7 +105,9 @@ fn run_cpal_audio(
         if let Some(link) = &control {
             link.attach(sample_rate, to_audio.clone());
         }
-        let mut cb = AudioCallback::new(engine, rx.clone(), channels, Arc::clone(&meter));
+        let mut cb = AudioCallback::new(engine, rx.clone(), channels, Arc::clone(&meter))
+            .with_thread_boost(boost)
+            .with_garbage(bin.clone());
         let err_fn = |err| eprintln!("[Audio] Stream error: {}", err);
         let cfg = stream_config(base_config.clone(), frames);
         match sample_format {

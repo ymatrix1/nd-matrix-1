@@ -24,6 +24,10 @@ drawbar_b_6_2|8|1.000000
 drawbar_b_7_1_3_5|8|1.000000
 drawbar_b_8_1_1_3|8|1.000000
 drawbar_b_9_1|8|1.000000
+fwx_arp_gate|1|1.000000
+fwx_arp_walk|1|1.000000
+fwx_morph_law|1|1.000000
+fwx_touch_curves|1|1.000000
 fx_comp_amt_1|cont|0.000000
 fx_comp_amt_2|cont|0.000000
 fx_comp_amt_3|cont|0.000000

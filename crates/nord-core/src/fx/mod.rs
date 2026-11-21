@@ -184,6 +184,8 @@ mod tests_mod2_dense_golden;
 #[cfg(test)]
 mod tests_mod2_golden;
 #[cfg(test)]
+mod tests_reserve_stages;
+#[cfg(test)]
 mod tests_resonant_golden;
 #[cfg(test)]
 mod tests_rvb_wrap_golden;
@@ -339,6 +341,9 @@ pub struct LayerFxChain {
     fw_vibe: Option<Box<fw_vibe_stage::FwVibeStage>>,
     /// The firmware `PHAS` / `FLANG` / `ENS` / `SPIN` stages (`firmware_fx.mod2`, types 0 to 3, 8 to 11).
     fw_law: Option<Box<fw_mod2_law_stage::FwLawStage>>,
+    /// Which of the three boxes above processes frames. The others stay allocated (parked) so a
+    /// type change re-initialises a box in place (TD-18: no allocation or free in `process_frame`).
+    fw_mod2_live: modulation::Mod2Live,
     fw_comp: Option<fw_stage::FwCompressorStage>,
     fw_amp: Option<fw_amp_stage::FwAmpStage>,
     /// Runs the firmware amp stage at the DSP frame rate (`set_fx_rate_match`), default `None`.
@@ -461,6 +466,7 @@ impl LayerFxChain {
             fw_mod2: None,
             fw_vibe: None,
             fw_law: None,
+            fw_mod2_live: modulation::Mod2Live::None,
             fw_comp: None,
             fw_amp: None,
             fw_rate_match: None,
