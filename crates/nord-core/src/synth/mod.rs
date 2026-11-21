@@ -81,7 +81,8 @@ use dsp::unison_pan;
 pub use dsp::{poly_blep, ZdfFilter, FM_RATIOS};
 pub use fw_adr_chain::{fw_adr_step, FwAdrAction, FwAdrRecord, FW_ADR_LIMIT};
 pub use fw_cutoff_env::{
-    fw_cutoff_hz_of_knob, fw_env_cutoff_hz, fw_hz_of_r, fw_r_of_hz, FW_R_CLIP, FW_STAGE_RATE_HZ,
+    fw_cutoff_hz_of_knob, fw_env_cutoff_hz, fw_hz_of_r, fw_lfo_cutoff_hz, fw_lfo_semitones,
+    fw_r_of_hz, fw_stage_r_of_knob, FW_R_CLIP, FW_STAGE_RATE_HZ,
 };
 pub use fw_env_rates::{
     attack_coeff, attack_time_passes, decay_release_coeff, rate_index_from_word, RATE_INDEX_MAX,
@@ -338,9 +339,10 @@ pub struct SynthLayer {
     /// Opt-in (default off, `--synth-filter-gain`): the filter output is scaled by the oracle gain
     /// of its type ([`filter_gain::filter_gain`], D195).
     pub filter_type_gain: bool,
-    /// Opt-in (default off, `--synth-fw-env-law`): the filter envelope reaches the cutoff in the
-    /// semitone domain (`fw_cutoff_env.rs`, oracle composition, D195): `2^(amount * 127 / 12 *
-    /// level)` instead of `2^(amount * 8 * level)` on the Hz cutoff. Strip chain only.
+    /// Opt-in (default off, `--synth-fw-env-law`): the filter envelope and the LFO reach the cutoff
+    /// in the semitone domain (`fw_cutoff_env.rs`, oracle composition, D200 / D207): `2^(amount *
+    /// 127 / 12 * level)` instead of `2^(amount * 8 * level)`, and `2^(128 lfo_amount lfo / 12)`
+    /// instead of `1 + 0.8 lfo_amount lfo` on the Hz cutoff. Strip chain only.
     pub fw_env_law: bool,
     /// Opt-in (default off, `--synth-fw-adr-law`, D210): the oracle envelope law of `fw_adr_law.rs`:
     /// the amp attack index of a negative word is scaled by `g / 127` (key byte `g`) per voice and

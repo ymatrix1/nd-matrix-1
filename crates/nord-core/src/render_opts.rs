@@ -394,8 +394,8 @@ pub struct FirmwareOptions {
     /// `--synth-filter-gain`: `SynthLayer::filter_type_gain` (oracle filter gain by type, D195);
     /// also selects `--synth-p oracle-rows` unless a later `--synth-p` says otherwise.
     pub synth_filter_gain: bool,
-    /// `--synth-fw-env-law`: `SynthLayer::fw_env_law` (filter envelope in semitones of the stage
-    /// coefficient, `127 / 12` octaves at full amount; oracle composition, D195).
+    /// `--synth-fw-env-law`: `SynthLayer::fw_env_law` (filter envelope and cutoff LFO in semitones
+    /// of the stage coefficient, `127 / 12` octaves at full amount; oracle composition, D200 / D207).
     pub synth_fw_env_law: bool,
     /// `--synth-fw-adr-law`: `SynthLayer::fw_adr_law` (amp attack scaled by the key velocity, decay
     /// record sustain 0.5, oracle envelope law, D210). Strip chain only.

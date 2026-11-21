@@ -3,18 +3,18 @@
 //! program (`.ns4p`).
 //!
 //! Usage: `cargo run --release -p nord-tools --bin synth_env_native -- <program.ns4p> [--layer 0|1|2]
-//! [--on 300] [--off 11149] [--passes 16575] [--adr-law] [--g 98]`.
-//! `--adr-law` applies the opt-in oracle envelope law of D210 (amp attack scaled by the key byte
-//! `--g`, decay sustain 0.5). Prints one JSON line: the stored knobs, the
+//! [--on 300] [--off 11149] [--passes 16575]`. Prints one JSON line: the stored knobs, the
 //! record words, the panel cutoff and envelope amount, and per pass the amp level, the filter
 //! level, and the native cutoff coefficient `R` (strip word law of `fw_strip_cutoff.rs`) after
 //! the engine's `2^(amount x octaves x level)` filter envelope law. No audio is produced.
+//! `--adr-law [--g 98]` applies the opt-in oracle envelope law of D210 (amp attack scaled by the
+//! key byte `g`, settled attack table, decay sustain 0.5).
 
 use nord_core::cbin::{CbinFile, FILTER_CUTOFF_HZ_TABLE};
 use nord_core::engine::Stage4Engine;
 use nord_core::synth::{
-    fw_strip_cutoff_r, rate_index_for_knob, strip_word_for_cutoff, StripEnvRecords, StripKnobs,
-    StripParams, StripVoice, SynthLayer,
+    fw_env_cutoff_hz, fw_strip_cutoff_r, rate_index_for_knob, strip_word_for_cutoff,
+    StripEnvRecords, StripKnobs, StripParams, StripVoice, SynthLayer,
 };
 use serde_json::{json, Value};
 
@@ -65,6 +65,19 @@ pub fn native_r(cutoff_hz: f32, amount: f32, level: f32) -> f32 {
     fw_strip_cutoff_r(strip_word_for_cutoff(cutoff_hz * scale))
 }
 
+/// Key tracking factor of a note offset from the reference note 60 (`kb_track` 0..=3 is
+/// `{0, 1/3, 2/3, 1}` semitone per semitone, VERIFIED `synth-cutoff-voice-law.md`).
+pub fn kb_scale(kb_track: u8, note_offset: f32) -> f32 {
+    2.0f32.powf(note_offset / 12.0 * f32::from(kb_track.min(3)) / 3.0)
+}
+
+/// Effective cutoff in Hz per pass for both envelope laws: the default `2^(amount * 8 * level)`
+/// and the opt-in firmware semitone law (`fw_env_cutoff_hz`, D200), key tracking applied first.
+pub fn cutoff_hz_pair(base_hz: f32, amount: f32, level: f32) -> (f32, f32) {
+    let default = base_hz * 2.0f32.powf(amount.clamp(-1.0, 1.0) * NATIVE_ENV_OCTAVES * level);
+    (default, fw_env_cutoff_hz(base_hz, amount, level))
+}
+
 fn records_json(r: &StripEnvRecords) -> Value {
     json!({
         "attack": [r.attack.a, r.attack.b, r.attack.thr],
@@ -103,6 +116,8 @@ fn layer_report(
     on: usize,
     off: usize,
     passes: usize,
+    note_offset: f32,
+    kb_track: u8,
     law: Option<u8>,
 ) -> Result<Value, String> {
     let knobs = layer
@@ -115,7 +130,27 @@ fn layer_report(
         .iter()
         .map(|&(_, f)| native_r(layer.cutoff_hz, amount, f))
         .collect();
+    // The key offset reaches the index sum at the key-on and stays after the key-off (oracle
+    // `DM(0xC2717)` keeps the last note offset).
+    let kb = kb_scale(kb_track, note_offset);
+    let hz: Vec<(f32, f32)> = lv
+        .iter()
+        .enumerate()
+        .map(|(n, &(_, f))| {
+            let base = if n < on {
+                layer.cutoff_hz
+            } else {
+                layer.cutoff_hz * kb
+            };
+            cutoff_hz_pair(base, amount, f)
+        })
+        .collect();
     Ok(json!({
+        "note_offset": note_offset,
+        "kb_track_used": kb_track,
+        "filter_ladder": layer.filter_model == nord_core::synth::FilterModel::Ladder24,
+        "hz_default": hz.iter().map(|h| h.0).collect::<Vec<_>>(),
+        "hz_fw": hz.iter().map(|h| h.1).collect::<Vec<_>>(),
         "knobs": knobs_json(&knobs),
         "amp_records": records_json(&params.amp),
         "filter_records": records_json(&params.filter),
@@ -158,13 +193,22 @@ fn run(args: &[String]) -> Result<(), String> {
         2 => &*engine.synth_c,
         _ => return Err("--layer must be 0, 1 or 2".into()),
     };
+    let note_offset = flag(args, "--note-offset").map_or(Ok(0.0), |v| {
+        v.parse::<f32>()
+            .map_err(|_| "bad --note-offset".to_string())
+    })?;
+    // The oracle injects no key tracking word: its offset passes at unity (`--kb-track 3`).
+    let kb_track = num("--kb-track", usize::from(layer.kb_track))?.min(3) as u8;
     let law = args
         .iter()
         .any(|a| a == "--adr-law")
         .then(|| num("--g", 98))
         .transpose()?
         .map(|g| g.min(127) as u8);
-    println!("{}", layer_report(layer, on, off, passes, law)?);
+    println!(
+        "{}",
+        layer_report(layer, on, off, passes, note_offset, kb_track, law)?
+    );
     Ok(())
 }
 
@@ -206,23 +250,17 @@ mod tests {
 
     #[test]
     fn adr_law_setup_scales_the_amp_attack_and_stops_decay_at_half() {
-        let k = nord_core::synth::StripKnobs {
-            amp: EnvKnobs {
-                attack: 4,
-                decay: 60,
-                release: 50,
-            },
-            filter: EnvKnobs {
-                attack: 4,
-                decay: 60,
-                release: 50,
-            },
+        let e = EnvKnobs {
+            attack: 4,
+            decay: 60,
+            release: 50,
         };
+        let k = StripKnobs { amp: e, filter: e };
         let (p0, v0) = chain_setup(&k, 0.0, None);
         let (p1, v1) = chain_setup(&k, 0.0, Some(20));
         assert!(v0.amp_attack_b.is_none() && v1.amp_attack_b.is_some());
         assert!(
-            v1.amp_attack_b.unwrap() < p0.amp.attack.b,
+            v1.amp_attack_b.unwrap() < p1.amp.attack.b,
             "soft key is slower"
         );
         assert_eq!(
@@ -243,6 +281,24 @@ mod tests {
         assert_eq!(native_r(500.0, 0.8, 0.0), base);
         assert_eq!(native_r(500.0, 0.0, 1.0), base);
         assert!(native_r(500.0, 0.8, 1.0) > base);
+    }
+
+    #[test]
+    fn key_tracking_moves_the_cutoff_by_a_third_of_the_offset_per_step() {
+        assert_eq!(kb_scale(0, -12.0), 1.0);
+        assert!((kb_scale(3, -12.0) - 0.5).abs() < 1e-6);
+        assert!((kb_scale(1, 12.0) - 2.0f32.powf(1.0 / 3.0)).abs() < 1e-6);
+    }
+
+    #[test]
+    fn firmware_law_sweeps_further_than_the_default_at_full_level() {
+        let (def, fw) = cutoff_hz_pair(200.0, 0.5, 1.0);
+        assert!((def / 200.0 - 16.0).abs() < 1e-3, "{def}");
+        assert!(
+            (fw / 200.0 / (63.5f32 / 12.0).exp2() - 1.0).abs() < 1e-3,
+            "{fw}"
+        );
+        assert_eq!(cutoff_hz_pair(200.0, 0.5, 0.0), (200.0, 200.0));
     }
 
     #[test]
