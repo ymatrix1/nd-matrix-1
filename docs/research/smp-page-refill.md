@@ -1,6 +1,6 @@
-# SMP page refill: descriptor law, flash feed and the FIFO replay bug (OQ41, D191, D196)
+# SMP page refill: descriptor law, flash feed and the FIFO replay bug (OQ41, D191, D199)
 
-Checked: 2026-11-21 (D196 update: s4 rewritten, root cause found). Sources: SMP image listing `0x3818B4..0x381AB4` and `0x381B00..0x381CCA` (`target/oracle/smp.bin`, local), `.npno` files under `.reference/` (local only), `sharc-live --smp --epchain` runs of the four programs of [piano-chain-tap-smp](piano-chain-tap-smp.md), [smp-voice](smp-voice.md), [nsmp4-and-npno-cnsp-codec](nsmp4-and-npno-cnsp-codec.md).
+Checked: 2026-11-21 (D199 update: s4 rewritten, root cause found). Sources: SMP image listing `0x3818B4..0x381AB4` and `0x381B00..0x381CCA` (`target/oracle/smp.bin`, local), `.npno` files under `.reference/` (local only), `sharc-live --smp --epchain` runs of the four programs of [piano-chain-tap-smp](piano-chain-tap-smp.md), [smp-voice](smp-voice.md), [nsmp4-and-npno-cnsp-codec](nsmp4-and-npno-cnsp-codec.md).
 
 Question: what does the SMP need so that the source ring of a voice holds the `.npno` page data, and does the piano chain tap then carry audio?
 
@@ -10,7 +10,7 @@ Question: what does the SMP need so that the source ring of a voice holds the `.
 |---|---|---|
 | Descriptor to flash law | solved, see s2 | VERIFIED (run, 4 files) |
 | Flash feed in `sharc-live --smp` | works: `L` loads a `.npno`, `F` places it, the page routine reads header and data and fills the stream rings with the file words | VERIFIED (run: ring head equals file payload, `tools/arm_smp_flash.py check_rings`) |
-| Chain tap carries audio | **yes (D196).** The voice never froze: the harness replayed stale FIFO pairs forever and the key start request reset the voice every 10 passes (s4). With the FIFO index and cap fixed, all four programs give a varying tap past the first refill (peaks -7.75, -13.00, -7.36, -19.11 dBFS, 23,872 words each; `arm_smp_flash.tap_stats` kind `audio`) | VERIFIED (run, `data/smp-page-refill.csv` columns `*_fixed`) |
+| Chain tap carries audio | **yes (D199).** The voice never froze: the harness replayed stale FIFO pairs forever and the key start request reset the voice every 10 passes (s4). With the FIFO index and cap fixed, all four programs give a varying tap past the first refill (peaks -7.75, -13.00, -7.36, -19.11 dBFS, 23,872 words each; `arm_smp_flash.tap_stats` kind `audio`) | VERIFIED (run, `data/smp-page-refill.csv` columns `*_fixed`) |
 | `piano_no_chain_tap` | unchanged, 155 programs | |
 
 ## 2. The law
@@ -27,7 +27,7 @@ Check: every descriptor seen in 4 runs (3 stereo files, 1 mono file) matches a s
 
 `crates/nord-sharc/src/core/periph/smpflash.rs` serves banks 1 to 3 (core accesses and DMA chain reads), `runner/live_flash.rs` implements the protocol lines `L PATH` (load), `F REC11` (place and write the directory), `E` (report, `flash_b1`, `flash_b3`, `flash_outside`), `C PATH` (capture the tapped f32 frames), `H 0|1` (ring half). `tools/arm_smp_flash.py` watches the SMP messages, recognises the descriptor, and sends `F`. `arm_dsp_live.py --piano-bind BACKUP` attaches it and writes `smp_flash` into the result.
 
-## 4. Why the tap was silent: the harness replayed the command FIFO (D196)
+## 4. Why the tap was silent: the harness replayed the command FIFO (D199)
 
 The earlier reading (s4 of D191) was an aliasing error: the record was sampled at passes that are multiples of 10, and the voice period is 10 passes. Stepping every pass (clavinet, key script replay) shows the counter running `0, 1, 3, 4, 6, 8, 9, 0xB, 0xC, 0xE`, then `0, 0, 0` (step fraction, counter, phase) and again from 1. The voice is reset every 10 passes (20 audio interrupts).
 
