@@ -6,9 +6,12 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D193](#d193-amp-lp24--hp24-default-flip-proposed-not-made-type-9-words-verified-multi-call-golden) | 2026-11-21 | Amp LP24 / HP24 default flip proposed, not made; type 9 words VERIFIED; multi-call golden | proposed |
 | [D191](#d191-smp-page-refill-descriptor-to-flash-law-decoded-flash-feed-in-sharc-live---smp-the-voice-does-not-advance-yet) | 2026-11-21 | SMP page refill: descriptor to flash law decoded, flash feed in `sharc-live --smp`; the voice does not advance yet | accepted |
 | [D188](#d188-firmware-amp-lp24--hp24-state-variable-pair-0x124efa-ported-opt-in---firmware-fx-ports-lp24) | 2026-11-21 | Firmware Amp LP24 / HP24 (state variable pair `0x124EFA`) ported, opt-in `--firmware-fx-ports lp24` | accepted |
+| [D192](#d192-the-firmware-organ-stages-run-on-a-compiled-in-place-program-bit-identical-not-yet-within-the-block-budget) | 2026-11-21 | The firmware organ stages run on a compiled in place program; bit identical, not yet within the block budget | accepted |
 | [D190](#d190-no-arm-word-installs-the-b3-leslie-element-in-a-live-run-with-the-read-back-served-the-element-words-are-unobtainable-row-9-stays-unmeasured-no-port) | 2026-11-21 | No ARM word installs the B3 Leslie element in a live run with the read-back served: the element words are unobtainable, row 9 stays unmeasured, no port | proposed |
+| [D189](#d189-the-organ-layer-sender-writes-a-second-chain-word-0xb2ff0--13-the-opt-in-chain-law-becomes-16--13--03732-k-stays-empirical) | 2026-11-21 | Organ programs write a second chain word `0xB2FF0/1` = 1.3 (lane linear in it); `--organ-level chain` = 1.6 x 1.3 x 0.3732 = 0.776; `K` 11.1 dB over the chain, EMPIRICAL |
 | [D185](#d185-piano-chain-tap-a-bound-piano-sound-reaches-a-live-smp-chip-sharc-live---smp-the-page-refill-is-the-next-blocker) | 2026-11-21 | Piano chain tap: a bound piano sound reaches a live SMP chip (`sharc-live --smp`); the page refill is the next blocker | proposed |
 | [D181](#d181-amp-types-8-and-9-lp24--hp24-are-one-state-variable-pair-0x124efa-model-and-recorded-oracle-cases-no-rust-port-yet) | 2026-11-21 | Amp types 8 / 9 (LP24, HP24) are one state variable pair `0x124EFA`; Python model and recorded oracle cases; no Rust port yet | accepted |
 | [D180](#d180-the-fx-rate-match---fx-rate-match-d137-becomes-the-default---legacy-fx-rate-opts-out-rate-matched-chains-for-every-new-layerfxchain) | 2026-11-21 | The FX rate match (`--fx-rate-match`, D137) becomes the default; `--legacy-fx-rate` opts out; rate-matched chains for every new `LayerFxChain` | accepted |
@@ -1957,6 +1960,17 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Open:** latency of about 0.8 ms on amp layers; the kernel shape is ASSUMED (flat to 16 kHz within 0.05 dB, tested); no hardware clip for the 36 programs; the Amp EQ tone stack and the cabinet-free stages still run at the host rate (D137).
 - **Impact:** `fx/fw_rate_match.rs` (`supports`), `fx/mod.rs`, `render_opts.rs`, `render_opts_fx_rate.rs` (tests: default on, opt-out, unsupported rates, `apply_exact`), `fx/tests_fw_rate_match_chain.rs`, `bin/ns4.rs` usage, GUI `firmware_panel` (`bar.rs`, `info.rs`, `presets.rs`, `docs/gui-testing.md`), `nord_tools::{rank_groups, sweep_flags}`, `program_rank`, `program_sweep`, `tests/golden_render.rs`, spec `effects-and-routing.md`, ROADMAP 7b.4, audio-remaining row 23, [program-ranking-fx](research/program-ranking-fx.md) s8, `program-sweep.json`, `program-coverage.md`, `emu_vs_hw_rate_match_default*.json`, bean ns4-rmdf.
 
+### D189. The organ layer sender writes a second chain word `0xB2FF0` = 1.3; the opt-in Chain law becomes 1.6 x 1.3 x 0.3732; `K` stays EMPIRICAL
+
+- **Status:** proposed 2026-11-21
+- **Decided by:** the task of the parent session (OQ24, audio-remaining row 3, evidence [organ-output-law](research/organ-output-law.md) s6.4); owner to confirm.
+- **Context:** `K = 2.8` (+8.9 dB) is the one empirical organ constant (D25, D85, D106, D113). The open leads were a Piano-to-Organ program-recall ARM capture and the PNO lane to FX hand-over.
+- **Decision:** (1) Program recall captured for 2 piano and 6 organ programs (B3 x3, Vox, Pipe2, Pipe cathedral): the only level words that differ between piano and organ are the organ chain words `0xB2ECF/D0`, `0xB2EDE/DF` = `1.6 (v/127)^2` and a **second pair `0xB2FF0/1` = 1.3**, identical in every organ program (no per-engine ARM gain). (2) The live PNO core 1 lane is linear in the product `0xB2EDE * 0xB2FF0 * 0xB301D` (1.0119 x 1.3 against 1.0 x 1.0 gives RMS ratio 1.3155). (3) `OutputLevel::Chain` (`--organ-level chain`, opt-in) = 1.6 x 1.3 x 0.3732 = 0.776 (was 0.597). (4) `K` stays 2.8, EMPIRICAL, no default flips.
+- **Why:** 2.3 dB of the 13.4 dB gap over the chain is a verified word the earlier edit capture missed (the harness capture never ran the organ recall). `K` over the chain is now 3.61 (11.1 dB); the D72 coincidence `K` = chain / 0.21875 weakens to 2.1 dB (3.55), so it is not a derivation.
+- **Alternatives:** Fold 1.3 into `K` (rejected: it is a word, `K` is a fit). New enum variant for the full chain (rejected: `Chain` is opt-in and documented as the verified chain; the old 0.597 was incomplete).
+- **Open:** the PNO lane to FX hand-over run with both chips chained (`arm_dsp_live.py` PNO + FX with an organ program); a single-note organ clip with a known level; the piano side (slew 0.21875).
+- **Impact:** `crates/nord-core/src/organ/output_level.rs` (`ORGAN_SECOND_GAIN_WORD`, `organ_chain_bus_gain`, tests), GUI choice label, `organ-engine.md` 3.7, `organ-output-law.md` s6.4, `docs/research/data/organ_gain_words_by_program.json`, OQ24, audio-remaining row 3. `render_hash` unchanged (default path untouched).
+
 ### D185. Piano chain tap: a bound piano sound reaches a live SMP chip (`sharc-live --smp`); the page refill is the next blocker
 
 - **Status:** proposed 2026-11-21
@@ -2012,6 +2026,26 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Put it in `ALL` / `PARITY` (rejected: no clip evidence, and `PORT_NAMES` is mirrored by the GUI and tests). Keep the biquad stand-in only (rejected: wrong damping, clipping and smoothing).
 - **Open:** the cutoff unit (rate scale at 48 kHz), the mapping of the engine Mid Freq to a table index, the Mid knob to counts mapping (ASSUMED), type 9 words assumed equal to type 8's (the filter list `0xC044398C` is shared, `fx-param-fits.csv`).
 - **Impact:** `fx/fw_lp24.rs`, `fx/fw_lp24_tables.rs`, `fx/amp_eq.rs`, `fx/firmware_fx.rs`, `fx/firmware_fx_ports.rs`, tests `tests_fw_lp24_golden.rs`, `tests_fw_lp24_chain.rs`, `tools/fx_lp24_golden.py`; `docs/research/amp-types-789.md`.
+### D192. The firmware organ stages run on a compiled in place program; bit identical, not yet within the block budget
+
+- **Status:** accepted 2026-11-21
+- **Decided by:** the task of the coordinating session (TD-15, bean `ns4-4wzo`; evidence [organ-farfisa-bass](research/organ-farfisa-bass.md) s18); the coordinating session reviews. Renumber on merge if D192 is taken by a sibling session.
+- **Context:** D71 and D74 run the Bass and Farfisa routines on a row interpreter with a 40 bit float: 3.3 to 3.6 s and about 2 s of CPU per second of audio, offline only (TD-15). Whole-pass real-time SHARC execution is on hold (D118), so only these two native stages are in scope.
+- **Decision:** (1) `Machine` runs a compiled program (`b3_bass_fw/compile.rs`): each instruction's items are ordered by their read and write sets so that in place execution equals the read-old-write-new semantics; an instruction with a cycle, a double register write or a condition keeps the row executor (`exec.rs`, the test oracle). (2) The 64 bit float paths take zero operands, `float` and `PASS`, and the rounding is branch free. (3) `ns4 bench --scenario organ-bass` / `organ-farfisa` measure the block cost. No default changes, `render_hash` unchanged (both stages are opt-in).
+- **Why:** Bit identical: the compiled and the row machine hold the same registers, flags, accumulators and DM after every one of 600 Bass chord calls and both Farfisa lattice tables; the output hashes of `organ_fw_bench` and of all three `ns4 bench` scenarios are equal before and after. Bass 1.82 to 1.91 to 0.63 to 0.65 s, Farfisa 1.34 to 1.36 to 0.43 to 0.48 s of CPU per second of audio (release, shared host).
+- **Alternatives:** Single precision (rejected in s13: 1 ulp drift, no bit exactness); straight line Rust from the rows (failed in s17, still the next step with a leaner generator); mask select for zero operands (rejected: 35 percent slower on the Farfisa weight sums).
+- **Open:** the 0.8 ms block budget with a full program is not reached (Bass 1.7 ms per block alone). What remains is interpretation overhead and 5 to 6 ns per float operation; TD-15 lists the next steps (straight line code, SIMD over the two PEs, a closed form of the Farfisa processor, a second core).
+- **Impact:** `crates/nord-core/src/organ/b3_bass_fw/{compile,fastexec,fast,f40,mod}.rs`, `b3_bass_stage.rs`, `farfisa_fw/mod.rs`, `bench.rs`, `bench_organ_fw.rs`, `nord-tools/src/bin/organ_fw_bench.rs` (prints an output hash); TD-15, ROADMAP 7b.3, audio-remaining row 16, [organ-farfisa-bass](research/organ-farfisa-bass.md) s18.
+
+### D193. Amp LP24 / HP24: default flip proposed, not made; type 9 words VERIFIED; multi-call golden
+
+- **Status:** proposed 2026-11-21
+- **Decided by:** the amp-lp24 follow-up session; the owner decides the flip.
+- **Context:** D188 ported the routine opt-in with type 9 words assumed equal to type 8 and a single-call golden. The coordinating session asked for the missing validation and a ranking.
+- **Decision:** (1) type 9 words captured separately: equal to type 8 at all 249 indices, tag upgraded to VERIFIED; (2) a 24-call golden from the booted template with the table words, under 1e-5 against the oracle; (3) `program_rank --amp-filters --flip fx_amp_lp24`: the 26 programs with an LP24 / HP24 amp go from mean 5.29 to 1.59 against the all-firmware render (13 improve, 13 unchanged, 0 worse). **Propose** `lp24` into `PARITY`; do not make it.
+- **Why:** the ranking proves wiring only. The oracle proves the routine, not the sound on hardware; no LP24 / HP24 hardware clip exists, and the Mid mapping, Mid Freq index and rate scale are ASSUMED (D22).
+- **Alternatives:** flip now (rejected: no hardware evidence); leave out of the reference (rejected: the ranking could not show the port).
+- **Impact:** `tools/fx_lp24_capture.py`, `tools/program_rank_amp.py`, `crates/nord-tools` (`--amp-filters`, `fx_amp_lp24` flip group, `lp24` in the ranking reference), `fx/tests_fw_lp24_calls*.rs`, data CSVs, `docs/research/amp-types-789.md` s6, s7.
 
 ### D190. No ARM word installs the B3 Leslie element in a live run with the read-back served: the element words are unobtainable, row 9 stays unmeasured, no port
 

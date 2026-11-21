@@ -45,6 +45,7 @@ impl FarfisaFw {
     pub(super) fn new() -> Self {
         let mut machine = Machine::new();
         machine.load_image(IMAGE);
+        machine.set_programs(None, &FARFISA_ROWS);
         Self { machine }
     }
 
@@ -88,7 +89,7 @@ impl FarfisaFw {
 
     /// One processor call (two frames): the two output samples of lane PEx.
     pub(super) fn step(&mut self) -> [f32; 2] {
-        self.machine.call(&FARFISA_ROWS, PRESET);
+        self.machine.call_main(PRESET);
         [self.machine.rd_f(PRESET.0), self.machine.rd_f(PRESET.0 + 2)]
     }
 }
@@ -159,6 +160,37 @@ mod tests {
             ),
             12
         );
+    }
+
+    #[test]
+    fn compiled_processor_equals_the_reference_executor_state_for_state() {
+        // both lattice tables (flag 0 and 1: the conditional jump), the golden rings of the oracle:
+        // after every call the whole machine of the compiled and the row executor is equal
+        for (csv, flag) in [
+            (
+                include_str!("../../../../../docs/research/data/farfisa-fw-golden.csv"),
+                false,
+            ),
+            (
+                include_str!("../../../../../docs/research/data/farfisa-fw-golden-flag1.csv"),
+                true,
+            ),
+        ] {
+            let (mut fast, mut slow) = (chord_machine(flag), chord_machine(flag));
+            for (call, (_, ring)) in golden(csv).iter().enumerate() {
+                fast.set_ring_words(ring);
+                slow.set_ring_words(ring);
+                fast.machine.call_main(PRESET);
+                slow.machine.call(&FARFISA_ROWS, PRESET);
+                let (a, b) = (&fast.machine, &slow.machine);
+                assert_eq!(
+                    (a.d, a.i, a.mr, a.an, a.az),
+                    (b.d, b.i, b.mr, b.an, b.az),
+                    "call {call}"
+                );
+                assert!(a.mem == b.mem, "DM, call {call}");
+            }
+        }
     }
 
     #[test]

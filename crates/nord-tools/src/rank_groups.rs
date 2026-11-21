@@ -41,7 +41,7 @@ pub const GROUPS: [(&str, Revert); GROUP_COUNT] = [
 /// Flip-only sub-groups of `fx_delay` (indices `GROUP_COUNT` and `GROUP_COUNT + 1`): they split the
 /// delay group into its two ports so a default flip of one port can be measured alone
 /// (`program_rank --flip fx_delay_time`). They are not part of the ablation or the 63 subsets.
-pub const SUBGROUPS: [(&str, Revert); 5] = [
+pub const SUBGROUPS: [(&str, Revert); 6] = [
     ("fx_delay_time", |o, d| o.fx.delay_time = d.fx.delay_time),
     ("fx_delay_laws", |o, d| o.fx.delay_laws = d.fx.delay_laws),
     // The rate match (D137, default on since D176) is a converter, not a port: the flip switches
@@ -56,6 +56,9 @@ pub const SUBGROUPS: [(&str, Revert); 5] = [
     ("fx_mod1_unit_calls", |o, d| {
         o.fx.mod1_unit_calls = d.fx.mod1_unit_calls
     }),
+    // Opt-in LP24 / HP24 port (D188): the reference of `program_rank --amp-filters` carries it
+    // (`firmware_options` does not), so a flip switches the firmware stage on for the two filters.
+    ("fx_amp_lp24", |o, d| o.fx.lp24 = d.fx.lp24),
 ];
 
 /// Name and copy function of group index `g` (a [`GROUPS`] entry, then a [`SUBGROUPS`] entry).
@@ -81,6 +84,8 @@ pub fn firmware_options() -> FirmwareOptions {
     // The firmware's own compressor words and the per-unit Mod 1 call length (D186, D187).
     o.fx.compressor_row = true;
     o.fx.mod1_unit_calls = true;
+    // The firmware LP24 / HP24 pair (D188).
+    o.fx.lp24 = true;
     o
 }
 
@@ -190,11 +195,12 @@ mod tests {
         baseline(true, false, false)
     }
 
-    /// `o` with the two opt-in refinements (D186, D187) as the firmware options have them: they
+    /// `o` with the opt-in refinements and ports (D186, D187, D188) as the firmware options have them: they
     /// are [`SUBGROUPS`], not [`GROUPS`], so a group revert leaves them on.
     fn with_refinements(mut o: FirmwareOptions) -> FirmwareOptions {
         o.fx.compressor_row = true;
         o.fx.mod1_unit_calls = true;
+        o.fx.lp24 = true;
         o
     }
 
@@ -271,6 +277,7 @@ mod tests {
                 let mut f = firmware;
                 f.fx.compressor_row = false;
                 f.fx.mod1_unit_calls = false;
+                f.fx.lp24 = false;
                 f
             },
             "the refinements are subgroups, not part of the group flip"
@@ -390,5 +397,24 @@ mod tests {
     fn subset_key_sorts_and_joins_names() {
         assert_eq!(subset_key(&[7, 2]), "fx_delay+fx_mod2");
         assert_eq!(subset_key(&[4]), "fx_reverb");
+    }
+
+    #[test]
+    fn the_lp24_flip_switches_only_the_filter_pair_on() {
+        let (firmware, base) = (firmware_options(), baseline(false, false, false));
+        assert!(
+            firmware.fx.lp24 && !base.fx.lp24,
+            "opt-in, in the reference only"
+        );
+        let set = parse_sets("fx_amp_lp24").unwrap();
+        let o = flipped_set(&firmware, &base, &set[0]);
+        assert!(o.fx.lp24);
+        assert_eq!(
+            nord_core::fx::FirmwareFx {
+                lp24: false,
+                ..o.fx
+            },
+            base.fx
+        );
     }
 }

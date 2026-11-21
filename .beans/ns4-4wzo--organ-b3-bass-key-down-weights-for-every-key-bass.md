@@ -27,7 +27,7 @@ B3 Bass (model 5) table and wiring (ns4-b511 follow-up, organ-farfisa-bass s9).
 - [ ] Drawbar / percussion dependent key tables (capture non-888888888 drawbars and percussion), key-up capture and the `G` resync, a real time path (TD-15)
 - [ ] B3 Bass hardware clip comparison and default decision (the B3 clip plays the B3 model: delta 0.00 dB by construction)
 
-- [ ] Real time (TD-15): 64 bit float fast path done (Bass 3.3 to 3.6, Farfisa about 2 s CPU per second of audio); straight line Rust did not compile in reasonable time (s17)
+- [ ] Real time (TD-15): compiled in place executor, zero and `float` fast paths, branch free rounding (s18, D192): Bass 1.8 to 0.65, Farfisa 1.35 to 0.45 s CPU per second of audio, bit identical; not within the 0.8 ms block budget with a full program (next: straight line Rust with registers in locals, SIMD over the PEs, a closed form of the Farfisa processor)
 
 ## Out of Scope
 Bit-exact 0x122296 model (still open).
