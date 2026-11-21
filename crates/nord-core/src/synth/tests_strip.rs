@@ -243,3 +243,69 @@ fn ladder24_runs_the_firmware_ladder_stage_only_with_the_strip_chain_and_the_opt
         "the legacy chain never reads the opt-in"
     );
 }
+
+#[test]
+fn raw_type3_runs_the_stage_only_with_the_strip_chain_and_the_opt_in() {
+    let render = |chain: SynthChain, raw3: bool, on: bool| {
+        let mut s = layer(chain);
+        s.filter_model = FilterModel::Lp12;
+        s.filter_raw3 = raw3;
+        s.fw_stage3 = on;
+        s.note_on(57, 100);
+        render_n(&mut s, 2_400)
+    };
+    let base = render(SynthChain::FirmwareStrip, true, false);
+    let staged = render(SynthChain::FirmwareStrip, true, true);
+    assert!(staged.iter().all(|f| f[0].is_finite() && f[0].abs() < 8.0));
+    assert!(energy(&staged) > 1e-6, "stage 0x1257B2 is silent");
+    assert_ne!(base, staged, "the stage replaces the Lp12 stand-in");
+    assert_eq!(
+        render(SynthChain::FirmwareStrip, false, true),
+        render(SynthChain::FirmwareStrip, false, false),
+        "other raw types never read the opt-in"
+    );
+    assert_eq!(
+        render(SynthChain::Legacy, true, true),
+        render(SynthChain::Legacy, true, false),
+        "the legacy chain never reads the opt-in"
+    );
+}
+
+#[test]
+fn unison_gain_scales_the_analog_unison_sum_and_defaults_to_one() {
+    let render = |unison: u8, gain: f32| {
+        let mut s = layer(SynthChain::FirmwareStrip);
+        s.unison = unison;
+        s.unison_gain = gain;
+        s.note_on(57, 100);
+        render_n(&mut s, 2_400)
+    };
+    assert_eq!(layer(SynthChain::FirmwareStrip).unison_gain, 1.0);
+    assert_eq!(render(1, 1.0), render(1, 1.0), "deterministic");
+    let (a, b) = (energy(&render(1, 1.0)), energy(&render(1, 2.0)));
+    assert!(
+        (3.0..5.0).contains(&(b / a)),
+        "gain 2 is about 4x the energy: {}",
+        b / a
+    );
+    // unison 0 has no unison sum, the factor is not read
+    assert_eq!(render(0, 1.0), render(0, 2.0));
+}
+
+#[test]
+fn unison_weights_drop_the_voice_count_normalisation() {
+    let render = |unison: u8, weights: bool| {
+        let mut s = layer(SynthChain::FirmwareStrip);
+        s.unison = unison;
+        s.unison_fw_weights = weights;
+        s.note_on(57, 100);
+        render_n(&mut s, 2_400)
+    };
+    // two voices: sqrt(2) in amplitude (+3.0 dB), four voices: 2 (+6.0 dB); the filter is
+    // not linear at this level, so the energy ratio is checked loosely
+    let (a1, b1) = (energy(&render(1, false)), energy(&render(1, true)));
+    let (a3, b3) = (energy(&render(3, false)), energy(&render(3, true)));
+    assert!((1.7..2.4).contains(&(b1 / a1)), "unison 1: {}", b1 / a1);
+    assert!((3.2..5.0).contains(&(b3 / a3)), "unison 3: {}", b3 / a3);
+    assert_eq!(render(0, true), render(0, false), "unison 0 has no sum");
+}

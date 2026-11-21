@@ -94,6 +94,7 @@ fn apply_filter(
 ) {
     synth.filter_on = dec.filter_on;
     synth.filter_model = dec.filter_model;
+    synth.filter_raw3 = dec.raw.is_some_and(|r| r.filter_type == 3);
     synth.cutoff_hz = dec.filter_cutoff_hz;
     synth.resonance = dec.filter_resonance;
     synth.filter_drive = dec.filter_drive;

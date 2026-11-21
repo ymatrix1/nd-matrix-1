@@ -384,6 +384,12 @@ pub struct FirmwareOptions {
     /// leaves the strip stages at their default (see `from_args`); it is a shortcut, not a separate field.
     /// `--synth-fw-resonance`: `SynthLayer::fw_resonance` (the firmware resonance table position only).
     pub synth_fw_resonance: bool,
+    /// `--synth-stage3`: `SynthLayer::fw_stage3` (raw filter type 3 runs the stage `0x1257B2`).
+    pub synth_stage3: bool,
+    /// `--synth-unison-gain <factor>`: `SynthLayer::unison_gain` (opt-in, default 1.0).
+    pub synth_unison_gain_milli: Option<u16>,
+    /// `--synth-unison-weights`: `SynthLayer::unison_fw_weights` (per-voice gain 1, no `1 / sqrt(N)`).
+    pub synth_unison_weights: bool,
     /// `--synth-knob-laws` / `--no-synth-knob-laws`: `SynthLayer::knob_laws` (the strip chain takes
     /// the envelope rate indices straight from the stored knobs, `index = knob - 64`, VERIFIED
     /// run; on by default since D57, off in `--legacy-all`).
@@ -468,6 +474,9 @@ impl Default for FirmwareOptions {
             synth_filter_law_milli: None,
             synth_super_lp24_milli: None,
             synth_fw_resonance: false,
+            synth_stage3: false,
+            synth_unison_gain_milli: None,
+            synth_unison_weights: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
             sample_kernel_key: true,
@@ -496,6 +505,9 @@ impl FirmwareOptions {
             synth_filter_law_milli: None,
             synth_super_lp24_milli: None,
             synth_fw_resonance: false,
+            synth_stage3: false,
+            synth_unison_gain_milli: None,
+            synth_unison_weights: false,
             synth_knob_laws: false,
             synth_velocity_fw: false,
             piano_firmware_level: false,
@@ -547,6 +559,9 @@ impl FirmwareOptions {
             synth_filter_law_milli: None,
             synth_super_lp24_milli: None,
             synth_fw_resonance: false,
+            synth_stage3: false,
+            synth_unison_gain_milli: None,
+            synth_unison_weights: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
             sample_kernel_key: true,
@@ -656,6 +671,17 @@ impl FirmwareOptions {
         o.measured_laws |= has("--measured-laws");
         o.synth_stages |= has("--synth-stages");
         o.synth_fw_resonance |= has("--synth-fw-resonance");
+        o.synth_stage3 |= has("--synth-stage3");
+        o.synth_unison_weights |= has("--synth-unison-weights");
+        if let Some(v) = value("--synth-unison-gain") {
+            let u: f32 = v
+                .parse()
+                .map_err(|_| format!("--synth-unison-gain needs a number, got {v:?}"))?;
+            if !(0.05..=8.0).contains(&u) {
+                return Err(format!("--synth-unison-gain {u} outside 0.05..8"));
+            }
+            o.synth_unison_gain_milli = Some((u * 1000.0).round() as u16);
+        }
         if let Some(v) = value("--synth-filter-law") {
             let u: f32 = v
                 .parse()
@@ -1000,6 +1026,18 @@ impl FirmwareOptions {
         engine.synth_a.fw_resonance = self.synth_fw_resonance;
         engine.synth_b.fw_resonance = self.synth_fw_resonance;
         engine.synth_c.fw_resonance = self.synth_fw_resonance;
+        let uni = self
+            .synth_unison_gain_milli
+            .map_or(1.0, |m| f32::from(m) / 1000.0);
+        engine.synth_a.unison_gain = uni;
+        engine.synth_a.unison_fw_weights = self.synth_unison_weights;
+        engine.synth_b.unison_fw_weights = self.synth_unison_weights;
+        engine.synth_c.unison_fw_weights = self.synth_unison_weights;
+        engine.synth_b.unison_gain = uni;
+        engine.synth_c.unison_gain = uni;
+        engine.synth_a.fw_stage3 = self.synth_stage3;
+        engine.synth_b.fw_stage3 = self.synth_stage3;
+        engine.synth_c.fw_stage3 = self.synth_stage3;
         engine.synth_a.knob_laws = self.synth_knob_laws;
         engine.synth_b.knob_laws = self.synth_knob_laws;
         engine.synth_c.knob_laws = self.synth_knob_laws;
@@ -1127,6 +1165,15 @@ impl FirmwareOptions {
         }
         if self.synth_fw_resonance {
             parts.push("fw-resonance".into());
+        }
+        if self.synth_stage3 {
+            parts.push("stage3".into());
+        }
+        if self.synth_unison_weights {
+            parts.push("unison-weights".into());
+        }
+        if let Some(m) = self.synth_unison_gain_milli {
+            parts.push(format!("synth-unison-gain={:.3}", f32::from(m) / 1000.0));
         }
         if let Some(m) = self.synth_filter_law_milli {
             parts.push(format!("synth-filter-law={:.3}", f32::from(m) / 1000.0));
@@ -1515,6 +1562,30 @@ mod tests {
         assert!(!e.synth_a.wave_bank);
         o.apply_to(&mut e);
         assert!(e.synth_a.wave_bank && e.synth_b.wave_bank && e.synth_c.wave_bank);
+    }
+
+    #[test]
+    fn stage3_and_unison_gain_are_opt_in_and_reach_the_layers() {
+        let d = FirmwareOptions::default();
+        assert!(!d.synth_stage3 && d.synth_unison_gain_milli.is_none());
+        let o = FirmwareOptions::from_args(&[
+            "--synth-stage3".into(),
+            "--synth-unison-gain".into(),
+            "1.414".into(),
+            "--synth-unison-weights".into(),
+        ])
+        .unwrap();
+        let s = o.summary();
+        assert!(s.contains("stage3") && s.contains("synth-unison-gain=1.414"));
+        assert!(s.contains("unison-weights"));
+        let mut e = Stage4Engine::new(48_000.0);
+        assert!(!e.synth_a.fw_stage3 && e.synth_a.unison_gain == 1.0);
+        o.apply_to(&mut e);
+        assert!(e.synth_a.fw_stage3 && e.synth_c.fw_stage3);
+        assert!(e.synth_a.unison_fw_weights && e.synth_c.unison_fw_weights);
+        assert_eq!(e.synth_b.unison_gain, 1.414);
+        assert!(FirmwareOptions::from_args(&["--synth-unison-gain".into(), "x".into()]).is_err());
+        assert!(FirmwareOptions::from_args(&["--synth-unison-gain".into(), "99".into()]).is_err());
     }
 
     #[test]
