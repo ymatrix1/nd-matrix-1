@@ -1,5 +1,5 @@
 # Checksum flash service (0x1C09A9) with its DMA buffer DM(0xB650F) pointed at the pitch window (D171, docs/research/sy-flash-bus-hunt.md):
-#   head -c 4194304 /dev/zero | tr "0" "245" > target/oracle/np/ext.bin
+#   python -c "open('target/oracle/np/ext.bin','wb').write(bytes([0xA5])*0x400000)"
 #   sharc-ref target/oracle/sy.bin tools/oracle_scenarios/sy_flash_service_crc.scn --out target/oracle/np/crc --watch 0x93500:0xA0
 # Result: epchain window_hits=1 (TCB ext 0xC000000 -> DM 0x9354A, count 4). The ext image is a synthetic fill.
 # SY1SY2 command FIFO opcode handlers 1 to 15 (`DM(0x92182 + opcode)`) run one by one with a window
