@@ -20,6 +20,9 @@ const ZINC_800: Color32 = Color32::from_rgb(39, 39, 42);
 const ZINC_400: Color32 = Color32::from_rgb(161, 161, 170);
 const ZINC_50: Color32 = Color32::from_rgb(250, 250, 250);
 const ACCENT_RED: Color32 = Color32::from_rgb(184, 37, 42);
+const FACTORY_BANK_URL: &str = "https://assets.nordkeyboards.com/media/documents/UTQHpgLs/Nord%20Stage%204%20Factory%20Restore%20RevK%20v1.66.ns4b";
+const OS_UPDATE_URL: &str =
+    "https://www.nordkeyboards.com/wt/documents/1042/Update%20Nord%20Stage%204%20OS%20v1.66.zip";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum DebugTab {
@@ -28,14 +31,16 @@ pub enum DebugTab {
     AudioMidi,
     Library,
     OsUpdate,
+    Guide,
 }
 
 impl DebugTab {
-    pub const ALL: [Self; 4] = [
+    pub const ALL: [Self; 5] = [
         Self::Firmware,
         Self::AudioMidi,
         Self::Library,
         Self::OsUpdate,
+        Self::Guide,
     ];
 
     pub fn label(self) -> &'static str {
@@ -44,6 +49,7 @@ impl DebugTab {
             Self::AudioMidi => "Audio & MIDI",
             Self::Library => "Library & Backup",
             Self::OsUpdate => "OS & Wave Tables",
+            Self::Guide => "Setup Guide",
         }
     }
 }
@@ -134,30 +140,38 @@ fn render_dialog_contents(
     audio_handle: &AudioHandle,
 ) {
     let ctx = ui.ctx().clone();
-    // Header row (draggable window title + consistent vector Minimize / Close icons)
-    ui.horizontal(|ui| {
-        ui.vertical(|ui| {
-            ui.label(
-                RichText::new("Studio Settings & Diagnostics")
-                    .size(16.0)
-                    .strong()
-                    .color(ZINC_50),
-            );
-            ui.label(
-                RichText::new(
-                    "Firmware DSP options, MIDI & audio metering, and .ns4b backup tools.",
-                )
-                .size(11.5)
-                .color(ZINC_400),
-            );
-        });
+    // Header row: entire left + middle area (including title & subtitle) drags the window
+    let header_resp = ui.horizontal(|ui| {
+        let title_area = ui
+            .vertical(|ui| {
+                ui.label(
+                    RichText::new("Studio Settings & Diagnostics")
+                        .size(16.0)
+                        .strong()
+                        .color(ZINC_50),
+                );
+                ui.label(
+                    RichText::new(
+                        "Firmware DSP options, MIDI & audio metering, and .ns4b backup tools.",
+                    )
+                    .size(11.5)
+                    .color(ZINC_400),
+                );
+            })
+            .response;
         let drag_w = (ui.available_width() - 62.0).max(16.0);
-        let (_, drag_resp) =
-            ui.allocate_exact_size(egui::vec2(drag_w, 28.0), egui::Sense::click_and_drag());
-        if drag_resp.hovered() {
+        let (_, spacer_resp) =
+            ui.allocate_exact_size(egui::vec2(drag_w, 34.0), egui::Sense::click_and_drag());
+        let drag_rect = title_area.rect.union(spacer_resp.rect);
+        let header_drag = ui.interact(
+            drag_rect,
+            egui::Id::new("ns4_debug_header_drag"),
+            egui::Sense::click_and_drag(),
+        );
+        if header_drag.hovered() {
             ctx.set_cursor_icon(egui::CursorIcon::Grab);
         }
-        if drag_resp.is_pointer_button_down_on() && drag_resp.dragged() {
+        if header_drag.is_pointer_button_down_on() && header_drag.dragged() {
             ctx.send_viewport_cmd(ViewportCommand::StartDrag);
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
@@ -165,6 +179,7 @@ fn render_dialog_contents(
             paint_window_controls(&ctx, ui, dlg);
         });
     });
+    let _ = header_resp;
 
     ui.add_space(12.0);
 
@@ -257,9 +272,124 @@ fn render_dialog_contents(
                 shadcn_card(
                     ui,
                     "Nord OS Update & Wave Tables",
-                    "Load Nord OS update packages for authentic SHARC wave-bank tables.",
+                    "Drop or paste your Nord Stage 4 OS update (.zip / .exe / .dmg) below to install the 46 SHARC wave tables.",
                     |ui| {
-                        os_update.show_bar(ui);
+                        os_update.show_inline(&ctx, ui);
+                    },
+                );
+            }
+            DebugTab::Guide => {
+                shadcn_card(
+                    ui,
+                    "1. Factory Sound Bank (.ns4b)",
+                    "Download the official Nord Stage 4 Factory Restore backup (~3.1 GB) to load factory programs, pianos, and samples.",
+                    |ui| {
+                        ui.horizontal_wrapped(|ui| {
+                            let dl_btn = ui
+                                .add(
+                                    egui::Button::new(
+                                        RichText::new("Download Factory Bank v1.66 (.ns4b)")
+                                            .size(11.5)
+                                            .strong()
+                                            .color(ZINC_50),
+                                    )
+                                    .fill(ACCENT_RED)
+                                    .stroke(Stroke::NONE)
+                                    .corner_radius(CornerRadius::same(6)),
+                                )
+                                .on_hover_cursor(egui::CursorIcon::PointingHand);
+                            if dl_btn.clicked() {
+                                ctx.open_url(egui::OpenUrl::new_tab(FACTORY_BANK_URL));
+                            }
+                            let open_btn = ui
+                                .add(
+                                    egui::Button::new(
+                                        RichText::new("Open .ns4b Library")
+                                            .size(11.5)
+                                            .color(ZINC_50),
+                                    )
+                                    .fill(ZINC_950)
+                                    .stroke(Stroke::new(1.0, ZINC_800))
+                                    .corner_radius(CornerRadius::same(6)),
+                                )
+                                .on_hover_cursor(egui::CursorIcon::PointingHand);
+                            if open_btn.clicked() {
+                                dlg.tab = DebugTab::Library;
+                            }
+                        });
+                        ui.add_space(6.0);
+                        ui.label(
+                            RichText::new(
+                                "After downloading, drag & drop the .ns4b file onto the keyboard or load it from the Library & Backup tab.",
+                            )
+                            .size(11.0)
+                            .color(ZINC_400),
+                        );
+                    },
+                );
+                ui.add_space(10.0);
+                shadcn_card(
+                    ui,
+                    "2. Nord Stage 4 OS Update (Wave Tables)",
+                    "Download the official Nord Stage 4 OS v1.66 update (.zip) to enable the 46 hardware SHARC wave tables.",
+                    |ui| {
+                        ui.horizontal_wrapped(|ui| {
+                            let dl_btn = ui
+                                .add(
+                                    egui::Button::new(
+                                        RichText::new("Download Nord Stage 4 OS v1.66 (.zip)")
+                                            .size(11.5)
+                                            .strong()
+                                            .color(ZINC_50),
+                                    )
+                                    .fill(ACCENT_RED)
+                                    .stroke(Stroke::NONE)
+                                    .corner_radius(CornerRadius::same(6)),
+                                )
+                                .on_hover_cursor(egui::CursorIcon::PointingHand);
+                            if dl_btn.clicked() {
+                                ctx.open_url(egui::OpenUrl::new_tab(OS_UPDATE_URL));
+                            }
+                            let go_btn = ui
+                                .add(
+                                    egui::Button::new(
+                                        RichText::new("Open OS & Wave Tables Tab")
+                                            .size(11.5)
+                                            .color(ZINC_50),
+                                    )
+                                    .fill(ZINC_950)
+                                    .stroke(Stroke::new(1.0, ZINC_800))
+                                    .corner_radius(CornerRadius::same(6)),
+                                )
+                                .on_hover_cursor(egui::CursorIcon::PointingHand);
+                            if go_btn.clicked() {
+                                dlg.tab = DebugTab::OsUpdate;
+                            }
+                        });
+                        ui.add_space(6.0);
+                        ui.label(
+                            RichText::new(
+                                "Extract the .zip and select the Nord OS update file inside the OS & Wave Tables tab (saved automatically to your config).",
+                            )
+                            .size(11.0)
+                            .color(ZINC_400),
+                        );
+                    },
+                );
+                ui.add_space(10.0);
+                shadcn_card(
+                    ui,
+                    "3. Quick Controls & Shortcuts",
+                    "Mouse, keyboard, and window tips.",
+                    |ui| {
+                        for tip in [
+                            "• Drag & drop .ns4b, .ns4p, .npno, or .nsmp4 files directly onto the instrument.",
+                            "• Scroll mouse wheel over knobs, faders, drawbars, or the Mod Wheel for fine adjustments.",
+                            "• Computer keyboard: A–K white keys, W/E/T/Y/U black keys, Z/X octave, C/V velocity, Space sustain.",
+                            "• Drag the empty transparent top strip to move the window; drag edges/bottom-right corner to resize.",
+                        ] {
+                            ui.label(RichText::new(tip).size(11.0).color(ZINC_400));
+                        }
                     },
                 );
             }
@@ -284,7 +414,8 @@ pub fn show_debug_dialog(
     let builder = ViewportBuilder::default()
         .with_title("Nord Stage 4 — Studio Settings & Diagnostics")
         .with_decorations(false)
-        .with_inner_size([880.0, 500.0])
+        .with_transparent(true)
+        .with_inner_size([880.0, 520.0])
         .with_min_inner_size([600.0, 340.0]);
 
     ctx.show_viewport_immediate(viewport_id, builder, |vp_ctx, class| {
@@ -292,9 +423,10 @@ pub fn show_debug_dialog(
             dlg.open = false;
             return;
         }
-        let frame = Frame::NONE
+        let rounded_frame = Frame::NONE
             .fill(ZINC_950)
             .stroke(Stroke::new(1.0, ZINC_800))
+            .corner_radius(CornerRadius::same(12))
             .inner_margin(Margin::same(16));
 
         if class == ViewportClass::Embedded {
@@ -303,7 +435,7 @@ pub fn show_debug_dialog(
                 .id(egui::Id::new("ns4_shadcn_debug_embedded"))
                 .open(&mut open)
                 .title_bar(false)
-                .frame(frame.corner_radius(CornerRadius::same(10)))
+                .frame(rounded_frame)
                 .show(vp_ctx, |ui| {
                     render_dialog_contents(
                         ui,
@@ -320,23 +452,26 @@ pub fn show_debug_dialog(
             }
         } else {
             egui::CentralPanel::default()
-                .frame(frame)
+                .frame(Frame::NONE.fill(Color32::TRANSPARENT))
                 .show(vp_ctx, |ui| {
-                    render_dialog_contents(
-                        ui,
-                        dlg,
-                        state,
-                        library,
-                        firmware,
-                        os_update,
-                        audio_handle,
-                    );
+                    rounded_frame.show(ui, |ui| {
+                        ui.set_min_size(ui.available_size());
+                        render_dialog_contents(
+                            ui,
+                            dlg,
+                            state,
+                            library,
+                            firmware,
+                            os_update,
+                            audio_handle,
+                        );
+                    });
                 });
 
             // Bottom-right corner resize handle for the borderless settings window
             let screen = vp_ctx.screen_rect();
             let corner = egui::Rect::from_min_max(
-                egui::pos2(screen.right() - 14.0, screen.bottom() - 14.0),
+                egui::pos2(screen.right() - 16.0, screen.bottom() - 16.0),
                 screen.right_bottom(),
             );
             let (hovered, pressed) = vp_ctx.input(|i| {
@@ -352,7 +487,6 @@ pub fn show_debug_dialog(
                 ));
             }
         }
-        os_update.show_window(vp_ctx);
     });
 }
 

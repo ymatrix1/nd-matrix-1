@@ -82,6 +82,16 @@ impl OsUpdatePanel {
         });
     }
 
+    /// Inline body (for embedding inside the shadcn Studio Settings tab without a popup window).
+    pub fn show_inline(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        let dropped = ctx.input(|i| i.raw.dropped_files.first().and_then(|f| f.path.clone()));
+        if let Some(p) = dropped {
+            self.input = p.display().to_string();
+            self.use_file(&self.input.clone());
+        }
+        self.window_body(ui);
+    }
+
     /// The setting window, plus drag-and-drop of the downloaded file onto the app.
     pub fn show_window(&mut self, ctx: &egui::Context) {
         let dropped = ctx.input(|i| i.raw.dropped_files.first().and_then(|f| f.path.clone()));
