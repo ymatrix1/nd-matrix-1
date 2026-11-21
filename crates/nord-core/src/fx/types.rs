@@ -165,6 +165,9 @@ pub struct FxMorphSet {
     pub delay_mix: MorphParameter,
     pub delay_feedback: MorphParameter,
     pub reverb_amount: MorphParameter,
+    /// `Edt_Effects_kDlyRateClkDiv` (14 bit, base `delay_rate_raw / 16383`). Only the opt-in
+    /// firmware delay time (`FirmwareFx::delay_time`) reads the morphed value (D204).
+    pub delay_rate: MorphParameter,
 }
 
 impl Default for FxMorphSet {
@@ -180,6 +183,7 @@ impl Default for FxMorphSet {
             delay_mix: p,
             delay_feedback: p,
             reverb_amount: p,
+            delay_rate: p,
         }
     }
 }
