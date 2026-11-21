@@ -4,7 +4,7 @@
 //!
 //! Usage: `cargo run --release -p nord-tools --bin synth_env_native -- <program.ns4p> [--layer 0|1|2]
 //! [--on 300] [--off 11149] [--passes 16575] [--adr-law] [--g 98]`.
-//! `--adr-law` applies the opt-in oracle envelope law of D207 (amp attack scaled by the key byte
+//! `--adr-law` applies the opt-in oracle envelope law of D210 (amp attack scaled by the key byte
 //! `--g`, decay sustain 0.5). Prints one JSON line: the stored knobs, the
 //! record words, the panel cutoff and envelope amount, and per pass the amp level, the filter
 //! level, and the native cutoff coefficient `R` (strip word law of `fw_strip_cutoff.rs`) after
@@ -80,7 +80,7 @@ fn knobs_json(k: &StripKnobs) -> Value {
     })
 }
 
-/// Chain parameters and the voice of a layer; `law = Some(g)` applies the D207 oracle law.
+/// Chain parameters and the voice of a layer; `law = Some(g)` applies the D210 oracle law.
 pub fn chain_setup(knobs: &StripKnobs, sustain: f32, law: Option<u8>) -> (StripParams, StripVoice) {
     let mut params = StripParams {
         amp: StripEnvRecords::from_knobs(knobs.amp, sustain),

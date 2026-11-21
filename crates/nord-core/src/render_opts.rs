@@ -398,7 +398,7 @@ pub struct FirmwareOptions {
     /// coefficient, `127 / 12` octaves at full amount; oracle composition, D195).
     pub synth_fw_env_law: bool,
     /// `--synth-fw-adr-law`: `SynthLayer::fw_adr_law` (amp attack scaled by the key velocity, decay
-    /// record sustain 0.5, oracle envelope law, D207). Strip chain only.
+    /// record sustain 0.5, oracle envelope law, D210). Strip chain only.
     pub synth_fw_adr_law: bool,
     /// `--synth-osc-env-morph`: `Stage4Engine::synth_osc_env_morph` (the Osc Env Amount morph of
     /// the synth layers is played, firmware law, D206; needs the firmware morph, on by default).

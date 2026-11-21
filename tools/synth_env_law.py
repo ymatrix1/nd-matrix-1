@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""Amp attack velocity scaling and decay sustain level of the ORG core 2 oracle (D207).
+r"""Amp attack velocity scaling and decay sustain level of the ORG core 2 oracle (D210).
 
 Extends `synth_env_trace.py` (same capture, same `sharc-sys` taps of the three envelope chains of
 slot 0). A `grid` run injects one ADR word triple `attack,decay,release` (the same index in all
@@ -57,7 +57,7 @@ def scaled_index(word: int, g: int, law: str) -> int:
     scales by `g / 127`, `g128-floor` is `(word * G) >> 7` with `G = 128` for `g = 127`).
 
     Positive words are not scaled (oracle: identical slope at every `g`). The winning law is
-    `g128-floor` (D207).
+    `g128-floor` (D210).
     """
     if word >= 0:
         return word

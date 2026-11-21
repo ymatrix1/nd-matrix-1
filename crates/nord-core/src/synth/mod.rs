@@ -342,7 +342,7 @@ pub struct SynthLayer {
     /// semitone domain (`fw_cutoff_env.rs`, oracle composition, D195): `2^(amount * 127 / 12 *
     /// level)` instead of `2^(amount * 8 * level)` on the Hz cutoff. Strip chain only.
     pub fw_env_law: bool,
-    /// Opt-in (default off, `--synth-fw-adr-law`, D207): the oracle envelope law of `fw_adr_law.rs`:
+    /// Opt-in (default off, `--synth-fw-adr-law`, D210): the oracle envelope law of `fw_adr_law.rs`:
     /// the amp attack index of a negative word is scaled by `g / 127` (key byte `g`) per voice and
     /// the decay records of both chains stop at the sustain level 0.5. Strip chain only.
     pub fw_adr_law: bool,
