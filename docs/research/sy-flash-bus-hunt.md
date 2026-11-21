@@ -47,6 +47,18 @@ grep -n -i -E '93df[0-7]|0xb6[0-9a-f]{3}' target/oracle/sy2.lst   # service loop
 
 Census output of this run (VERIFIED): offset table zero fill covers = True, data block = False; pitch window zero fill covers = False (the `0x93580` word block), data block = True; SY 290 messages, opcodes `{0: 290}`, pitch hits 0, offset hits 0; SMP 1,540 messages, pitch hits 0, offset hits 1,480; ARM literals only at `0xC024C370..0xC024C384` and `0xC0444E4C..0xC0444E5C`. `sy_isr_stream.scn` needs `target/oracle/weltmeister_s0.stream` (not present in this checkout), so the stream run of D112 was not repeated.
 
+## 4. The ARM boot function `0xC0247B64` and its message loops (excluded, ASSUMED reading)
+
+The two ARM calls of the stubbed block download `0xC0240548` (`0xC0248888`, `0xC02495D4`) sit in the OS boot function `0xC0247B64` (strings: "Sample Flash Error", "FFS Flash", "Ver Flash", "Production Mode", "SampLib"). It builds one chip object per DSP (ctor `0xC0240744`: `[+0] = chip` 3 = SY, 4 = SMP; `[+4]` = the descriptor `0xC0444E4C` / `0xC0444E68`, `[+8]`, `[+0xC]`, `[+0x10]` = 0) and, per chip, runs two message loops (`0xC0248630..0xC0248740` over 7 byte records, `0xC0248760..0xC0248860` over 9 byte records: a 16 bit value at record bytes 7 and 8, a 32 bit value at bytes 3 to 6, address pair advancing by 2).
+
+| Check | Result | Tag |
+|---|---|---|
+| Are the loops run in the harness boot? | Hooks at `0xC0248744` and `0xC024860C` (unicorn, `arm_boot_full`): both chips reach the loops with **count 0 for the 7 byte and the 9 byte list**, so the boot sends no record from them; the only message after the block download is `DM(0xB6510) <- 0` (pc `0xC02488C4`) | VERIFIED (run) |
+| Do they target the pitch window? | Their start words are the chip object fields `[+8]`, `[+0xC]`, written only by the ctor (value 0, same fields the flash write routines of section 2 use as the address latch cache); no ARM store of a window address is visible. Read as the flash programming records of the "FFS / Ver Flash" path, **not** a table loader. A record source (flash directory) could make them non-empty on hardware | reading ASSUMED; not excluded by a run with a flash |
+| Descriptor | `0xC0444E4C` (SY): mailbox `0xB6512`, `0xB6511`, `0xB6510`, flags `0x93DF6`, `0x93DF7`, sizes `0x4000`, `0x400`; `0xC0444E68` (SMP): `0x940A1`, `0x940A0`, `0x9409F`, `0x92518`, `0x92519`, `0x4000`, `0x400`. `0x4000` words equals the zero filled buffer `0xB2000..0xB5FFF` | VERIFIED (dump) |
+
+So the 16 K word region `0xB2000..0xB5FFF` is the block buffer of this protocol (size `0x4000`, chunk `0x400`), which the harness stubs out (SPI block download, SPI master transfer). Whether the audio ISR's `DM(0xB2000 + m3)` read is that same buffer or a sample directory is not decided.
+
 ## Implications
 
 - The SY never receives, from the ARM or from its own DMA, any word for `0x9354A..0x9358D` or `0xB2000..0xB5FFF` in the paths a harness can run; both regions are zero in the image. The remaining explanation is **hardware state the harness does not have**: the flash file system and its device object (`0xC024C284`), which feed the ARM with sample directory data the stand-in sample bypasses.
