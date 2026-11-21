@@ -1,4 +1,4 @@
-# Checksum flash service (0x1C09A9) as the ARM can drive it: DM(0xB650F) is left at its image default (D195, docs/research/sy-flash-service-hunt.md):
+# Checksum flash service (0x1C09A9) as the ARM can drive it: DM(0xB650F) is left at its image default (D196, docs/research/sy-flash-service-hunt.md):
 #   python -c "open('target/oracle/np/ext.bin','wb').write(bytes([0xA5])*0x400000)"
 #   sharc-ref target/oracle/sy.bin tools/oracle_scenarios/sy_flash_service_default.scn --out target/oracle/np/crcdef --watch 0xB650F:1 --watch 0x93500:0xA0
 # Result: epchain window_hits=0, third TCB ext 0xC000000 -> DM 0x93FF7 (the staging buffer), count 4. The ext image is a synthetic fill.

@@ -1,4 +1,4 @@
-# The SY pitch entry `e`, sixth hunt: the ARM claimed flash service has a fixed destination (negative result, D195)
+# The SY pitch entry `e`, sixth hunt: the ARM claimed flash service has a fixed destination (negative result, D196)
 
 - **Checked:** 2026-11-21
 - **Sources (local, never committed):** SY1SY2 raw image `target/DSP/dsp_image_3_SY1SY2.bin`, listing `target/oracle/sy2.lst` and flat image `target/oracle/sy.bin`, ARM code `target/fw_unpacked/bank0_CODE.bin` (OS v1.66), `sharc-ref` with the `epchain` model ([dsp-flash-dma-model](dsp-flash-dma-model.md)), prior notes [sy-flash-bus-hunt](sy-flash-bus-hunt.md) (D176) and [sy-pitch-entry-writer](sy-pitch-entry-writer.md). New: `tools/sy_flash_service_hunt.py` (`tools/tests/test_sy_flash_service_hunt.py`), scenario `tools/oracle_scenarios/sy_flash_service_default.scn`.
