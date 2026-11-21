@@ -290,6 +290,7 @@ pub fn invert_fx_chain(fx: &FxParams, dec: &mut FxDecoded) {
         dec.reverb_enabled,
         &mut dec.reverb_amount_morph,
     );
+    morph(&m.delay_rate, dec.delay_enabled, &mut dec.delay_rate_morph);
 }
 
 #[cfg(test)]

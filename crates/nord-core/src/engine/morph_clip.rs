@@ -1,10 +1,10 @@
 //! Morph copy / paste / clear (manual p.43-44): one Morph source (Wheel, A.T., Ctrl Ped) holds a
 //! depth for every morph-assigned parameter: 7 layer levels, 3 synth cutoffs, the 5 extra synth
-//! slots of each synth layer (`synth_morph.rs`) and 9 per FX chain.
+//! slots of each synth layer (`synth_morph.rs`) and 10 per FX chain.
 
 use super::*;
 
-const FX_SLOTS: usize = 9;
+const FX_SLOTS: usize = 10;
 const SYNTH_SLOTS: usize = crate::synth_morph::SLOTS;
 
 /// Depths of one morph source across the whole program.
@@ -44,6 +44,7 @@ fn fx_slots(m: &mut FxMorphSet) -> [&mut MorphParameter; FX_SLOTS] {
         &mut m.delay_mix,
         &mut m.delay_feedback,
         &mut m.reverb_amount,
+        &mut m.delay_rate,
     ]
 }
 

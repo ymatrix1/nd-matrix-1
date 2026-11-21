@@ -30,6 +30,7 @@ impl LayerFxChain {
         self.delay_rate_raw = src.delay_rate_raw;
         self.morph.delay_mix = src.morph.delay_mix;
         self.morph.delay_feedback = src.morph.delay_feedback;
+        self.morph.delay_rate = src.morph.delay_rate;
     }
 
     /// Copies the Reverb settings (model, colour, mix and morph) of `src`.

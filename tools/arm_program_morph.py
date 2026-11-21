@@ -4,6 +4,7 @@
 Puts a `.ns4p` into the Store record of the I2C EEPROM image (`arm_program_load.build_image`),
 boots the full machine so the firmware recalls the program itself, and then sends MIDI on UART2:
 
+* A held key `note:60` (`90 60 64`) for the organ and piano captures.
 * Mod Wheel `B0 01 v` (`Fnc_MIDIWheel`), Control Pedal `B0 0B v` (`Fnc_MIDIExpr`), Aftertouch
   `D0 v` (`Fnc_MIDIAftertouch`).
 
@@ -35,6 +36,8 @@ from pathlib import Path
 # VERIFIED (run, `docs/research/morph-fw-vs-native.md` s2): MIDI sources of the three morph
 # controllers on UART2 channel 1 (status byte, data 1 for the controller change).
 SOURCES = {"wheel": (0xB0, 1), "pedal": (0xB0, 11), "at": (0xD0, None)}
+# A held key for the organ and piano captures (`note:60` is note-on channel 1, velocity 100).
+NOTE_VELOCITY = 100
 # VERIFIED (run): the value cells of a morph-capable edit id are `[base, wheel, at, pedal]`
 # (`Edt_Syn_kFltFreq` of Horizon Whl layer A reads `[52, 10, 0, 0]`).
 CELL_SOURCES = ("wheel", "at", "pedal")
@@ -53,9 +56,11 @@ Q16 = 65536.0
 
 def event_bytes(source: str, value: int) -> bytes:
     """UART2 bytes of one controller event (`source` in `SOURCES`, `value` 0..127)."""
-    status, controller = SOURCES[source]
     if not 0 <= value <= 127:
         raise ValueError(f"value {value} outside 0..127")
+    if source == "note":
+        return bytes([0x90, value, NOTE_VELOCITY])
+    status, controller = SOURCES[source]
     if controller is None:
         return bytes([status, value])
     return bytes([status, controller, value])
@@ -68,7 +73,7 @@ def parse_scenario(text: str) -> list[tuple[str, int]]:
         return events
     for item in text.split(","):
         source, _, value = item.partition(":")
-        if source not in SOURCES or not value.lstrip("-").isdigit():
+        if (source not in SOURCES and source != "note") or not value.lstrip("-").isdigit():
             raise ValueError(
                 f"bad event {item!r}, want SOURCE:VALUE with SOURCE in {list(SOURCES)}"
             )
@@ -168,6 +173,12 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
     ap.add_argument("--cache", type=Path, help="booted state cache (skips the boot)")
     ap.add_argument("--scenario", nargs="+", default=["wheel:127"])
     ap.add_argument("--cells", action="store_true", help="print the base and delta cells")
+    ap.add_argument(
+        "--dsp-all",
+        action="store_true",
+        help="log the last word of every DSP message per (chip, core, DM word) of a scenario",
+    )
+    ap.add_argument("--settle", type=int, default=SETTLE_TICKS, help="ticks after each event")
     ap.add_argument("--changed-only", action="store_true", help="drop rows equal to `none`")
     ap.add_argument("--csv", type=Path)
     ns = ap.parse_args(argv)
@@ -225,15 +236,20 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
         ast.enable_real_timer(emu)
         log.clear()
         words: dict[int, int] = {}
+        every: dict[tuple[str, int, int], int] = {}
         for source, value in parse_scenario(text):
             rig.send(event_bytes(source, value))
-            for _t, msg in rig.tick(SETTLE_TICKS):
+            for _t, msg in rig.tick(ns.settle):
                 if msg.chip == "ORG" and msg.core == 2 and msg.dm_word in WATCH_WORDS:
                     words[msg.dm_word] = msg.word2
+                if ns.dsp_all:
+                    every[(msg.chip, msg.core, msg.dm_word)] = msg.word2
         for dm_word, word in sorted(words.items()):
             rows.append(
                 (text, "dsp", 2, "ORG", hex(dm_word), WATCH_WORDS[dm_word], f"{word:#010x}")
             )
+        for (chip, core, dm_word), word in sorted(every.items()):
+            rows.append((text, "dsp-all", core, chip, hex(dm_word), "", f"{word:#010x}"))
         for (store, eid), value in sorted(last_values(log).items()):
             st = stores.get(store)
             rows.append(

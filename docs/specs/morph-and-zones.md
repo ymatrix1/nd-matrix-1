@@ -64,6 +64,8 @@ $$
 v_{\text{effective}}(p) = \operatorname{clamp}\left(v_{\text{base}}(p) + m_{\text{wheel}} \cdot \Delta_{\text{wheel}}(p) + m_{\text{pedal}} \cdot \Delta_{\text{pedal}}(p) + m_{\text{at}} \cdot \Delta_{\text{at}}(p),\ 0.0,\ 1.0\right)
 $$
 
+Firmware status per target (ARM runs, [morph-fw-vs-native](../research/morph-fw-vs-native.md), D159, D204): layer levels, cutoffs, the five synth slots and nine FX slots are played; the FX delay rate (14 bit) is played too but is audible only with the opt-in `FirmwareFx::delay_time`. Not played: organ drawbars (the firmware recall does not apply the stored depth in the harness, no factory program has one), Leslie speed, arp rate and range (the range scale is not captured), Synth Osc Env Amount (9 factory programs, follow-up).
+
 All 3 physical sources sum additively and clamp cleanly to $[0.0, 1.0]$, matching the exact hardware behavior when moving the Mod Wheel and Control Pedal simultaneously.
 
 ## 5. Program-area performance functions (Phase 6b B9d part 1, `ns4-ymci`)
