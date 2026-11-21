@@ -327,3 +327,28 @@ fn filter_type_gain_scales_the_filter_output_by_the_oracle_gain() {
         assert!((on / off / want - 1.0).abs() < 0.02, "{m:?}: {}", on / off);
     }
 }
+
+#[test]
+fn fw_env_law_opens_the_cutoff_further_and_is_off_by_default() {
+    let render = |law: bool, amount: f32| {
+        let mut s = layer(SynthChain::FirmwareStrip);
+        s.cutoff_hz = 200.0;
+        s.filter_env_dedicated = true;
+        s.filter_env_amount = amount;
+        s.fw_env_law = law;
+        s.note_on(45, 100);
+        render_n(&mut s, 4_800)
+    };
+    assert!(!SynthLayer::new(48_000.0).fw_env_law, "opt-in");
+    // amount 0.4 = 51 semitones against 38 of the default law: the sweep opens further.
+    let (def, fw) = (render(false, 0.4), render(true, 0.4));
+    assert!(def != fw, "the law changes the render");
+    assert!(
+        high_share(&fw, 2_000.0) > high_share(&def, 2_000.0),
+        "fw {} default {}",
+        high_share(&fw, 2_000.0),
+        high_share(&def, 2_000.0)
+    );
+    // no envelope amount: both laws are the static cutoff
+    assert_eq!(render(false, 0.0), render(true, 0.0));
+}

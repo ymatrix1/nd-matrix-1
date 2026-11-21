@@ -502,14 +502,24 @@ impl SynthLayer {
             } else {
                 1.0
             };
-            let env_scale = if self.filter_env_amount.abs() > 1e-4 {
+            let fw_env = strip.is_some() && self.fw_env_law;
+            let env_scale = if fw_env || self.filter_env_amount.abs() <= 1e-4 {
+                1.0
+            } else {
                 2.0f32
                     .powf(self.filter_env_amount.clamp(-1.0, 1.0) * env_octaves * filter_env_level)
-            } else {
-                1.0
             };
-            let voice_cutoff =
-                (eff_cutoff * kb_track_scale * env_scale).clamp(14.0, 0.48 * self.sample_rate);
+            let base_cutoff = eff_cutoff * kb_track_scale * env_scale;
+            let voice_cutoff = if fw_env {
+                super::fw_cutoff_env::fw_env_cutoff_hz(
+                    base_cutoff,
+                    self.filter_env_amount,
+                    filter_env_level,
+                )
+            } else {
+                base_cutoff
+            }
+            .clamp(14.0, 0.48 * self.sample_rate);
 
             // Firmware filter family: coefficients once per voice and sample (no allocation).
             // ASSUMED (opt-in `strip_stages`): `Ladder24` runs the modelled stage `0x12549D`

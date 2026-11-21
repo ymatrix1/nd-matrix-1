@@ -394,6 +394,9 @@ pub struct FirmwareOptions {
     /// `--synth-filter-gain`: `SynthLayer::filter_type_gain` (oracle filter gain by type, D195);
     /// also selects `--synth-p oracle-rows` unless a later `--synth-p` says otherwise.
     pub synth_filter_gain: bool,
+    /// `--synth-fw-env-law`: `SynthLayer::fw_env_law` (filter envelope in semitones of the stage
+    /// coefficient, `127 / 12` octaves at full amount; oracle composition, D195).
+    pub synth_fw_env_law: bool,
     /// `--synth-knob-laws` / `--no-synth-knob-laws`: `SynthLayer::knob_laws` (the strip chain takes
     /// the envelope rate indices straight from the stored knobs, `index = knob - 64`, VERIFIED
     /// run; on by default since D57, off in `--legacy-all`).
@@ -482,6 +485,7 @@ impl Default for FirmwareOptions {
             synth_unison_gain_milli: None,
             synth_unison_weights: false,
             synth_filter_gain: false,
+            synth_fw_env_law: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
             sample_kernel_key: true,
@@ -514,6 +518,7 @@ impl FirmwareOptions {
             synth_unison_gain_milli: None,
             synth_unison_weights: false,
             synth_filter_gain: false,
+            synth_fw_env_law: false,
             synth_knob_laws: false,
             synth_velocity_fw: false,
             piano_firmware_level: false,
@@ -570,6 +575,7 @@ impl FirmwareOptions {
             synth_unison_gain_milli: None,
             synth_unison_weights: false,
             synth_filter_gain: false,
+            synth_fw_env_law: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
             sample_kernel_key: true,
@@ -695,6 +701,7 @@ impl FirmwareOptions {
         }
         o.synth_stage3 |= has("--synth-stage3");
         o.synth_unison_weights |= has("--synth-unison-weights");
+        o.synth_fw_env_law |= has("--synth-fw-env-law");
         if let Some(v) = value("--synth-unison-gain") {
             let u: f32 = v
                 .parse()
@@ -1073,6 +1080,9 @@ impl FirmwareOptions {
         engine.synth_a.filter_type_gain = self.synth_filter_gain;
         engine.synth_b.filter_type_gain = self.synth_filter_gain;
         engine.synth_c.filter_type_gain = self.synth_filter_gain;
+        engine.synth_a.fw_env_law = self.synth_fw_env_law;
+        engine.synth_b.fw_env_law = self.synth_fw_env_law;
+        engine.synth_c.fw_env_law = self.synth_fw_env_law;
         engine.synth_b.unison_gain = uni;
         engine.synth_c.unison_gain = uni;
         engine.synth_a.fw_stage3 = self.synth_stage3;
@@ -1228,6 +1238,9 @@ impl FirmwareOptions {
         }
         if self.synth_filter_gain {
             parts.push("filter-gain".into());
+        }
+        if self.synth_fw_env_law {
+            parts.push("fw-env-law".into());
         }
         if let Some(m) = self.synth_unison_gain_milli {
             parts.push(format!("synth-unison-gain={:.3}", f32::from(m) / 1000.0));
@@ -1628,6 +1641,13 @@ mod tests {
     }
 
     #[test]
+    fn fw_env_law_flag_reaches_every_synth_layer() {
+        let o = FirmwareOptions::from_args(&["--synth-fw-env-law".into()]).unwrap();
+        assert!(o.synth_fw_env_law && o.summary().contains("fw-env-law"));
+        assert!(!FirmwareOptions::default().synth_fw_env_law);
+    }
+
+    #[test]
     fn stage3_and_unison_gain_are_opt_in_and_reach_the_layers() {
         let d = FirmwareOptions::default();
         assert!(!d.synth_stage3 && d.synth_unison_gain_milli.is_none());
@@ -1654,7 +1674,7 @@ mod tests {
     #[test]
     fn synth_oracle_preset_is_opt_in_and_bundles_the_coupled_rows_and_unison_weights() {
         let d = FirmwareOptions::default();
-        assert!(!d.synth_unison_weights && !d.synth_stage3);
+        assert!(!d.synth_unison_weights && !d.synth_stage3 && !d.synth_fw_env_law);
         assert_ne!(d.synth_p, Some(PSpec::Coupled));
         let o = FirmwareOptions::from_args(&["--synth-oracle".into()]).unwrap();
         assert_eq!(o.synth_p, Some(PSpec::Coupled));

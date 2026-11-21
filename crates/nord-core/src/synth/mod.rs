@@ -25,6 +25,7 @@ mod dsp;
 pub mod filter_gain;
 mod fw_adr_chain;
 mod fw_coef_memo;
+mod fw_cutoff_env;
 mod fw_env_rates;
 mod fw_filter;
 pub mod fw_filter_law;
@@ -78,6 +79,9 @@ pub use arp_order::{extra_notes, zigzag_index, MAX_RANGE_EXTRA_THIRDS};
 use dsp::unison_pan;
 pub use dsp::{poly_blep, ZdfFilter, FM_RATIOS};
 pub use fw_adr_chain::{fw_adr_step, FwAdrAction, FwAdrRecord, FW_ADR_LIMIT};
+pub use fw_cutoff_env::{
+    fw_cutoff_hz_of_knob, fw_env_cutoff_hz, fw_hz_of_r, fw_r_of_hz, FW_R_CLIP, FW_STAGE_RATE_HZ,
+};
 pub use fw_env_rates::{
     attack_coeff, attack_time_passes, decay_release_coeff, rate_index_from_word, RATE_INDEX_MAX,
 };
@@ -331,6 +335,10 @@ pub struct SynthLayer {
     /// Opt-in (default off, `--synth-filter-gain`): the filter output is scaled by the oracle gain
     /// of its type ([`filter_gain::filter_gain`], D195).
     pub filter_type_gain: bool,
+    /// Opt-in (default off, `--synth-fw-env-law`): the filter envelope reaches the cutoff in the
+    /// semitone domain (`fw_cutoff_env.rs`, oracle composition, D195): `2^(amount * 127 / 12 *
+    /// level)` instead of `2^(amount * 8 * level)` on the Hz cutoff. Strip chain only.
+    pub fw_env_law: bool,
     /// Strip chain only, opt-in (default off, `--synth-stage3`): a `filter_raw3` layer runs the
     /// modelled stage `0x1257B2` (`fw_stage3.rs`) instead of the `Lp12` stand-in.
     pub fw_stage3: bool,
@@ -498,6 +506,7 @@ impl SynthLayer {
             unison_gain: 1.0,
             unison_fw_weights: false,
             filter_type_gain: false,
+            fw_env_law: false,
             fw_stage3: false,
             firmware_velocity: false,
             arp_firmware_walk: false,
@@ -533,6 +542,7 @@ impl SynthLayer {
             unison_gain: 1.0,
             unison_fw_weights: false,
             filter_type_gain: false,
+            fw_env_law: false,
             fw_stage3: false,
             wave_bank: false,
             knob_laws: true,
