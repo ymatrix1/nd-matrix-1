@@ -166,7 +166,7 @@ Flipped alone on the 384 programs it moves the render from the default by a mean
 
 ### 7.4 Remaining blockers (not waived by the flip)
 
-Compressor words (6.2), Mod 1 call count (OQ38), PUMP clock (OQ36), EQ joint mid words, CHOR type 5 / ENS / SPIN clips.
+Compressor words (6.2; row ported opt-in in D187, s9), Mod 1 call count (OQ38; per unit kind in D186, s9), PUMP clock (OQ36), EQ joint mid words, CHOR type 5 / ENS / SPIN clips.
 
 Reproduce (the ranking tools now compare against the new default; `--legacy-fx-ports` reproduces the D163 baseline, `--legacy-mod2` the older data):
 
@@ -280,4 +280,19 @@ Compressor instance of FX core 1 (`I1 = 0xB0168`, attack pair at `DM(0xB0148)` a
 | SMOOTH | -0x09 | 0.99078 | 0.9908 |
 | MANT_SCALE, FIX_SCALE | -0x0D, -0x0C | -31, 31 | -31, 31 |
 
-So the port, which nulls the oracle for its own words, does not reproduce the firmware gain law: `fx-vs-oracle` s3.4 proves the routine, not the words. Caveat: these are the static-image words; they are not confirmed unmodified at runtime (the ARM boot log writes only the attack, release, makeup and threshold words, and the DSP code could still rewrite the others). Following change (not in this PR): take SLOPE, REDUCTION_SCALE, TABLE1, LOG_GAIN from the image in `compressor_for_amount`, rerun `fx_vs_oracle.py --only COMP`, then ranked before/after and the default flip decision (opt-out `--legacy-compressor`), with an `ns4 bench` number and the apply_program, edit, render tests. Tracked in `docs/OPEN-QUESTIONS.md` OQ38 note and bean follow-up.
+So the port, which nulls the oracle for its own words, does not reproduce the firmware gain law: `fx-vs-oracle` s3.4 proves the routine, not the words. **Update 2026-11-21 (D187, s9):** confirmed unmodified at runtime (the ARM writes none of the gain-law words, the oracle chain with the row nulls the port at -102 to -108 dB, [fx-compressor-row](fx-compressor-row.md)); the port is opt-in `--compressor-row`. Following change (not in this PR): take SLOPE, REDUCTION_SCALE, TABLE1, LOG_GAIN from the image in `compressor_for_amount`, rerun `fx_vs_oracle.py --only COMP`, then ranked before/after and the default flip decision (opt-out `--legacy-compressor`), with an `ns4 bench` number and the apply_program, edit, render tests. Tracked in `docs/OPEN-QUESTIONS.md` OQ38 note and bean follow-up.
+
+## 9. Update 2026-11-21 (D186, D187): compressor row (default since D187) and Mod 1 unit calls (opt-in)
+
+`program_rank --flip fx_compressor_row,fx_mod1_unit_calls,fx_compressor_row+fx_mod1_unit_calls` on the current default (4 shards), score against the all-firmware render, which now includes both switches (`rank_groups::firmware_options`). Data: [program-ranking-compressor-row-mod1-units-384.csv](data/program-ranking-compressor-row-mod1-units-384.csv).
+
+| Flipped set | Mean | Median | p90 | Max | > 5 | > 10 | Worse by > 0.5 |
+|---|---|---|---|---|---|---|---|
+| none (default) | 2.12 | 1.28 | 4.66 | 28.04 | 35 | 7 | - |
+| `fx_compressor_row` | 1.66 | 1.05 | 3.84 | 16.61 | 22 | 3 | 1 |
+| `fx_mod1_unit_calls` | 2.12 | 1.27 | 4.66 | 28.04 | 35 | 7 | 1 |
+| both | 1.66 | 1.04 | 3.84 | 16.61 | 22 | 3 | 1 |
+
+- **Compressor row:** 50 programs improve by more than 0.5 (16th Note Bass 28.04 to 0.00, Burning Lead 24.25 to 0.65, Bounce Clav 21.20 to 0.59, Fan Club Piano 13.57 to 1.23, Filter Bank Ld 8.77 to 0.00), 1 gets worse (Silent Upright 5.12 to 6.09). Caveat: the target contains the row, so the table says which programs carry the compressor, not that the row is right; the evidence that it is right is the oracle chain (-102 to -108 dB, [fx-compressor-row](fx-compressor-row.md)).
+- **Mod 1 unit calls:** only the synth chains change, so the ranking sees 1 program move over 0.5 (Time Warp Saw 5.87 to 6.83, worse) and the mean moves 0.011. The ranking cannot judge this switch; the evidence is the ARM words (organ and piano 1 block, synth 2 blocks, [fx-mod1-call-count](fx-mod1-call-count.md)). No hardware clip.
+- No panic, no non-finite sample in the 384 renders; `render_hash` and the golden hash are unchanged (defaults unchanged).
