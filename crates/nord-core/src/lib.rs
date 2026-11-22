@@ -36,6 +36,8 @@ pub mod synth;
 pub mod synth_morph;
 #[cfg(test)]
 mod synth_morph_osc_env_tests;
+#[cfg(test)]
+mod synth_osc_env_pitch_tests;
 pub mod synth_osc_env_word;
 pub mod synth_params;
 pub mod synth_params_arp;

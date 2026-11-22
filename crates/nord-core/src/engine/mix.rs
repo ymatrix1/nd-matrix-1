@@ -45,8 +45,11 @@ impl Stage4Engine {
             }
         }
 
+        let osc_env = self.synth_osc_env_morph && self.firmware_morph;
+        self.synth_a.osc_env_fw_pitch = osc_env;
+        self.synth_b.osc_env_fw_pitch = osc_env;
+        self.synth_c.osc_env_fw_pitch = osc_env;
         if self.firmware_morph {
-            let osc_env = self.synth_osc_env_morph;
             self.synth_morph[0].apply_with(&ctrl, &mut self.synth_a, osc_env);
             self.synth_morph[1].apply_with(&ctrl, &mut self.synth_b, osc_env);
             self.synth_morph[2].apply_with(&ctrl, &mut self.synth_c, osc_env);

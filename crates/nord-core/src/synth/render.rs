@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::phase_wrap::wrap_pos;
+use crate::synth_osc_env_word::{osc_env_pitch_semitones, OSC_ENV_FULL_STEPS};
 
 impl SynthLayer {
     /// Renders a single stereo frame `[left, right]` across all 16 polyphonic voices.
@@ -256,6 +257,12 @@ impl SynthLayer {
                 } else if self.osc_env_decay_sec < 44.0 {
                     let dec = (self.osc_env_decay_sec * tau_frac).max(0.003);
                     v.oenv -= v.oenv * (inv_fs / dec).min(1.0);
+                    if self.osc_env_fw_pitch && self.osc_env_to_pitch {
+                        // VERIFIED (D217): the oracle osc chain `F + 6` stops at 0.5 (Wooden
+                        // Queen, Circus Box, Saw Horn: 3 of 3 programs, pitch steady at
+                        // `24 * word`), as the amp and filter chains do (D210).
+                        v.oenv = v.oenv.max(0.5);
+                    }
                 }
             } else {
                 let rel = self.osc_env_release_sec.max(0.003);
@@ -275,7 +282,18 @@ impl SynthLayer {
             // EMPIRICAL: +/-12 semitones of pitch at full Env Amt (Env To Pitch); Audible Genius "pitch
             // blip" clip, Env Amt +5.5 shows ~6-7 semitone onset peaks (+6.6 predicted), accuracy
             // limited to ~1 semitone by 5 ms onset detection. ASSUMED: +/-0.5 of Osc Ctrl range.
-            let env_pitch = if self.osc_env_to_pitch {
+            let env_pitch = if self.osc_env_to_pitch && self.osc_env_fw_pitch {
+                // VERIFIED (D217): the ORG core 2 pitch path adds `48 * word * level` semitones.
+                // ASSUMED: key velocity scales the level (the amount word is velocity free).
+                let vel = if self.osc_env_velocity {
+                    v.velocity
+                } else {
+                    1.0
+                };
+                let st =
+                    osc_env_pitch_semitones(self.osc_env_amount * OSC_ENV_FULL_STEPS, v.oenv * vel);
+                2.0f32.powf(st / 12.0)
+            } else if self.osc_env_to_pitch {
                 2.0f32.powf(osc_env_mod * oenv_pitch_oct)
             } else {
                 1.0

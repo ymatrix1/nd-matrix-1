@@ -157,3 +157,15 @@ def test_missing_audio_run_of_an_audio_entry_is_retried(tmp_path: Path) -> None:
     assert pc.finished(f, {"a", "b"}) == {"b", "c"}
     assert pc.drop_failed(f, {"a", "b"}) == 1
     assert [r["entry"] for r in pc.read_records(f)] == ["b", "c"]
+
+
+def test_smp_run_gets_a_log_dir_for_the_tap_and_a_long_enough_hold() -> None:
+    a = ns()
+    a.smp = Path("smp.bin")
+    cmd = pc.live_command(a, Path("P"), Path("o"), False, ["PNO1", "SMP0"], None, Path("lg"))
+    assert cmd[cmd.index("--log") + 1] == "lg"
+    assert cmd[cmd.index("--key-ticks") + 1] == str(pc.SMP_KEY_TICKS)
+    arp = pc.live_command(a, Path("P"), Path("o"), False, ["SMP0"], pc.ARP_KEY_TICKS, Path("lg"))
+    assert arp[arp.index("--key-ticks") + 1] == str(pc.ARP_KEY_TICKS)
+    plain = pc.live_command(a, Path("P"), Path("o"), False, ["PNO1"], None, Path("lg"))
+    assert "--log" not in plain and "--key-ticks" not in plain

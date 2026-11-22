@@ -135,3 +135,22 @@ fn test_synth_kb_track_and_14hz_floor() {
     let out = flt.process(1.0, FilterModel::Lp24, 14.0, 0.0, 0.0, 48_000.0);
     assert!(out.is_finite());
 }
+
+#[test]
+fn fw_pitch_decay_stops_at_half_the_peak_like_the_oracle_chain() {
+    let run = |fw: bool| {
+        let mut s = SynthLayer::legacy(48_000.0);
+        s.osc_env_to_pitch = true;
+        s.osc_env_amount = 0.5;
+        s.osc_env_fw_pitch = fw;
+        s.osc_env_attack_sec = 0.001;
+        s.osc_env_decay_sec = 0.05;
+        s.note_on(60, 100);
+        for _ in 0..48_000 {
+            s.render_frame();
+        }
+        s.voices.iter().find(|v| v.active).unwrap().oenv
+    };
+    assert!((run(true) - 0.5).abs() < 1e-4, "{}", run(true));
+    assert!(run(false) < 0.01, "default decays to 0");
+}
