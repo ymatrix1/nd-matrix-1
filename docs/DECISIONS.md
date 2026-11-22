@@ -2293,3 +2293,14 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Flip proposal (owner):** `--synth-osc-env-morph` could become the default once OQ44 is answered. The remaining gap is not the slot but the engine's Env To Pitch depth: +/-12 st linear (`EMPIRICAL`) against a firmware word that is a 0..48 taper. Flipping now would morph a depth whose scale the native pitch path does not match. No listening comparison was made.
 - **Open:** OQ44 (DSP scale of word 12 under Env To Pitch); layer B word `0xE01FE`; `kFltEnvAmt` selector not checked.
 - **Impact:** `synth_osc_env_word.rs`, `synth_morph_osc_env_tests.rs`, `tools/arm_osc_env_static.py`, `tools/tests/test_arm_osc_env_static.py`, [morph-fw-vs-native](research/morph-fw-vs-native.md) s8, [morph-fw-osc-env-dst](research/morph-fw-osc-env-dst.md), `specs/morph-and-zones.md`, `research/synth-knob-laws.md`, ROADMAP morph line.
+
+### D214. OQ44 answered: Env To Pitch plays `48 * word * level` semitones; the opt-in `--synth-osc-env-morph` now plays it and the osc envelope decay stops at 0.5; no flip
+
+- **Status:** accepted (opt-in only). **Decided by:** agent (research); default flip not decided.
+- **Context:** D213 verified the ARM word of the Osc Env Amount (`x / 60` for Osc Ctrl, the pitch taper over 48 for Env To Pitch) but not what the DSP does with it (OQ44). The native engine plays Env To Pitch as +/-12 st linear (`EMPIRICAL`, one clip).
+- **Decision:** the ORG core 2 oscillator stage adds `48 * word * level` semitones (`level` = osc chain `F + 6`), VERIFIED on 46 oracle rows (max error 0.03 st, [synth-osc-env-pitch](research/synth-osc-env-pitch.md)). `SynthLayer::osc_env_fw_pitch`, set from `--synth-osc-env-morph`, plays it on Env To Pitch layers (`osc_env_pitch_semitones`) and stops the osc envelope decay at 0.5 (oracle, 3 of 3 programs with an excursion). The recall with the bit set also zeroes strip words 20 / 24 and sets common word 4 to `0x30000000` (documented, not consumed).
+- **Why:** the oracle is the reference. Wooden Queen (22.1 st peak) matches the oracle within 0.2 st at 6 of 6 times with the flag and is flat without it.
+- **Alternatives:** keep the linear +/-12 st (off by up to 4x, ignores the taper); a new flag (the existing flag already gates the morph of the same word).
+- **Impact:** opt-in only. 3 of 384 programs move the pitch by more than 2 st (Wooden Queen, Cinema Rise, Lyle Lead J3); 9 have a non-zero amount. Key velocity scaling is `ASSUMED`.
+- **Flip proposal (owner):** `--synth-osc-env-morph` could become the default after an audible A/B of those 3 programs. Nothing flipped.
+- **Open:** layers B / C, Cinema Rise and Circus Box traces (estimator limit), the velocity term.

@@ -441,6 +441,10 @@ pub struct SynthLayer {
     pub osc_env_amount: f32,
     pub osc_env_to_pitch: bool,
     pub osc_env_velocity: bool,
+    /// Opt-in (`--synth-osc-env-morph`, D214): under `osc_env_to_pitch` the pitch excursion is the
+    /// firmware's `48 * osc_env_dsp_word(amount * 60, true) * level` semitones
+    /// (`synth_osc_env_word::osc_env_pitch_semitones`) instead of the `EMPIRICAL` linear depth.
+    pub osc_env_fw_pitch: bool,
     // Vibrato
     pub vibrato_mode: VibratoMode,
     pub vibrato_rate_hz: f32,
@@ -609,6 +613,7 @@ impl SynthLayer {
             osc_env_amount: 0.0,
             osc_env_to_pitch: false,
             osc_env_velocity: false,
+            osc_env_fw_pitch: false,
             vibrato_mode: VibratoMode::Off,
             vibrato_rate_hz: 5.0,
             vibrato_depth_cents: 0.0,

@@ -4,7 +4,7 @@
 //! numbers (no audio content).
 //!
 //! Usage: `cargo run --release -p nord-tools --bin synth_e2e_native -- <program.ns4p> --out <f32>
-//! [--layer 0|1|2] [--note 60] [--velocity 100] [--frames 96000] [--start 0] [--hold 72000] [--no-filter] [--unity] [--unison 0..3]
+//! [--layer 0|1|2] [--note 60] [--velocity 100] [--frames 96000] [--start 0] [--hold 72000] [--no-filter] [--unity] [--unison 0..3] [--osc-env-amount STEPS]
 //! [firmware option flags of `ns4 render-patch`, e.g. --synth-fw-filter]`.
 //! Analog-oscillator programs only (no sample bank is loaded).
 
@@ -85,6 +85,12 @@ fn run(args: &[String]) -> Result<(), String> {
         2 => &mut *engine.synth_c,
         _ => return Err("--layer must be 0, 1 or 2".into()),
     };
+    // The engine mix sets this per frame; a bare layer render takes it from the option (D214).
+    layer.osc_env_fw_pitch = opts.synth_osc_env_morph;
+    if let Some(a) = flag(args, "--osc-env-amount") {
+        let steps: f32 = a.parse().map_err(|_| "bad --osc-env-amount")?;
+        layer.osc_env_amount = (steps / 60.0).clamp(-1.0, 1.0);
+    }
     if args.iter().any(|a| a == "--no-filter") {
         layer.filter_on = false;
     }
