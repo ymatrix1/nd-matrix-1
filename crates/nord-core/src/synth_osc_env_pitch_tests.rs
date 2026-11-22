@@ -35,8 +35,8 @@ fn pitch_law_matches_every_oracle_row() {
         n += 1;
     }
     assert_eq!(
-        n, 47,
-        "12 words x 4 levels, minus -1 at level 1 (16 Hz, below the estimator)"
+        n, 46,
+        "12 words x 4 levels, minus 2 rows below the 40 Hz estimator floor"
     );
     // The FFT peak estimator limits the oracle rows to about 0.2 semitones.
     assert!(worst < 0.25, "worst {worst} st");
