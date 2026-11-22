@@ -310,7 +310,7 @@ impl eframe::App for Stage4App {
                                                 20, 22, 26, 200,
                                             ))
                                             .stroke(egui::Stroke::new(
-                                                0.8,
+                                                0.8_f32,
                                                 egui::Color32::from_rgba_unmultiplied(
                                                     255, 255, 255, 45,
                                                 ),
@@ -371,7 +371,7 @@ impl eframe::App for Stage4App {
                                     min_rect,
                                     4.0,
                                     egui::Stroke::new(
-                                        0.8,
+                                        0.8_f32,
                                         egui::Color32::from_rgba_unmultiplied(255, 255, 255, 45),
                                     ),
                                     egui::StrokeKind::Inside,
@@ -387,7 +387,10 @@ impl eframe::App for Stage4App {
                                             min_rect.center().y + 1.5,
                                         ),
                                     ],
-                                    egui::Stroke::new(1.5, egui::Color32::from_rgb(236, 240, 244)),
+                                    egui::Stroke::new(
+                                        1.5_f32,
+                                        egui::Color32::from_rgb(236, 240, 244),
+                                    ),
                                 );
                                 if min_resp.clicked() {
                                     ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true));
@@ -410,15 +413,17 @@ impl eframe::App for Stage4App {
                                     cls_rect,
                                     4.0,
                                     egui::Stroke::new(
-                                        0.8,
+                                        0.8_f32,
                                         egui::Color32::from_rgba_unmultiplied(255, 255, 255, 45),
                                     ),
                                     egui::StrokeKind::Inside,
                                 );
                                 let c = cls_rect.center();
                                 let d = 3.8;
-                                let stroke =
-                                    egui::Stroke::new(1.5, egui::Color32::from_rgb(236, 240, 244));
+                                let stroke = egui::Stroke::new(
+                                    1.5_f32,
+                                    egui::Color32::from_rgb(236, 240, 244),
+                                );
                                 ui.painter().line_segment(
                                     [c + egui::vec2(-d, -d), c + egui::vec2(d, d)],
                                     stroke,
