@@ -1,5 +1,5 @@
 //! DSP word of the Osc Env Amount (`Edt_Syn_kOscEnvAmt`, `-60..60` steps) as the firmware sends
-//! it to ORG core 2 common block word 12 (`DM(0xE02E8 + 32 L + 12)`), by destination (D211).
+//! it to ORG core 2 common block word 12 (`DM(0xE02E8 + 32 L + 12)`), by destination (D213).
 //!
 //! The ARM setter (`0xC01C61F0`, a parameter object with a law selector at `+0xF0`) keeps two laws:
 //!

@@ -51,7 +51,7 @@ Tests: `synth_morph_osc_env_tests.rs` (`the_dsp_word_law_matches_all_27_rows_by_
 The morph slot's knob value is verified for every source (dispatch 27 of 27). The DSP word is now
 verified for every source and both destinations (27 of 27 plus 484 static rows). What the word means
 for pitch is a separate engine question (OQ44), so the flag stays opt-in; the flip is the owner's
-call (proposal in D211, no default changes).
+call (proposal in D213, no default changes).
 
 ## Follow-ups
 

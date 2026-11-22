@@ -86,7 +86,7 @@ fn the_slot_reproduces_every_captured_dispatch_row() {
 #[test]
 fn the_dsp_word_law_matches_all_27_rows_by_destination() {
     // 21 wheel rows are Osc Ctrl (`x / 60`), the 6 aftertouch rows are Env To Pitch programs (OQ43
-    // answered, D211): the taper word equals the ARM value on every row.
+    // answered, D213): the taper word equals the ARM value on every row.
     let (mut ctrl, mut pitch) = (0, 0);
     for line in ROWS.lines().skip(1) {
         let (sc, base, d, dispatch, dsp) = parse(line);
