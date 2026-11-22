@@ -43,7 +43,7 @@ Tests: `synth_morph_osc_env_tests.rs` (`the_dsp_word_law_matches_all_27_rows_by_
   pitch amount taper and `T[127] = 48`). The native engine maps `osc_env_amount` linearly to +/-12 st
   at full (`EMPIRICAL`, Audible Genius clip, about 1 st accuracy); the taper gives about 27.6 st at
   amount 48 and 48 st at 60. The scale of the word inside the ORG core 2 oscillator stage was not
-  traced: [OQ44](../OPEN-QUESTIONS.md).
+  traced here; answered in [synth-osc-env-pitch](synth-osc-env-pitch.md) (D217: `48 * word * level` semitones).
 * Layer B writes its word at `0xE01FE` (`EMPIRICAL`, one program); not explained here.
 
 ## Implications

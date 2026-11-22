@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D217](#d217-oq44-answered-env-to-pitch-plays-48-word-level-semitones-the-opt-in-synth-osc-env-morph-now-plays-it-and-the-osc-envelope-decay-stops-at-05-no-flip) | 2026-11-21 | OQ44 answered: Env To Pitch plays `48 * word * level` semitones; opt-in `--synth-osc-env-morph` plays it, osc envelope decay stops at 0.5; no flip | accepted (opt-in) |
 | [D214](#d214-the-opennord-resonance-quadratic-is-the-lp12-damping-table-d-not-b-both-native-tables-and-the-per-type-selection-equal-the-oracle-stage-for-all-128-knobs-the-firmware-position-map-stays-opt-in) | 2026-11-21 | The OpenNord resonance quadratic is the LP12 damping table `D`, not `B`; native tables equal the oracle for all 128 knobs | proposed |
 | [D211](#d211-the-smp-chip-interrupt-rate-is-the-dsp-frame-rate-4340234-hz-the-second-voice-runs-under-pacing-the-sy1sy2-chip-has-the-same-fifo-bias-opt-in-the-tap-level-per-class-is-not-a-parity-number) | 2026-11-21 | The SMP chip interrupt rate is the DSP frame rate 43,402.34 Hz; the second voice runs under pacing; the SY1SY2 chip has the same FIFO bias (opt-in); the tap level per class is not a parity number | accepted |
 | [D208](#d208-unrolling-skipping-unheld-voices-and-simd-do-not-pay-on-the-firmware-organ-stages-nothing-changes-but-a-test-only-probe) | 2026-11-21 | Unrolling, skipping unheld voices and SIMD do not pay on the firmware organ stages; nothing changes but a test only probe | accepted |
@@ -2317,3 +2318,14 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Flip proposal (owner):** `--synth-fw-resonance` could become the default for the strip chain. Needs a listening check on resonance sweeps with LP24 programs and re-recorded `render_hash` baselines. Nothing flipped.
 - **Open:** the audible Q on hardware (peak against knob for LP12 and LP24); the smoother's effect on knob moves.
 - **Impact:** `tools/synth_res_oracle.py` + `tools/tests/test_synth_res_oracle.py`, `tools/synth_scaling_crosscheck.py` + test, `crates/nord-core/src/synth/fw_filter_law.rs` (test only), `data/synth-res-settled.csv`, `data/synth-res-sweep.csv`, [synth-resonance-law](research/synth-resonance-law.md), [synth-env-rates-settled](research/synth-env-rates-settled.md) s5, `specs/synth-engine.md` s3 and s4.6.
+
+### D217. OQ44 answered: Env To Pitch plays `48 * word * level` semitones; the opt-in `--synth-osc-env-morph` now plays it and the osc envelope decay stops at 0.5; no flip
+
+- **Status:** accepted (opt-in only). **Decided by:** agent (research); default flip not decided.
+- **Context:** D213 verified the ARM word of the Osc Env Amount (`x / 60` for Osc Ctrl, the pitch taper over 48 for Env To Pitch) but not what the DSP does with it (OQ44). The native engine plays Env To Pitch as +/-12 st linear (`EMPIRICAL`, one clip).
+- **Decision:** the ORG core 2 oscillator stage adds `48 * word * level` semitones (`level` = osc chain `F + 6`), VERIFIED on 46 oracle rows (max error 0.03 st, [synth-osc-env-pitch](research/synth-osc-env-pitch.md)). `SynthLayer::osc_env_fw_pitch`, set from `--synth-osc-env-morph`, plays it on Env To Pitch layers (`osc_env_pitch_semitones`) and stops the osc envelope decay at 0.5 (oracle, 3 of 3 programs with an excursion). The recall with the bit set also zeroes strip words 20 / 24 and sets common word 4 to `0x30000000` (documented, not consumed).
+- **Why:** the oracle is the reference. Wooden Queen (22.1 st peak) matches the oracle within 0.2 st at 6 of 6 times with the flag and is flat without it.
+- **Alternatives:** keep the linear +/-12 st (off by up to 4x, ignores the taper); a new flag (the existing flag already gates the morph of the same word).
+- **Impact:** opt-in only. 3 of 384 programs move the pitch by more than 2 st (Wooden Queen, Cinema Rise, Lyle Lead J3); 9 have a non-zero amount. Key velocity scaling is `ASSUMED`.
+- **Flip proposal (owner):** `--synth-osc-env-morph` could become the default after an audible A/B of those 3 programs. Nothing flipped.
+- **Open:** layers B / C, Cinema Rise and Circus Box traces (estimator limit), the velocity term.
