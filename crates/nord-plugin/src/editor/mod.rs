@@ -8,7 +8,8 @@
 //!
 //! | File | Role |
 //! |---|---|
-//! | `draw.rs` | one frame: read-back, panel, dim overlay, sink pump; scaling |
+//! | `draw.rs` | one frame: top bar, baked panel fitted to the window, resize handle, sink pump |
+//! | `top_bar.rs` | `OPEN .NS4B` / `DEBUG` / `? HELP` pills |
 //! | `sink.rs` | `PanelSink` trait and `ParamSink` |
 //! | `map.rs`, `map_area.rs` | `AudioCommand` to `ParamWrite` mapping |
 //! | `probe.rs` | one command per mapping arm; derives the mapped families |
@@ -38,6 +39,7 @@ pub mod readback_menu;
 #[cfg(test)]
 mod section_edit_tests;
 pub mod sink;
+pub mod top_bar;
 pub mod write;
 
 use crate::params::Stage4Params;
@@ -100,6 +102,14 @@ mod tests {
         assert_eq!(fresh.editor_state.size(), draw::DEFAULT_SIZE);
         fresh.deserialize_fields(&fields);
         assert_eq!(fresh.editor_state.size(), (900, 243));
+    }
+
+    /// Guard: the vendored `nih_plug_egui` must still call the editor's update closure each frame
+    /// (an edit once deleted that line and the editor drew nothing but black).
+    #[test]
+    fn vendored_egui_editor_still_calls_the_update_closure() {
+        let src = include_str!("../../../../vendor/nih_plug_egui/src/editor.rs");
+        assert!(src.contains("(update)(egui_ctx, &setter, &mut state.write());"));
     }
 
     #[test]

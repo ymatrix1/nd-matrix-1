@@ -64,8 +64,10 @@ impl<W: ParamWriter> PanelSink for ParamSink<'_, W> {
             }
         }
         match cmd {
-            // The mod wheel is a host parameter; every other MIDI event is played.
-            AudioCommand::Midi(ev) if !is_mod_wheel(ev) => {
+            // The mod wheel is a host parameter; every other MIDI event is played. The on-screen
+            // keybed and the computer keyboard send `Keyboard` events (Local Control path in the
+            // standalone engine): the plugin plays those too, or no key would ever sound.
+            AudioCommand::Midi(ev) | AudioCommand::Keyboard(ev) if !is_mod_wheel(ev) => {
                 if !self.notes.push(*ev) {
                     self.dropped_notes += 1;
                 }
@@ -141,6 +143,22 @@ mod tests {
         assert_eq!(sink.apply(&AudioCommand::Midi(on)), SinkOutcome::Midi);
         assert_eq!(rx.pop(), Some(on));
         assert_eq!(sink.writer.writes.len(), 1);
+    }
+
+    /// Regression: the keybed sends `AudioCommand::Keyboard`; the sink dropped it as unmapped
+    /// and the plugin never made a sound.
+    #[test]
+    fn keyboard_events_from_the_keybed_are_queued_as_notes() {
+        let (tx, rx) = note_queue(8);
+        let mut sink = ParamSink::new(Recorder::default(), &tx);
+        let on = MidiEvent::NoteOn {
+            channel: 0,
+            note: 60,
+            velocity: 90,
+        };
+        assert_eq!(sink.apply(&AudioCommand::Keyboard(on)), SinkOutcome::Midi);
+        assert_eq!(rx.pop(), Some(on));
+        assert_eq!(sink.unmapped, 0);
     }
 
     #[test]

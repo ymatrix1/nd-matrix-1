@@ -4,7 +4,7 @@
 //! tests latch Section Edit in the editor's own panel state, send the edits the panel produces
 //! through `draw_editor` and check the host writes of all layers.
 
-use super::draw::{draw_editor, EditorState, PANEL_H, PANEL_W};
+use super::draw::{draw_editor, EditorState, DEFAULT_SIZE};
 use super::index::ParamIndex;
 use super::notes::note_queue;
 use super::sink::test_support::Recorder;
@@ -28,12 +28,15 @@ fn editor() -> EditorState {
     let params = Stage4Params::default();
     let index = Arc::new(ParamIndex::new(&params));
     let (tx, _rx) = note_queue(8);
-    EditorState::new(index, tx)
+    let mut st = EditorState::new(index, tx);
+    // These tests exercise the classic panel's bays (the baked panel draws no bay widgets).
+    st.panel.use_baked_plate = false;
+    st
 }
 
 /// One editor frame; returns the host writes it made.
 fn frame(st: &mut EditorState) -> Vec<ParamWrite> {
-    let egui_state = EguiState::from_size(PANEL_W as u32, PANEL_H as u32);
+    let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
     let ctx = egui::Context::default();
     let mut rec = Recorder::default();
     let _ = ctx.run(egui::RawInput::default(), |ctx| {
