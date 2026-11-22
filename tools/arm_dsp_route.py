@@ -55,7 +55,9 @@ class ChipSpec:
         if self.preset == "smp":  # same pass model as SY, SMP FIFO and ring tap (D185)
             return ["--smp", "--fifo-pace", "1"]  # one ARM pair per interrupt (D200)
         if self.preset == "sy":  # interrupt driven pass, no epdma, no level window (D153)
-            return ["--sy", *(["--epchain"] if self.window == "epchain" else [])]
+            tokens = self.window.split("+")  # `epchain`, `paced` or `epchain+paced`
+            paced = ["--fifo-pace", "1", "--index-bias", "0x80000"] if "paced" in tokens else []
+            return ["--sy", *(["--epchain"] if "epchain" in tokens else []), *paced]
         out = [f"--{self.preset}", "--epdma"]
         if self.window:
             out += ["--window", self.window]

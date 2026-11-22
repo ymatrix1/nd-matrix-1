@@ -1,4 +1,4 @@
-//! `sharc-live IMAGE [--pno|--org|--sy|--smp] [--epdma] [--epchain] [--isrs N] [--fifo-pace N] [--ring-dma] [--probe PC]... [--lane SET:PAIR]
+//! `sharc-live IMAGE [--pno|--org|--sy|--smp] [--epdma] [--epchain] [--isrs N] [--fifo-pace N] [--index-bias ADDR] [--ring-dma] [--probe PC]... [--lane SET:PAIR]
 //! [--window ADDR:COUNT:STRIDE]`: one DSP
 //! chip as a line-protocol server (D138). The ARM harness (`tools/arm_dsp_link.py`) writes the
 //! messages the firmware sends (`M W1 W2`), asks for passes (`P N`) and reads the summary lines;
@@ -28,6 +28,9 @@ struct Parsed {
     isrs: u32,
     /// ARM pacing of the SY/SMP FIFO, pairs per audio interrupt (`--fifo-pace N`, 0 = off, D200).
     pace: usize,
+    /// Offset the ISR adds to the FIFO index word (`--index-bias ADDR`; the SMP default is
+    /// `0x80000`, the SY1SY2 default 0, D206).
+    index_bias: Option<u32>,
 }
 
 fn parse(args: &[String]) -> Result<Parsed, String> {
@@ -40,6 +43,7 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
         preset: "pno",
         isrs: 2,
         pace: 0,
+        index_bias: None,
     };
     let mut it = args.iter();
     while let Some(a) = it.next() {
@@ -67,6 +71,13 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
                     .and_then(|v| v.parse().ok())
                     .filter(|n| *n <= 64)
                     .ok_or("--fifo-pace needs 0..64")?;
+            }
+            "--index-bias" => {
+                p.index_bias = Some(
+                    it.next()
+                        .and_then(|s| parse_number(s))
+                        .ok_or("--index-bias needs a number")?,
+                );
             }
             "--isrs" => {
                 p.isrs = it
@@ -98,7 +109,7 @@ fn parse(args: &[String]) -> Result<Parsed, String> {
         }
     }
     if p.image.is_empty() {
-        return Err("usage: sharc-live IMAGE [--pno|--org|--sy|--smp] [--epdma] [--epchain] [--isrs N] [--fifo-pace N] [--ring-dma] [--probe PC]... [--lane SET:PAIR] [--window ADDR:COUNT:STRIDE]".into());
+        return Err("usage: sharc-live IMAGE [--pno|--org|--sy|--smp] [--epdma] [--epchain] [--isrs N] [--fifo-pace N] [--index-bias ADDR] [--ring-dma] [--probe PC]... [--lane SET:PAIR] [--window ADDR:COUNT:STRIDE]".into());
     }
     Ok(p)
 }
@@ -117,7 +128,10 @@ fn serve(args: &[String]) -> Result<(), String> {
     let mut live = Live::new(core, cfg, p.ping_pong, a.lane, a.probes);
     let paced = |mut m: SyModel| {
         m.pace = a.pace;
-        m
+        match a.index_bias {
+            Some(bias) => m.with_index_bias(bias),
+            None => m,
+        }
     };
     if p.smp {
         live = live.with_sy(paced(SyModel::smp(a.isrs)));
@@ -208,6 +222,10 @@ mod tests {
         assert_eq!(paced.pace, 1);
         assert_eq!(parse(&args(&["smp.bin", "--smp"])).unwrap().pace, 0);
         assert!(parse(&args(&["smp.bin", "--fifo-pace", "65"])).is_err());
+        let biased = parse(&args(&["sy.bin", "--sy", "--index-bias", "0x80000"])).unwrap();
+        assert_eq!(biased.index_bias, Some(0x8_0000));
+        assert_eq!(parse(&args(&["sy.bin", "--sy"])).unwrap().index_bias, None);
+        assert!(parse(&args(&["sy.bin", "--index-bias"])).is_err());
     }
 
     #[test]
