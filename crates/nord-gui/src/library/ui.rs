@@ -132,13 +132,19 @@ impl BackupLibraryState {
                 .on_hover_cursor(egui::CursorIcon::PointingHand)
                 .clicked();
 
+            // The dialog runs on a worker thread; its answer arrives on a later frame.
+            let from_dialog = crate::file_picker::poll_slot(&mut self.pending_pick, ui.ctx());
             let picked = if browse_clicked || (open_clicked && self.path_input.trim().is_empty()) {
-                crate::file_picker::pick_backup_or_sound()
+                crate::file_picker::start_slot(
+                    &mut self.pending_pick,
+                    crate::file_picker::PickKind::BackupOrSound,
+                );
+                from_dialog
             } else if open_clicked || enter {
                 let raw = self.path_input.trim().trim_matches('"');
                 (!raw.is_empty()).then(|| PathBuf::from(raw))
             } else {
-                None
+                from_dialog
             };
 
             if let Some(p) = picked {

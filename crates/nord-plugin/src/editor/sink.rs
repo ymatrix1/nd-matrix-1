@@ -10,6 +10,7 @@
 use super::map::map_command;
 use super::notes::NoteSender;
 use super::write::{ParamWrite, ParamWriter};
+use crate::loader::{LoadJob, LoadSender};
 use crossbeam_channel::Receiver;
 use nord_core::midi::{cc, MidiEvent};
 use nord_gui::audio::AudioCommand;
@@ -21,6 +22,10 @@ pub enum SinkOutcome {
     Params(usize),
     /// A keybed / MIDI event was queued for `process()`.
     Midi,
+    /// A program, sound bank or firmware option was queued for the engine (`loader.rs`).
+    Load,
+    /// The load queue was full (the plugin is not processing audio); the load was dropped.
+    LoadRejected,
     /// The command has no host parameter and was dropped (its control is dimmed).
     Unmapped,
 }
@@ -34,11 +39,15 @@ pub trait PanelSink {
 pub struct ParamSink<'a, W: ParamWriter> {
     pub writer: W,
     pub notes: &'a NoteSender,
+    /// Where programs, sound banks and firmware options go; without it they are unmapped.
+    loads: Option<&'a LoadSender>,
     scratch: Vec<ParamWrite>,
     /// Commands dropped for lack of a host parameter since creation.
     pub unmapped: u64,
     /// Note events dropped because the queue was full.
     pub dropped_notes: u64,
+    /// Loads dropped because the load queue was full.
+    pub dropped_loads: u64,
 }
 
 impl<'a, W: ParamWriter> ParamSink<'a, W> {
@@ -46,15 +55,57 @@ impl<'a, W: ParamWriter> ParamSink<'a, W> {
         Self {
             writer,
             notes,
+            loads: None,
             scratch: Vec::with_capacity(16),
             unmapped: 0,
             dropped_notes: 0,
+            dropped_loads: 0,
+        }
+    }
+
+    /// Routes program, sound bank and firmware loads into `loads`.
+    pub fn with_loads(mut self, loads: &'a LoadSender) -> Self {
+        self.loads = Some(loads);
+        self
+    }
+
+    fn queue_load(&mut self, job: LoadJob) -> SinkOutcome {
+        let Some(loads) = self.loads else {
+            self.unmapped += 1;
+            return SinkOutcome::Unmapped;
+        };
+        match loads.push(job) {
+            Ok(()) => SinkOutcome::Load,
+            Err(_) => {
+                self.dropped_loads += 1;
+                SinkOutcome::LoadRejected
+            }
         }
     }
 }
 
+/// The engine-side load a command carries, if it is one.
+fn load_job(cmd: &AudioCommand) -> Option<LoadJob> {
+    Some(match cmd {
+        AudioCommand::LoadProgram(p) => LoadJob::Program(p.clone()),
+        AudioCommand::LoadPianoSound { slot_b, sound } => LoadJob::Piano {
+            slot_b: *slot_b,
+            sound: sound.clone(),
+        },
+        AudioCommand::LoadSynthSample { layer_idx, sound } => LoadJob::Sample {
+            layer: *layer_idx,
+            sound: sound.clone(),
+        },
+        AudioCommand::SetFirmwareOptions(o) => LoadJob::Firmware(*o),
+        _ => return None,
+    })
+}
+
 impl<W: ParamWriter> PanelSink for ParamSink<'_, W> {
     fn apply(&mut self, cmd: &AudioCommand) -> SinkOutcome {
+        if let Some(job) = load_job(cmd) {
+            return self.queue_load(job);
+        }
         self.scratch.clear();
         let known = map_command(cmd, &mut self.scratch);
         let mut written = 0;
@@ -198,6 +249,56 @@ mod tests {
         sink.apply(&on);
         sink.apply(&on);
         assert_eq!(sink.dropped_notes, 1);
+    }
+
+    #[test]
+    fn loads_are_queued_for_the_engine_and_never_written_as_parameters() {
+        use crate::loader::{load_queue, LoadJob};
+        let (tx, _notes) = note_queue(8);
+        let (load_tx, load_rx) = load_queue(8);
+        let mut sink = ParamSink::new(Recorder::default(), &tx).with_loads(&load_tx);
+        let prog = AudioCommand::LoadProgram(Box::default());
+        assert_eq!(sink.apply(&prog), SinkOutcome::Load);
+        let piano = AudioCommand::LoadPianoSound {
+            slot_b: true,
+            sound: None,
+        };
+        assert_eq!(sink.apply(&piano), SinkOutcome::Load);
+        let synth = AudioCommand::LoadSynthSample {
+            layer_idx: 1,
+            sound: None,
+        };
+        assert_eq!(sink.apply(&synth), SinkOutcome::Load);
+        let fw = AudioCommand::SetFirmwareOptions(Default::default());
+        assert_eq!(sink.apply(&fw), SinkOutcome::Load);
+        assert!(sink.writer.writes.is_empty());
+        assert!(matches!(load_rx.pop(), Some(LoadJob::Program(_))));
+        assert!(matches!(
+            load_rx.pop(),
+            Some(LoadJob::Piano { slot_b: true, .. })
+        ));
+        assert!(matches!(
+            load_rx.pop(),
+            Some(LoadJob::Sample { layer: 1, .. })
+        ));
+        assert!(matches!(load_rx.pop(), Some(LoadJob::Firmware(_))));
+        assert_eq!((sink.unmapped, sink.dropped_loads), (0, 0));
+    }
+
+    #[test]
+    fn a_full_load_queue_rejects_and_counts_and_no_queue_is_unmapped() {
+        use crate::loader::load_queue;
+        let (tx, _notes) = note_queue(8);
+        let (load_tx, _load_rx) = load_queue(1);
+        let prog = AudioCommand::LoadProgram(Box::default());
+        let mut sink = ParamSink::new(Recorder::default(), &tx).with_loads(&load_tx);
+        assert_eq!(sink.apply(&prog), SinkOutcome::Load);
+        assert_eq!(sink.apply(&prog), SinkOutcome::LoadRejected);
+        assert_eq!(sink.dropped_loads, 1);
+
+        let mut bare = ParamSink::new(Recorder::default(), &tx);
+        assert_eq!(bare.apply(&prog), SinkOutcome::Unmapped);
+        assert_eq!(bare.unmapped, 1);
     }
 
     #[test]

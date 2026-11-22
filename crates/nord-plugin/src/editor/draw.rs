@@ -14,6 +14,7 @@ use super::readback::sync_panel_from_params;
 use super::sink::{pump, ParamSink};
 use super::top_bar::{self, BarClick, BAR_HEIGHT};
 use super::write::ParamWriter;
+use crate::loader::LoadSender;
 use crossbeam_channel::Receiver;
 use nih_plug_egui::egui::{
     self, Area, Context, Id, Order, Pos2, Rect, Sense, TopBottomPanel, Vec2,
@@ -21,6 +22,10 @@ use nih_plug_egui::egui::{
 use nih_plug_egui::resizable_window::paint_resize_corner;
 use nih_plug_egui::EguiState;
 use nord_gui::audio::{AudioCommand, AudioHandle};
+use nord_gui::debug_dialog::{show_debug_dialog, DebugDialogState, DebugTab};
+use nord_gui::firmware_panel::FirmwarePanelState;
+use nord_gui::library::BackupLibraryState;
+use nord_gui::os_update_panel::OsUpdatePanel;
 use nord_gui::panel::{render_stage4_panel, Stage4PanelState};
 use nord_gui::style::CHASSIS_DARK;
 use std::sync::Arc;
@@ -44,12 +49,22 @@ pub struct EditorState {
     pub notes: NoteSender,
     /// Panel commands dropped for lack of a host parameter.
     pub unmapped: u64,
-    /// Last top-bar pill clicked (the loader window is not in the plugin yet).
+    /// Last top-bar pill clicked.
     pub bar_click: Option<BarClick>,
+    /// Where programs, sound banks and firmware options go (`loader.rs`).
+    pub loads: LoadSender,
+    /// The `.ns4b` browser and the async decoder behind OPEN .NS4B (shared with the standalone).
+    pub library: BackupLibraryState,
+    /// The Firmware & DSP tab state; its changes reach the engine as `LoadJob::Firmware`.
+    pub firmware: FirmwarePanelState,
+    /// The OS update tab; created when the dialog first opens (it parses the saved file).
+    pub os_update: Option<OsUpdatePanel>,
+    /// The Studio Settings dialog (DEBUG / HELP / OPEN .NS4B), an embedded window in the editor.
+    pub debug_dialog: DebugDialogState,
 }
 
 impl EditorState {
-    pub fn new(index: Arc<ParamIndex>, notes: NoteSender) -> Self {
+    pub fn new(index: Arc<ParamIndex>, notes: NoteSender, loads: LoadSender) -> Self {
         let (handle, rx) = AudioHandle::new();
         let coverage = super::coverage::classify(&index);
         Self {
@@ -64,8 +79,65 @@ impl EditorState {
             notes,
             unmapped: 0,
             bar_click: None,
+            loads,
+            library: plugin_library(),
+            firmware: FirmwarePanelState::new(Default::default()),
+            os_update: None,
+            debug_dialog: DebugDialogState::default(),
         }
     }
+
+    /// What a top-bar pill does, like the standalone bar: OPEN .NS4B opens the Library tab,
+    /// DEBUG toggles the dialog on its last tab, ? HELP opens the Setup Guide.
+    pub fn open_for(&mut self, click: BarClick) {
+        self.bar_click = Some(click);
+        match click {
+            BarClick::OpenNs4b => self.debug_dialog.open_tab(DebugTab::Library),
+            BarClick::Help => self.debug_dialog.open_tab(DebugTab::Guide),
+            BarClick::Debug if self.debug_dialog.open => self.debug_dialog.open = false,
+            BarClick::Debug => {
+                let tab = self.debug_dialog.tab;
+                self.debug_dialog.open_tab(tab);
+            }
+        }
+    }
+}
+
+/// A library that starts empty: the standalone pre-fills the path with a `.ns4b` found in the
+/// working directory, which in a DAW is an arbitrary folder.
+fn plugin_library() -> BackupLibraryState {
+    let mut library = BackupLibraryState::new();
+    library.path_input.clear();
+    library
+}
+
+/// Loads the dialog / library / firmware panel sent, and the Nord OS update tab.
+fn show_dialogs(ctx: &Context, st: &mut EditorState) {
+    st.library.poll_results(&mut st.panel, &st.handle);
+    if st.debug_dialog.open {
+        let os_update = st.os_update.get_or_insert_with(|| {
+            let env = std::env::var(crate::wave_tables::WAVE_TABLES_ENV).ok();
+            OsUpdatePanel::new(
+                nord_core::user_config::default_config_path(),
+                env.as_deref(),
+            )
+        });
+        show_debug_dialog(
+            ctx,
+            &mut st.debug_dialog,
+            &mut st.panel,
+            &mut st.library,
+            &mut st.firmware,
+            os_update,
+            &st.handle,
+        );
+        if !st.debug_dialog.open {
+            // A newly chosen OS update file is installed once, off-thread (`wave_tables.rs`).
+            crate::wave_tables::install_saved_in_background();
+        }
+    }
+    st.library.handle_keys(ctx);
+    st.library.render_drawer(ctx, &mut st.panel, &st.handle);
 }
 
 /// Window size for a plate `width` wide: the plate aspect plus the top bar.
@@ -124,8 +196,8 @@ pub fn draw_editor<W: ParamWriter>(
         .show_separator_line(false)
         .frame(bar_frame)
         .show(ctx, |ui| {
-            if let Some(click) = top_bar::show(ui) {
-                st.bar_click = Some(click);
+            if let Some(click) = top_bar::show(ui, st.debug_dialog.open) {
+                st.open_for(click);
             }
         });
 
@@ -134,11 +206,18 @@ pub fn draw_editor<W: ParamWriter>(
         .show(ctx, |ui| {
             render_stage4_panel(ui, &mut st.panel, &st.handle);
         });
+    show_dialogs(ctx, st);
     resize_handle(ctx, egui_state, ctx.screen_rect());
 
-    let mut sink = ParamSink::new(writer, &st.notes);
+    let mut sink = ParamSink::new(writer, &st.notes).with_loads(&st.loads);
     pump(&st.rx, &mut sink);
     st.unmapped += sink.unmapped;
+    if sink.dropped_loads > 0 {
+        st.library.error_message = Some(
+            "Load not applied: the plugin is not processing audio. Start playback and retry."
+                .into(),
+        );
+    }
 }
 
 #[cfg(test)]
@@ -157,7 +236,9 @@ mod tests {
         let params = Stage4Params::default();
         let index = Arc::new(ParamIndex::new(&params));
         let (tx, rx) = note_queue(64);
-        (params, EditorState::new(index, tx), rx)
+        let (load_tx, load_rx) = crate::loader::load_queue(8);
+        std::mem::forget(load_rx); // keep the queue connected; these tests do not read it
+        (params, EditorState::new(index, tx, load_tx), rx)
     }
 
     fn input(size: Vec2, events: Vec<egui::Event>) -> egui::RawInput {

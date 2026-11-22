@@ -2768,6 +2768,7 @@ dependencies = [
  "rfd",
  "serde",
  "serde_json",
+ "wayland-sys",
  "windows-sys 0.59.0",
 ]
 

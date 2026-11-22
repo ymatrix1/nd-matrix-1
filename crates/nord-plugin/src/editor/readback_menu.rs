@@ -12,7 +12,7 @@ use nord_gui::panel::ui_state::MenuUi;
 
 /// Overwrite the values of `menu` that differ from their host parameters; returns how many.
 pub fn sync_menu_from_params(idx: &ParamIndex, menu: &mut MenuUi) -> usize {
-    sync_menu(&|family, layer| idx.plain_of(family, layer), menu)
+    sync_menu(&|family, layer| idx.shown_of(family, layer), menu)
 }
 
 /// Same, reading plain host values through `read(family, layer)` (tests pass a table).

@@ -18,6 +18,8 @@ pub struct OsUpdatePanel {
     pub open: bool,
     input: String,
     message: Option<String>,
+    /// The file dialog opened by Browse, while it is open.
+    pending_pick: Option<crate::file_picker::PendingPick>,
 }
 
 impl OsUpdatePanel {
@@ -35,6 +37,7 @@ impl OsUpdatePanel {
             open: false,
             input: String::new(),
             message: None,
+            pending_pick: None,
         }
     }
 
@@ -143,11 +146,16 @@ impl OsUpdatePanel {
                 .on_hover_cursor(egui::CursorIcon::PointingHand)
                 .clicked();
 
+            // The dialog runs on a worker thread; its answer arrives on a later frame.
+            if let Some(p) = crate::file_picker::poll_slot(&mut self.pending_pick, ui.ctx()) {
+                self.input = p.display().to_string();
+                self.use_file(&self.input.clone());
+            }
             if browse_clicked || (use_clicked && self.input.trim().is_empty()) {
-                if let Some(p) = crate::file_picker::pick_os_update() {
-                    self.input = p.display().to_string();
-                    self.use_file(&self.input.clone());
-                }
+                crate::file_picker::start_slot(
+                    &mut self.pending_pick,
+                    crate::file_picker::PickKind::OsUpdate,
+                );
             } else if use_clicked || enter {
                 self.use_file(&self.input.clone());
             }

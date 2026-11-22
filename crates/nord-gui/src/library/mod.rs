@@ -81,6 +81,8 @@ pub struct BackupLibraryState {
     /// load starts from an Init Program, see `init_load`).
     pub merge_into_program: bool,
     pub pending_jobs: usize,
+    /// The file dialog opened by Browse, while it is open (`file_picker`).
+    pending_pick: Option<crate::file_picker::PendingPick>,
     /// Firmware messages for the Program OLED raised by loads (`Piano not found`, ...); the panel
     /// poll turns them into toasts.
     notices: Vec<FwMessage>,
@@ -131,6 +133,7 @@ impl BackupLibraryState {
             synth_layer_idx: 0,
             merge_into_program: false,
             pending_jobs: 0,
+            pending_pick: None,
             notices: Vec::new(),
             status_message: "No .ns4b backup loaded".to_string(),
             error_message: None,

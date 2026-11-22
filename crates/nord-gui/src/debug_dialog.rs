@@ -487,6 +487,16 @@ fn render_dialog_contents(
         });
 }
 
+/// Width of the dialog as a separate window.
+const DIALOG_WIDTH: f32 = 880.0;
+
+/// Largest embedded dialog content for a host `screen` size: the window minus a 12 px margin per
+/// side and the dialog frame (16 px inner margin, 1 px stroke, per side), never degenerate.
+pub fn embedded_max_size(screen: egui::Vec2) -> (f32, f32) {
+    const FRAME: f32 = 24.0 + 2.0 * (16.0 + 1.0);
+    ((screen.x - FRAME).max(200.0), (screen.y - FRAME).max(120.0))
+}
+
 /// Render the separate-window shadcn-style Settings & Diagnostics dialog when `dlg.open` is true.
 pub fn show_debug_dialog(
     ctx: &Context,
@@ -526,11 +536,18 @@ pub fn show_debug_dialog(
 
         if class == ViewportClass::Embedded {
             let mut open = dlg.open;
+            // A plugin editor can be smaller than the 880 x 520 dialog: fit it to the window
+            // (scrolling inside) and centre it, since an embedded window has no OS frame to move.
+            let (max_w, max_h) = embedded_max_size(vp_ctx.screen_rect().size());
             egui::Window::new("Studio Settings & Diagnostics")
                 .id(egui::Id::new("ns4_shadcn_debug_embedded"))
                 .open(&mut open)
                 .title_bar(false)
                 .frame(rounded_frame)
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .default_width(max_w.min(DIALOG_WIDTH))
+                .max_size([max_w, max_h])
+                .vscroll(true)
                 .show(vp_ctx, |ui| {
                     render_dialog_contents(
                         ui,
@@ -591,6 +608,15 @@ pub fn show_debug_dialog(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_embedded_dialog_fits_a_small_window() {
+        assert_eq!(
+            embedded_max_size(egui::vec2(1600.0, 417.0)),
+            (1542.0, 359.0)
+        );
+        assert_eq!(embedded_max_size(egui::vec2(10.0, 10.0)), (200.0, 120.0));
+    }
 
     #[test]
     fn debug_dialog_renders_all_tabs_without_panics() {
