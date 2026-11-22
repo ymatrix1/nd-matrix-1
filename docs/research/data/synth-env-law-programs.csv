@@ -1,0 +1,9 @@
+program,chain,attack_b_oracle,attack_b_native,attack_b_native_law,level_at_off_oracle,level_at_off_native,level_at_off_native_law
+12dB_Sweep,amp,0.007279,0.09216,0.007279,0.9499,1,0.9475
+12dB_Sweep,filter,4.866e-05,6.677e-05,4.866e-05,0.5278,0.7243,0.5278
+80s_Sci-Fi,amp,0.007279,0.09216,0.007279,0.9499,1,0.9475
+80s_Sci-Fi,filter,0.09216,0.09216,0.09216,0.5,0.2131,0.5
+Crunch_Synth,amp,0.007279,0.09216,0.007279,0.9499,1,0.9475
+Crunch_Synth,filter,0.0008488,0.0008488,0.0008488,0.5,0.3947,0.5
+Smooth_Lead,amp,0.000949,0.002799,0.000949,0.9541,1,0.9519
+Smooth_Lead,filter,0.001192,0.001508,0.001192,0.9368,0.93,0.9312

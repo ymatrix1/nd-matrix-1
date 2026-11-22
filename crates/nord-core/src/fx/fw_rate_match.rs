@@ -1,4 +1,5 @@
-//! Rate matching of the per-frame firmware FX stages (opt-in, `LayerFxChain::set_fx_rate_match`).
+//! Rate matching of the per-frame firmware FX stages (default on since D180,
+//! `LayerFxChain::set_fx_rate_match`).
 //!
 //! The firmware runs its FX routines once per DSP frame at `F = 43,402.34375 Hz`
 //! (`docs/research/dsp-frame-rate.md`), and the Amp drive and cabinet words (`fw_amp_*`) are
@@ -127,6 +128,14 @@ fn row(table: &[f32], width: usize, frac: f64, i: usize) -> f32 {
 }
 
 impl RateMatch {
+    /// Whether host rate `fs` is inside the supported range: at least the frame rate (below it the
+    /// up kernel would alias) and a down kernel that fits the ring (about 170 kHz).
+    pub fn supports(fs: f32) -> bool {
+        let ratio = f64::from(fs) / FIRMWARE_FRAME_RATE_HZ;
+        let hd = (ZC as f64 * ratio.max(1.0)).ceil() as usize + 1;
+        fs >= 44_000.0 && 2 * hd <= RING
+    }
+
     /// Builds the tables for host rate `fs` (allocates; call outside the audio thread).
     pub fn new(fs: f32) -> Self {
         Self {
@@ -241,6 +250,16 @@ mod tests {
             }
         }
         2.0 * (s * s + c * c).sqrt() / p
+    }
+
+    #[test]
+    fn supports_covers_44k_to_the_ring_limit_only() {
+        for fs in [44_100.0, 48_000.0, 88_200.0, 96_000.0, 160_000.0] {
+            assert!(RateMatch::supports(fs), "{fs}");
+        }
+        for fs in [8_000.0, 22_050.0, 43_000.0, 192_000.0] {
+            assert!(!RateMatch::supports(fs), "{fs}");
+        }
     }
 
     #[test]

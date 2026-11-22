@@ -60,7 +60,7 @@ Large tables (above ~20 KB) first, they have the highest size and the clearest r
 | `docs/research/data/oled-strings-vs-firmware.csv` | 62 KB | OLED strings compared with firmware strings | GUI OLED text, [oled-strings-vs-firmware.md](oled-strings-vs-firmware.md) | ARM0 string table | key list only |
 | `crates/nord-core/src/synth/p_table.rs` | 20 KB | per-wave P table (EMPIRICAL fit, not a dump) | `synth/p_table.rs` | not applicable, fitted to hardware clips | stays (class D) |
 | `crates/nord-core/src/fx/fw_delay_table.rs`, `fw_eq_tables.rs`, `fw_coeffs.rs`, `fx/tables.rs` | 11, 7, 9, 9 KB | delay thresholds, EQ words, biquad sets | FX | FX / ARM images | synthetic |
-| `docs/research/data/synth-filter-tables.csv`, `synth-filter-table-d.csv`, `synth-env-rate-table.csv`, `synth-sync-table.json`, `synth-knob-laws.csv`, `synth-velocity-law.csv`, `synth-wave-types.csv` | 2 to 93 KB | small DM tables and laws | `synth/fw_*.rs` | core 2 DM or ARM | synthetic |
+| `docs/research/data/synth-filter-tables.csv`, `synth-filter-table-d.csv`, `synth-env-rate-table.csv`, `synth-env-rates-settled.csv`, `synth-sync-table.json`, `synth-knob-laws.csv`, `synth-velocity-law.csv`, `synth-wave-types.csv` | 2 to 93 KB | small DM tables and laws | `synth/fw_*.rs` | core 2 DM or ARM | synthetic |
 | `crates/nord-core/src/engine/zone_table.rs` | 14 KB | key ranges of zone codes | engine | ARM0 code constants | closed form from spec |
 
 Already at runtime (the model to copy): `synth/fw_wave_tables.rs` reads the 46 WAVE tables from the user's image (`--synth-wave-tables PATH`, `NS4_WAVE_TABLES`; D22, D127). Its registry CSV `synth-wave-registry.csv` holds addresses and counts only.

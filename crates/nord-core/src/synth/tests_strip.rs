@@ -243,3 +243,136 @@ fn ladder24_runs_the_firmware_ladder_stage_only_with_the_strip_chain_and_the_opt
         "the legacy chain never reads the opt-in"
     );
 }
+
+#[test]
+fn raw_type3_runs_the_stage_only_with_the_strip_chain_and_the_opt_in() {
+    let render = |chain: SynthChain, raw3: bool, on: bool| {
+        let mut s = layer(chain);
+        s.filter_model = FilterModel::Lp12;
+        s.filter_raw3 = raw3;
+        s.fw_stage3 = on;
+        s.note_on(57, 100);
+        render_n(&mut s, 2_400)
+    };
+    let base = render(SynthChain::FirmwareStrip, true, false);
+    let staged = render(SynthChain::FirmwareStrip, true, true);
+    assert!(staged.iter().all(|f| f[0].is_finite() && f[0].abs() < 8.0));
+    assert!(energy(&staged) > 1e-6, "stage 0x1257B2 is silent");
+    assert_ne!(base, staged, "the stage replaces the Lp12 stand-in");
+    assert_eq!(
+        render(SynthChain::FirmwareStrip, false, true),
+        render(SynthChain::FirmwareStrip, false, false),
+        "other raw types never read the opt-in"
+    );
+    assert_eq!(
+        render(SynthChain::Legacy, true, true),
+        render(SynthChain::Legacy, true, false),
+        "the legacy chain never reads the opt-in"
+    );
+}
+
+#[test]
+fn unison_gain_scales_the_analog_unison_sum_and_defaults_to_one() {
+    let render = |unison: u8, gain: f32| {
+        let mut s = layer(SynthChain::FirmwareStrip);
+        s.unison = unison;
+        s.unison_gain = gain;
+        s.note_on(57, 100);
+        render_n(&mut s, 2_400)
+    };
+    assert_eq!(layer(SynthChain::FirmwareStrip).unison_gain, 1.0);
+    assert_eq!(render(1, 1.0), render(1, 1.0), "deterministic");
+    let (a, b) = (energy(&render(1, 1.0)), energy(&render(1, 2.0)));
+    assert!(
+        (3.0..5.0).contains(&(b / a)),
+        "gain 2 is about 4x the energy: {}",
+        b / a
+    );
+    // unison 0 has no unison sum, the factor is not read
+    assert_eq!(render(0, 1.0), render(0, 2.0));
+}
+
+#[test]
+fn unison_weights_drop_the_voice_count_normalisation() {
+    let render = |unison: u8, weights: bool| {
+        let mut s = layer(SynthChain::FirmwareStrip);
+        s.unison = unison;
+        s.unison_fw_weights = weights;
+        s.note_on(57, 100);
+        render_n(&mut s, 2_400)
+    };
+    // two voices: sqrt(2) in amplitude (+3.0 dB), four voices: 2 (+6.0 dB); the filter is
+    // not linear at this level, so the energy ratio is checked loosely
+    let (a1, b1) = (energy(&render(1, false)), energy(&render(1, true)));
+    let (a3, b3) = (energy(&render(3, false)), energy(&render(3, true)));
+    assert!((1.7..2.4).contains(&(b1 / a1)), "unison 1: {}", b1 / a1);
+    assert!((3.2..5.0).contains(&(b3 / a3)), "unison 3: {}", b3 / a3);
+    assert_eq!(render(0, true), render(0, false), "unison 0 has no sum");
+}
+
+#[test]
+fn filter_type_gain_scales_the_filter_output_by_the_oracle_gain() {
+    use super::filter_gain::filter_gain;
+    let render = |model: FilterModel, gain: bool| {
+        let mut s = layer(SynthChain::FirmwareStrip);
+        s.filter_model = model;
+        s.filter_type_gain = gain;
+        s.note_on(57, 100);
+        render_n(&mut s, 2_400)
+    };
+    // the filter is linear (no drive) so the factor is exact in amplitude
+    for m in [FilterModel::Lp12, FilterModel::Lp24, FilterModel::BandPass] {
+        let (off, on) = (energy(&render(m, false)), energy(&render(m, true)));
+        let want = filter_gain(m) * filter_gain(m);
+        assert!((on / off / want - 1.0).abs() < 0.02, "{m:?}: {}", on / off);
+    }
+}
+
+#[test]
+fn fw_env_law_opens_the_cutoff_further_and_is_off_by_default() {
+    let render = |law: bool, amount: f32| {
+        let mut s = layer(SynthChain::FirmwareStrip);
+        s.cutoff_hz = 200.0;
+        s.filter_env_dedicated = true;
+        s.filter_env_amount = amount;
+        s.fw_env_law = law;
+        s.note_on(45, 100);
+        render_n(&mut s, 4_800)
+    };
+    assert!(!SynthLayer::new(48_000.0).fw_env_law, "opt-in");
+    // amount 0.4 = 51 semitones against 38 of the default law: the sweep opens further.
+    let (def, fw) = (render(false, 0.4), render(true, 0.4));
+    assert!(def != fw, "the law changes the render");
+    assert!(
+        high_share(&fw, 2_000.0) > high_share(&def, 2_000.0),
+        "fw {} default {}",
+        high_share(&fw, 2_000.0),
+        high_share(&def, 2_000.0)
+    );
+    // no envelope amount: both laws are the static cutoff
+    assert_eq!(render(false, 0.0), render(true, 0.0));
+}
+
+#[test]
+fn fw_env_law_composes_the_lfo_in_semitones_only_on_the_cutoff_destination() {
+    let render = |law: bool, dest: LfoDestination, amount: f32| {
+        let mut s = layer(SynthChain::FirmwareStrip);
+        s.cutoff_hz = 800.0;
+        s.lfo_dest = dest;
+        s.lfo_amount = amount;
+        s.lfo_rate_hz = 6.0;
+        s.fw_env_law = law;
+        s.note_on(48, 100);
+        render_n(&mut s, 9_600)
+    };
+    let cutoff = LfoDestination::FilterCutoff;
+    // amount 0.25 = 32 semitones of LFO swing against 20 % of the Hz cutoff: another render
+    let (def, fw) = (render(false, cutoff, 0.25), render(true, cutoff, 0.25));
+    assert!(def != fw, "the LFO law changes the render");
+    assert!(fw.iter().all(|f| f[0].is_finite() && f[1].is_finite()));
+    // no depth: both laws are the static cutoff
+    assert_eq!(render(false, cutoff, 0.0), render(true, cutoff, 0.0));
+    // other destinations are not touched by the flag
+    let osc = LfoDestination::OscPitch;
+    assert_eq!(render(false, osc, 0.25), render(true, osc, 0.25));
+}

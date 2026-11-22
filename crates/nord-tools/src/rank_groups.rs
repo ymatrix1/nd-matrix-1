@@ -41,9 +41,24 @@ pub const GROUPS: [(&str, Revert); GROUP_COUNT] = [
 /// Flip-only sub-groups of `fx_delay` (indices `GROUP_COUNT` and `GROUP_COUNT + 1`): they split the
 /// delay group into its two ports so a default flip of one port can be measured alone
 /// (`program_rank --flip fx_delay_time`). They are not part of the ablation or the 63 subsets.
-pub const SUBGROUPS: [(&str, Revert); 2] = [
+pub const SUBGROUPS: [(&str, Revert); 6] = [
     ("fx_delay_time", |o, d| o.fx.delay_time = d.fx.delay_time),
     ("fx_delay_laws", |o, d| o.fx.delay_laws = d.fx.delay_laws),
+    // The rate match (D137, default on since D176) is a converter, not a port: the flip switches
+    // it on whatever the firmware options say, so it is only a change against a `--legacy-fx-rate`
+    // (or older) baseline.
+    ("fx_rate_match", |o, _| o.fx_rate_match = true),
+    // Opt-in refinements of two ports (D186, D187): the all-firmware reference carries them, the
+    // default does not, so a flip is a change against the current default.
+    ("fx_compressor_row", |o, d| {
+        o.fx.compressor_row = d.fx.compressor_row
+    }),
+    ("fx_mod1_unit_calls", |o, d| {
+        o.fx.mod1_unit_calls = d.fx.mod1_unit_calls
+    }),
+    // Opt-in LP24 / HP24 port (D188): the reference of `program_rank --amp-filters` carries it
+    // (`firmware_options` does not), so a flip switches the firmware stage on for the two filters.
+    ("fx_amp_lp24", |o, d| o.fx.lp24 = d.fx.lp24),
 ];
 
 /// Name and copy function of group index `g` (a [`GROUPS`] entry, then a [`SUBGROUPS`] entry).
@@ -62,20 +77,35 @@ pub const PARITY_GROUPS: [usize; 5] = [2, 3, 5, 6, 7];
 /// The firmware-derived options the ranking compares against the default (the oracle-verified
 /// model): `--firmware-all` plus `--firmware-routing`.
 pub fn firmware_options() -> FirmwareOptions {
-    FirmwareOptions {
+    let mut o = FirmwareOptions {
         firmware_routing: true,
         ..FirmwareOptions::firmware_all()
-    }
+    };
+    // The firmware's own compressor words and the per-unit Mod 1 call length (D186, D187).
+    o.fx.compressor_row = true;
+    o.fx.mod1_unit_calls = true;
+    // The firmware LP24 / HP24 pair (D188).
+    o.fx.lp24 = true;
+    o
 }
 
-/// The engine default the ranking compares against: `FirmwareOptions::default()`, or with
-/// `legacy_mod2` the default before D163 (firmware Mod 2 off), which reproduces the committed
-/// ranking data (`docs/research/data/program-ranking*.csv`). Since D163 the `fx_mod2` group is a
-/// no-op against the current default.
-pub fn baseline(legacy_mod2: bool) -> FirmwareOptions {
+/// The engine default the ranking compares against: `FirmwareOptions::default()` (the PARITY FX
+/// ports since D173, rate match since D176), with `legacy_fx_rate` the default of D173 to D175
+/// (rate match off), with `legacy_fx_ports` the default of D163 to D170 (amp and Mod 2), with
+/// `legacy_mod2` the default before D163 (firmware Mod 2 off). The two port flags leave the rate
+/// match on (it is no port); add `legacy_fx_rate` to reproduce the data of those eras. The committed ranking data
+/// (`docs/research/data/program-ranking*.csv`) is the `legacy_mod2` baseline. Against the current
+/// default every FX group of [`PARITY_GROUPS`] is a no-op flip.
+pub fn baseline(legacy_mod2: bool, legacy_fx_ports: bool, legacy_fx_rate: bool) -> FirmwareOptions {
     let mut o = FirmwareOptions::default();
+    if legacy_fx_ports {
+        o.fx = nord_core::fx::FirmwareFx::PRE_PARITY;
+    }
     if legacy_mod2 {
-        o.fx.mod2 = false;
+        o.fx = nord_core::fx::FirmwareFx::LEGACY;
+    }
+    if legacy_fx_rate {
+        o.fx_rate_match = false;
     }
     o
 }
@@ -162,7 +192,16 @@ mod tests {
 
     /// The default before D163: every group differs from the firmware options.
     fn pre() -> FirmwareOptions {
-        baseline(true)
+        baseline(true, false, false)
+    }
+
+    /// `o` with the opt-in refinements and ports (D186, D187, D188) as the firmware options have them: they
+    /// are [`SUBGROUPS`], not [`GROUPS`], so a group revert leaves them on.
+    fn with_refinements(mut o: FirmwareOptions) -> FirmwareOptions {
+        o.fx.compressor_row = true;
+        o.fx.mod1_unit_calls = true;
+        o.fx.lp24 = true;
+        o
     }
 
     #[test]
@@ -171,7 +210,7 @@ mod tests {
         let all: Vec<usize> = (0..GROUP_COUNT).collect();
         assert_eq!(
             reverted_set(&firmware, &base, &all),
-            base,
+            with_refinements(base),
             "a group is missing"
         );
         assert_ne!(firmware, base);
@@ -186,7 +225,7 @@ mod tests {
 
     #[test]
     fn mod2_group_is_a_no_op_against_the_current_default() {
-        let (firmware, now) = (firmware_options(), baseline(false));
+        let (firmware, now) = (firmware_options(), baseline(false, true, false));
         assert_eq!(GROUPS[7].0, "fx_mod2");
         assert_eq!(
             reverted(&firmware, &now, 7),
@@ -196,7 +235,7 @@ mod tests {
         for g in (0..GROUP_COUNT).filter(|g| *g != 7) {
             assert_ne!(reverted(&firmware, &now, g), firmware, "group {g}");
         }
-        assert!(baseline(false).fx.mod2 && !baseline(true).fx.mod2);
+        assert!(baseline(false, true, false).fx.mod2 && !baseline(true, false, false).fx.mod2);
     }
 
     #[test]
@@ -224,7 +263,7 @@ mod tests {
         let (firmware, base) = (firmware_options(), pre());
         let all_fx: Vec<usize> = (FIRST_FX..GROUP_COUNT).collect();
         let o = reverted_set(&firmware, &base, &all_fx);
-        assert_eq!(o.fx, base.fx);
+        assert_eq!(o.fx, with_refinements(base).fx);
         assert_ne!(o.tone_source, base.tone_source);
     }
 
@@ -232,7 +271,17 @@ mod tests {
     fn flipping_every_group_is_the_firmware_and_none_is_the_base() {
         let (firmware, base) = (firmware_options(), pre());
         let all: Vec<usize> = (0..GROUP_COUNT).collect();
-        assert_eq!(flipped_set(&firmware, &base, &all), firmware);
+        assert_eq!(
+            flipped_set(&firmware, &base, &all),
+            {
+                let mut f = firmware;
+                f.fx.compressor_row = false;
+                f.fx.mod1_unit_calls = false;
+                f.fx.lp24 = false;
+                f
+            },
+            "the refinements are subgroups, not part of the group flip"
+        );
         let none = flipped_set(&firmware, &base, &[]);
         assert_eq!(none.fx, base.fx);
         assert_eq!(none.tone_source, base.tone_source);
@@ -241,7 +290,14 @@ mod tests {
     #[test]
     fn parity_groups_are_the_fx_ports_of_the_parity_preset() {
         let o = flipped_set(&firmware_options(), &pre(), &PARITY_GROUPS);
-        assert_eq!(o.fx, FirmwareFx::PARITY);
+        // `compressor_row` is a subgroup (D187), not a group: the flip from `pre()` leaves it off
+        assert_eq!(
+            o.fx,
+            FirmwareFx {
+                compressor_row: false,
+                ..FirmwareFx::PARITY
+            }
+        );
         assert_eq!(GROUPS[4].0, "fx_reverb", "the one FX group left out");
         assert!(!PARITY_GROUPS.contains(&4));
     }
@@ -269,7 +325,7 @@ mod tests {
 
     #[test]
     fn delay_subgroups_flip_one_port_alone() {
-        let (firmware, base) = (firmware_options(), baseline(false));
+        let (firmware, base) = (firmware_options(), baseline(false, true, false));
         let time = flipped_set(&firmware, &base, &[GROUP_COUNT]);
         assert!(time.fx.delay_time && !time.fx.delay_laws);
         let laws = flipped_set(&firmware, &base, &[GROUP_COUNT + 1]);
@@ -284,8 +340,81 @@ mod tests {
     }
 
     #[test]
+    fn baseline_has_the_rate_match_on_unless_a_legacy_flag_turns_it_off() {
+        assert!(baseline(false, false, false).fx_rate_match);
+        assert!(!baseline(false, false, true).fx_rate_match);
+        assert!(baseline(false, true, false).fx_rate_match);
+        assert!(baseline(true, false, false).fx_rate_match);
+        assert!(!baseline(true, false, true).fx_rate_match);
+        assert_eq!(
+            baseline(false, false, true).fx,
+            nord_core::fx::FirmwareFx::PARITY
+        );
+        assert!(firmware_options().fx_rate_match);
+    }
+
+    #[test]
+    fn compressor_row_and_unit_call_subgroups_flip_one_refinement_alone() {
+        let (firmware, base) = (firmware_options(), baseline(false, true, false));
+        assert!(firmware.fx.compressor_row && firmware.fx.mod1_unit_calls);
+        assert!(
+            baseline(false, false, false).fx.compressor_row,
+            "D187 default"
+        );
+        assert!(
+            !base.fx.compressor_row && !base.fx.mod1_unit_calls,
+            "off before D173"
+        );
+        let row = flipped_set(&firmware, &base, &[GROUP_COUNT + 3]);
+        assert!(row.fx.compressor_row && !row.fx.mod1_unit_calls);
+        let calls = flipped_set(&firmware, &base, &[GROUP_COUNT + 4]);
+        assert!(calls.fx.mod1_unit_calls && !calls.fx.compressor_row);
+        assert_eq!(
+            parse_sets("fx_compressor_row+fx_mod1_unit_calls").unwrap(),
+            [vec![GROUP_COUNT + 3, GROUP_COUNT + 4]]
+        );
+    }
+
+    #[test]
+    fn rate_match_subgroup_switches_the_converter_on_alone() {
+        let (firmware, base) = (firmware_options(), baseline(false, true, true));
+        assert!(firmware.fx_rate_match && !base.fx_rate_match);
+        let on = flipped_set(&firmware, &base, &[GROUP_COUNT + 2]);
+        assert!(on.fx_rate_match);
+        assert_eq!(
+            FirmwareOptions {
+                fx_rate_match: false,
+                ..on
+            },
+            base
+        );
+        let sets = parse_sets("fx_delay+fx_rate_match").unwrap();
+        assert_eq!(sets, [vec![2, GROUP_COUNT + 2]]);
+        assert_eq!(subset_key(&sets[0]), "fx_delay+fx_rate_match");
+    }
+
+    #[test]
     fn subset_key_sorts_and_joins_names() {
         assert_eq!(subset_key(&[7, 2]), "fx_delay+fx_mod2");
         assert_eq!(subset_key(&[4]), "fx_reverb");
+    }
+
+    #[test]
+    fn the_lp24_flip_switches_only_the_filter_pair_on() {
+        let (firmware, base) = (firmware_options(), baseline(false, false, false));
+        assert!(
+            firmware.fx.lp24 && !base.fx.lp24,
+            "opt-in, in the reference only"
+        );
+        let set = parse_sets("fx_amp_lp24").unwrap();
+        let o = flipped_set(&firmware, &base, &set[0]);
+        assert!(o.fx.lp24);
+        assert_eq!(
+            nord_core::fx::FirmwareFx {
+                lp24: false,
+                ..o.fx
+            },
+            base.fx
+        );
     }
 }

@@ -10,13 +10,25 @@
 //! Real-time safety: construction allocates the DM image; `call` and `run` do not allocate, lock or
 //! perform I/O.
 
+mod compile;
 mod exec;
 mod f40;
 mod fast;
+mod fastexec;
+mod native_bass_gen;
+mod native_bass_proc;
+mod native_farfisa;
+#[cfg(test)]
+pub(super) mod native_gen;
+mod plan;
+#[cfg(test)]
+mod probe;
 mod prog_gen;
 mod prog_proc;
 mod tables;
 
+use compile::Program;
+#[cfg(test)]
 use tables::kind;
 
 pub(super) use prog_gen::GEN_ROWS;
@@ -52,8 +64,19 @@ pub(super) struct Machine {
     pub(super) mr: [i128; 2],
     pub(super) an: [bool; 2],
     pub(super) az: [bool; 2],
-    pub(super) mem: Vec<u32>,
+    pub(super) mem: Box<[u32; DM_LEN]>,
+    /// Temp slots of the split items (`compile.rs`): 2 slots of 4 words.
+    pub(super) tmp: [u64; 8],
+    /// Compiled routines (`compile.rs`): the generator (Bass only) and the processor.
+    gen: Program,
+    main: Program,
+    /// Straight line versions of the routines (`native_*.rs`), when selected.
+    gen_fn: Option<Routine>,
+    main_fn: Option<Routine>,
 }
+
+/// A generated straight line routine.
+pub(super) type Routine = fn(&mut Machine);
 
 impl Machine {
     /// Zeroed machine (allocates the DM ranges; setup time only).
@@ -68,7 +91,15 @@ impl Machine {
             mr: [0; 2],
             an: [false; 2],
             az: [false; 2],
-            mem: vec![0; DM_LEN],
+            mem: vec![0; DM_LEN]
+                .into_boxed_slice()
+                .try_into()
+                .expect("DM_LEN words"),
+            tmp: [0; 8],
+            gen: Program::default(),
+            main: Program::default(),
+            gen_fn: None,
+            main_fn: None,
         }
     }
 
@@ -99,13 +130,15 @@ impl Machine {
         self.wr(a, v.to_bits());
     }
 
-    /// Runs decoded rows (instructions and loops).
+    /// Runs decoded rows (instructions and loops) on the reference executor.
+    #[cfg(test)]
     pub(super) fn run(&mut self, rows: &[Row]) {
         let mut pd = exec::Pending::default();
         self.run_with(rows, 0, &mut pd);
     }
 
     /// `start` is the absolute row index of `rows[0]` (jump targets are absolute).
+    #[cfg(test)]
     fn run_with(&mut self, rows: &[Row], start: usize, pd: &mut exec::Pending) {
         let mut p = 0;
         while p < rows.len() {
@@ -134,17 +167,63 @@ impl Machine {
         }
     }
 
-    /// One routine call with the `I0` / `I1` presets of the harness.
+    /// Compiles the processor (`main`) and optionally the generator (setup time: allocates).
+    pub(super) fn set_programs(&mut self, gen: Option<&[Row]>, main: &[Row]) {
+        self.gen = gen.map(compile::compile).unwrap_or_default();
+        self.main = compile::compile(main);
+    }
+
+    /// Runs the generated straight line routines instead of the compiled programs (Bass).
+    pub(super) fn use_native_bass(&mut self) {
+        self.gen_fn = Some(native_bass_gen::gen_call);
+        self.main_fn = Some(native_bass_proc::proc_call);
+    }
+
+    /// Runs the generated straight line Farfisa processor.
+    pub(super) fn use_native_farfisa(&mut self) {
+        self.main_fn = Some(native_farfisa::proc_call);
+    }
+
+    /// Back to the interpreter (tests compare it with the straight line routines).
+    #[cfg(test)]
+    pub(super) fn use_interpreter(&mut self) {
+        self.gen_fn = None;
+        self.main_fn = None;
+    }
+
+    /// One call of the processor with the `preset`.
+    pub(super) fn call_main(&mut self, preset: (u32, u32)) {
+        if let Some(routine) = self.main_fn {
+            self.i[0] = preset.0;
+            self.i[1] = preset.1;
+            return routine(self);
+        }
+        let prog = std::mem::take(&mut self.main);
+        self.call_compiled(&prog, preset);
+        self.main = prog;
+    }
+
+    #[cfg(test)]
+    /// One routine call (reference executor) with the `I0` / `I1` presets of the harness.
     pub(super) fn call(&mut self, rows: &[Row], preset: (u32, u32)) {
         self.i[0] = preset.0;
         self.i[1] = preset.1;
         self.run(rows);
     }
 
-    /// One generator + processor call (two frames); returns the two output samples.
+    /// One generator + processor call (two frames) on the compiled programs; returns the two
+    /// output samples. Needs [`Self::set_programs`] with both routines.
     pub(super) fn step(&mut self) -> [f32; 2] {
-        self.call(&GEN_ROWS, GEN_PRESET);
-        self.call(&PROC_ROWS, PROC_PRESET);
+        if let Some(routine) = self.gen_fn {
+            self.i[0] = GEN_PRESET.0;
+            self.i[1] = GEN_PRESET.1;
+            routine(self);
+        } else {
+            let gen = std::mem::take(&mut self.gen);
+            self.call_compiled(&gen, GEN_PRESET);
+            self.gen = gen;
+        }
+        self.call_main(PROC_PRESET);
         [self.rd_f(OUT_BASE), self.rd_f(OUT_BASE + 2)]
     }
 
@@ -250,6 +329,7 @@ mod tests {
         m.load_image(include_str!(
             "../../../../../docs/research/data/bass-fw-chord-delta.csv"
         ));
+        m.set_programs(Some(&GEN_ROWS), &PROC_ROWS);
         m
     }
 

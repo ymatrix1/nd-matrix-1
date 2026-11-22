@@ -1,0 +1,7 @@
+amount,port_words,lag_frames,level_delta_db,null_depth_db
+32,assumed,-4,-4.53,-36.1
+32,firmware_row,-4,0.0,-108.2
+64,assumed,-4,-11.53,-39.0
+64,firmware_row,-4,0.0,-104.9
+127,assumed,-4,-25.97,-48.2
+127,firmware_row,-4,0.0,-101.9

@@ -27,7 +27,7 @@ B3 Bass (model 5) table and wiring (ns4-b511 follow-up, organ-farfisa-bass s9).
 - [ ] Drawbar / percussion dependent key tables (capture non-888888888 drawbars and percussion), key-up capture and the `G` resync, a real time path (TD-15)
 - [ ] B3 Bass hardware clip comparison and default decision (the B3 clip plays the B3 model: delta 0.00 dB by construction)
 
-- [ ] Real time (TD-15): 64 bit float fast path done (Bass 3.3 to 3.6, Farfisa about 2 s CPU per second of audio); straight line Rust did not compile in reasonable time (s17)
+- [ ] Real time (TD-15): compiled in place executor, zero and `float` fast paths, branch free rounding (s18, D192): Bass 1.8 to 0.65, Farfisa 1.35 to 0.45 s CPU per second of audio, bit identical; not within the 0.8 ms block budget with a full program (next: straight line Rust with registers in locals, SIMD over the PEs, a closed form of the Farfisa processor)
 
 ## Out of Scope
 Bit-exact 0x122296 model (still open).
@@ -42,3 +42,5 @@ s14: the generator listing runs in the VM and the multi-call replay is bit-exact
 s15: `tools/sharc_listing_rust.py` decodes the listings into rows, `organ/b3_bass_fw/` runs them (40 bit float, SIMD pairs, circular buffers), the Bass stage feeds it the key-down state and resamples from the DSP rate. Oracle chord lines within 0.0036 dB (the FIR read +1.1 to +2.5 dB); offline only (3.6 s of CPU per second of audio). Open: drawbar / percussion tables, key-up, speed, Farfisa `0x122B85` (branches, flags, model 2 install).
 
 Farfisa processor on the firmware machine (jumps and AZ / AN flags, `organ/farfisa_fw/`, `farfisa_keys.rs`, `tools/organ_farfisa_fw.py`), 64 bit float fast path, CPU benchmark example (s16, s17, D74).
+
+s20 (D208): unrolling the generator loops is 2x slower (index registers come from DM pointers), no pass of the 22 and 10 pass loops is a state identity (`b3_bass_fw/probe.rs`), SIMD over the PEs is bounded at about 6 percent; hashes unchanged, 0.8 ms budget still missed for Bass (0.96 to 1.1 ms per block alone). Next: registers in locals, second core, Farfisa closed form.

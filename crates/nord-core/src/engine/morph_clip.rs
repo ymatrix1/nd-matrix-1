@@ -1,10 +1,10 @@
 //! Morph copy / paste / clear (manual p.43-44): one Morph source (Wheel, A.T., Ctrl Ped) holds a
 //! depth for every morph-assigned parameter: 7 layer levels, 3 synth cutoffs, the 5 extra synth
-//! slots of each synth layer (`synth_morph.rs`) and 9 per FX chain.
+//! slots of each synth layer (`synth_morph.rs`) and 10 per FX chain.
 
 use super::*;
 
-const FX_SLOTS: usize = 9;
+const FX_SLOTS: usize = 10;
 const SYNTH_SLOTS: usize = crate::synth_morph::SLOTS;
 
 /// Depths of one morph source across the whole program.
@@ -44,6 +44,7 @@ fn fx_slots(m: &mut FxMorphSet) -> [&mut MorphParameter; FX_SLOTS] {
         &mut m.delay_mix,
         &mut m.delay_feedback,
         &mut m.reverb_amount,
+        &mut m.delay_rate,
     ]
 }
 
@@ -199,5 +200,18 @@ mod tests {
         e.morph_controllers.mod_wheel = 1.0;
         e.render_frame();
         assert!((e.synth_a.filter_env_amount - 0.8).abs() < 0.01);
+    }
+
+    #[test]
+    fn the_osc_env_amount_slot_copies_pastes_and_clears() {
+        let mut e = Stage4Engine::new(48_000.0);
+        e.synth_morph[2].osc_env_amount.delta_wheel = -0.25;
+        let clip = e.capture_morph(MorphSource::ModWheel);
+        e.apply_morph_clip(&clip, MorphSource::Aftertouch);
+        let slot = crate::synth_morph::OSC_ENV_SLOT;
+        assert_eq!(e.synth_morph[2].slot(slot).delta_aftertouch, -0.25);
+        e.clear_morph(MorphSource::ModWheel);
+        assert_eq!(e.synth_morph[2].osc_env_amount.delta_wheel, 0.0);
+        assert_eq!(e.synth_morph[2].osc_env_amount.delta_aftertouch, -0.25);
     }
 }

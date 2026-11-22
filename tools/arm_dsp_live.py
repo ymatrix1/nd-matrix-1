@@ -35,6 +35,7 @@ import json
 import subprocess
 import sys
 import time
+import zipfile
 from pathlib import Path
 
 import arm_dsp_link as dl
@@ -139,7 +140,7 @@ def drive(ns, chips: Chips, router: rt.Router, source=None, before=None) -> dict
     else:
         cap.install_dsp_ack(session.emu)
     feeder.grouper.pending.clear()
-    clock, phases = dl.Clock(), {}
+    clock, phases, flash = dl.Clock(), {}, None
     prev = {s.name: snapshot(link, t0) for s, link in chips.items}
     keys = [int(k) for k in ns.keys.split(",")] if ns.keys else [ns.key]
     probe = syt.SyProbe(timeline, chips.sy_link(), source) if timeline else None
@@ -164,6 +165,9 @@ def drive(ns, chips: Chips, router: rt.Router, source=None, before=None) -> dict
             result["flagged_layers"] = cap.bind_samples(
                 session.emu, pl.read_npno(ns.ns4b, cap.SAMPLE_MEMBER, 0x400000)
             )
+        if name == "idle" and ns.piano_bind:
+            result["piano_bind"] = bind_program_piano(session.emu, ns.piano_bind, program)
+            flash = attach_smp_flash(chips, ns.piano_bind, result["piano_bind"], ns.log)
         now = {s.name: snapshot(link, t0) for s, link in chips.items}
         phases[name] = {"ticks": ticks, **{n: phase_delta(prev[n], now[n]) for n in now}}
         phases[name]["arm_messages"] = seen_delta(seen_prev, router.seen)  # every comm, D170
@@ -183,10 +187,57 @@ def drive(ns, chips: Chips, router: rt.Router, source=None, before=None) -> dict
         skipped_out_of_window=router.skipped,
         l2_to_core2=router.l2,
     )
+    if flash:
+        result["smp_flash"] = smp_flash_report(flash)
     result["ticks"], result["clock_passes"] = clock.ticks, clock.passes
     if source:
         result["return_path"] = return_report(source, read_log)
     return result
+
+
+def bind_program_piano(emu, backup: Path, program: bytes) -> dict:  # noqa: ANN001  # pragma: no cover
+    """Bind the enabled piano layer A sound of the program (`arm_piano_bind`, OQ41)."""
+    import arm_piano_bind as pb
+    import arm_piano_load as pl
+
+    layers = pb.program_piano_layers(program)
+    layer = next((k for k, v in layers.items() if v["enabled"]), None)
+    if layer is None:
+        return {"layer": None}
+    with zipfile.ZipFile(backup) as archive:
+        member = pb.resolve_member(pb.piano_members(archive.namelist()), layers[layer]["name_hash"])
+    if member is None:
+        return {"layer": layer, "member": None}
+    return {"layer": layer, "member": member, **pb.bind_piano(emu, pl.read_npno(backup, member))}
+
+
+def attach_smp_flash(chips, backup: Path, bound: dict, log: Path | None):  # noqa: ANN001, ANN201  # pragma: no cover
+    """Serve the bound `.npno` as the flash of the live SMP chip (`arm_smp_flash`, D191)."""
+    import arm_piano_load as pl
+    import arm_smp_flash as sf
+
+    link = next((lk for s, lk in chips.items if s.chip == "SMP"), None)
+    if link is None or not bound.get("member"):
+        return None
+    npno = pl.read_npno(backup, bound["member"], 1 << 30)
+    path = (log or Path(".")) / "smp_flash.npno"  # a local scratch copy, never committed
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tap = path.with_name("smp_tap.f32") if log else None
+    feed = sf.attach(link, npno, path, tap)
+    return feed, link, npno, tap
+
+
+def smp_flash_report(flash) -> dict:  # noqa: ANN001  # pragma: no cover
+    """Descriptors seen, the chip's flash counters and the ring check."""
+    import arm_smp_flash as sf
+
+    feed, link, npno, tap = flash
+    rings = sf.check_rings(link, npno, feed.strokes)
+    out = {**feed.summary(), "chip": link.command("E"), "rings": rings}
+    if tap is not None and tap.exists():  # the tap file is flushed per pass (D199)
+        data = tap.read_bytes()
+        out["tap"] = sf.tap_stats(data) | {"fundamental_cycles": sf.tap_fundamental(data)}
+    return out
 
 
 def replay_cmd(spec: rt.ChipSpec, exe: Path, log: Path, passes: int, tap: Path) -> list[str]:
@@ -259,6 +310,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
     ap.add_argument("--key-gap", type=int, default=20, help="ticks between chord notes")
     ap.add_argument("--ns4b", type=Path, help="factory backup: bind a stand-in sample to the "
                     "flagged SAMPLE layers after the idle phase")  # fmt: skip
+    ap.add_argument("--piano-bind", type=Path, metavar="BACKUP", help="bind the program's piano "
+                    "sound (.npno of this backup) after the idle phase (OQ41)")  # fmt: skip
     ap.add_argument("--sy-timeline", action="store_true",
                     help="per-tick SY sample and key-down / free timing (D153)")  # fmt: skip
     ap.add_argument("--insns-per-tick", type=int, default=200_000)
@@ -288,6 +341,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
         if ns.log:
             ns.log.mkdir(parents=True, exist_ok=True)
             for s, link in items:
+                with (ns.log / "skipped.txt").open("w", encoding="utf-8", newline="\n") as fh:
+                    fh.writelines(f"{n} {a:#010x} {v:#010x}\n" for n, a, v in router.skipped_words)
                 with (ns.log / f"{s.name}.script").open("w", encoding="utf-8", newline="\n") as fh:
                     fh.write(dl.script_text(link.log))
     finally:

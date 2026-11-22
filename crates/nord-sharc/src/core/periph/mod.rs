@@ -21,6 +21,7 @@ pub mod epdma;
 pub mod l2;
 pub mod ringdma;
 pub mod sec;
+pub mod smpflash;
 pub mod spi2;
 pub mod spi_boot;
 

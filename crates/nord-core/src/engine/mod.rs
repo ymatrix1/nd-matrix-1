@@ -148,6 +148,9 @@ pub struct Stage4Engine {
     /// Controller weights follow the ARM law `v / 128` (full at 127) and the five extra synth
     /// morph targets play (D159). Default on since D166; `--legacy-morph` restores `v / 127`.
     pub firmware_morph: bool,
+    /// Opt-in (default off, `--synth-osc-env-morph`, D206): play the Osc Env Amount morph slot of
+    /// the synth layers (`synth_morph.rs`). Needs `firmware_morph`.
+    pub synth_osc_env_morph: bool,
     pub morph_controllers: MorphControllers,
     pub scene: LayerSceneState,
     pub split_router: KeybedSplitRouter,
@@ -218,7 +221,15 @@ fn heap<T>(make: impl FnOnce() -> T) -> Box<T> {
 /// Seven layer FX chains on the heap, one slice element at a time (a slice clones element by
 /// element, where a `Box<[LayerFxChain; 7]>` would copy 40 KB through the stack, TD-05).
 fn boxed_fx_chains(fs: f32) -> Box<[LayerFxChain]> {
-    (0..7).map(|_| LayerFxChain::new(fs)).collect()
+    (0..7)
+        .map(|i| {
+            let mut chain = LayerFxChain::new(fs);
+            // Chains 4..7 are the synth units: the ARM gives their Mod 1 routines two blocks per
+            // call (4 frames), the organ and piano units one block (2 frames), D186.
+            chain.mod1_unit_frames = if i >= 4 { 4 } else { 2 };
+            chain
+        })
+        .collect()
 }
 
 impl Stage4Engine {
@@ -243,6 +254,7 @@ impl Stage4Engine {
             synth_cutoff_morph: [MorphParameter::new(0.5); 3],
             synth_morph: [crate::synth_morph::SynthMorphSet::default(); 3],
             firmware_morph: true,
+            synth_osc_env_morph: false,
             morph_controllers: MorphControllers::default(),
             scene: LayerSceneState::default(),
             split_router: KeybedSplitRouter::default(),

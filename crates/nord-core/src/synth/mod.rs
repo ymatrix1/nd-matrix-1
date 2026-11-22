@@ -22,9 +22,13 @@ mod arp_order;
 mod arp_pool;
 pub mod arp_rate;
 mod dsp;
+pub mod filter_gain;
 mod fw_adr_chain;
+mod fw_adr_law;
 mod fw_coef_memo;
+mod fw_cutoff_env;
 mod fw_env_rates;
+mod fw_env_settled;
 mod fw_filter;
 pub mod fw_filter_law;
 mod fw_filter_table_d;
@@ -39,6 +43,8 @@ mod fw_shape34;
 mod fw_sine3;
 mod fw_sine_hp;
 mod fw_sine_warps;
+mod fw_stage3;
+mod fw_stage3_tables;
 mod fw_stages;
 mod fw_strip_cutoff;
 mod fw_sub;
@@ -75,8 +81,13 @@ pub use arp_order::{extra_notes, zigzag_index, MAX_RANGE_EXTRA_THIRDS};
 use dsp::unison_pan;
 pub use dsp::{poly_blep, ZdfFilter, FM_RATIOS};
 pub use fw_adr_chain::{fw_adr_step, FwAdrAction, FwAdrRecord, FW_ADR_LIMIT};
+pub use fw_cutoff_env::{
+    fw_cutoff_hz_of_knob, fw_env_cutoff_hz, fw_hz_of_r, fw_lfo_cutoff_hz, fw_lfo_semitones,
+    fw_r_of_hz, fw_stage_r_of_knob, FW_R_CLIP, FW_STAGE_RATE_HZ,
+};
 pub use fw_env_rates::{
-    attack_coeff, attack_time_passes, decay_release_coeff, rate_index_from_word, RATE_INDEX_MAX,
+    attack_coeff, attack_time_passes, decay_release_coeff, rate_index_from_word, RateTables,
+    DEFAULT_TABLES, LEGACY_TABLES, RATE_INDEX_MAX, SETTLED_TABLES,
 };
 pub use fw_filter::{
     cutoff_to_r, FilterEngine, FwCoefs, FwFilter, FwFilterType, TablePos, FW_CLIP_LIMIT,
@@ -141,11 +152,15 @@ mod tests_fw_velocity;
 #[rustfmt::skip]
 mod tests_fw_fm_golden;
 #[cfg(test)]
+mod tests_fw_adr_law;
+#[cfg(test)]
 mod tests_fw_ladder_golden;
 #[cfg(test)]
 mod tests_fw_ladder_strip;
 #[cfg(test)]
 mod tests_fw_shape_golden;
+#[cfg(test)]
+mod tests_fw_stage3_golden;
 #[cfg(test)]
 mod tests_fw_stage_golden;
 #[cfg(test)]
@@ -313,6 +328,31 @@ pub struct SynthLayer {
     /// Strip chain only, opt-in (default off): only the firmware resonance table position of
     /// [`fw_filter_law::resonance_position`] (`--synth-fw-resonance`); implied by `fw_filter_law`.
     pub fw_resonance: bool,
+    /// Decoded: the raw `kFltType` of the layer is 3 ("LP+HP"), the stage `0x1257B2`.
+    pub filter_raw3: bool,
+    /// Opt-in (default `1.0`, `--synth-unison-gain`): factor on the per-voice gain of the analog
+    /// unison sum (`1 / sqrt(N)` by default). The hardware lane weights are a unit-norm rotation
+    /// (`docs/research/synth-unison-level.md`), the native sum keeps half that power per channel.
+    pub unison_gain: f32,
+    /// Opt-in (default off, `--synth-unison-weights`): the analog unison voices keep the fixed
+    /// per-voice weights of the firmware lane mix (`cos` / `sin` of pi/8, no `1 / sqrt(N)`), i.e.
+    /// `unison_gain` is applied to a per-voice gain of `1.0` instead of `1 / sqrt(N)`.
+    pub unison_fw_weights: bool,
+    /// Opt-in (default off, `--synth-filter-gain`): the filter output is scaled by the oracle gain
+    /// of its type ([`filter_gain::filter_gain`], D195).
+    pub filter_type_gain: bool,
+    /// Opt-in (default off, `--synth-fw-env-law`): the filter envelope and the LFO reach the cutoff
+    /// in the semitone domain (`fw_cutoff_env.rs`, oracle composition, D200 / D207): `2^(amount *
+    /// 127 / 12 * level)` instead of `2^(amount * 8 * level)`, and `2^(128 lfo_amount lfo / 12)`
+    /// instead of `1 + 0.8 lfo_amount lfo` on the Hz cutoff. Strip chain only.
+    pub fw_env_law: bool,
+    /// Opt-in (default off, `--synth-fw-adr-law`, D210): the oracle envelope law of `fw_adr_law.rs`:
+    /// the amp attack index of a negative word is scaled by `g / 127` (key byte `g`) per voice and
+    /// the decay records of both chains stop at the sustain level 0.5. Strip chain only.
+    pub fw_adr_law: bool,
+    /// Strip chain only, opt-in (default off, `--synth-stage3`): a `filter_raw3` layer runs the
+    /// modelled stage `0x1257B2` (`fw_stage3.rs`) instead of the `Lp12` stand-in.
+    pub fw_stage3: bool,
     /// Strip chain only, opt-in (default off): `Wavetable` layers play the firmware WAVE bank stage
     /// `0x1247B6` (`fw_wave.rs`, 320 of 320 oracle words) instead of the 64-table placeholder. Every
     /// wave plays the one boot table until the per-wave loader is decoded (OQ22).
@@ -473,6 +513,13 @@ impl SynthLayer {
             fw_filter_law: None,
             super_lp24_scale: None,
             fw_resonance: false,
+            filter_raw3: false,
+            unison_gain: 1.0,
+            unison_fw_weights: false,
+            filter_type_gain: false,
+            fw_env_law: false,
+            fw_adr_law: false,
+            fw_stage3: false,
             firmware_velocity: false,
             arp_firmware_walk: false,
             arp_firmware_gate: false,
@@ -503,6 +550,13 @@ impl SynthLayer {
             fw_filter_law: None,
             super_lp24_scale: None,
             fw_resonance: false,
+            filter_raw3: false,
+            unison_gain: 1.0,
+            unison_fw_weights: false,
+            filter_type_gain: false,
+            fw_env_law: false,
+            fw_adr_law: false,
+            fw_stage3: false,
             wave_bank: false,
             knob_laws: true,
             strip_knobs: None,

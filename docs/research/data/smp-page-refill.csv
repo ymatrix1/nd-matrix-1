@@ -1,0 +1,5 @@
+program,layer_file,channels,descriptors,law_ok,ring_head_equals_file,flash_outside_reads,tap_peak_dbfs_mono,tap_kind,native_peak_db,verdict,tap_peak_dbfs_fixed,tap_kind_fixed,flash_outside_reads_fixed
+Astoria Grand,Astoria Grand .npno,2,3,3,stroke 523 (rings of 513 and 502 equal the file in the replay),129,<-300,silent,-8.94,no audio: voice phase frozen,-7.75,audio,0
+Classic Wah Clav,Clavinet .npno,2,1,1,yes,0,-33.3,constant 0.0431 plateau (DC of a stuck sample),-16.97,no audio: voice phase frozen,-13.00,audio,0
+Felt Upright,Felt Upright .npno,2,3,3,stroke ring match,129,<-300,silent,-8.75,no audio: voice phase frozen,-7.36,audio,0
+Bubbles Mk I,EP2 Ideal Timbre .npno,1,3,3,stroke ring match,129,<-300,silent,-5.98,no audio: voice phase frozen,-19.11,audio,0

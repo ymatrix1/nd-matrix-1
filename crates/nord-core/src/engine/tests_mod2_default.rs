@@ -91,7 +91,10 @@ fn clearing_the_words_returns_to_the_engine_mod2() {
     let mut edited = edited_chain(&engine);
     let mut legacy = engine.fx_chains[SYNTH_A].clone();
     legacy.mod2_type = Mod2Type::Phaser;
-    legacy.firmware_fx = FirmwareFx::LEGACY;
+    legacy.firmware_fx = FirmwareFx {
+        mod2: false,
+        ..FirmwareFx::DEFAULT
+    };
     let (f, e, l) = (
         run(&mut firmware, 6_000),
         run(&mut edited, 6_000),

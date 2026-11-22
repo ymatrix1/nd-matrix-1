@@ -17,6 +17,18 @@ pub(super) mod kind {
     pub const ALU: i32 = 11;
     pub const MRF_SET: i32 = 12;
     pub const COMP: i32 = 13;
+    // compiled-only kinds (compile.rs): an item split into a compute and a commit half
+    /// ALU result into the temp slot `row[7]` (flags and destination follow at the commit).
+    pub const ALU_T: i32 = 14;
+    /// Store address and words into the temp slot `row[7]`.
+    pub const STORE_T: i32 = 15;
+    /// Load words into the temp slot `row[7]`.
+    pub const LOAD_T: i32 = 16;
+    pub const COMMIT_ALU: i32 = 17;
+    pub const COMMIT_STORE: i32 = 18;
+    pub const COMMIT_LOAD: i32 = 19;
+    /// A conditional ALU item (`if lt`): runs on the elements whose `AN & !AZ` is set.
+    pub const COND_ALU: i32 = 20;
 }
 
 /// ALU operations of an `ALU` row.

@@ -51,7 +51,7 @@ impl Pending {
 /// ALU operations that set AN / AZ (float pass, add, sub, abs and the fixed add, sub, clip, and);
 /// the multiplier and the shifter leave them alone. VERIFIED: `if ne jump` of the Farfisa
 /// processor follows `pass` (research s16, 300 calls against `sharc-chain` in both branches).
-const fn sets_flags(op: i32) -> bool {
+pub(super) const fn sets_flags(op: i32) -> bool {
     matches!(
         op,
         A::PASS | A::FADD | A::FSUB | A::ABS | A::IADD | A::ISUB | A::CLIP | A::AND | A::ADDI
@@ -59,7 +59,7 @@ const fn sets_flags(op: i32) -> bool {
 }
 
 /// `(AN, AZ)` of an ALU result `v` (40 bit word): float results are zero when the exponent is 0.
-fn alu_flags(op: i32, v: u64) -> (bool, bool) {
+pub(super) fn alu_flags(op: i32, v: u64) -> (bool, bool) {
     let float = matches!(op, A::PASS | A::FADD | A::FSUB | A::ABS);
     let zero = if float {
         (v >> 31) & 0xFF == 0
@@ -69,7 +69,7 @@ fn alu_flags(op: i32, v: u64) -> (bool, bool) {
     (v >> 39 == 1, zero)
 }
 
-const fn twin(id: usize) -> usize {
+pub(super) const fn twin(id: usize) -> usize {
     if id < 32 {
         id ^ 16
     } else {
@@ -99,7 +99,7 @@ impl Machine {
         }
     }
 
-    fn wrap(&self, idx: usize, a: i64) -> u32 {
+    pub(super) fn wrap(&self, idx: usize, a: i64) -> u32 {
         let (n, base) = (i64::from(self.l[idx]), i64::from(self.b[idx]));
         let a = if n == 0 {
             a
@@ -113,7 +113,7 @@ impl Machine {
         a as u32
     }
 
-    fn get32(&self, id: usize) -> u32 {
+    pub(super) fn get32(&self, id: usize) -> u32 {
         match id {
             0..=31 => (self.d[id] >> 8) as u32,
             32..=47 => self.i[id - 32],
@@ -124,7 +124,7 @@ impl Machine {
         }
     }
 
-    fn get40(&self, id: usize) -> u64 {
+    pub(super) fn get40(&self, id: usize) -> u64 {
         if id < 32 {
             self.d[id]
         } else {
@@ -132,7 +132,7 @@ impl Machine {
         }
     }
 
-    fn put32(&mut self, id: usize, v: u32) {
+    pub(super) fn put32(&mut self, id: usize, v: u32) {
         match id {
             0..=31 => self.d[id] = u64::from(v) << 8,
             32..=47 => self.i[id - 32] = v,
@@ -147,7 +147,7 @@ impl Machine {
     }
 
     /// ALU result of `row` on element `pe` (0 = PEx on `r`, 1 = PEy on `s`).
-    fn alu(&self, row: &Row, pe: usize) -> u64 {
+    pub(super) fn alu(&self, row: &Row, pe: usize) -> u64 {
         let base = pe * 16;
         let reg = |n: i32| self.d[base + n as usize];
         let w = |n: i32| (reg(n) >> 8) as u32;
@@ -193,7 +193,7 @@ impl Machine {
         }
     }
 
-    fn mult(&self, pe: usize, row: &Row, with_acc: bool) -> (i128, u32) {
+    pub(super) fn mult(&self, pe: usize, row: &Row, with_acc: bool) -> (i128, u32) {
         let (x, y, mr_op, mode) = if with_acc {
             (row[3], row[4], row[5], row[6])
         } else {

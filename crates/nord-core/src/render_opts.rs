@@ -321,6 +321,9 @@ pub struct FirmwareOptions {
     /// `--firmware-piano-pedal-voices`: `PianoLayer::firmware_pedal_voices` (notes struck with
     /// the damper pedal down take the firmware voice list, VERIFIED by the ARM run; opt-in, D22).
     pub piano_pedal_voices: bool,
+    /// `--firmware-piano-timbre`: `PianoLayer::firmware_timbre_gain` (the Soft / Mid / Bright timbre as
+    /// the per-note gain of the firmware ROM tables, VERIFIED by the ARM run; opt-in, D22).
+    pub piano_timbre_gain: bool,
     /// `--firmware-piano-chain`: `PianoLayer::receiver_chain_scale` (verified FX path 0.7464 per
     /// `y / 8192`; opt-in, engine unit = DAC fraction ASSUMED).
     pub piano_chain_scale: bool,
@@ -329,8 +332,9 @@ pub struct FirmwareOptions {
     /// `--fx-defaults firmware`: every FX chain starts from the ARM `Edt_*` default words
     /// (`LayerFxChain::apply_firmware_defaults`, D101; opt-in, no hardware init-patch clip).
     pub fx_defaults: bool,
-    /// `--fx-rate-match`: the firmware Amp drive and cabinet run at the DSP frame rate 43,402 Hz
-    /// (`LayerFxChain::set_fx_rate_match`, D137; opt-in).
+    /// The firmware Amp drive and cabinet run at the DSP frame rate 43,402 Hz
+    /// (`LayerFxChain::set_fx_rate_match`, D137; default on since D176, `--legacy-fx-rate` turns
+    /// it off; `--fx-rate-match` still switches it on).
     pub fx_rate_match: bool,
     /// Skips the FX racks of silent layers (`--fx-idle-skip`, D161; opt-in).
     pub fx_idle_skip: bool,
@@ -384,6 +388,24 @@ pub struct FirmwareOptions {
     /// leaves the strip stages at their default (see `from_args`); it is a shortcut, not a separate field.
     /// `--synth-fw-resonance`: `SynthLayer::fw_resonance` (the firmware resonance table position only).
     pub synth_fw_resonance: bool,
+    /// `--synth-stage3`: `SynthLayer::fw_stage3` (raw filter type 3 runs the stage `0x1257B2`).
+    pub synth_stage3: bool,
+    /// `--synth-unison-gain <factor>`: `SynthLayer::unison_gain` (opt-in, default 1.0).
+    pub synth_unison_gain_milli: Option<u16>,
+    /// `--synth-unison-weights`: `SynthLayer::unison_fw_weights` (per-voice gain 1, no `1 / sqrt(N)`).
+    pub synth_unison_weights: bool,
+    /// `--synth-filter-gain`: `SynthLayer::filter_type_gain` (oracle filter gain by type, D195);
+    /// also selects `--synth-p oracle-rows` unless a later `--synth-p` says otherwise.
+    pub synth_filter_gain: bool,
+    /// `--synth-fw-env-law`: `SynthLayer::fw_env_law` (filter envelope and cutoff LFO in semitones
+    /// of the stage coefficient, `127 / 12` octaves at full amount; oracle composition, D200 / D207).
+    pub synth_fw_env_law: bool,
+    /// `--synth-fw-adr-law`: `SynthLayer::fw_adr_law` (amp attack scaled by the key velocity, decay
+    /// record sustain 0.5, oracle envelope law, D210). Strip chain only.
+    pub synth_fw_adr_law: bool,
+    /// `--synth-osc-env-morph`: `Stage4Engine::synth_osc_env_morph` (the Osc Env Amount morph of
+    /// the synth layers is played, firmware law, D206; needs the firmware morph, on by default).
+    pub synth_osc_env_morph: bool,
     /// `--synth-knob-laws` / `--no-synth-knob-laws`: `SynthLayer::knob_laws` (the strip chain takes
     /// the envelope rate indices straight from the stored knobs, `index = knob - 64`, VERIFIED
     /// run; on by default since D57, off in `--legacy-all`).
@@ -411,6 +433,9 @@ pub struct FirmwareOptions {
     /// `--amp-path engine|firmware`: `FirmwareFx::amp` on every chain (`None` = the engine default,
     /// firmware drive stage on; `Some(false)` = engine drive and RBJ cabinet).
     pub amp_path: Option<bool>,
+    /// `--legacy-pump`: the engine PUMP model (`fx/mod1_dynamic.rs`) in place of the firmware
+    /// routine `0x122D2C`, which is the default since D134 (`FirmwareFx::pump`).
+    pub legacy_pump: bool,
     /// `--rotary-drive engine|unity|scaled`.
     pub rotary_drive: RotaryDrive,
     /// `--organ-level firmware|legacy`: the organ output level law ([`OutputLevel`]): the swell
@@ -447,10 +472,11 @@ impl Default for FirmwareOptions {
             piano_touch: true,
             piano_slew: false,
             piano_pedal_voices: false,
+            piano_timbre_gain: false,
             piano_chain_scale: false,
             piano_layer_law: false,
             fx_defaults: false,
-            fx_rate_match: false,
+            fx_rate_match: true,
             fx_idle_skip: false,
             synth_layer_law: true,
             measured_tick: true,
@@ -465,6 +491,13 @@ impl Default for FirmwareOptions {
             synth_filter_law_milli: None,
             synth_super_lp24_milli: None,
             synth_fw_resonance: false,
+            synth_stage3: false,
+            synth_unison_gain_milli: None,
+            synth_unison_weights: false,
+            synth_filter_gain: false,
+            synth_fw_env_law: false,
+            synth_fw_adr_law: false,
+            synth_osc_env_morph: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
             sample_kernel_key: true,
@@ -472,6 +505,7 @@ impl Default for FirmwareOptions {
             synth_velocity_fw: true,
             firmware_routing: true,
             amp_path: None,
+            legacy_pump: false,
             rotary_drive: RotaryDrive::Engine,
             organ_level: OutputLevel::ModelDefault,
             leslie_firmware: false,
@@ -492,10 +526,18 @@ impl FirmwareOptions {
             synth_filter_law_milli: None,
             synth_super_lp24_milli: None,
             synth_fw_resonance: false,
+            synth_stage3: false,
+            synth_unison_gain_milli: None,
+            synth_unison_weights: false,
+            synth_filter_gain: false,
+            synth_fw_env_law: false,
+            synth_fw_adr_law: false,
+            synth_osc_env_morph: false,
             synth_knob_laws: false,
             synth_velocity_fw: false,
             piano_firmware_level: false,
             piano_touch: false,
+            fx_rate_match: false,
             synth_layer_law: false,
             measured_tick: false,
             synth_sustain_pedal: false,
@@ -525,10 +567,11 @@ impl FirmwareOptions {
             piano_touch: true,
             piano_slew: false,
             piano_pedal_voices: false,
+            piano_timbre_gain: false,
             piano_chain_scale: false,
             piano_layer_law: false,
             fx_defaults: false,
-            fx_rate_match: false,
+            fx_rate_match: true,
             fx_idle_skip: false,
             synth_layer_law: true,
             measured_tick: true,
@@ -543,6 +586,13 @@ impl FirmwareOptions {
             synth_filter_law_milli: None,
             synth_super_lp24_milli: None,
             synth_fw_resonance: false,
+            synth_stage3: false,
+            synth_unison_gain_milli: None,
+            synth_unison_weights: false,
+            synth_filter_gain: false,
+            synth_fw_env_law: false,
+            synth_fw_adr_law: false,
+            synth_osc_env_morph: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
             sample_kernel_key: true,
@@ -550,6 +600,7 @@ impl FirmwareOptions {
             synth_velocity_fw: true,
             firmware_routing: true,
             amp_path: None,
+            legacy_pump: false,
             rotary_drive: RotaryDrive::Engine,
             organ_level: OutputLevel::ModelDefault,
             leslie_firmware: false,
@@ -604,6 +655,9 @@ impl FirmwareOptions {
         if let Some(v) = value("--firmware-fx-ports") {
             o.fx.enable_ports(v)?;
         }
+        if has("--legacy-fx-ports") {
+            o.fx = FirmwareFx::PRE_PARITY;
+        }
         if has("--legacy-mod2") {
             o.fx.mod2 = false;
         }
@@ -622,10 +676,14 @@ impl FirmwareOptions {
         }
         o.piano_slew |= has("--piano-slew-fw");
         o.piano_pedal_voices |= has("--firmware-piano-pedal-voices");
+        o.piano_timbre_gain |= has("--firmware-piano-timbre");
         o.piano_chain_scale |= has("--firmware-piano-chain");
         o.piano_layer_law |= has("--firmware-piano-layer-law");
         o.fx_defaults |= has("--fx-defaults-firmware");
         o.fx_rate_match |= has("--fx-rate-match");
+        if has("--legacy-fx-rate") {
+            o.fx_rate_match = false;
+        }
         o.fx_idle_skip |= has("--fx-idle-skip");
         o.synth_layer_law |= has("--firmware-synth-layer-law");
         o.synth_sustain_pedal |= has("--synth-sustain-pedal");
@@ -651,6 +709,28 @@ impl FirmwareOptions {
         o.measured_laws |= has("--measured-laws");
         o.synth_stages |= has("--synth-stages");
         o.synth_fw_resonance |= has("--synth-fw-resonance");
+        if has("--synth-oracle") {
+            o.synth_p = Some(PSpec::Coupled);
+            o.synth_unison_weights = true;
+        }
+        if has("--synth-filter-gain") {
+            o.synth_filter_gain = true;
+            o.synth_p = Some(PSpec::OracleRows);
+        }
+        o.synth_stage3 |= has("--synth-stage3");
+        o.synth_unison_weights |= has("--synth-unison-weights");
+        o.synth_fw_env_law |= has("--synth-fw-env-law");
+        o.synth_fw_adr_law |= has("--synth-fw-adr-law");
+        o.synth_osc_env_morph |= has("--synth-osc-env-morph");
+        if let Some(v) = value("--synth-unison-gain") {
+            let u: f32 = v
+                .parse()
+                .map_err(|_| format!("--synth-unison-gain needs a number, got {v:?}"))?;
+            if !(0.05..=8.0).contains(&u) {
+                return Err(format!("--synth-unison-gain {u} outside 0.05..8"));
+            }
+            o.synth_unison_gain_milli = Some((u * 1000.0).round() as u16);
+        }
         if let Some(v) = value("--synth-filter-law") {
             let u: f32 = v
                 .parse()
@@ -716,6 +796,15 @@ impl FirmwareOptions {
         if has("--legacy-routing") {
             o.firmware_routing = false;
         }
+        if has("--legacy-pump") {
+            o.legacy_pump = true;
+        }
+        // Opt-in refinements of two firmware ports (D186, D187); see `FirmwareFx`.
+        o.fx.compressor_row |= has("--compressor-row");
+        if has("--legacy-compressor-row") {
+            o.fx.compressor_row = false;
+        }
+        o.fx.mod1_unit_calls |= has("--mod1-unit-calls");
         if let Some(v) = value("--amp-path") {
             o.amp_path = Some(parse_amp_path(v)?);
         }
@@ -770,8 +859,20 @@ impl FirmwareOptions {
         apply_firmware_options(engine, self.tone_source, self.filter_engine, false);
         for c in engine.fx_chains.iter_mut() {
             c.firmware_fx.merge_on(&self.fx);
-            // Mod 2 is on in the engine default (D163), so `--legacy-mod2` has to switch it off.
-            c.firmware_fx.mod2 = self.fx.mod2;
+            // On in the engine default (D187): `--legacy-compressor-row` has to switch it off.
+            c.firmware_fx.compressor_row = self.fx.compressor_row;
+            // The parity ports are on in the engine default (D163, D173), so the opt-outs
+            // (`--legacy-fx-ports`, `--legacy-mod2`) have to switch them off.
+            if self.legacy_pump {
+                c.firmware_fx.pump = false;
+            }
+            for name in crate::fx::FX_PORT_NAMES {
+                if let (false, Some(dst)) =
+                    (name.starts_with("reverb"), c.firmware_fx.port_mut(name))
+                {
+                    *dst = self.fx.port(name);
+                }
+            }
         }
         apply_piano_level(engine, self.piano_firmware_level);
         engine.piano_a.firmware_bus_scale = self.piano_bus_scale;
@@ -782,6 +883,8 @@ impl FirmwareOptions {
         engine.piano_b.firmware_slew = self.piano_slew;
         engine.piano_a.firmware_pedal_voices = self.piano_pedal_voices;
         engine.piano_b.firmware_pedal_voices = self.piano_pedal_voices;
+        engine.piano_a.firmware_timbre_gain = self.piano_timbre_gain;
+        engine.piano_b.firmware_timbre_gain = self.piano_timbre_gain;
         engine.piano_a.receiver_chain_scale = self.piano_chain_scale;
         engine.piano_b.receiver_chain_scale = self.piano_chain_scale;
         engine.piano_a.firmware_layer_law = self.piano_layer_law;
@@ -851,6 +954,9 @@ impl FirmwareOptions {
         if let Some(amp) = self.amp_path {
             fx.amp = amp;
         }
+        if self.legacy_pump {
+            fx.pump = false;
+        }
         for c in engine.fx_chains.iter_mut() {
             c.firmware_fx = fx;
         }
@@ -864,6 +970,8 @@ impl FirmwareOptions {
         engine.piano_b.firmware_slew = self.piano_slew;
         engine.piano_a.firmware_pedal_voices = self.piano_pedal_voices;
         engine.piano_b.firmware_pedal_voices = self.piano_pedal_voices;
+        engine.piano_a.firmware_timbre_gain = self.piano_timbre_gain;
+        engine.piano_b.firmware_timbre_gain = self.piano_timbre_gain;
         engine.piano_a.receiver_chain_scale = self.piano_chain_scale;
         engine.piano_b.receiver_chain_scale = self.piano_chain_scale;
         engine.piano_a.firmware_layer_law = self.piano_layer_law;
@@ -986,6 +1094,28 @@ impl FirmwareOptions {
         engine.synth_a.fw_resonance = self.synth_fw_resonance;
         engine.synth_b.fw_resonance = self.synth_fw_resonance;
         engine.synth_c.fw_resonance = self.synth_fw_resonance;
+        let uni = self
+            .synth_unison_gain_milli
+            .map_or(1.0, |m| f32::from(m) / 1000.0);
+        engine.synth_a.unison_gain = uni;
+        engine.synth_a.unison_fw_weights = self.synth_unison_weights;
+        engine.synth_b.unison_fw_weights = self.synth_unison_weights;
+        engine.synth_c.unison_fw_weights = self.synth_unison_weights;
+        engine.synth_a.filter_type_gain = self.synth_filter_gain;
+        engine.synth_b.filter_type_gain = self.synth_filter_gain;
+        engine.synth_c.filter_type_gain = self.synth_filter_gain;
+        engine.synth_a.fw_env_law = self.synth_fw_env_law;
+        engine.synth_b.fw_env_law = self.synth_fw_env_law;
+        engine.synth_c.fw_env_law = self.synth_fw_env_law;
+        engine.synth_a.fw_adr_law = self.synth_fw_adr_law;
+        engine.synth_b.fw_adr_law = self.synth_fw_adr_law;
+        engine.synth_c.fw_adr_law = self.synth_fw_adr_law;
+        engine.synth_osc_env_morph = self.synth_osc_env_morph;
+        engine.synth_b.unison_gain = uni;
+        engine.synth_c.unison_gain = uni;
+        engine.synth_a.fw_stage3 = self.synth_stage3;
+        engine.synth_b.fw_stage3 = self.synth_stage3;
+        engine.synth_c.fw_stage3 = self.synth_stage3;
         engine.synth_a.knob_laws = self.synth_knob_laws;
         engine.synth_b.knob_laws = self.synth_knob_laws;
         engine.synth_c.knob_laws = self.synth_knob_laws;
@@ -1041,8 +1171,22 @@ impl FirmwareOptions {
                     .filter(|p| !FirmwareFx::DEFAULT.port(p))
                     .map(|p| (*p).to_string()),
             );
-            if FirmwareFx::DEFAULT.mod2 && !self.fx.mod2 {
-                parts.push("legacy-mod2".into());
+            let off: Vec<&str> = crate::fx::FX_PORT_NAMES
+                .into_iter()
+                .filter(|p| FirmwareFx::DEFAULT.port(p) && !self.fx.port(p))
+                .collect();
+            if !off.is_empty() {
+                // `legacy-fx-ports` when only the D173 ports are off, else `legacy-mod2` as before.
+                let pre = FirmwareFx::PRE_PARITY;
+                let only_d171 = off.iter().all(|p| !pre.port(p));
+                parts.push(
+                    if only_d171 {
+                        "legacy-fx-ports"
+                    } else {
+                        "legacy-mod2"
+                    }
+                    .into(),
+                );
             }
         }
         if !self.piano_firmware_level {
@@ -1069,6 +1213,9 @@ impl FirmwareOptions {
         if self.piano_pedal_voices {
             parts.push("piano-pedal-voices".into());
         }
+        if self.piano_timbre_gain {
+            parts.push("piano-timbre".into());
+        }
         if self.piano_chain_scale {
             parts.push("piano-chain".into());
         }
@@ -1078,8 +1225,8 @@ impl FirmwareOptions {
         if self.fx_defaults {
             parts.push("fx-defaults".into());
         }
-        if self.fx_rate_match {
-            parts.push("fx-rate-match".into());
+        if !self.fx_rate_match {
+            parts.push("legacy-fx-rate".into());
         }
         if self.fx_idle_skip {
             parts.push("fx-idle-skip".into());
@@ -1114,6 +1261,27 @@ impl FirmwareOptions {
         if self.synth_fw_resonance {
             parts.push("fw-resonance".into());
         }
+        if self.synth_stage3 {
+            parts.push("stage3".into());
+        }
+        if self.synth_unison_weights {
+            parts.push("unison-weights".into());
+        }
+        if self.synth_filter_gain {
+            parts.push("filter-gain".into());
+        }
+        if self.synth_fw_env_law {
+            parts.push("fw-env-law".into());
+        }
+        if self.synth_fw_adr_law {
+            parts.push("fw-adr-law".into());
+        }
+        if self.synth_osc_env_morph {
+            parts.push("osc-env-morph".into());
+        }
+        if let Some(m) = self.synth_unison_gain_milli {
+            parts.push(format!("synth-unison-gain={:.3}", f32::from(m) / 1000.0));
+        }
         if let Some(m) = self.synth_filter_law_milli {
             parts.push(format!("synth-filter-law={:.3}", f32::from(m) / 1000.0));
         }
@@ -1139,6 +1307,15 @@ impl FirmwareOptions {
         }
         if self.sample_pitch_fw {
             parts.push("sample-pitch=fw".into());
+        }
+        if self.legacy_pump {
+            parts.push("legacy-pump".into());
+        }
+        if !self.fx.compressor_row && self.fx.compressor && FirmwareFx::DEFAULT.compressor_row {
+            parts.push("legacy-compressor-row".into());
+        }
+        if self.fx.mod1_unit_calls {
+            parts.push("mod1-unit-calls".into());
         }
         if let Some(a) = self.amp_path {
             parts.push(format!("amp={}", if a { "firmware" } else { "engine" }));
@@ -1265,6 +1442,12 @@ mod tests {
         let mut e = Stage4Engine::new(48_000.0);
         pedal.apply_to(&mut e);
         assert!(e.piano_a.firmware_pedal_voices && e.piano_b.firmware_pedal_voices);
+        assert!(!o.piano_timbre_gain, "the firmware timbre gain is opt-in");
+        let timbre = FirmwareOptions::from_args(&args(&["--firmware-piano-timbre"])).unwrap();
+        assert!(timbre.piano_timbre_gain && timbre.summary().contains("piano-timbre"));
+        let mut e = Stage4Engine::new(48_000.0);
+        timbre.apply_to(&mut e);
+        assert!(e.piano_a.firmware_timbre_gain && e.piano_b.firmware_timbre_gain);
         assert!(!o.piano_chain_scale, "the receiver chain scale is opt-in");
         let chain = FirmwareOptions::from_args(&args(&["--firmware-piano-chain"])).unwrap();
         assert!(chain.piano_chain_scale && chain.summary().contains("piano-chain"));
@@ -1501,6 +1684,113 @@ mod tests {
     }
 
     #[test]
+    fn fw_adr_law_flag_reaches_every_synth_layer() {
+        let o = FirmwareOptions::from_args(&["--synth-fw-adr-law".into()]).unwrap();
+        assert!(o.synth_fw_adr_law && o.summary().contains("fw-adr-law"));
+        assert!(!FirmwareOptions::default().synth_fw_adr_law);
+    }
+
+    #[test]
+    fn osc_env_morph_flag_is_opt_in_and_reaches_the_engine() {
+        let d = FirmwareOptions::default();
+        assert!(!d.synth_osc_env_morph && !FirmwareOptions::firmware_all().synth_osc_env_morph);
+        assert!(!d.summary().contains("osc-env-morph"));
+        let o = FirmwareOptions::from_args(&["--synth-osc-env-morph".into()]).unwrap();
+        assert!(o.synth_osc_env_morph && o.summary().contains("osc-env-morph"));
+        let mut e = Stage4Engine::new(48_000.0);
+        o.apply_to(&mut e);
+        assert!(e.synth_osc_env_morph);
+        let mut e = Stage4Engine::new(48_000.0);
+        d.apply_to(&mut e);
+        assert!(!e.synth_osc_env_morph);
+    }
+
+    #[test]
+    fn fw_env_law_flag_reaches_every_synth_layer() {
+        let o = FirmwareOptions::from_args(&["--synth-fw-env-law".into()]).unwrap();
+        assert!(o.synth_fw_env_law && o.summary().contains("fw-env-law"));
+        assert!(!FirmwareOptions::default().synth_fw_env_law);
+    }
+
+    #[test]
+    fn stage3_and_unison_gain_are_opt_in_and_reach_the_layers() {
+        let d = FirmwareOptions::default();
+        assert!(!d.synth_stage3 && d.synth_unison_gain_milli.is_none());
+        let o = FirmwareOptions::from_args(&[
+            "--synth-stage3".into(),
+            "--synth-unison-gain".into(),
+            "1.414".into(),
+            "--synth-unison-weights".into(),
+        ])
+        .unwrap();
+        let s = o.summary();
+        assert!(s.contains("stage3") && s.contains("synth-unison-gain=1.414"));
+        assert!(s.contains("unison-weights"));
+        let mut e = Stage4Engine::new(48_000.0);
+        assert!(!e.synth_a.fw_stage3 && e.synth_a.unison_gain == 1.0);
+        o.apply_to(&mut e);
+        assert!(e.synth_a.fw_stage3 && e.synth_c.fw_stage3);
+        assert!(e.synth_a.unison_fw_weights && e.synth_c.unison_fw_weights);
+        assert_eq!(e.synth_b.unison_gain, 1.414);
+        assert!(FirmwareOptions::from_args(&["--synth-unison-gain".into(), "x".into()]).is_err());
+        assert!(FirmwareOptions::from_args(&["--synth-unison-gain".into(), "99".into()]).is_err());
+    }
+
+    #[test]
+    fn synth_oracle_preset_is_opt_in_and_bundles_the_coupled_rows_and_unison_weights() {
+        let d = FirmwareOptions::default();
+        assert!(!d.synth_unison_weights && !d.synth_stage3 && !d.synth_fw_env_law);
+        assert_ne!(d.synth_p, Some(PSpec::Coupled));
+        let o = FirmwareOptions::from_args(&["--synth-oracle".into()]).unwrap();
+        assert_eq!(o.synth_p, Some(PSpec::Coupled));
+        assert!(o.synth_unison_weights);
+        assert!(
+            !o.synth_stage3,
+            "stage3 scores worse on the one raw type 3 clip"
+        );
+        assert!(o.summary().contains("Coupled"));
+        // individual flags override the preset
+        let p = FirmwareOptions::from_args(&[
+            "--synth-oracle".into(),
+            "--synth-p".into(),
+            "fitted".into(),
+        ])
+        .unwrap();
+        assert_eq!(p.synth_p, Some(PSpec::Fitted));
+        assert!(p.synth_unison_weights);
+        assert_eq!(
+            FirmwareOptions::from_args(&["--synth-p".into(), "coupled".into()])
+                .unwrap()
+                .synth_p,
+            Some(PSpec::Coupled)
+        );
+    }
+
+    #[test]
+    fn synth_filter_gain_is_opt_in_selects_the_oracle_rows_and_reaches_the_layers() {
+        let d = FirmwareOptions::default();
+        assert!(!d.synth_filter_gain);
+        assert_ne!(d.synth_p, Some(PSpec::OracleRows));
+        let o = FirmwareOptions::from_args(&["--synth-filter-gain".into()]).unwrap();
+        assert!(o.synth_filter_gain);
+        assert_eq!(o.synth_p, Some(PSpec::OracleRows));
+        assert!(o.summary().contains("filter-gain"));
+        let later = FirmwareOptions::from_args(&[
+            "--synth-filter-gain".into(),
+            "--synth-p".into(),
+            "fitted".into(),
+        ])
+        .unwrap();
+        assert_eq!(later.synth_p, Some(PSpec::Fitted));
+        let mut e = Stage4Engine::new(48_000.0);
+        assert!(!e.synth_a.filter_type_gain);
+        o.apply_to(&mut e);
+        assert!(
+            e.synth_a.filter_type_gain && e.synth_b.filter_type_gain && e.synth_c.filter_type_gain
+        );
+    }
+
+    #[test]
     fn synth_super_lp24_is_opt_in_and_reaches_the_layers() {
         assert_eq!(FirmwareOptions::default().synth_super_lp24_milli, None);
         let o = FirmwareOptions::from_args(&["--synth-super-lp24".into(), "2.2".into()]).unwrap();
@@ -1649,17 +1939,20 @@ mod tests {
     #[test]
     fn firmware_reverb_flag_switches_only_the_reverb() {
         let o = FirmwareOptions::from_args(&args(&["--firmware-reverb"])).unwrap();
-        assert!(o.fx.reverb && o.fx.ports_on() == ["reverb", "mod2"]);
+        assert!(o.fx.reverb && o.fx.ports_on().len() == 7 && !o.fx.reverb_mix);
         let mut e = Stage4Engine::new(48_000.0);
         o.apply_to(&mut e);
         assert!(e.fx_chains.iter().all(|c| c.firmware_fx.reverb));
-        assert!(e.fx_chains.iter().all(|c| !c.firmware_fx.delay_laws));
+        assert!(
+            e.fx_chains.iter().all(|c| c.firmware_fx.delay_laws),
+            "PARITY ports stay on (D173)"
+        );
         assert!(o.summary().contains("reverb"));
         o.apply_exact(&mut e);
         assert!(e
             .fx_chains
             .iter()
-            .all(|c| c.firmware_fx.reverb && !c.firmware_fx.compressor));
+            .all(|c| c.firmware_fx.reverb && c.firmware_fx.compressor));
         FirmwareOptions::default().apply_exact(&mut e);
         assert!(e.fx_chains.iter().all(|c| !c.firmware_fx.reverb));
     }

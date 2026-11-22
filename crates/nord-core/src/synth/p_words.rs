@@ -217,7 +217,53 @@ impl PTableSpec {
         let rest = format!(":shapesq={row};other={row};fm={row}");
         Self::parse(&rest).expect("fixed oracle rows parse")
     }
+
+    /// The table of `--synth-p coupled` (D194): [`PTableSpec::oracle`] plus the SHAPE triangle,
+    /// MULTI and SUPER rows at their oracle level times the one coupling factor
+    /// [`COUPLED_FILTER_GAIN`]; the cutoff factors, shape scale and every other row stay as the
+    /// built-in table (EMPIRICAL).
+    ///
+    /// VERIFIED (oracle, `tools/synth_osc_gain.py`, `docs/research/data/synth-osc-gain-oracle.csv`):
+    /// the oscillator row that puts native on the ORG core 2 stage is `0.4 x 1.000` (SHAPE
+    /// triangle, 3 programs), `0.4 x 4.047` = 1.62 (MULTI, 3 programs, the verified 1.6) and
+    /// `0.4 x 4.755` = 1.90 (SUPER wave 0, 2 programs: [`ORACLE_SUPER_ROW`]). The fitted rows
+    /// 0.6 / 3.8 / 2.4 sit 3.5 / 7.4 / 2.0 dB above those; the oracle filter reads 2.7 to 6.7 dB
+    /// above the native one on 14 of 18 programs (`docs/research/data/synth-filter-gain-oracle.csv`),
+    /// so the three fitted gains are one filter gain times the oracle row, not three free levels.
+    pub fn coupled() -> PTableSpec {
+        Self::coupled_with(COUPLED_FILTER_GAIN)
+    }
+
+    /// The table of `--synth-p oracle-rows` (D195): the oracle rows alone (`g = 1`), for use with
+    /// the native filter gain by type (`--synth-filter-gain`) instead of the coupling factor.
+    pub fn oracle_rows() -> PTableSpec {
+        Self::coupled_with(1.0)
+    }
+
+    fn coupled_with(g: f32) -> PTableSpec {
+        let rows = format!(
+            ":shape={:.3}/0/1/1/1.75;multi={:.3}/0/1/0.5/2;super={:.3}/0/1/0.5/0.45",
+            GAIN_PER_P16 * 0.25 * g,
+            GAIN_PER_P16 * g,
+            ORACLE_SUPER_ROW * g
+        );
+        Self::parse_over(Self::oracle(), &rows).expect("fixed coupled rows parse")
+    }
 }
+
+/// Oracle row of SUPER wave 0: the median needed row gain 4.755 (4.591 and 4.918 on `Glow Chords
+/// Whl` and `Horizon Whl`, D140) times `GAIN_PER_P16 * 0.25`. VERIFIED (measurement); the
+/// verified words stage reads `GAIN_PER_P16` = 1.6 (1.8 dB lower, the unison words carry their own
+/// `P[16]`, `docs/research/synth-osc-gain-oracle.md` s3).
+pub const ORACLE_SUPER_ROW: f32 = 1.9;
+
+/// The one factor of `--synth-p coupled`: the three fitted rows are the oracle rows times this
+/// native filter gain (`sqrt 2`, +3.0 dB). EMPIRICAL: swept 1.0 / 1.414 / 1.778 / 2.0 on 16 Part A
+/// synth clips with `--synth-unison-weights`: mean score 2.693 / 2.706 / 2.733 / 2.743 against 2.747
+/// for the fitted rows with the weights, mean absolute RMS error 4.50 / 3.81 / 4.25 / 4.48 dB against
+/// 3.89 dB (`docs/research/synth-rows-unison.md` s4). The oracle gap that this stands for is
+/// +4.6 dB (LP12, 5 programs without the resonance 0.95 outlier) to +5.3 dB (LP24, 7 programs), measured per program in s3.
+pub const COUPLED_FILTER_GAIN: f32 = std::f32::consts::SQRT_2;
 
 #[cfg(test)]
 mod tests {
@@ -327,6 +373,64 @@ mod tests {
         assert!(o.words, "the words stages stay on");
         assert_eq!(PSpec::parse("Oracle").unwrap(), PSpec::Oracle);
         assert_eq!(PSpec::Oracle.table(), Some(o));
+    }
+
+    #[test]
+    fn coupled_is_the_oracle_rows_times_one_filter_gain() {
+        use crate::synth::PSpec;
+        let (c, o, f) = (
+            PTableSpec::coupled().table(),
+            PTableSpec::oracle().table(),
+            PTable::FITTED,
+        );
+        let g = COUPLED_FILTER_GAIN;
+        assert!((g - 1.414).abs() < 1e-3);
+        for (w, row) in [
+            (PWave::ShapeTriangle, 0.4),
+            (PWave::Multi, GAIN_PER_P16),
+            (PWave::Super, ORACLE_SUPER_ROW),
+        ] {
+            let b = c.block(w);
+            assert!((b.gain - row * g).abs() < 1.5e-3, "{w:?} {}", b.gain);
+            let fit = f.block(w);
+            assert_eq!(
+                (b.weight2, b.ratio2, b.shape, b.cutoff_scale),
+                (fit.weight2, fit.ratio2, fit.shape, fit.cutoff_scale),
+                "only the level moves: {w:?}"
+            );
+        }
+        for w in PWave::ALL {
+            if !matches!(w, PWave::ShapeTriangle | PWave::Multi | PWave::Super) {
+                assert_eq!(c.block(w), o.block(w), "the oracle rows elsewhere: {w:?}");
+            }
+        }
+        assert!(c.words, "the words stages stay on");
+        assert_eq!(PSpec::parse("Coupled").unwrap(), PSpec::Coupled);
+        assert_eq!(PSpec::Coupled.table(), Some(c));
+        assert_ne!(PSpec::Coupled, PSpec::Oracle);
+    }
+
+    #[test]
+    fn oracle_rows_are_the_coupled_rows_without_the_factor() {
+        use crate::synth::PSpec;
+        let (r, o) = (
+            PTableSpec::oracle_rows().table(),
+            PTableSpec::oracle().table(),
+        );
+        for (w, row) in [
+            (PWave::ShapeTriangle, 0.4),
+            (PWave::Multi, GAIN_PER_P16),
+            (PWave::Super, ORACLE_SUPER_ROW),
+        ] {
+            assert!(
+                (r.block(w).gain - row).abs() < 1.5e-3,
+                "{w:?} {}",
+                r.block(w).gain
+            );
+        }
+        assert_eq!(r.block(PWave::ShapeSquare), o.block(PWave::ShapeSquare));
+        assert_eq!(PSpec::parse("Oracle-Rows").unwrap(), PSpec::OracleRows);
+        assert_eq!(PSpec::OracleRows.table(), Some(r));
     }
 
     #[test]

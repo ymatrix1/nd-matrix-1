@@ -6,13 +6,20 @@ pub mod aot_audio;
 pub mod aot_hot;
 pub mod aot_rank;
 pub mod audio;
+pub mod feed_run;
 pub mod fx_probe;
 pub mod fx_run;
 pub mod fx_wav;
 pub mod jit_diff;
 pub mod live;
+pub mod live_flash;
 pub mod live_presets;
+pub mod live_smp;
 pub mod live_sy;
+#[cfg(test)]
+mod live_sy_tests;
+#[cfg(test)]
+mod live_tests;
 pub mod msg;
 pub mod pass;
 pub mod periph_run;

@@ -77,12 +77,33 @@ pub struct FirmwareFx {
     /// Firmware A-PAN (Fx1 types 0, 1) and TREM (types 2, 3) with the `kFx1Amt` /
     /// `kFx1RateClkDiv` words.
     pub mod1: bool,
+    /// Firmware PUMP (Fx1 types 10, 11, `0x122D2C`), on by default (D134): follows the Master
+    /// Clock when the program syncs to it (counter tick plus one cycle per division), free runs
+    /// otherwise. `false` (`--legacy-pump`) restores the engine pump model (`fx/mod1_dynamic.rs`).
+    /// Not in `FX_PORT_NAMES`: like `amp` it has its own opt-out. Independent of `mod1`.
+    pub pump: bool,
     /// Firmware Amp EQ (tone stack `0x1243F4` with the `kAmpTreble` / `kAmpBass` / `kAmpMid` /
     /// `kAmpMidFreq` words) in place of the engine's three biquads.
     pub eq: bool,
     /// Firmware Mod 2 (`kFx2Type` 0 to 11: `PHAS`, `FLANG`, `CHOR`, `VIBE`, `ENS`, `SPIN`) with the
     /// `kFx2Amt` / `kFx2Rate` words. `ENS` runs with ASSUMED circular tap registers (D95).
     pub mod2: bool,
+    /// Firmware Amp `LP24` / `HP24` (state variable pair `0x124EFA`, `kAmpMidFreq` / `kAmpMid`
+    /// words) in place of the engine's two biquad pairs. Opt-in (`--firmware-fx-ports lp24`), not in
+    /// [`Self::ALL`] or [`FX_PORT_NAMES`](super::FX_PORT_NAMES): no clip confirms it yet
+    /// (`docs/research/amp-types-789.md`). Latency 4 frames on an LP24 / HP24 layer.
+    pub lp24: bool,
+    /// Default since D187: the compressor context carries the firmware's own gain-law words (SLOPE 0.75
+    /// / 1.0, REDUCTION_SCALE 1/96, TABLE1 2^-16, LOG_GAIN 6.0, read from the FX image row and not
+    /// written by the ARM or the routine) instead of the ASSUMED ones (`fw_params::CMP_SLOPE`).
+    /// Only read with `compressor`. Not in `FX_PORT_NAMES`: it is a refinement of the `compressor`
+    /// port, on in `ALL` and `PARITY`; `--legacy-compressor-row` and `--legacy-fx-ports` turn it off.
+    pub compressor_row: bool,
+    /// Opt-in (D186): the firmware RM / A-WAH / WAH / PUMP stage runs the frames per call of the
+    /// layer's unit (`LayerFxChain::mod1_unit_frames`: 2 for the organ and piano units, 4 for the
+    /// synth units, the ARM's block count words times two frames) instead of
+    /// `LayerFxChain::mod1_rest_frames`. Only read with `mod1`. Not in `FX_PORT_NAMES`, not in `ALL`.
+    pub mod1_unit_calls: bool,
 }
 
 impl Default for FirmwareFx {
@@ -92,19 +113,25 @@ impl Default for FirmwareFx {
 }
 
 impl FirmwareFx {
-    /// The engine default: the verified firmware amp (`amp`, see its doc) and, since D163, the
-    /// firmware Mod 2 (`mod2`; `--legacy-mod2` turns it off). Mod 2 is the one family whose live
-    /// FX-chip null covers all 12 types (null -72 dB or better, level delta 0.00 dB,
-    /// `docs/research/fx-vs-oracle.md` s3.1) with the laws VERIFIED on a dense ARM grid (D90, D100).
-    pub const DEFAULT: Self = Self {
+    /// The engine default since D173: [`Self::PARITY`], every firmware FX port but the two reverb
+    /// ports (`--legacy-fx-ports` restores [`Self::PRE_PARITY`], `--legacy-mod2` also turns Mod 2
+    /// off). Mod 2 has been on since D163 and the amp earlier; D173 adds the delay laws and time,
+    /// the compressor, Mod 1 and the EQ after the owner's approval of 2026-11-20
+    /// (`docs/research/program-ranking-fx.md` s7).
+    pub const DEFAULT: Self = Self::PARITY;
+
+    /// The default of D163 to D170: the amp and Mod 2. What `--legacy-fx-ports` restores.
+    pub const PRE_PARITY: Self = Self {
         amp: true,
+        pump: true,
         mod2: true,
         ..Self::OFF
     };
 
-    /// The default before D163 (only `amp`), what `--legacy-all` and `--legacy-mod2` restore.
+    /// The default before D163 (`amp` and `pump`), what `--legacy-all` and `--legacy-mod2` restore.
     pub const LEGACY: Self = Self {
         amp: true,
+        pump: true,
         ..Self::OFF
     };
 
@@ -117,12 +144,16 @@ impl FirmwareFx {
         reverb: false,
         amp: false,
         mod1: false,
+        pump: false,
         eq: false,
         mod2: false,
+        lp24: false,
+        compressor_row: false,
+        mod1_unit_calls: false,
     };
 
     /// Every firmware port except the two reverb ports: delay laws and time, compressor, Mod 1,
-    /// EQ, Mod 2 and the amp. Opt-in (`--firmware-fx-ports parity`), not the default.
+    /// EQ, Mod 2 and the amp. The default since D173 (`--firmware-fx-ports parity` names it).
     ///
     /// EMPIRICAL: the set `docs/research/program-ranking-fx.md` found to explain the ranked
     /// distance of the worst 20 programs (mean score 18.14 to 2.19 with this set switched on,
@@ -143,8 +174,12 @@ impl FirmwareFx {
         reverb: true,
         amp: true,
         mod1: true,
+        pump: true,
         eq: true,
         mod2: true,
+        lp24: false,
+        compressor_row: true,
+        mod1_unit_calls: false,
     };
 }
 
@@ -152,14 +187,27 @@ impl FirmwareFx {
 mod tests {
     use super::*;
 
+    fn all_pump() -> bool {
+        std::hint::black_box(FirmwareFx::ALL).pump
+    }
+
     #[test]
     fn default_is_off_and_all_turns_every_switch_on() {
         assert_eq!(FirmwareFx::default(), FirmwareFx::DEFAULT);
         let d = std::hint::black_box(FirmwareFx::DEFAULT);
-        assert!(d.amp && !d.delay_laws && !d.compressor);
+        assert!(
+            d.amp && d.pump && d.delay_laws && d.compressor,
+            "PARITY is the default (D173)"
+        );
+        assert!(
+            !FirmwareFx::OFF.pump && all_pump(),
+            "PUMP is on by default (D134)"
+        );
         assert!(d.mod2, "the firmware Mod 2 is the default since D163");
+        let pre = std::hint::black_box(FirmwareFx::PRE_PARITY);
+        assert!(pre.amp && pre.mod2 && !pre.delay_laws && !pre.compressor && !pre.eq && !pre.mod1);
         let legacy = std::hint::black_box(FirmwareFx::LEGACY);
-        assert!(!legacy.mod2 && legacy.amp);
+        assert!(!legacy.mod2 && legacy.amp && legacy.pump);
         let all = std::hint::black_box(FirmwareFx::ALL);
         assert!(
             all.delay_laws
@@ -173,18 +221,25 @@ mod tests {
                 && all.mod2
         );
         assert!(!d.reverb, "the firmware reverb is opt-in");
-        assert!(!d.mod1 && all.mod1, "the firmware Mod 1 is opt-in");
+        assert!(
+            d.mod1 && all.mod1,
+            "the firmware Mod 1 is on by default since D173"
+        );
         assert!(all.mod2, "the firmware Mod 2 is part of ALL");
-        assert!(!d.eq && all.eq, "the firmware EQ is opt-in");
+        assert!(
+            d.eq && all.eq,
+            "the firmware EQ is on by default since D173"
+        );
         assert_ne!(all, FirmwareFx::OFF);
     }
 
     #[test]
-    fn parity_is_all_without_the_reverb_ports_and_is_not_the_default() {
+    fn parity_is_all_without_the_reverb_ports_and_is_the_default() {
         let p = std::hint::black_box(FirmwareFx::PARITY);
         assert!(p.delay_laws && p.delay_time && p.compressor && p.mod1 && p.eq && p.mod2 && p.amp);
         assert!(!p.reverb && !p.reverb_mix);
-        assert_ne!(p, FirmwareFx::DEFAULT);
+        assert_eq!(p, FirmwareFx::DEFAULT);
         assert_ne!(p, FirmwareFx::ALL);
+        assert_ne!(p, FirmwareFx::PRE_PARITY);
     }
 }

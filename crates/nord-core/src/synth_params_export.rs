@@ -32,7 +32,7 @@ use crate::synth_params::{
 ///   the file four gate codes (`E q Q .`); `pattern.enabled` is written.
 /// * `lfo_mst_clk`, `filter_env_dedicated`, `knobs`: not mapped by `apply_decoded_layer`.
 /// * `osc_ctrl_morph`, `filter_resonance_morph`, `lfo_rate_morph`, `lfo_amount_morph`,
-///   `filter_env_amount_morph`: the engine has no morph slot for them.
+///   `filter_env_amount_morph`, `osc_env_amount_morph`: the slots are not exported back.
 /// * `raw`: stored table indices and the raw filter type (`SynthLayerRaw`); a type `3` (LP+HP) has
 ///   no engine model, so it stays with the base while the engine model is unchanged.
 /// * `pan`, `enabled`, `level`, `level_morph`, `octave`: owned by `ProgramState::export_into`.
@@ -50,6 +50,7 @@ pub const LOSSY_FIELDS: &[&str] = &[
     "lfo_rate_morph",
     "lfo_amount_morph",
     "filter_env_amount_morph",
+    "osc_env_amount_morph",
     "raw",
 ];
 
@@ -356,6 +357,7 @@ mod tests {
         assert_eq!(dec.sample_id, base.sample_id);
         assert_eq!(dec.osc_ctrl_morph, base.osc_ctrl_morph);
         assert_eq!(dec.filter_resonance_morph, base.filter_resonance_morph);
+        assert_eq!(dec.osc_env_amount_morph, base.osc_env_amount_morph);
         assert_eq!(dec.pattern.gate, base.pattern.gate);
         assert_eq!(dec.pan, base.pan);
         assert!(LOSSY_FIELDS.contains(&"sample_id"));

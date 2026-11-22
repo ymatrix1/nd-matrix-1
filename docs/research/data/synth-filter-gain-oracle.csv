@@ -1,0 +1,23 @@
+program,p_wave,table_gain,filter_model,resonance,cutoff_hz,unison,oracle_filter_gain_db,native_filter_gain_db,gap_db,osc_path_delta_db,filter_out_delta_db
+Smooth Lead,shape,0.6,Lp24,0.516,370.0,0,6.05,0.11,5.94,4.45,10.39
+Crunch Synth,shape,0.6,Lp12,0.404,622.0,1,5.95,0.13,5.81,10.5,16.32
+80s Sci-Fi,multi,3.8,Ladder24,0.456,1500.0,0,-4.17,-9.47,5.3,0.26,5.56
+Silk Pad,super,2.4,Lp12,0.097,294.0,3,3.95,-1.37,5.31,2.54,7.86
+Horizon Whl,super,2.4,Lp24,0.0,277.0,0,2.96,-0.92,3.88,7.82,11.7
+12dB Sweep,shapesq,1.0,Lp12,0.726,147.0,3,4.26,-0.67,4.93,-1.95,2.98
+Phat 3 Osc MiniM,saw,0.4,Ladder24,0.0,13000.0,1,-2.34,-0.14,-2.2,11.38,9.18
+Filter Bank Ld,saw,0.4,BandPass,0.756,165.0,0,-1.88,-1.9,0.02,8.14,8.16
+Mega Line Whl,multi,3.8,Lp12,0.127,1200.0,3,4.22,-0.14,4.36,1.68,6.03
+Sidechain Whl II,super,2.4,Lp24,0.097,1600.0,3,5.03,-0.33,5.36,4.07,9.43
+Oo Pad Whl,super,2.4,Lp24,0.606,208.0,2,5.29,2.61,2.67,13.99,16.67
+Believer,super,2.4,Lp24,0.0,1000.0,3,5.03,-0.56,5.59,4.0,9.59
+Leaky Stabs II,shapesaw,0.4,Ladder24,0.037,2500.0,3,-3.5,-1.94,-1.56,6.0,4.44
+Funk Hit Split,multi,3.8,Lp12,0.0,7000.0,0,2.78,-0.05,2.83,0.55,3.37
+Ballad Layer Whl,shape,0.6,Lp24,0.0,1000.0,3,6.54,-0.17,6.71,9.84,16.55
+Glow Chords Whl,super,2.4,Lp12,0.95,277.0,0,-6.81,-21.99,15.17,5.63,20.81
+Statement Syn Bs,multi,3.8,Ladder24,0.539,370.0,0,-5.63,-8.76,3.13,0.97,4.1
+Slow Motion Pad,shape,0.6,Lp24,0.0,4200.0,2,6.64,-0.06,6.7,12.7,19.4
+HP Splash Whl,super,2.4,HighPass,0.18,196.0,2,4.17,-3.13,7.3,6.41,13.7
+Replica Lead,shapesaw,0.4,HighPass,0.187,58.0,1,4.1,0.06,4.04,10.95,14.99
+Chip Bass,saw,0.4,HighPass,0.389,41.0,0,3.91,0.17,3.74,18.21,21.95
+Distorted Whl II,other,1.0,HighPass,0.299,14.0,1,0.37,0.97,-0.6,-0.48,-1.07

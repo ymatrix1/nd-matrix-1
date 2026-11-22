@@ -45,6 +45,8 @@ impl FarfisaFw {
     pub(super) fn new() -> Self {
         let mut machine = Machine::new();
         machine.load_image(IMAGE);
+        machine.set_programs(None, &FARFISA_ROWS);
+        machine.use_native_farfisa();
         Self { machine }
     }
 
@@ -88,7 +90,7 @@ impl FarfisaFw {
 
     /// One processor call (two frames): the two output samples of lane PEx.
     pub(super) fn step(&mut self) -> [f32; 2] {
-        self.machine.call(&FARFISA_ROWS, PRESET);
+        self.machine.call_main(PRESET);
         [self.machine.rd_f(PRESET.0), self.machine.rd_f(PRESET.0 + 2)]
     }
 }
@@ -162,6 +164,37 @@ mod tests {
     }
 
     #[test]
+    fn compiled_processor_equals_the_reference_executor_state_for_state() {
+        // both lattice tables (flag 0 and 1: the conditional jump), the golden rings of the oracle:
+        // after every call the whole machine of the compiled and the row executor is equal
+        for (csv, flag) in [
+            (
+                include_str!("../../../../../docs/research/data/farfisa-fw-golden.csv"),
+                false,
+            ),
+            (
+                include_str!("../../../../../docs/research/data/farfisa-fw-golden-flag1.csv"),
+                true,
+            ),
+        ] {
+            let (mut fast, mut slow) = (chord_machine(flag), chord_machine(flag));
+            for (call, (_, ring)) in golden(csv).iter().enumerate() {
+                fast.set_ring_words(ring);
+                slow.set_ring_words(ring);
+                fast.machine.call_main(PRESET);
+                slow.machine.call(&FARFISA_ROWS, PRESET);
+                let (a, b) = (&fast.machine, &slow.machine);
+                assert_eq!(
+                    (a.d, a.i, a.mr, a.an, a.az),
+                    (b.d, b.i, b.mr, b.an, b.az),
+                    "call {call}"
+                );
+                assert!(a.mem == b.mem, "DM, call {call}");
+            }
+        }
+    }
+
+    #[test]
     fn silent_without_keys_and_ring_input() {
         let mut m = FarfisaFw::new();
         for _ in 0..4 {
@@ -179,5 +212,24 @@ mod tests {
         assert_eq!(m.machine.rd(0x9_6020 + 0xD0), 0);
         m.set_bias(true);
         assert_eq!(m.machine.rd(0xC_2D59), BIAS);
+    }
+
+    #[test]
+    fn the_straight_line_routine_equals_the_interpreter_state_for_state() {
+        // both lattice tables, three held keys, a ring that changes every call
+        for flag in [false, true] {
+            let (mut a, mut b) = (chord_machine(flag), chord_machine(flag));
+            a.machine.use_interpreter();
+            for call in 0..300 {
+                let ring: [f32; RING_LEN] =
+                    std::array::from_fn(|k| ((call * 7 + k) as f32 * 0.37).sin() * 0.25);
+                for f in [&mut a, &mut b] {
+                    f.set_ring(0, &ring);
+                    f.set_ring(1, &ring);
+                }
+                assert_eq!(a.step(), b.step(), "output, call {call}");
+                a.machine.assert_same_state(&b.machine, call);
+            }
+        }
     }
 }

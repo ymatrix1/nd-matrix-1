@@ -15,7 +15,7 @@
 //! recorded states); voice record jitter, the slot reuse, `DM 0xB44CB`, the drawbar and percussion
 //! settings (the tables are the `888888888` key-down) and the `G` resync after a key-up ASSUMED.
 
-use super::b3_bass_fw::Machine;
+use super::b3_bass_fw::{Machine, GEN_ROWS, PROC_ROWS};
 use super::b3_bass_gen::GenWeights;
 use super::b3_bass_state::BassState;
 use super::b3_bass_voice::{word_addr, VoiceTable, SLOTS};
@@ -75,6 +75,8 @@ impl B3BassStage {
     pub(super) fn new() -> Self {
         let mut machine = Machine::new();
         machine.load_image(IMAGE);
+        machine.set_programs(Some(&GEN_ROWS), &PROC_ROWS);
+        machine.use_native_bass();
         Self {
             machine,
             state: BassState::new(),

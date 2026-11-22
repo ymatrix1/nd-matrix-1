@@ -41,8 +41,19 @@ impl StripEnvRecords {
     /// constants = [`DECAY_TAU_FRACTION`] x the displayed time; the 3 ms floor of decay and
     /// release is the classic OS v1.66 floor.
     pub fn from_panel(attack_sec: f32, decay_sec: f32, release_sec: f32, sustain: f32) -> Self {
+        Self::from_panel_with(attack_sec, decay_sec, release_sec, sustain, DEFAULT_TABLES)
+    }
+
+    /// [`Self::from_panel`] with explicit rate tables (D212: legacy or settled).
+    pub fn from_panel_with(
+        attack_sec: f32,
+        decay_sec: f32,
+        release_sec: f32,
+        sustain: f32,
+        tables: RateTables,
+    ) -> Self {
         let hold = decay_sec >= 44.0;
-        let atk = attack_coeff(attack_index(attack_sec) as f32);
+        let atk = (tables.attack)(attack_index(attack_sec) as f32);
         let dec_idx = if hold {
             RATE_INDEX_MAX
         } else {
@@ -56,12 +67,12 @@ impl StripEnvRecords {
                 thr: 0.0,
             },
             decay: FwAdrRecord {
-                a: decay_release_coeff(dec_idx as f32),
+                a: (tables.decay_release)(dec_idx as f32),
                 b: 0.0,
                 thr: if hold { 1.0 } else { sustain.clamp(0.0, 1.0) },
             },
             release: FwAdrRecord {
-                a: decay_release_coeff(rel_idx as f32),
+                a: (tables.decay_release)(rel_idx as f32),
                 b: 0.0,
                 thr: 0.0,
             },
@@ -70,9 +81,22 @@ impl StripEnvRecords {
 }
 
 impl StripEnvRecords {
+    /// The oracle envelope law (`fw_adr_law.rs`): the settled attack coefficient of the stored
+    /// attack index `word` and the decay record stopping at 0.5 (also in Hold).
+    pub fn with_oracle_law(mut self, attack_word: i32) -> Self {
+        self.attack.b = super::fw_adr_law::attack_b(attack_word);
+        self.decay.thr = super::fw_adr_law::FW_DECAY_SUSTAIN;
+        self
+    }
+
     /// Records straight from the stored rate knobs (`fw_knob_laws.rs`: rate index = knob - 64,
     /// VERIFIED run); decay knob 127 is Hold. No time search, no displayed-time assumption.
     pub fn from_knobs(k: EnvKnobs, sustain: f32) -> Self {
+        Self::from_knobs_with(k, sustain, DEFAULT_TABLES)
+    }
+
+    /// [`Self::from_knobs`] with explicit rate tables (D212: legacy or settled).
+    pub fn from_knobs_with(k: EnvKnobs, sustain: f32, tables: RateTables) -> Self {
         let hold = k.decay >= 127;
         let dec = if hold {
             RATE_INDEX_MAX
@@ -82,16 +106,16 @@ impl StripEnvRecords {
         Self {
             attack: FwAdrRecord {
                 a: 1.0,
-                b: attack_coeff(rate_index_for_knob(k.attack) as f32),
+                b: (tables.attack)(rate_index_for_knob(k.attack) as f32),
                 thr: 0.0,
             },
             decay: FwAdrRecord {
-                a: decay_release_coeff(dec as f32),
+                a: (tables.decay_release)(dec as f32),
                 b: 0.0,
                 thr: if hold { 1.0 } else { sustain.clamp(0.0, 1.0) },
             },
             release: FwAdrRecord {
-                a: decay_release_coeff(rate_index_for_knob(k.release) as f32),
+                a: (tables.decay_release)(rate_index_for_knob(k.release) as f32),
                 b: 0.0,
                 thr: 0.0,
             },
@@ -109,7 +133,7 @@ pub struct StripParams {
 }
 
 /// Cache key: the panel values `StripParams` is a function of.
-pub(super) type StripKey = [f32; 15];
+pub(super) type StripKey = [f32; 16];
 
 impl SynthLayer {
     fn strip_key(&self) -> StripKey {
@@ -140,11 +164,12 @@ impl SynthLayer {
             k[4],
             k[5],
             k[6],
+            if self.fw_adr_law { 1.0 } else { 0.0 },
         ]
     }
 
     /// The envelope knobs the chain uses: only with `knob_laws` on and a program that carries them.
-    fn active_knobs(&self) -> Option<StripKnobs> {
+    pub(super) fn active_knobs(&self) -> Option<StripKnobs> {
         self.strip_knobs.filter(|_| self.knob_laws)
     }
 
@@ -156,25 +181,41 @@ impl SynthLayer {
                 return p;
             }
         }
+        // The oracle law reads the settled rate tables (D212); the default the stale sweep.
+        let tables = if self.fw_adr_law {
+            SETTLED_TABLES
+        } else {
+            DEFAULT_TABLES
+        };
         let (amp, filter) = match self.active_knobs() {
             Some(k) => (
-                StripEnvRecords::from_knobs(k.amp, self.sustain_level),
-                StripEnvRecords::from_knobs(k.filter, 0.0),
+                StripEnvRecords::from_knobs_with(k.amp, self.sustain_level, tables),
+                StripEnvRecords::from_knobs_with(k.filter, 0.0, tables),
             ),
             None => (
-                StripEnvRecords::from_panel(
+                StripEnvRecords::from_panel_with(
                     self.attack_sec,
                     self.decay_sec,
                     self.release_sec,
                     self.sustain_level,
+                    tables,
                 ),
-                StripEnvRecords::from_panel(
+                StripEnvRecords::from_panel_with(
                     self.filter_env_attack_sec,
                     self.filter_env_decay_sec,
                     self.filter_env_release_sec,
                     0.0,
+                    tables,
                 ),
             ),
+        };
+        let (amp, filter) = if self.fw_adr_law {
+            (
+                amp.with_oracle_law(self.amp_attack_word()),
+                filter.with_oracle_law(self.filter_attack_word()),
+            )
+        } else {
+            (amp, filter)
         };
         let p = StripParams {
             amp,
@@ -236,9 +277,21 @@ pub struct StripVoice {
     filter: EnvChain,
     clock: f32,
     released: bool,
+    /// Attack coefficient of this voice's amp chain (`fw_adr_law`); `None` uses the shared record.
+    pub amp_attack_b: Option<f32>,
 }
 
 impl StripVoice {
+    /// A voice whose amp attack record is the table entry of `amp_attack_index(word, key_byte)`
+    /// (`fw_adr_law.rs`).
+    pub fn with_scaled_amp_attack(word: i32, key_byte: u8) -> Self {
+        let idx = super::fw_adr_law::amp_attack_index(word, key_byte);
+        Self {
+            amp_attack_b: Some(super::fw_adr_law::attack_b(idx)),
+            ..Self::default()
+        }
+    }
+
     /// Advances one engine frame; steps both chains once per pass. Returns `(amp, filter)` levels.
     ///
     /// Gate off moves both chains to their release record once (the controller `T` change of the
@@ -253,7 +306,14 @@ impl StripVoice {
         self.clock += 1.0;
         while self.clock >= p.period_frames {
             self.clock -= p.period_frames;
-            self.amp.step(&p.amp);
+            match self.amp_attack_b {
+                Some(b) => {
+                    let mut recs = p.amp;
+                    recs.attack.b = b;
+                    self.amp.step(&recs);
+                }
+                None => self.amp.step(&p.amp),
+            }
             self.filter.step(&p.filter);
         }
         (self.amp.y, self.filter.y)

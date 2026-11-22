@@ -6,6 +6,7 @@ pub mod bench_gui_breakdown;
 pub mod bench_gui_cli;
 pub mod bench_gui_prog;
 pub mod bench_gui_reload;
+pub mod bench_organ_fw;
 pub mod cbin;
 pub mod engine;
 pub mod firmware;
@@ -33,6 +34,9 @@ pub mod store_cli;
 pub mod sweep;
 pub mod synth;
 pub mod synth_morph;
+#[cfg(test)]
+mod synth_morph_osc_env_tests;
+pub mod synth_osc_env_word;
 pub mod synth_params;
 pub mod synth_params_arp;
 pub mod synth_params_export;

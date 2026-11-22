@@ -128,6 +128,83 @@ This restates the audit of [firmware-flag-audit](firmware-flag-audit.md) per gro
 - Mod 2 is the default since D163; `--firmware-fx-ports parity` applies the rest of this evidence in one switch, and D163 proposes making it the default once the owner has decided the open items of s4. What stays high after it is reverb (Sine Rain Pad, DistantGrand) and the organ programs.
 - The cheapest items that would let the flip pass D136: a dry-reference Mod 2 clip (chorus delay), the EQ joint mid words, the Mod 1 call count.
 
+## 7. Update 2026-11-20 (D173): PARITY becomes the default; rate match and the chorus delay
+
+- **Checked:** 2026-11-20. Same sources as above plus `emu_vs_hw.py` on the six hardware clips ([emu_vs_hw_parity_rate_match.json](data/emu_vs_hw_parity_rate_match.json), results [emu_vs_hw_parity_rate_match_results.json](data/emu_vs_hw_parity_rate_match_results.json)). New: `program_rank --flip fx_rate_match`, `--legacy-fx-ports`, `program_rank_combo.py --moves`. Data: [program-ranking-fx-parity-flip-384.csv](data/program-ranking-fx-parity-flip-384.csv).
+- **Question:** with the chorus delay explained ([fx-chorus-hw-clip](fx-chorus-hw-clip.md) s8), does the rest of `PARITY` pass as the default, and should `--fx-rate-match` follow?
+
+### 7.1 384 programs, default of D163 to D170 against PARITY (score against the all-firmware render)
+
+| Flipped set | n | Mean | Median | p90 | Max | > 5 | > 10 | Worse by > 0.5 | Tag |
+|---|---|---|---|---|---|---|---|---|---|
+| none (amp, PUMP, Mod 2) | 384 | 3.72 | 2.74 | 8.18 | 21.15 | 100 | 23 | - | EMPIRICAL |
+| delay + compressor + EQ + Mod 1 (= PARITY) | 384 | 1.66 | 1.04 | 3.84 | 16.61 | 22 | 3 | 8 | EMPIRICAL |
+
+213 programs improve by more than 0.5. The 8 that get worse: Silent Upright 2.62 to 4.89, Innocense 0.83 to 2.54, NS4 Palette 1.80 to 3.50, White Chorus 0.72 to 2.28, Marimba 0.54 to 1.65, Phil Pad 0.21 to 1.08, Detuned Fanfare 1.94 to 2.66, Arctic Choir Whl 1.39 to 2.01. The all-firmware render is the target on both sides, so these eight differ from the firmware render with the new set in a way the chosen subset does not explain (the missing pieces are the reverb ports, kept out by the owner).
+
+### 7.2 Six hardware clips (score of `emu_vs_hw.py`, smaller is better)
+
+| Clip | default | rate-match | parity | parity + rate-match |
+|---|---|---|---|---|
+| organ B3 | 5.42 | 5.42 | 5.45 | 5.45 |
+| organ Vox + Twin (default tone) | 2.53 | 2.02 | 2.74 | 2.24 |
+| organ Vox (vox tone) | 4.90 | 4.57 | 4.69 | 4.34 |
+| piano dry | 2.02 | 2.02 | 2.02 | 2.02 |
+| synth lead | 0.69 | 0.69 | 0.69 | 0.69 |
+| synth SUPER LP24 sidechain | 4.47 | 4.47 | 3.78 | 3.78 |
+| FX amp (Tiny Transistor) | 5.37 | 3.80 | 4.29 | 3.23 |
+
+No clip gets worse by more than 0.21 under PARITY (Vintage Vox 2.53 to 2.74; recovered to 2.24 with the rate match). EMPIRICAL (one take per clip). The clip run is from before the merge of the PUMP default (D134) and was not repeated; whether a clip program uses a PUMP was not checked.
+
+### 7.3 `--fx-rate-match`
+
+Flipped alone on the 384 programs it moves the render from the default by a mean of 0.29 score units (median 0.00; 43 programs by more than 1, 12 by more than 3; largest Farfisa II 7.0, Texas Nights J3 6.4, NS4 Palette 5.2); the moves are the amp and cabinet programs, as D137 predicted. No firmware render exists for it (it is a converter), so the direction comes from the clips in 7.2: it never worsens a clip and takes the amp clip from 5.37 to 3.80. The owner has not been asked yet: it stayed opt-in in D173 and became the default in D180 (section 8).
+
+### 7.3b Program sweep
+
+**Program sweep (merged with PUMP, D134; `program_sweep` against `--legacy-fx-ports`):** 384 programs, no panic and no non-finite sample; the default render changes in 297 programs (128 by more than 1 dB RMS, 40 by more than 3 dB, largest +9.8 dB 16th Note Bass and -9.5 dB PineScape Synth), the firmware render in none. The default-to-firmware level gap shrinks from mean 1.29 to 0.42 dB (programs above 3 dB 48 to 3, above 6 dB 10 to 0); one program's gap grows by more than 1 dB (Night Gaunts Whl 0.2 to 3.0). 18 programs clip more samples (29 programs with a clipped sample against 24; Q and A 0 to 862 samples; the firmware render clips 27 programs by itself), the higher level is the firmware's. `docs/research/data/program-sweep.json` and `program-coverage.md` are regenerated.
+
+### 7.4 Remaining blockers (not waived by the flip)
+
+Compressor words (6.2; row ported opt-in in D187, s9), Mod 1 call count (OQ38; per unit kind in D186, s9), PUMP clock (OQ36), EQ joint mid words, CHOR type 5 / ENS / SPIN clips.
+
+Reproduce (the ranking tools now compare against the new default; `--legacy-fx-ports` reproduces the D163 baseline, `--legacy-mod2` the older data):
+
+```bash
+cargo build --release -p nord-tools --bin program_rank
+target/release/program_rank "$B" --jobs 12 --legacy-fx-ports   --flip "fx_rate_match,fx_delay+fx_compressor+fx_eq+fx_mod1,fx_delay+fx_compressor+fx_eq+fx_mod1+fx_rate_match" > flip384.jsonl
+python tools/program_rank_combo.py --flip flip384.jsonl --md --flip-sets "fx_delay+fx_compressor+fx_eq+fx_mod1"
+python tools/program_rank_combo.py --flip flip384.jsonl --moves fx_rate_match
+uv run python tools/emu_vs_hw.py --spec docs/research/data/emu_vs_hw_parity_rate_match.json --video <Part A .webm> --backup "$B" --workdir <scratch> --confirmed-only
+```
+
+## 8. Update 2026-11-21 (D180): the FX rate match becomes the default
+
+- **Checked:** 2026-11-21, on `main` at `0af9c66a` plus the D180 change. Sources: the factory restore backup (384 programs, key 60, velocity 100) and the Part A video (six clips), both local. Tools: `program_rank --legacy-fx-rate --flip fx_rate_match` (new `--skip N --every K` shards a run), `program_sweep` with and without `--legacy-fx-rate`, `tools/emu_vs_hw.py --spec docs/research/data/emu_vs_hw_rate_match_default.json`. Data: [program-ranking-rate-match-default-384.csv](data/program-ranking-rate-match-default-384.csv), [emu_vs_hw_rate_match_default_results.json](data/emu_vs_hw_rate_match_default_results.json), `program-sweep.json` regenerated.
+- **Question:** the owner approved the flip (2026-11-21); does the re-run on current `main` (PUMP D134, Mod 2 D163, PARITY D173) show a clip or many programs clearly worse?
+
+### 8.1 Six hardware clips (score of `emu_vs_hw.py`, smaller is better; EMPIRICAL, one take per clip)
+
+| Clip | `--legacy-fx-rate` (D173 default) | rate match (new default) |
+|---|---|---|
+| organ B3 | 5.45 | 5.45 |
+| organ Vox + Twin (default tone) | 2.74 | 2.25 |
+| organ Vox (vox tone) | 4.70 | 4.35 |
+| piano dry | 2.02 | 2.02 |
+| synth lead | 0.69 | 0.69 |
+| synth SUPER LP24 sidechain | 3.78 | 3.78 |
+| FX amp (Tiny Transistor) | 4.29 | 3.23 |
+
+No clip is worse; three improve and the others score the same (no firmware amp in the program). The numbers repeat the table of 7.2 on the tree after the PUMP default, which that table lacked.
+
+### 8.2 384 programs: the ranking score cannot judge the converter
+
+`program_rank` scores a render by its distance to the all-firmware render, and that render has no converter (it is a converter, not a firmware port, D137). Flipping it therefore can only move an amp program **away** from the target in this metric, whatever the hardware does. Result, same method as 7.3 (target rendered with the same converter setting as the baseline): 44 programs change (the others have no firmware amp); mean move 0.29 score units (median 0.00), 43 programs by more than 1, 13 by more than 3, largest Farfisa II 7.0, Texas Nights J3 6.2, Vibra-Spin Whl 4.6; score mean 1.66 to 1.84, median 1.04 to 1.14, programs above 5 from 22 to 27, above 10 stay 3. 36 programs score more than 0.5 worse **in this metric** (list in the CSV; the largest: Farfisa II 0.93 to 6.57, Texas Nights J3 3.36 to 7.78, Distorted Whl II 2.40 to 6.07, Jealous Upright 1.44 to 5.00, Q and A 0.00 to 3.42, Silent Upright 4.89 to 7.97, Jazz Guitar II 1.02 to 4.05, LoFi Piano 0.65 to 3.57); all of them use a firmware Amp type. These are the same moves as in 7.3 (43 over 1, 13 over 3, mean 0.29); the direction is decided by the clips in 8.1, where every amp clip improves. The effect is the one D137 predicted (cabinet features 1.106 times too high in Hz without the converter).
+
+### 8.3 Program sweep (default render, rate match against `--legacy-fx-rate`)
+
+384 programs, no panic, no non-finite sample. The default render changes in 44 programs (35 by more than 0.1 dB RMS, 2 by more than 1 dB: Vibra-Spin Whl +1.75 dB, LoFi Piano +1.19 dB; none by 3 dB). The default-to-firmware level gap stays mean 0.42 dB (3 programs above 3 dB, 0 above 6, no gap grows by more than 1 dB). Programs with a clipped default sample 29 to 28 (Vox Inna-Gadda 2,987 to 3,167 clipped samples). The converter adds about 0.8 ms of latency on layers whose amp runs the firmware stage (not measured in the sweep).
+
 ## Follow-ups
 
 1. Owner decision on the rest of D163 (flip `FirmwareFx::DEFAULT` from amp + Mod 2 to `PARITY`, GUI default); `eq` + `mod1` + `mod2` is the smaller step: `eq` + `mod1` + `mod2` takes the worst 20 from 18.14 to 4.74 and all 384 from 5.35 to 2.70 (the tables above).
@@ -203,4 +280,19 @@ Compressor instance of FX core 1 (`I1 = 0xB0168`, attack pair at `DM(0xB0148)` a
 | SMOOTH | -0x09 | 0.99078 | 0.9908 |
 | MANT_SCALE, FIX_SCALE | -0x0D, -0x0C | -31, 31 | -31, 31 |
 
-So the port, which nulls the oracle for its own words, does not reproduce the firmware gain law: `fx-vs-oracle` s3.4 proves the routine, not the words. Caveat: these are the static-image words; they are not confirmed unmodified at runtime (the ARM boot log writes only the attack, release, makeup and threshold words, and the DSP code could still rewrite the others). Following change (not in this PR): take SLOPE, REDUCTION_SCALE, TABLE1, LOG_GAIN from the image in `compressor_for_amount`, rerun `fx_vs_oracle.py --only COMP`, then ranked before/after and the default flip decision (opt-out `--legacy-compressor`), with an `ns4 bench` number and the apply_program, edit, render tests. Tracked in `docs/OPEN-QUESTIONS.md` OQ38 note and bean follow-up.
+So the port, which nulls the oracle for its own words, does not reproduce the firmware gain law: `fx-vs-oracle` s3.4 proves the routine, not the words. **Update 2026-11-21 (D187, s9):** confirmed unmodified at runtime (the ARM writes none of the gain-law words, the oracle chain with the row nulls the port at -102 to -108 dB, [fx-compressor-row](fx-compressor-row.md)); the port is opt-in `--compressor-row`. Following change (not in this PR): take SLOPE, REDUCTION_SCALE, TABLE1, LOG_GAIN from the image in `compressor_for_amount`, rerun `fx_vs_oracle.py --only COMP`, then ranked before/after and the default flip decision (opt-out `--legacy-compressor`), with an `ns4 bench` number and the apply_program, edit, render tests. Tracked in `docs/OPEN-QUESTIONS.md` OQ38 note and bean follow-up.
+
+## 9. Update 2026-11-21 (D186, D187): compressor row (default since D187) and Mod 1 unit calls (opt-in)
+
+`program_rank --flip fx_compressor_row,fx_mod1_unit_calls,fx_compressor_row+fx_mod1_unit_calls` on the current default (4 shards), score against the all-firmware render, which now includes both switches (`rank_groups::firmware_options`). Data: [program-ranking-compressor-row-mod1-units-384.csv](data/program-ranking-compressor-row-mod1-units-384.csv).
+
+| Flipped set | Mean | Median | p90 | Max | > 5 | > 10 | Worse by > 0.5 |
+|---|---|---|---|---|---|---|---|
+| none (default) | 2.12 | 1.28 | 4.66 | 28.04 | 35 | 7 | - |
+| `fx_compressor_row` | 1.66 | 1.05 | 3.84 | 16.61 | 22 | 3 | 1 |
+| `fx_mod1_unit_calls` | 2.12 | 1.27 | 4.66 | 28.04 | 35 | 7 | 1 |
+| both | 1.66 | 1.04 | 3.84 | 16.61 | 22 | 3 | 1 |
+
+- **Compressor row:** 50 programs improve by more than 0.5 (16th Note Bass 28.04 to 0.00, Burning Lead 24.25 to 0.65, Bounce Clav 21.20 to 0.59, Fan Club Piano 13.57 to 1.23, Filter Bank Ld 8.77 to 0.00), 1 gets worse (Silent Upright 5.12 to 6.09). Caveat: the target contains the row, so the table says which programs carry the compressor, not that the row is right; the evidence that it is right is the oracle chain (-102 to -108 dB, [fx-compressor-row](fx-compressor-row.md)).
+- **Mod 1 unit calls:** only the synth chains change, so the ranking sees 1 program move over 0.5 (Time Warp Saw 5.87 to 6.83, worse) and the mean moves 0.011. The ranking cannot judge this switch; the evidence is the ARM words (organ and piano 1 block, synth 2 blocks, [fx-mod1-call-count](fx-mod1-call-count.md)). No hardware clip.
+- No panic, no non-finite sample in the 384 renders; `render_hash` and the golden hash are unchanged (defaults unchanged).

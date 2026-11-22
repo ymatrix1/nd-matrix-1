@@ -34,7 +34,7 @@ const GOLDEN: [(&str, usize, f64, f64, &str); 5] = [
         480000,
         1.000000,
         0.215027,
-        "374e5522cf4088697bffd8f227fd018d16fe0766363162ba3eca63f09a7faec0",
+        "dd1b5c500ceef4246cad679329a4d78f40f1632e2d94c8b3892d4e4d8ec52289",
     ),
     (
         "synth",
@@ -60,14 +60,14 @@ const GOLDEN: [(&str, usize, f64, f64, &str); 5] = [
     (
         "fx",
         800000,
-        0.996035,
-        0.259867,
-        "567a8b6098118b808fcc3baefb8553ab089e43a32f2b05ab29f20afc8723d17b",
+        0.996211,
+        0.226648,
+        "574417ff36d30c50b44276e0497d57b8740b3cbc25dd174953dcdf2a7f1cc213",
     ),
 ];
 
 /// Whole-file SHA-256 of `render_hash` (the five segments joined).
-const WHOLE: &str = "eb13063d4fca837a613670168a005b564c7f235a1578136d03955fa968d2ca28";
+const WHOLE: &str = "18fafeee4860b3ff60e8d9e15a97c7f0805c16a19393e7468527566b0859a799";
 
 /// Peak and RMS of little-endian f32 samples; `None` when one is not finite.
 fn stats(bytes: &[u8]) -> Option<(f64, f64)> {

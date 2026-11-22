@@ -105,6 +105,29 @@ def test_sy_chip_spec_takes_path_1_and_the_sy_flag() -> None:
     assert s.flags() == ["--sy"]  # no epdma, no level window
     assert r.parse_chip_spec("SY:0=sy=i==").path == 1 and r.parse_chip_spec("ORG:2=org=i").path == 2
     assert r.parse_chip_spec("SY:0=sy=i=epchain").flags() == ["--sy", "--epchain"]
+    # D206: opt-in ARM pacing and the FIFO index bias (R3 = 0x80000 in the SY ISR too)
+    paced = ["--fifo-pace", "1", "--index-bias", "0x80000"]
+    assert r.parse_chip_spec("SY:0=sy=i=epchain+paced").flags() == ["--sy", "--epchain", *paced]
+    assert r.parse_chip_spec("SY:0=sy=i=paced").flags() == ["--sy", *paced]
+
+
+def test_smp_chip_spec_takes_path_1_and_the_smp_flag():
+    s = r.parse_chip_spec("SMP:0=smp=target/DSP/dsp_image_4_SMP.bin")
+    assert (s.name, s.comm, s.core, s.path, s.flags()) == (
+        "SMP0",
+        4,
+        0,
+        1,
+        ["--smp", "--fifo-pace", "1"],
+    )
+
+
+@pytest.mark.parametrize(
+    "bad", ["SMP:0=sy=i", "SY:0=smp=i", "SMP:1=smp=i", "PNO:1=smp=i", "ORG:0=smp=i"]
+)
+def test_smp_chip_spec_rejects_mismatched_chip_and_preset(bad):
+    with pytest.raises(ValueError):
+        r.parse_chip_spec(bad)
 
 
 @pytest.mark.parametrize("bad", ["SY:0=org=i", "SY:1=sy=i", "ORG:0=org=i", "PNO:0=sy=i"])

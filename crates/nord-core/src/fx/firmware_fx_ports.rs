@@ -28,6 +28,7 @@ impl FirmwareFx {
             "mod1" => &mut self.mod1,
             "mod2" => &mut self.mod2,
             "eq" => &mut self.eq,
+            "lp24" => &mut self.lp24,
             _ => return None,
         })
     }
@@ -46,6 +47,10 @@ impl FirmwareFx {
     /// Switches on every port that is on in `other` (including `amp`); never switches one off.
     pub fn merge_on(&mut self, other: &FirmwareFx) {
         self.amp |= other.amp;
+        self.pump |= other.pump;
+        self.lp24 |= other.lp24;
+        self.compressor_row |= other.compressor_row;
+        self.mod1_unit_calls |= other.mod1_unit_calls;
         for n in PORT_NAMES {
             if other.port(n) {
                 if let Some(p) = self.port_mut(n) {
@@ -68,7 +73,7 @@ impl FirmwareFx {
                 *p = true;
             } else {
                 return Err(format!(
-                    "invalid --firmware-fx-ports entry '{item}' (expected all|parity|{})",
+                    "invalid --firmware-fx-ports entry '{item}' (expected all|parity|lp24|{})",
                     PORT_NAMES.join("|")
                 ));
             }
@@ -111,11 +116,17 @@ mod tests {
         let mut g = FirmwareFx::OFF;
         g.merge_on(&FirmwareFx::DEFAULT);
         assert!(
-            g.amp && g.ports_on() == ["mod2"],
-            "the default is amp and Mod 2 (D163)"
+            g.amp && g.pump && g.ports_on().len() == 6 && !g.reverb,
+            "the default is PARITY (D173, PUMP D134)"
+        );
+        let mut pre = FirmwareFx::OFF;
+        pre.merge_on(&FirmwareFx::PRE_PARITY);
+        assert!(
+            pre.amp && pre.pump && pre.ports_on() == ["mod2"],
+            "amp, PUMP and Mod 2 (D163, D134)"
         );
         let mut l = FirmwareFx::OFF;
         l.merge_on(&FirmwareFx::LEGACY);
-        assert!(l.amp && l.ports_on().is_empty());
+        assert!(l.amp && l.pump && l.ports_on().is_empty());
     }
 }
