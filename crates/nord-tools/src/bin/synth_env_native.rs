@@ -8,13 +8,17 @@
 //! level, and the native cutoff coefficient `R` (strip word law of `fw_strip_cutoff.rs`) after
 //! the engine's `2^(amount x octaves x level)` filter envelope law. No audio is produced.
 //! `--adr-law [--g 98]` applies the opt-in oracle envelope law of D210 (amp attack scaled by the
-//! key byte `g`, settled attack table, decay sustain 0.5).
+//! key byte `g`, settled attack table, decay sustain 0.5). `--rates settled` reads the settled
+//! rate tables (D212, `fw_env_settled.rs`) instead of the stale sweep, `--sustain-half` stops both
+//! decay records at 0.5 (the oracle image default) without the velocity law, so a table error can
+//! be compared alone.
 
 use nord_core::cbin::{CbinFile, FILTER_CUTOFF_HZ_TABLE};
 use nord_core::engine::Stage4Engine;
 use nord_core::synth::{
-    fw_env_cutoff_hz, fw_strip_cutoff_r, rate_index_for_knob, strip_word_for_cutoff,
-    StripEnvRecords, StripKnobs, StripParams, StripVoice, SynthLayer,
+    fw_env_cutoff_hz, fw_strip_cutoff_r, rate_index_for_knob, strip_word_for_cutoff, RateTables,
+    StripEnvRecords, StripKnobs, StripParams, StripVoice, SynthLayer, DEFAULT_TABLES,
+    SETTLED_TABLES,
 };
 use serde_json::{json, Value};
 
@@ -93,13 +97,39 @@ fn knobs_json(k: &StripKnobs) -> Value {
     })
 }
 
+/// Rate tables and the sustain override of a run (`--rates`, `--sustain-half`).
+#[derive(Clone, Copy)]
+pub struct Variant {
+    pub tables: RateTables,
+    pub sustain_half: bool,
+}
+
+impl Variant {
+    /// Default tables, panel sustain.
+    pub fn default_run() -> Self {
+        Self {
+            tables: DEFAULT_TABLES,
+            sustain_half: false,
+        }
+    }
+}
+
 /// Chain parameters and the voice of a layer; `law = Some(g)` applies the D210 oracle law.
-pub fn chain_setup(knobs: &StripKnobs, sustain: f32, law: Option<u8>) -> (StripParams, StripVoice) {
+pub fn chain_setup(
+    knobs: &StripKnobs,
+    sustain: f32,
+    law: Option<u8>,
+    variant: Variant,
+) -> (StripParams, StripVoice) {
     let mut params = StripParams {
-        amp: StripEnvRecords::from_knobs(knobs.amp, sustain),
-        filter: StripEnvRecords::from_knobs(knobs.filter, 0.0),
+        amp: StripEnvRecords::from_knobs_with(knobs.amp, sustain, variant.tables),
+        filter: StripEnvRecords::from_knobs_with(knobs.filter, 0.0, variant.tables),
         period_frames: 1.0,
     };
+    if variant.sustain_half {
+        params.amp.decay.thr = 0.5;
+        params.filter.decay.thr = 0.5;
+    }
     let Some(g) = law else {
         return (params, StripVoice::default());
     };
@@ -111,6 +141,7 @@ pub fn chain_setup(knobs: &StripKnobs, sustain: f32, law: Option<u8>) -> (StripP
     (params, StripVoice::with_scaled_amp_attack(word, g))
 }
 
+#[allow(clippy::too_many_arguments)] // one flat call per CLI flag
 fn layer_report(
     layer: &SynthLayer,
     on: usize,
@@ -119,11 +150,12 @@ fn layer_report(
     note_offset: f32,
     kb_track: u8,
     law: Option<u8>,
+    variant: Variant,
 ) -> Result<Value, String> {
     let knobs = layer
         .strip_knobs
         .ok_or("program carries no envelope knobs")?;
-    let (params, voice) = chain_setup(&knobs, layer.sustain_level, law);
+    let (params, voice) = chain_setup(&knobs, layer.sustain_level, law, variant);
     let lv = chain_levels(&params, voice, on, off, passes);
     let amount = layer.filter_env_amount;
     let r: Vec<f32> = lv
@@ -205,9 +237,17 @@ fn run(args: &[String]) -> Result<(), String> {
         .then(|| num("--g", 98))
         .transpose()?
         .map(|g| g.min(127) as u8);
+    let variant = Variant {
+        tables: match flag(args, "--rates") {
+            None | Some("legacy") => DEFAULT_TABLES,
+            Some("settled") => SETTLED_TABLES,
+            Some(_) => return Err("--rates must be legacy or settled".into()),
+        },
+        sustain_half: args.iter().any(|a| a == "--sustain-half"),
+    };
     println!(
         "{}",
-        layer_report(layer, on, off, passes, note_offset, kb_track, law)?
+        layer_report(layer, on, off, passes, note_offset, kb_track, law, variant)?
     );
     Ok(())
 }
@@ -256,8 +296,8 @@ mod tests {
             release: 50,
         };
         let k = StripKnobs { amp: e, filter: e };
-        let (p0, v0) = chain_setup(&k, 0.0, None);
-        let (p1, v1) = chain_setup(&k, 0.0, Some(20));
+        let (p0, v0) = chain_setup(&k, 0.0, None, Variant::default_run());
+        let (p1, v1) = chain_setup(&k, 0.0, Some(20), Variant::default_run());
         assert!(v0.amp_attack_b.is_none() && v1.amp_attack_b.is_some());
         assert!(
             v1.amp_attack_b.unwrap() < p1.amp.attack.b,
@@ -267,12 +307,33 @@ mod tests {
             (p0.amp.decay.thr, p1.amp.decay.thr, p1.filter.decay.thr),
             (0.0, 0.5, 0.5)
         );
-        let (_, v127) = chain_setup(&k, 0.0, Some(127));
+        let (_, v127) = chain_setup(&k, 0.0, Some(127), Variant::default_run());
         assert_eq!(
             v127.amp_attack_b,
             Some(p1.amp.attack.b),
             "g = 127 is unscaled"
         );
+    }
+
+    #[test]
+    fn settled_rates_and_sustain_half_change_only_the_records() {
+        let e = EnvKnobs {
+            attack: 10,
+            decay: 40,
+            release: 30,
+        };
+        let k = StripKnobs { amp: e, filter: e };
+        let (def, _) = chain_setup(&k, 0.0, None, Variant::default_run());
+        let settled = Variant {
+            tables: SETTLED_TABLES,
+            sustain_half: true,
+        };
+        let (set, v) = chain_setup(&k, 0.0, None, settled);
+        assert!(v.amp_attack_b.is_none(), "no velocity law");
+        assert_ne!(def.amp.attack.b, set.amp.attack.b);
+        assert_ne!(def.amp.decay.a, set.amp.decay.a);
+        assert_eq!((set.amp.decay.thr, set.filter.decay.thr), (0.5, 0.5));
+        assert_eq!(def.amp.decay.thr, 0.0);
     }
 
     #[test]

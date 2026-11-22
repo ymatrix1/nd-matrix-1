@@ -7,6 +7,10 @@
 //!
 //! VERIFIED: every word equals the CSV value (test `tables_equal_the_research_csv`); the CSV is
 //! a sweep of the oracle pass (3 passes per index, coefficient words read from `DM(0xC0E21..)`).
+//! STALE (D212): 3 passes is before the installer's 16-pass refresh, so 104 of 129 indexes are off
+//! by more than 2 percent (attack up to 2.56 times, `1 - a` of decay / release up to 2 times too
+//! high). The settled tables are in `fw_env_settled.rs`; this file stays the default until the
+//! owner approves the flip (`DEFAULT_TABLES`).
 
 pub(super) const ATTACK_BITS: [u32; 129] = [
     0x3dbcbf3f, 0x3dbcbf3f, 0x3dbcbf3f, 0x3dbcbf3f, 0x3dbcbf3f, 0x3dbcbf3f, 0x3cf7e188, 0x3cf7e188,
@@ -61,7 +65,7 @@ pub fn rate_index_from_word(word: i32) -> i32 {
 }
 
 #[inline]
-fn lookup(table: &[u32; 129], index: f32) -> f32 {
+pub(super) fn lookup(table: &[u32; 129], index: f32) -> f32 {
     let p = if index.is_nan() {
         0.0
     } else {
@@ -90,6 +94,30 @@ pub fn attack_coeff(index: f32) -> f32 {
 pub fn decay_release_coeff(index: f32) -> f32 {
     lookup(&DECAY_BITS, index)
 }
+
+/// One pair of rate tables the strip chain reads: attack coefficient and decay / release
+/// coefficient per (fractional) index.
+#[derive(Debug, Clone, Copy)]
+pub struct RateTables {
+    pub attack: fn(f32) -> f32,
+    pub decay_release: fn(f32) -> f32,
+}
+
+/// The stale 3-pass sweep of this file (`ATTACK_BITS`, `DECAY_BITS`).
+pub const LEGACY_TABLES: RateTables = RateTables {
+    attack: attack_coeff,
+    decay_release: decay_release_coeff,
+};
+
+/// The settled tables of `fw_env_settled.rs` (D212).
+pub const SETTLED_TABLES: RateTables = RateTables {
+    attack: super::fw_env_settled::settled_attack_coeff,
+    decay_release: super::fw_env_settled::settled_decay_release_coeff,
+};
+
+/// Tables of the default strip chain. D212 proposes `SETTLED_TABLES` here (one line, owner
+/// approval pending, D22); `LEGACY_TABLES` stays the default until then.
+pub const DEFAULT_TABLES: RateTables = LEGACY_TABLES;
 
 /// Time constant in passes of the attack rate, `1 / cA`.
 ///

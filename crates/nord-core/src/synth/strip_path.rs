@@ -41,8 +41,19 @@ impl StripEnvRecords {
     /// constants = [`DECAY_TAU_FRACTION`] x the displayed time; the 3 ms floor of decay and
     /// release is the classic OS v1.66 floor.
     pub fn from_panel(attack_sec: f32, decay_sec: f32, release_sec: f32, sustain: f32) -> Self {
+        Self::from_panel_with(attack_sec, decay_sec, release_sec, sustain, DEFAULT_TABLES)
+    }
+
+    /// [`Self::from_panel`] with explicit rate tables (D212: legacy or settled).
+    pub fn from_panel_with(
+        attack_sec: f32,
+        decay_sec: f32,
+        release_sec: f32,
+        sustain: f32,
+        tables: RateTables,
+    ) -> Self {
         let hold = decay_sec >= 44.0;
-        let atk = attack_coeff(attack_index(attack_sec) as f32);
+        let atk = (tables.attack)(attack_index(attack_sec) as f32);
         let dec_idx = if hold {
             RATE_INDEX_MAX
         } else {
@@ -56,12 +67,12 @@ impl StripEnvRecords {
                 thr: 0.0,
             },
             decay: FwAdrRecord {
-                a: decay_release_coeff(dec_idx as f32),
+                a: (tables.decay_release)(dec_idx as f32),
                 b: 0.0,
                 thr: if hold { 1.0 } else { sustain.clamp(0.0, 1.0) },
             },
             release: FwAdrRecord {
-                a: decay_release_coeff(rel_idx as f32),
+                a: (tables.decay_release)(rel_idx as f32),
                 b: 0.0,
                 thr: 0.0,
             },
@@ -81,6 +92,11 @@ impl StripEnvRecords {
     /// Records straight from the stored rate knobs (`fw_knob_laws.rs`: rate index = knob - 64,
     /// VERIFIED run); decay knob 127 is Hold. No time search, no displayed-time assumption.
     pub fn from_knobs(k: EnvKnobs, sustain: f32) -> Self {
+        Self::from_knobs_with(k, sustain, DEFAULT_TABLES)
+    }
+
+    /// [`Self::from_knobs`] with explicit rate tables (D212: legacy or settled).
+    pub fn from_knobs_with(k: EnvKnobs, sustain: f32, tables: RateTables) -> Self {
         let hold = k.decay >= 127;
         let dec = if hold {
             RATE_INDEX_MAX
@@ -90,16 +106,16 @@ impl StripEnvRecords {
         Self {
             attack: FwAdrRecord {
                 a: 1.0,
-                b: attack_coeff(rate_index_for_knob(k.attack) as f32),
+                b: (tables.attack)(rate_index_for_knob(k.attack) as f32),
                 thr: 0.0,
             },
             decay: FwAdrRecord {
-                a: decay_release_coeff(dec as f32),
+                a: (tables.decay_release)(dec as f32),
                 b: 0.0,
                 thr: if hold { 1.0 } else { sustain.clamp(0.0, 1.0) },
             },
             release: FwAdrRecord {
-                a: decay_release_coeff(rate_index_for_knob(k.release) as f32),
+                a: (tables.decay_release)(rate_index_for_knob(k.release) as f32),
                 b: 0.0,
                 thr: 0.0,
             },
@@ -165,23 +181,31 @@ impl SynthLayer {
                 return p;
             }
         }
+        // The oracle law reads the settled rate tables (D212); the default the stale sweep.
+        let tables = if self.fw_adr_law {
+            SETTLED_TABLES
+        } else {
+            DEFAULT_TABLES
+        };
         let (amp, filter) = match self.active_knobs() {
             Some(k) => (
-                StripEnvRecords::from_knobs(k.amp, self.sustain_level),
-                StripEnvRecords::from_knobs(k.filter, 0.0),
+                StripEnvRecords::from_knobs_with(k.amp, self.sustain_level, tables),
+                StripEnvRecords::from_knobs_with(k.filter, 0.0, tables),
             ),
             None => (
-                StripEnvRecords::from_panel(
+                StripEnvRecords::from_panel_with(
                     self.attack_sec,
                     self.decay_sec,
                     self.release_sec,
                     self.sustain_level,
+                    tables,
                 ),
-                StripEnvRecords::from_panel(
+                StripEnvRecords::from_panel_with(
                     self.filter_env_attack_sec,
                     self.filter_env_decay_sec,
                     self.filter_env_release_sec,
                     0.0,
+                    tables,
                 ),
             ),
         };

@@ -5,6 +5,7 @@ use crate::cbin::{MorphDeltas, SynthLayerDecoded};
 use crate::morph::MorphControllers;
 use crate::synth::SynthLayer;
 use crate::synth_morph::{SynthMorphSet, OSC_ENV_SLOT};
+use crate::synth_osc_env_word::osc_env_dsp_word;
 
 /// ARM rows of `tools/morph_osc_env_report.py` over the 9 factory programs that use the target.
 const ROWS: &str = include_str!("../../../docs/research/data/morph-fw-osc-env.csv");
@@ -37,6 +38,12 @@ fn layer(base: i32, depths: [i32; 3]) -> SynthLayerDecoded {
         ..SynthLayerDecoded::default()
     }
 }
+
+/// Static ARM sweep (`tools/arm_osc_env_static.py`): program, Env To Pitch bit, amount, DSP steps.
+const STATIC_ROWS: &str = include_str!("../../../docs/research/data/morph-fw-osc-env-dst.csv");
+
+/// The three programs whose synth layer A has Env To Pitch on (`kOscEnvDst` 1, ARM cells).
+const PITCH_PROGRAMS: [&str; 3] = ["Cassette Pad AT", "Favorite Video", "Time Warp Saw"];
 
 fn parse(line: &str) -> (String, i32, [i32; 3], f32, Option<f32>) {
     // program,layer,scenario,base,wheel,at,pedal,law,dispatch,dsp_steps (scenario may be quoted)
@@ -77,25 +84,40 @@ fn the_slot_reproduces_every_captured_dispatch_row() {
 }
 
 #[test]
-fn the_slot_matches_the_dsp_word_on_the_wheel_programs() {
-    // 21 rows: the DSP word is float32 `steps / 60` of the dispatched value (fractional values
-    // like -28.5 are not rounded); the 6 aftertouch rows are not (D206, open question).
-    let mut matched = 0;
+fn the_dsp_word_law_matches_all_27_rows_by_destination() {
+    // 21 wheel rows are Osc Ctrl (`x / 60`), the 6 aftertouch rows are Env To Pitch programs (OQ43
+    // answered, D213): the taper word equals the ARM value on every row.
+    let (mut ctrl, mut pitch) = (0, 0);
     for line in ROWS.lines().skip(1) {
         let (sc, base, d, dispatch, dsp) = parse(line);
+        let to_pitch = PITCH_PROGRAMS.contains(&line.split(',').next().unwrap());
         let Some(dsp) = dsp else { continue };
-        if (dsp - dispatch).abs() > 2e-3 {
-            assert!(
-                d[0] == 0 && d[1] != 0,
-                "only A.T. programs disagree: {line}"
-            );
-            continue;
-        }
-        let got = play(base, d, &sc);
+        let steps = play(base, d, &sc);
+        assert!((steps - dispatch).abs() < 1e-3, "{line}");
+        let got = osc_env_dsp_word(steps, to_pitch) * 60.0;
         assert!((got - dsp).abs() < 2e-3, "{line}: {got} vs {dsp}");
-        matched += 1;
+        if to_pitch {
+            pitch += 1;
+        } else {
+            ctrl += 1;
+        }
     }
-    assert_eq!(matched, 21);
+    assert_eq!((ctrl, pitch), (21, 6));
+}
+
+#[test]
+fn the_dsp_word_law_matches_every_static_row_and_the_dst_flip() {
+    // Time Warp Saw and Sine-Saw Plk Whl, each with Env To Pitch as recalled and patched.
+    let mut n = [0; 2];
+    for line in STATIC_ROWS.lines().skip(1) {
+        let f: Vec<&str> = line.split(',').collect();
+        let to_pitch = f[1] == "1";
+        let (x, dsp): (f32, f32) = (f[2].parse().unwrap(), f[4].parse().unwrap());
+        let got = osc_env_dsp_word(x, to_pitch) * 60.0;
+        assert!((got - dsp).abs() < 1e-3, "{line}: {got}");
+        n[usize::from(to_pitch)] += 1;
+    }
+    assert_eq!(n, [242, 242]);
 }
 
 #[test]

@@ -47,7 +47,7 @@ Corrections that follow:
 | `kFltRes` | common 0 word 7 | float32 `-0.5 + knob / 127`, fit error 3e-8 of the range | VERIFIED run |
 | `kOscCtrl` | common 0 word 6 | float32 `-0.5 + knob / 127` | VERIFIED run |
 | `kFltEnvAmt` | common 0 word 13 | float32 `knob / 127`: 0 .. 1.0 linear (`0x3C010204` at 1) | VERIFIED run |
-| `kOscEnvAmt` (-60..60) | common 0 word 12 | float32 `knob / 60` (`-1.0 .. +1.0`) | VERIFIED run |
+| `kOscEnvAmt` (-60..60) | common 0 word 12 | Osc Ctrl destination: float32 `knob / 60`; Env To Pitch: `sign * T(127 abs(knob) / 60) / 48` (pitch taper, [morph-fw-osc-env-dst](morph-fw-osc-env-dst.md)) | VERIFIED run |
 | `kOscTuneCoarse` (-24..24), `kOscTuneFine` (-50..50) | common 0 word 0 | `coarse << 24`, `fine / 100 x 2^24` (the last write wins: the two ids share the word) | VERIFIED run |
 | `kFltKbdTrk` (0..3, Q16.16 cell only) | strip 0 word 38 | `0`, `-1/3`, `-2/3`, `-1` in Q31 (`0xD5555555`, `0xAAAAAAAA`, `0x80000000`) | VERIFIED run |
 | `kFltEnvVel` (0..1, Q16.16 only) | strip 0 / 6 word 19 | `1.0` / `0.0` swap between the two strips | VERIFIED run |

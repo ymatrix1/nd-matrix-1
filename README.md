@@ -94,7 +94,7 @@ python tools/check_tests.py
 
 ## Contributing
 
-Before opening a pull request:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contribution guide. Before opening a pull request:
 - Read [AGENTS.md](AGENTS.md) and [.agents/rules/](.agents/rules/) for project conventions.
 - Tasks are tracked with [beans](https://github.com/hmans/beans) in [`.beans/`](.beans/).
 - Every source file in `crates/` and `tools/` must have unit tests (`python tools/check_tests.py` enforces 0 uncovered files in CI).

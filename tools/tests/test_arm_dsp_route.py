@@ -105,6 +105,10 @@ def test_sy_chip_spec_takes_path_1_and_the_sy_flag() -> None:
     assert s.flags() == ["--sy"]  # no epdma, no level window
     assert r.parse_chip_spec("SY:0=sy=i==").path == 1 and r.parse_chip_spec("ORG:2=org=i").path == 2
     assert r.parse_chip_spec("SY:0=sy=i=epchain").flags() == ["--sy", "--epchain"]
+    # D206: opt-in ARM pacing and the FIFO index bias (R3 = 0x80000 in the SY ISR too)
+    paced = ["--fifo-pace", "1", "--index-bias", "0x80000"]
+    assert r.parse_chip_spec("SY:0=sy=i=epchain+paced").flags() == ["--sy", "--epchain", *paced]
+    assert r.parse_chip_spec("SY:0=sy=i=paced").flags() == ["--sy", *paced]
 
 
 def test_smp_chip_spec_takes_path_1_and_the_smp_flag():

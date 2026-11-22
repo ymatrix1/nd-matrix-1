@@ -189,8 +189,9 @@ def tap_fundamental(data: bytes, harmonics: int = 4) -> float | None:
     """Fundamental of a captured tap in cycles per tap frame (harmonic-sum pitch of the left lane).
 
     The tap holds one frame per audio interrupt (D205); the pitch in Hz is `cycles * frame_rate`
-    and the frame rate of the SMP chip is not known (ASSUMED 48 kHz). The window starts at the
-    loudest sample and spans 8,192 frames. `None` for a silent or too short tap.
+    and the frame rate of the SMP chip is the DSP frame rate 43,402.34 Hz (D211, VERIFIED: ARM
+    literal, not 48 kHz). The window starts at the loudest sample and spans 8,192 frames.
+    `None` for a silent or too short tap.
     """
     import numpy as np  # local: only the pitch check needs it
 

@@ -13,7 +13,7 @@ Tags follow `.agents/rules/provenance-in-code.md`: **VERIFIED** = reproduced by 
 | Why 150 Hz? | Two separate faults. (a) The tap kept 2 frames per audio interrupt, but the ISR writes one (`+0` of the half it holds); the second slot and the other half are 0.0 in every interrupt (0 of 5,968 nonzero). Read as 48 kHz frames the pitch was half: 288.6 Hz / 2 = 144.3 Hz, the "about 150 Hz" of D199. (b) The D199 tap was not a piano at all: it was a **runaway decode** (wrapped sawtooth, see s2). | VERIFIED (run, `data/smp-voice-pitch.csv`) |
 | Cause of the runaway | The ARM writes the start history of a voice (`0xC0500 + 16 v`, 16 words) **after** the start request in its message order. The SMP kill routine (`0x1C0B3E..0x1C0B5C`) zeroes all 16 words when the request executes. `sharc-live` delivered a key's ~150 pairs in one burst, so the request ran after the first history words had been stored and wiped them. The order 3 predictor `y = 3 y1 - 3 y2 + y3 + r` keeps any start error as a quadratic, so the output runs away and wraps at +-0.4. | VERIFIED (run, `W` watch: writes `1c05ea` then zeroing `1c0b3e..1c0b5c`) |
 | Fix | `sharc-live --fifo-pace N` feeds at most N queued ARM pairs per audio interrupt (the ARM does not deliver 150 pairs between two interrupts); the SMP chip spec passes `--fifo-pace 1`. With 1 or 2 pairs per pass-pair the live history ring equals the reference decode of the stroke bit for bit; burst delivery or 6 pairs per pass runs away. | VERIFIED (`tools/smp_voice_replay.py`: pace 2 `MATCH`, burst `DIFFERENT`; pace 3 loses the start, pace 4 matches) |
-| Pitch with the fix | Tap fundamental 0.00601 to 0.00604 cycles per frame in all 12 programs (0.5 % spread), the step word is the same law in all: `0.80618 * 2^(tuning / 1200)`. The Hz value needs the interrupt rate: 288.6 to 290.0 Hz at 48 kHz (+1.7 semitones), 265.1 to 266.5 Hz at 44.1 kHz (+24 cents) against 261.5 to 262.2 Hz for the native render; exactly 261.6 Hz at 43.4 to 43.5 kHz. The rate is **not known** | EMPIRICAL |
+| Pitch with the fix | Tap fundamental 0.00601 to 0.00604 cycles per frame in all 12 programs (0.5 % spread), the step word is the same law in all: `0.80618 * 2^(tuning / 1200)`. The Hz value needs the interrupt rate: 288.6 to 290.0 Hz at 48 kHz (+1.7 semitones), 265.1 to 266.5 Hz at 44.1 kHz (+24 cents) against 261.5 to 262.2 Hz for the native render; exactly 261.6 Hz at 43.4 to 43.5 kHz. **Rate answered by D211: it is the DSP frame rate 43,402.34 Hz** ([smp-interrupt-rate](smp-interrupt-rate.md)) | EMPIRICAL |
 | Level against the native piano | Tap RMS over the first 3,000 frames is 5.6 to 13.3 dB below the native render (median -9.9 dB). Not a parity number: the tap is layer A before the chain, the native render has layer B, amp, EQ, compressor and reverb | EMPIRICAL |
 | Census of the 155 programs | **Mechanism done, run not done.** `program_rank_chain.py --smp IMAGE` runs the SMP chip for piano programs, `program_rank.py` drops `piano_no_chain_tap` when the tap has audio and adds `smp_peak_dbfs`, `smp_cycles`. A pilot of 12 programs (9 sounds: grand, upright, clavinet, EP, mono and stereo) gives audio in 12 of 12. The full 155-program run (about 3 min of CPU each) was not started | EMPIRICAL (pilot) |
 
@@ -43,7 +43,7 @@ The ARM writes the step of the voice (`rec[-31]`, request words `0x9251D` / `0x9
 | Bubbles Mk I | EP2 Ideal Timbre Lrg 6.1 | not printed | 0.80618 | 0.80618 (tuning 0) | EMPIRICAL |
 | Others | see CSV | | 0.79830 to 0.80897 | | EMPIRICAL |
 
-The base 0.80618 is `35,000 / 43,415`: the nominal stroke rate over a rate between 43.4 and 43.5 kHz. At a 48 kHz call rate the nominal step would be 0.72917 and at 44.1 kHz 0.79365. The measured tap pitch (cycles per frame x step law) is a sounding note of exactly 261.6 Hz only for a call rate of 43.4 to 43.5 kHz. Either the SMP interrupt runs at that rate, or the voice is called at another rate than 1 per audio frame (for example the ISR rate is 2 frames and the second voice call is missing), or the ARM computes the step for a rate the hardware does not run. **OPEN.** Nothing in the tap pins it: the hardware clip of a piano note would (recorded fundamental against 261.6 Hz).
+The base 0.80618 is `35,000 / 43,415`: the nominal stroke rate over a rate between 43.4 and 43.5 kHz. At a 48 kHz call rate the nominal step would be 0.72917 and at 44.1 kHz 0.79365. The measured tap pitch (cycles per frame x step law) is a sounding note of exactly 261.6 Hz only for a call rate of 43.4 to 43.5 kHz. **Answered (D211, [smp-interrupt-rate](smp-interrupt-rate.md) s2):** the SMP interrupt runs at the DSP frame rate `F = 43,402.34 Hz` (ARM literal `0x47298A58`; the SMP serial port is a slave of the board clock). The 4 digit cycle counts above gave 43.4 to 43.5 kHz; the precise tap gives +0.62 cent at `F`, +28.2 cent at 44.1 kHz and +174.9 cent at 48 kHz. The base `0.80618` is `35,000 / F` less 0.50 cent (origin open).
 
 ## 4. Pilot census (12 programs, `data/smp-voice-pitch.csv`)
 
@@ -89,14 +89,14 @@ target/release/smp_stroke_dump run/smp_flash.npno 513 stroke513.f32       # refe
 ## Implications
 
 - The SMP chain tap is now a real piano signal (history equals the reference decode, harmonic series, same step law in 12 programs). D199 "audio" was a runaway; its levels (-7.75, -13.00, -7.36, -19.11 dBFS) were not piano levels.
-- The tap cannot yet be compared with the hardware in Hz: the interrupt rate is open (s3). Level parity is not claimed (-5.6 to -13.3 dB, layer A only, before the chain).
+- The tap Hz needs the interrupt rate: it is `F = 43,402.34 Hz` (D211). Level parity is not claimed (-5.6 to -13.3 dB, layer A only, before the chain; D211 per class table).
 - The 155 programs can get the column with one command per program; the run is the remaining cost.
 
 ## Follow-ups
 
 1. Run `program_rank_chain.py --smp target/oracle/smp.bin` over the 155 piano programs, regenerate `program-ranking.csv` (needs `native.jsonl`, 70 min), drop `piano_no_chain_tap` in the table.
-2. Interrupt rate of the SMP chip: 43.4 to 43.5 kHz reading of the step law, against 44.1 and 48 kHz (hardware clip or the SPORT frame sync setup in the SMP image).
-3. Piano layers 2 and 3 (`select_sound` binds layer 0 of core 0 only), then a layer-split level comparison.
+2. ~~Interrupt rate of the SMP chip~~ answered by D211: `F = 43,402.34 Hz`.
+3. Piano layers 2 and 3: D211 shows that the second **voice** (stroke 502) of the same note-on already runs and decodes bit for bit; the release voice (order 4 page) and the second piano layer (`layer_b`, another core and flash image) are open ([smp-interrupt-rate](smp-interrupt-rate.md) s3).
 4. Why the real ARM message order works (start before history): real pacing of the ARM writes against the interrupt, so `--fifo-pace 1` is a model, not a measurement; 3 pairs per pass loses the voice start.
-5. SY1SY2 chip: same ISR code, plain index, not rerun with pacing.
+5. ~~SY1SY2 chip~~ D211: `R3 = 0x80000` there too; opt-in `--index-bias` and chip token `paced` added, census not rerun.
 6. Tap detector: add a "runaway" kind (a sawtooth that wraps) to `tap_stats`.
