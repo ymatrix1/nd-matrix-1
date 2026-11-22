@@ -97,4 +97,42 @@ mod tests {
         assert!((UNIT_2F / UNIT_F - 2.0).abs() < 1e-6);
         assert!((UNIT_2F - 1.0147).abs() < 1e-3);
     }
+
+    /// VERIFIED (oracle, all 128 resonance knobs): the native damping table lookup equals the one
+    /// the ORG core 2 stage used. `docs/research/data/synth-res-settled.csv` holds, per knob, the
+    /// settled position word `W28` and the damping `P = 2 R k / g` read from the LP24 and LP12
+    /// stage prologues (`tools/synth_res_oracle.py settled`). The native position map equals the
+    /// oracle position (the 1500 pass run leaves at most 0.035 of the smoother), the table at the
+    /// oracle position equals the oracle `P` (float32 rounding), and the native map of the knob
+    /// lands within the table slope times that residual.
+    #[test]
+    fn native_damping_equals_the_oracle_for_all_128_knobs() {
+        use crate::synth::fw_filter::{FwCoefs, FwFilterType};
+        const CSV: &str = include_str!("../../../../docs/research/data/synth-res-settled.csv");
+        let damping = |kind: FwFilterType, pos: f32| {
+            let c = FwCoefs::new(kind, 0.3, TablePos::from_value(pos));
+            2.0 * 0.3 * c.k / c.g
+        };
+        let mut n = 0;
+        for line in CSV.lines().skip(1) {
+            let f: Vec<f32> = line.split(',').map(|x| x.parse().unwrap()).collect();
+            let (knob, pos, p24, p12) = (f[0], f[1], f[3], f[4]);
+            let ours = resonance_position(knob / 127.0);
+            assert!((ours - pos).abs() < 0.04, "knob {knob}: {ours} vs {pos}");
+            for (kind, want) in [(FwFilterType::Lp4, p24), (FwFilterType::Lp2, p12)] {
+                let at_oracle = damping(kind, pos);
+                // the CSV keeps 4 decimals of the position: 5e-5 index times the slope of the table
+                assert!(
+                    (at_oracle / want - 1.0).abs() < 1e-4,
+                    "{kind:?} knob {knob}"
+                );
+                assert!(
+                    (damping(kind, ours) - want).abs() < 1.5e-3,
+                    "{kind:?} knob {knob}"
+                );
+            }
+            n += 1;
+        }
+        assert_eq!(n, 128);
+    }
 }

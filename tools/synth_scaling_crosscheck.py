@@ -7,7 +7,8 @@ displayed times and laws "recovered from OS v1.66". Only the numbers are used he
 independent cross-check of our measured tables (corroboration, not VERIFIED; no code is copied).
 Forms: attack time `0.0005 (1 + v / 40.2)^8` s, decay / release 40 dB fall time
 `0.003 (1 + v / 54.1)^7.958` s, cutoff index `v - 52` up to 117, `65 + 1.7 (v - 117)` above and 106
-at 127, resonance damping `k = 2 (1 - v / 128)^2`.
+at 127, resonance damping `k = 2 (1 - v / 128)^2` (D214: this is the LP12 table `D`, not the
+LP24 / BP / HP table `B`, which follows it only below index 38).
 
     uv run python tools/synth_scaling_crosscheck.py
 """
@@ -17,6 +18,7 @@ from __future__ import annotations
 import csv
 import math
 import statistics
+import struct
 import sys
 from pathlib import Path
 
@@ -84,6 +86,19 @@ def resonance_agreement(b: list[float], tol: float = 1e-4) -> tuple[int, float]:
     return n, max(abs(b[v] / resonance_k(v) - 1) for v in range(n))
 
 
+def table_d() -> list[float]:
+    """LP12 damping table `D` (`0xB0F94`) as floats from `synth-filter-table-d.csv`."""
+    out = []
+    for r in load("synth-filter-table-d.csv"):
+        out.append(struct.unpack("<f", struct.pack("<I", int(r["word"], 16)))[0])
+    return out
+
+
+def quadratic_max_error(table: list[float], n: int = 128) -> float:
+    """Largest relative deviation of the first `n` table entries from `2 (1 - v / 128)^2`."""
+    return max(abs(table[v] / resonance_k(v) - 1) for v in range(n))
+
+
 def main() -> int:  # pragma: no cover - CLI wiring
     s, o = load("synth-env-rates-settled.csv"), load("synth-env-rate-table.csv")
     print("attack settled", attack_check(s), "stale", attack_check(o))
@@ -95,7 +110,8 @@ def main() -> int:  # pragma: no cover - CLI wiring
     )
     print("cutoff index max abs error", cutoff_max_error())
     b = [float(r["B_0xB1015"]) for r in load("synth-filter-tables.csv")]
-    print("resonance B leading agreement", resonance_agreement(b))
+    print("resonance B (LP24, BP, HP) leading agreement", resonance_agreement(b))
+    print("resonance D (LP12) max rel error over 128 entries", quadratic_max_error(table_d()))
     return 0
 
 
