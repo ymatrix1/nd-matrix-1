@@ -317,17 +317,14 @@ Scenarios: `wheel:64`, `wheel:127`, `at:127`, `pedal:127` and all three; 27 rows
 | Dispatch equals `clamp(base + sum d w(v), -60, 60)`, `w = v / 128`, 1.0 at 127 | **27 of 27** rows, fractions kept (`-28.5`, `37.5`), the clamp is not hit by a factory program |
 | DSP word (ORG core 2 common 0 word 12) equals float32 `x / 60` | **21 of 21** wheel rows, max error 2e-3 steps (float32 truncation, `0x3EBBBBBB` for 22 / 60); fractional values are not rounded |
 | Layer B word | Rich FM Pad Whl writes `0xE01FE`, not `0xE0314` (stays 0); exact `x / 60` at both wheel values; `EMPIRICAL`, one program |
-| DSP word of the **A.T. programs** (3 programs, 6 rows) | **not `x / 60`**: dispatch `-48` writes `-34.5`, `-24` writes `-6.1875`; one write, one dispatch (`--history`), no later write at 400 settle ticks |
+| DSP word of the **A.T. programs** (3 programs, 6 rows) | not `x / 60`: dispatch `-48` writes `-34.5`, `-24` writes `-6.1875`. **Cause (D213, [morph-fw-osc-env-dst](morph-fw-osc-env-dst.md)):** these layers have Env To Pitch on; the word is `sign(x) T(127 abs(x) / 60) / 48` (pitch taper), exact on 6 of 6 rows and 242 static steps |
 
 The A.T. words are a smooth, monotone function of the dispatched value
 ([data/morph-fw-osc-env-at.csv](data/morph-fw-osc-env-at.csv), Time Warp Saw, A.T. 1 .. 127) and
 the other two A.T. programs fall on the same curve (`-35 -> -15.68`, `-40 -> -21.67`; the curve
 gives about 15.7 and 21.6 by linear interpolation), so the source is the dispatched value, not the program or
-the layer level (Favorite Video has no level morph). The wheel programs read exactly `x / 60`. The cause is open
-([OQ43](../OPEN-QUESTIONS.md)); candidates, none checked: a different osc-env setter state of
-these three layers (layer flags) and an A.T.-path scaling; a static dispatch of the same id on
-these layers would tell. Until then the native slot plays the verified law for every source, and the A.T. rows are
-the documented exception.
+the layer level (Favorite Video has no level morph). The wheel programs read exactly `x / 60`. The cause (OQ43, closed by D213) is the Env To Pitch bit, see [morph-fw-osc-env-dst](morph-fw-osc-env-dst.md).
+The knob value is the same for every source; only the destination changes the word.
 
 **Native port** (`synth_morph.rs` slot 5, `osc_env_amount`): the knob position is
 `(steps + 60) / 120`, so the bipolar amount `-1..1` is `2 norm - 1` and the file depth `d` steps
@@ -345,11 +342,8 @@ Tests: `synth_morph_osc_env_tests.rs` replays the 27 CSV rows through `SynthMorp
 (dispatch within 1e-3 steps) and the 21 wheel DSP words (2e-3 steps); `cbin::synth_raw` decodes the
 FM Harpies words; `engine::tests_firmware_morph` and `render_opts` cover the gate and the flag.
 
-**Implications.** The slot is `VERIFIED` for the wheel (6 of 9 programs: Sine-Saw Plk Whl, Chrome
-Layer, FM Cloud Whl, Distorted Whl II, Rich FM Pad Whl, FM Harpies) and `ASSUMED` for A.T. (3 of 9:
-Cassette Pad AT, Favorite Video, Time Warp Saw), so the flag stays opt-in; flipping it is the
-owner's call and is not proposed before OQ43 is answered. No listening comparison was made.
+**Implications.** The slot's value is `VERIFIED` for all 9 programs and all sources (dispatch 27 of 27, DSP word 27 of 27 by destination, D213). The flag stays opt-in because the engine's Env To Pitch depth (+/-12 st, `EMPIRICAL`) is not the firmware taper (OQ44); the flip proposal is in D213. No listening comparison was made.
 
-**Follow-ups.** OQ43 (A.T. DSP word); the audible effect of the osc envelope depth in the
+**Follow-ups.** OQ44 (pitch depth scale); the audible effect of the osc envelope depth in the
 affected programs (render A/B with `--synth-osc-env-morph`); layer B word `0xE01FE` against a
 static dispatch.
