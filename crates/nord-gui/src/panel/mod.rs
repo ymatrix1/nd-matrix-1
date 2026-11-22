@@ -3,6 +3,8 @@
 //! Spec: `docs/specs/visual-style-and-panel.md`. One file per bay (Phase 6b B4).
 
 mod aux_flag;
+#[cfg(test)]
+mod baked_audit_tests;
 mod baked_buttons;
 pub mod baked_view;
 mod bay_effects;
