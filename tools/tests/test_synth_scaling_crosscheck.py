@@ -30,6 +30,11 @@ def test_resonance_table_is_the_quadratic_only_below_index_38() -> None:
     assert b[64] > 1.4 * X.resonance_k(64), "0.7071 against 0.5 at index 64"
 
 
+def test_lp12_damping_table_d_is_the_quadratic_over_all_128_entries() -> None:
+    d = X.table_d()
+    assert len(d) == 129 and X.quadratic_max_error(d) < 1e-5
+
+
 def test_log_ratio_stats() -> None:
     m, k, med = X.log_ratio_stats([1.0, 2.0, 3.3], [1.0, 2.0, 3.0])
     assert k == 2 and abs(m - 0.1) < 1e-9 and med == 0.0
