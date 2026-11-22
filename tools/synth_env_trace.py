@@ -278,11 +278,17 @@ def run_oracle(
 
 
 def run_native(
-    native: str, program: str, on: int, off: int, passes: int, note_offset: int = 0
+    native: str,
+    program: str,
+    on: int,
+    off: int,
+    passes: int,
+    note_offset: int = 0,
+    extra: tuple[str, ...] = (),
 ) -> dict:
     r = subprocess.run(
         [native, program, "--on", str(on), "--off", str(off), "--passes", str(passes)]
-        + ["--note-offset", str(note_offset), "--kb-track", "3"],  # oracle: unity tracking
+        + ["--note-offset", str(note_offset), "--kb-track", "3", *extra],  # oracle: unity tracking
         capture_output=True,
         text=True,
         check=False,
@@ -304,7 +310,7 @@ def report(ns: argparse.Namespace) -> int:  # pragma: no cover - needs local fir
     passes = off + int(TAIL_S / PASS_S)
     key_text = o.key_script(rows, on, off)
     offset = key_note_offset(key_text)
-    nat = run_native(ns.native, ns.program, on, off, passes, offset)
+    nat = run_native(ns.native, ns.program, on, off, passes, offset, tuple(ns.native_args.split()))
     words = program_words(nat["knobs"], nat["cutoff_knob"], int(nat["filter_env_amount_knob"]))
     (work / "load.script").write_text(o.core2_load_script(rows))
     (work / "adr.script").write_text(inject_script(words))
@@ -504,6 +510,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - CLI wiring
     p.add_argument("--sharc-sys", required=True)
     p.add_argument("--image", required=True)
     p.add_argument("--native", required=True)
+    p.add_argument("--native-args", default="", help="extra flags of synth_env_native")
     p.add_argument("--workdir", required=True)
     sw = sub.add_parser("sweep")
     sw.add_argument("capture")

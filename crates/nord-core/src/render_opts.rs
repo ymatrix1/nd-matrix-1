@@ -400,6 +400,9 @@ pub struct FirmwareOptions {
     /// `--synth-fw-env-law`: `SynthLayer::fw_env_law` (filter envelope and cutoff LFO in semitones
     /// of the stage coefficient, `127 / 12` octaves at full amount; oracle composition, D200 / D207).
     pub synth_fw_env_law: bool,
+    /// `--synth-fw-adr-law`: `SynthLayer::fw_adr_law` (amp attack scaled by the key velocity, decay
+    /// record sustain 0.5, oracle envelope law, D210). Strip chain only.
+    pub synth_fw_adr_law: bool,
     /// `--synth-osc-env-morph`: `Stage4Engine::synth_osc_env_morph` (the Osc Env Amount morph of
     /// the synth layers is played, firmware law, D206; needs the firmware morph, on by default).
     pub synth_osc_env_morph: bool,
@@ -493,6 +496,7 @@ impl Default for FirmwareOptions {
             synth_unison_weights: false,
             synth_filter_gain: false,
             synth_fw_env_law: false,
+            synth_fw_adr_law: false,
             synth_osc_env_morph: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
@@ -527,6 +531,7 @@ impl FirmwareOptions {
             synth_unison_weights: false,
             synth_filter_gain: false,
             synth_fw_env_law: false,
+            synth_fw_adr_law: false,
             synth_osc_env_morph: false,
             synth_knob_laws: false,
             synth_velocity_fw: false,
@@ -586,6 +591,7 @@ impl FirmwareOptions {
             synth_unison_weights: false,
             synth_filter_gain: false,
             synth_fw_env_law: false,
+            synth_fw_adr_law: false,
             synth_osc_env_morph: false,
             synth_knob_laws: true,
             synth_wave_bank: false,
@@ -714,6 +720,7 @@ impl FirmwareOptions {
         o.synth_stage3 |= has("--synth-stage3");
         o.synth_unison_weights |= has("--synth-unison-weights");
         o.synth_fw_env_law |= has("--synth-fw-env-law");
+        o.synth_fw_adr_law |= has("--synth-fw-adr-law");
         o.synth_osc_env_morph |= has("--synth-osc-env-morph");
         if let Some(v) = value("--synth-unison-gain") {
             let u: f32 = v
@@ -1100,6 +1107,9 @@ impl FirmwareOptions {
         engine.synth_a.fw_env_law = self.synth_fw_env_law;
         engine.synth_b.fw_env_law = self.synth_fw_env_law;
         engine.synth_c.fw_env_law = self.synth_fw_env_law;
+        engine.synth_a.fw_adr_law = self.synth_fw_adr_law;
+        engine.synth_b.fw_adr_law = self.synth_fw_adr_law;
+        engine.synth_c.fw_adr_law = self.synth_fw_adr_law;
         engine.synth_osc_env_morph = self.synth_osc_env_morph;
         engine.synth_b.unison_gain = uni;
         engine.synth_c.unison_gain = uni;
@@ -1262,6 +1272,9 @@ impl FirmwareOptions {
         }
         if self.synth_fw_env_law {
             parts.push("fw-env-law".into());
+        }
+        if self.synth_fw_adr_law {
+            parts.push("fw-adr-law".into());
         }
         if self.synth_osc_env_morph {
             parts.push("osc-env-morph".into());
@@ -1668,6 +1681,13 @@ mod tests {
         assert!(!e.synth_a.wave_bank);
         o.apply_to(&mut e);
         assert!(e.synth_a.wave_bank && e.synth_b.wave_bank && e.synth_c.wave_bank);
+    }
+
+    #[test]
+    fn fw_adr_law_flag_reaches_every_synth_layer() {
+        let o = FirmwareOptions::from_args(&["--synth-fw-adr-law".into()]).unwrap();
+        assert!(o.synth_fw_adr_law && o.summary().contains("fw-adr-law"));
+        assert!(!FirmwareOptions::default().synth_fw_adr_law);
     }
 
     #[test]

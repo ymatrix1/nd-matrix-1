@@ -70,6 +70,14 @@ impl StripEnvRecords {
 }
 
 impl StripEnvRecords {
+    /// The oracle envelope law (`fw_adr_law.rs`): the settled attack coefficient of the stored
+    /// attack index `word` and the decay record stopping at 0.5 (also in Hold).
+    pub fn with_oracle_law(mut self, attack_word: i32) -> Self {
+        self.attack.b = super::fw_adr_law::attack_b(attack_word);
+        self.decay.thr = super::fw_adr_law::FW_DECAY_SUSTAIN;
+        self
+    }
+
     /// Records straight from the stored rate knobs (`fw_knob_laws.rs`: rate index = knob - 64,
     /// VERIFIED run); decay knob 127 is Hold. No time search, no displayed-time assumption.
     pub fn from_knobs(k: EnvKnobs, sustain: f32) -> Self {
@@ -109,7 +117,7 @@ pub struct StripParams {
 }
 
 /// Cache key: the panel values `StripParams` is a function of.
-pub(super) type StripKey = [f32; 15];
+pub(super) type StripKey = [f32; 16];
 
 impl SynthLayer {
     fn strip_key(&self) -> StripKey {
@@ -140,11 +148,12 @@ impl SynthLayer {
             k[4],
             k[5],
             k[6],
+            if self.fw_adr_law { 1.0 } else { 0.0 },
         ]
     }
 
     /// The envelope knobs the chain uses: only with `knob_laws` on and a program that carries them.
-    fn active_knobs(&self) -> Option<StripKnobs> {
+    pub(super) fn active_knobs(&self) -> Option<StripKnobs> {
         self.strip_knobs.filter(|_| self.knob_laws)
     }
 
@@ -175,6 +184,14 @@ impl SynthLayer {
                     0.0,
                 ),
             ),
+        };
+        let (amp, filter) = if self.fw_adr_law {
+            (
+                amp.with_oracle_law(self.amp_attack_word()),
+                filter.with_oracle_law(self.filter_attack_word()),
+            )
+        } else {
+            (amp, filter)
         };
         let p = StripParams {
             amp,
@@ -236,9 +253,21 @@ pub struct StripVoice {
     filter: EnvChain,
     clock: f32,
     released: bool,
+    /// Attack coefficient of this voice's amp chain (`fw_adr_law`); `None` uses the shared record.
+    pub amp_attack_b: Option<f32>,
 }
 
 impl StripVoice {
+    /// A voice whose amp attack record is the table entry of `amp_attack_index(word, key_byte)`
+    /// (`fw_adr_law.rs`).
+    pub fn with_scaled_amp_attack(word: i32, key_byte: u8) -> Self {
+        let idx = super::fw_adr_law::amp_attack_index(word, key_byte);
+        Self {
+            amp_attack_b: Some(super::fw_adr_law::attack_b(idx)),
+            ..Self::default()
+        }
+    }
+
     /// Advances one engine frame; steps both chains once per pass. Returns `(amp, filter)` levels.
     ///
     /// Gate off moves both chains to their release record once (the controller `T` change of the
@@ -253,7 +282,14 @@ impl StripVoice {
         self.clock += 1.0;
         while self.clock >= p.period_frames {
             self.clock -= p.period_frames;
-            self.amp.step(&p.amp);
+            match self.amp_attack_b {
+                Some(b) => {
+                    let mut recs = p.amp;
+                    recs.attack.b = b;
+                    self.amp.step(&recs);
+                }
+                None => self.amp.step(&p.amp),
+            }
             self.filter.step(&p.filter);
         }
         (self.amp.y, self.filter.y)
