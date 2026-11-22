@@ -28,7 +28,7 @@ fn section_card(
 ) {
     Frame::NONE
         .fill(CARD_BG)
-        .stroke(Stroke::new(1.0, BORDER))
+        .stroke(Stroke::new(1.0_f32, BORDER))
         .corner_radius(CornerRadius::same(8))
         .inner_margin(Margin::same(14))
         .show(ui, |ui| {
@@ -103,7 +103,7 @@ fn preset_button(ui: &mut Ui, label: &str, active: bool, tip: &str) -> bool {
     let stroke = if active {
         Stroke::NONE
     } else {
-        Stroke::new(1.0, BORDER)
+        Stroke::new(1.0_f32, BORDER)
     };
     ui.add(
         egui::Button::new(RichText::new(label).size(11.5).strong().color(TEXT_PRIMARY))

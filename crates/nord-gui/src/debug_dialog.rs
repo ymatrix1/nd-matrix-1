@@ -46,7 +46,7 @@ fn apply_shadcn_theme(ctx: &Context) {
         v.panel_fill = Color32::TRANSPARENT;
         // Opaque dark zinc for ComboBox dropdowns, popups, and tooltips (no text bleed-through).
         v.window_fill = Color32::from_rgb(18, 18, 22);
-        v.window_stroke = Stroke::new(1.0, ZINC_700);
+        v.window_stroke = Stroke::new(1.0_f32, ZINC_700);
         v.window_corner_radius = CornerRadius::same(8);
         v.menu_corner_radius = CornerRadius::same(8);
         v.popup_shadow = egui::epaint::Shadow {
@@ -58,36 +58,36 @@ fn apply_shadcn_theme(ctx: &Context) {
         v.extreme_bg_color = Color32::from_rgb(9, 9, 11);
         v.faint_bg_color = Color32::from_rgb(26, 26, 31);
         v.selection.bg_fill = ACCENT_RED;
-        v.selection.stroke = Stroke::new(1.0, ZINC_50);
+        v.selection.stroke = Stroke::new(1.0_f32, ZINC_50);
 
         v.widgets.noninteractive.bg_fill = ZINC_900;
         v.widgets.noninteractive.weak_bg_fill = ZINC_900;
-        v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, ZINC_800);
-        v.widgets.noninteractive.fg_stroke = Stroke::new(1.0, ZINC_200);
+        v.widgets.noninteractive.bg_stroke = Stroke::new(1.0_f32, ZINC_800);
+        v.widgets.noninteractive.fg_stroke = Stroke::new(1.0_f32, ZINC_200);
         v.widgets.noninteractive.corner_radius = CornerRadius::same(6);
 
         v.widgets.inactive.bg_fill = Color32::from_rgb(28, 28, 33);
         v.widgets.inactive.weak_bg_fill = Color32::from_rgb(28, 28, 33);
-        v.widgets.inactive.bg_stroke = Stroke::new(1.0, ZINC_800);
-        v.widgets.inactive.fg_stroke = Stroke::new(1.0, ZINC_200);
+        v.widgets.inactive.bg_stroke = Stroke::new(1.0_f32, ZINC_800);
+        v.widgets.inactive.fg_stroke = Stroke::new(1.0_f32, ZINC_200);
         v.widgets.inactive.corner_radius = CornerRadius::same(6);
 
         v.widgets.hovered.bg_fill = Color32::from_rgb(39, 39, 46);
         v.widgets.hovered.weak_bg_fill = Color32::from_rgb(39, 39, 46);
-        v.widgets.hovered.bg_stroke = Stroke::new(1.0, ZINC_700);
-        v.widgets.hovered.fg_stroke = Stroke::new(1.0, ZINC_50);
+        v.widgets.hovered.bg_stroke = Stroke::new(1.0_f32, ZINC_700);
+        v.widgets.hovered.fg_stroke = Stroke::new(1.0_f32, ZINC_50);
         v.widgets.hovered.corner_radius = CornerRadius::same(6);
 
         v.widgets.active.bg_fill = Color32::from_rgb(52, 52, 60);
         v.widgets.active.weak_bg_fill = Color32::from_rgb(52, 52, 60);
-        v.widgets.active.bg_stroke = Stroke::new(1.0, ACCENT_RED);
-        v.widgets.active.fg_stroke = Stroke::new(1.0, ZINC_50);
+        v.widgets.active.bg_stroke = Stroke::new(1.0_f32, ACCENT_RED);
+        v.widgets.active.fg_stroke = Stroke::new(1.0_f32, ZINC_50);
         v.widgets.active.corner_radius = CornerRadius::same(6);
 
         v.widgets.open.bg_fill = Color32::from_rgb(39, 39, 46);
         v.widgets.open.weak_bg_fill = Color32::from_rgb(39, 39, 46);
-        v.widgets.open.bg_stroke = Stroke::new(1.0, ZINC_700);
-        v.widgets.open.fg_stroke = Stroke::new(1.0, ZINC_50);
+        v.widgets.open.bg_stroke = Stroke::new(1.0_f32, ZINC_700);
+        v.widgets.open.fg_stroke = Stroke::new(1.0_f32, ZINC_50);
         v.widgets.open.corner_radius = CornerRadius::same(6);
     });
 }
@@ -147,7 +147,7 @@ impl DebugDialogState {
 fn shadcn_card(ui: &mut Ui, title: &str, subtitle: &str, body: impl FnOnce(&mut Ui)) {
     Frame::NONE
         .fill(ZINC_900)
-        .stroke(Stroke::new(1.0, ZINC_800))
+        .stroke(Stroke::new(1.0_f32, ZINC_800))
         .corner_radius(CornerRadius::same(8))
         .inner_margin(Margin::same(14))
         .show(ui, |ui| {
@@ -172,12 +172,12 @@ fn paint_window_controls(ctx: &Context, ui: &mut Ui, dlg: &mut DebugDialogState)
     ui.painter().rect_stroke(
         cls_rect,
         4.0,
-        Stroke::new(0.8, ZINC_800),
+        Stroke::new(0.8_f32, ZINC_800),
         egui::StrokeKind::Inside,
     );
     let c = cls_rect.center();
     let d = 4.0;
-    let stroke = Stroke::new(1.5, ZINC_50);
+    let stroke = Stroke::new(1.5_f32, ZINC_50);
     ui.painter()
         .line_segment([c + egui::vec2(-d, -d), c + egui::vec2(d, d)], stroke);
     ui.painter()
@@ -198,7 +198,7 @@ fn paint_window_controls(ctx: &Context, ui: &mut Ui, dlg: &mut DebugDialogState)
     ui.painter().rect_stroke(
         min_rect,
         4.0,
-        Stroke::new(0.8, ZINC_800),
+        Stroke::new(0.8_f32, ZINC_800),
         egui::StrokeKind::Inside,
     );
     ui.painter().line_segment(
@@ -206,7 +206,7 @@ fn paint_window_controls(ctx: &Context, ui: &mut Ui, dlg: &mut DebugDialogState)
             egui::pos2(min_rect.center().x - 4.5, min_rect.center().y + 1.5),
             egui::pos2(min_rect.center().x + 4.5, min_rect.center().y + 1.5),
         ],
-        Stroke::new(1.5, ZINC_50),
+        Stroke::new(1.5_f32, ZINC_50),
     );
     if min_resp.clicked() {
         ctx.send_viewport_cmd(ViewportCommand::Minimized(true));
@@ -269,7 +269,7 @@ fn render_dialog_contents(
     // Segmented pill tab bar (shadcn TabsList)
     Frame::NONE
         .fill(ZINC_900)
-        .stroke(Stroke::new(1.0, ZINC_800))
+        .stroke(Stroke::new(1.0_f32, ZINC_800))
         .corner_radius(CornerRadius::same(8))
         .inner_margin(Margin::same(4))
         .show(ui, |ui| {
@@ -400,7 +400,7 @@ fn render_dialog_contents(
                                             .color(ZINC_50),
                                     )
                                     .fill(ZINC_900)
-                                    .stroke(Stroke::new(1.0, ZINC_800))
+                                    .stroke(Stroke::new(1.0_f32, ZINC_800))
                                     .corner_radius(CornerRadius::same(6)),
                                 )
                                 .on_hover_cursor(egui::CursorIcon::PointingHand);
@@ -449,7 +449,7 @@ fn render_dialog_contents(
                                             .color(ZINC_50),
                                     )
                                     .fill(ZINC_900)
-                                    .stroke(Stroke::new(1.0, ZINC_800))
+                                    .stroke(Stroke::new(1.0_f32, ZINC_800))
                                     .corner_radius(CornerRadius::same(6)),
                                 )
                                 .on_hover_cursor(egui::CursorIcon::PointingHand);
@@ -520,7 +520,7 @@ pub fn show_debug_dialog(
         }
         let rounded_frame = Frame::NONE
             .fill(ZINC_950_GLASS)
-            .stroke(Stroke::new(1.0, ZINC_800))
+            .stroke(Stroke::new(1.0_f32, ZINC_800))
             .corner_radius(CornerRadius::same(12))
             .inner_margin(Margin::same(16));
 
@@ -549,7 +549,7 @@ pub fn show_debug_dialog(
             apply_shadcn_theme(vp_ctx);
             let flush_glass = Frame::NONE
                 .fill(ZINC_950_GLASS)
-                .stroke(Stroke::new(1.0, ZINC_800))
+                .stroke(Stroke::new(1.0_f32, ZINC_800))
                 .corner_radius(CornerRadius::ZERO)
                 .inner_margin(Margin::same(16));
             egui::CentralPanel::default()
