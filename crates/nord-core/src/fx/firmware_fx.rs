@@ -104,6 +104,12 @@ pub struct FirmwareFx {
     /// synth units, the ARM's block count words times two frames) instead of
     /// `LayerFxChain::mod1_rest_frames`. Only read with `mod1`. Not in `FX_PORT_NAMES`, not in `ALL`.
     pub mod1_unit_calls: bool,
+    /// Opt-in (D214): the firmware compressor runs ahead of the amp / LP24 stage instead of after
+    /// the EQ. The block-rate gain steps of the gain computer then meet the amp low-pass; after the
+    /// amp they leave a broadband floor 15 to 17 dB above the hardware clip A:25 at 5 to 16 kHz
+    /// (`docs/research/treble-excess-by-engine.md`). ASSUMED position. Only read with
+    /// `compressor`. Not in `FX_PORT_NAMES`, not in `ALL`.
+    pub compressor_first: bool,
 }
 
 impl Default for FirmwareFx {
@@ -150,6 +156,7 @@ impl FirmwareFx {
         lp24: false,
         compressor_row: false,
         mod1_unit_calls: false,
+        compressor_first: false,
     };
 
     /// Every firmware port except the two reverb ports: delay laws and time, compressor, Mod 1,
@@ -180,6 +187,7 @@ impl FirmwareFx {
         lp24: false,
         compressor_row: true,
         mod1_unit_calls: false,
+        compressor_first: false,
     };
 }
 

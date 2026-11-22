@@ -805,6 +805,7 @@ impl FirmwareOptions {
             o.fx.compressor_row = false;
         }
         o.fx.mod1_unit_calls |= has("--mod1-unit-calls");
+        o.fx.compressor_first |= has("--fx-compressor-first");
         if let Some(v) = value("--amp-path") {
             o.amp_path = Some(parse_amp_path(v)?);
         }
@@ -1316,6 +1317,9 @@ impl FirmwareOptions {
         }
         if self.fx.mod1_unit_calls {
             parts.push("mod1-unit-calls".into());
+        }
+        if self.fx.compressor_first {
+            parts.push("fx-compressor-first".into());
         }
         if let Some(a) = self.amp_path {
             parts.push(format!("amp={}", if a { "firmware" } else { "engine" }));

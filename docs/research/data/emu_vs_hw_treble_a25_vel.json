@@ -1,0 +1,91 @@
+{
+ "video": "_zksT69H30c",
+ "note": "A:25 piano velocity sweep and transcribed velocities (docs/research/treble-excess-by-engine.md s4). Run once with --confirmed-only, once with --events-from transkun.",
+ "segments": [
+  {
+   "id": "super_lp24_sidechain",
+   "entry": "Program/Bank A/Sidechain Whl II.ns4p",
+   "engine": "A:25 SUPER wave 0 LP24 1600 Hz res 0.1; clip ends 622 s (filter knob turned from 624 s)",
+   "at_s": 594,
+   "duration_s": 28,
+   "variants": [
+    {
+     "label": "default"
+    },
+    {
+     "label": "lp24",
+     "flags": [
+      "--firmware-fx-ports",
+      "lp24"
+     ]
+    },
+    {
+     "label": "piano-timbre",
+     "flags": [
+      "--firmware-piano-timbre"
+     ]
+    },
+    {
+     "label": "vel-56",
+     "velocity": 56
+    },
+    {
+     "label": "vel-56+lp24",
+     "velocity": 56,
+     "flags": [
+      "--firmware-fx-ports",
+      "lp24"
+     ]
+    },
+    {
+     "label": "vel-64",
+     "velocity": 64
+    },
+    {
+     "label": "vel-64+lp24",
+     "velocity": 64,
+     "flags": [
+      "--firmware-fx-ports",
+      "lp24"
+     ]
+    },
+    {
+     "label": "vel-72",
+     "velocity": 72
+    },
+    {
+     "label": "vel-72+lp24",
+     "velocity": 72,
+     "flags": [
+      "--firmware-fx-ports",
+      "lp24"
+     ]
+    },
+    {
+     "label": "vel-80",
+     "velocity": 80
+    },
+    {
+     "label": "vel-80+lp24",
+     "velocity": 80,
+     "flags": [
+      "--firmware-fx-ports",
+      "lp24"
+     ]
+    },
+    {
+     "label": "vel-88",
+     "velocity": 88
+    },
+    {
+     "label": "vel-88+lp24",
+     "velocity": 88,
+     "flags": [
+      "--firmware-fx-ports",
+      "lp24"
+     ]
+    }
+   ]
+  }
+ ]
+}

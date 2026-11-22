@@ -1,0 +1,85 @@
+{
+ "video": "_zksT69H30c",
+ "note": "A:25 layer and stage ablation (docs/research/treble-excess-by-engine.md s4). Run like emu_vs_hw_treble_excess.json.",
+ "segments": [
+  {
+   "id": "super_lp24_sidechain",
+   "entry": "Program/Bank A/Sidechain Whl II.ns4p",
+   "engine": "A:25 SUPER wave 0 LP24 1600 Hz res 0.1; clip ends 622 s (filter knob turned from 624 s)",
+   "at_s": 594,
+   "duration_s": 28,
+   "variants": [
+    {
+     "label": "default"
+    },
+    {
+     "label": "piano_off",
+     "edits": {
+      "piano.layer_a.enabled": false
+     }
+    },
+    {
+     "label": "synth_off",
+     "edits": {
+      "synth.layer_a.enabled": false
+     }
+    },
+    {
+     "label": "piano_off+synth-oracle",
+     "edits": {
+      "piano.layer_a.enabled": false
+     },
+     "flags": [
+      "--synth-oracle"
+     ]
+    },
+    {
+     "label": "synth_off+piano-timbre",
+     "edits": {
+      "synth.layer_a.enabled": false
+     },
+     "flags": [
+      "--firmware-piano-timbre"
+     ]
+    },
+    {
+     "label": "piano_amp_off",
+     "edits": {
+      "piano.fx_a.amp_enabled": false,
+      "piano.fx_b.amp_enabled": false
+     }
+    },
+    {
+     "label": "piano_comp_off",
+     "edits": {
+      "piano.fx_a.comp_enabled": false,
+      "piano.fx_b.comp_enabled": false
+     }
+    },
+    {
+     "label": "piano_amp_comp_off",
+     "edits": {
+      "piano.fx_a.amp_enabled": false,
+      "piano.fx_b.amp_enabled": false,
+      "piano.fx_a.comp_enabled": false,
+      "piano.fx_b.comp_enabled": false
+     }
+    },
+    {
+     "label": "fw-comp",
+     "flags": [
+      "--firmware-fx-ports",
+      "compressor"
+     ]
+    },
+    {
+     "label": "lp24+fw-comp",
+     "flags": [
+      "--firmware-fx-ports",
+      "lp24,compressor"
+     ]
+    }
+   ]
+  }
+ ]
+}
