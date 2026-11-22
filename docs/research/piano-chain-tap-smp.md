@@ -102,5 +102,5 @@ Follow-up 1 is done: the descriptor law and the flash feed are in [smp-page-refi
 
 ## Update 2026-11-21 (D205)
 
-Follow-ups 2 and 4 are done for the pilot programs: see [smp-voice-pitch](smp-voice-pitch.md). The tap carries a piano signal once the ARM pairs are paced (`--fifo-pace 1`); follow-up 2 (census) has its mechanism (`program_rank_chain.py --smp`) but the 155 run is open; follow-up 4 (ring half): the half the pointer holds on entry is right, one frame per interrupt is written at `+0`, the other half and the second slot stay 0.
+Follow-ups 2 and 4 are done for the pilot programs: see [smp-voice-pitch](smp-voice-pitch.md). The tap carries a piano signal once the ARM pairs are paced (`--fifo-pace 1`); follow-up 2 (census) is done (D214: 152 of 155 programs, [program-ranking](program-ranking.md) s3.3a); follow-up 4 (ring half): the half the pointer holds on entry is right, one frame per interrupt is written at `+0`, the other half and the second slot stay 0.
 

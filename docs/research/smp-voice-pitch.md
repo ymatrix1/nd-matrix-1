@@ -94,7 +94,7 @@ target/release/smp_stroke_dump run/smp_flash.npno 513 stroke513.f32       # refe
 
 ## Follow-ups
 
-1. Run `program_rank_chain.py --smp target/oracle/smp.bin` over the 155 piano programs, regenerate `program-ranking.csv` (needs `native.jsonl`, 70 min), drop `piano_no_chain_tap` in the table.
+1. ~~Run `program_rank_chain.py --smp` over the 155 piano programs~~ Done (D214): 152 audio, 3 none; `program_rank_smp.py` merges the columns into `program-ranking.csv` without the 70 min native renders ([program-ranking](program-ranking.md) s3.3a).
 2. ~~Interrupt rate of the SMP chip~~ answered by D211: `F = 43,402.34 Hz`.
 3. Piano layers 2 and 3: D211 shows that the second **voice** (stroke 502) of the same note-on already runs and decodes bit for bit; the release voice (order 4 page) and the second piano layer (`layer_b`, another core and flash image) are open ([smp-interrupt-rate](smp-interrupt-rate.md) s3).
 4. Why the real ARM message order works (start before history): real pacing of the ARM writes against the interrupt, so `--fifo-pace 1` is a model, not a measurement; 3 pairs per pass loses the voice start.

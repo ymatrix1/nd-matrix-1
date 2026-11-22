@@ -96,7 +96,7 @@ def active_layer(layers: dict[str, dict]) -> str:
     VERIFIED (`engine/routing.rs::default_layer_a`, `engine-routing.md` s7): an enabled section with
     no layer enabled plays layer A. Five factory programs (Tines Layer, LoFi Piano, Rising Sun,
     Piano Soft Orch, 70s CP Strings) store both piano enable bits 0 and sound on layer A; the
-    census bound nothing for them and read `piano_no_chain_tap` (D211).
+    census bound nothing for them and read `piano_no_chain_tap` (D214).
     """
     return next((k for k, v in layers.items() if v["enabled"]), "layer_a")
 
