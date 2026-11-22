@@ -1,7 +1,7 @@
 //! One editor frame: read-back, the shared front panel, dimmed-control overlay, sink pump.
 //!
 //! The panel is the same `render_stage4_panel` the standalone app draws (`nord-gui`), at its
-//! native 1560 x 420 logical px. The panel lives in its own egui layer whose transform scales
+//! native logical size (`PANEL_W` x `PANEL_H`). The panel lives in its own egui layer whose transform scales
 //! and centres it so the whole panel always fits (aspect preserved, letterboxed in the chassis
 //! colour). The host's DPI scale multiplies on top through `nih_plug_egui`.
 //!
@@ -29,9 +29,12 @@ use nord_gui::style::CHASSIS_DARK;
 use std::sync::Arc;
 
 /// Logical panel size the shared drawing code is laid out for.
-pub const PANEL_W: f32 = 1560.0;
-pub const PANEL_H: f32 = 420.0;
-/// Default editor window size: the native panel size (100 %, sharp text).
+/// Logical panel size the shared drawing code is laid out for (`nord_gui` layout scale 2: 3120 x 840).
+/// Taken from the shared constants: a hand-copied 1560 x 420 went stale when `LAYOUT_SCALE` became 2
+/// and the editor clipped the panel to its left half.
+pub const PANEL_W: f32 = nord_gui::panel::layout_px::PANEL_WIDTH_PX;
+pub const PANEL_H: f32 = nord_gui::panel::layout_px::PANEL_HEIGHT_PX;
+/// Default editor window size: half the native panel size (scale 0.5, ~1950 px wide at 125 % DPI).
 pub const DEFAULT_SIZE: (u32, u32) = (1560, 420);
 /// Smallest scale the editor shrinks to.
 pub const MIN_SCALE: f32 = 0.25;
@@ -194,12 +197,12 @@ mod tests {
 
     #[test]
     fn scale_fits_the_panel_and_keeps_the_aspect() {
-        assert!((scale_for((1560, 420)) - 1.0).abs() < 1e-6);
-        assert!((scale_for((780, 210)) - 0.5).abs() < 1e-6);
+        assert!((scale_for((PANEL_W as u32, PANEL_H as u32)) - 1.0).abs() < 1e-6);
+        assert!((scale_for(((PANEL_W / 2.0) as u32, (PANEL_H / 2.0) as u32)) - 0.5).abs() < 1e-6);
         // Wide window: height limits the scale.
-        assert!((scale_for((3120, 420)) - 1.0).abs() < 1e-6);
+        assert!((scale_for(((PANEL_W * 2.0) as u32, PANEL_H as u32)) - 1.0).abs() < 1e-6);
         // Tall window: width limits the scale.
-        assert!((scale_for((780, 2000)) - 0.5).abs() < 1e-6);
+        assert!((scale_for(((PANEL_W / 2.0) as u32, (PANEL_H * 5.0) as u32)) - 0.5).abs() < 1e-6);
         assert_eq!(scale_for((1, 1)), MIN_SCALE);
         assert_eq!(
             scale_for(DEFAULT_SIZE),
@@ -359,8 +362,8 @@ mod tests {
 
     #[test]
     fn fit_scale_matches_scale_for_and_letterboxes() {
-        assert!((fit_scale(Vec2::new(780.0, 210.0)) - 0.5).abs() < 1e-6);
-        assert!((fit_scale(Vec2::new(3120.0, 420.0)) - 1.0).abs() < 1e-6);
+        assert!((fit_scale(Vec2::new(PANEL_W / 2.0, PANEL_H / 2.0)) - 0.5).abs() < 1e-6);
+        assert!((fit_scale(Vec2::new(PANEL_W * 2.0, PANEL_H)) - 1.0).abs() < 1e-6);
         assert_eq!(fit_scale(Vec2::new(1.0, 1.0)), MIN_SCALE);
     }
 

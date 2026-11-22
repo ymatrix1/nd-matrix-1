@@ -108,9 +108,15 @@ where
                 let setter = ParamSetter::new(context.as_ref());
 
                 // If the window was requested to resize
-                if let Some(new_size) = egui_state.requested_size.swap(None) {
-                    // Ask the plugin host to resize to self.size()
-                    if context.request_resize() {
+                // NOTE (nd matrix 1): upstream took the request out of `requested_size` before
+                // calling `request_resize()`, which reads `Editor::size()`; that then returned the
+                // OLD size, so the host was asked to keep its size while egui drew at the new one.
+                // The request now stays set during the call.
+                if let Some(new_size) = egui_state.requested_size.load() {
+                    let old_size = egui_state.size.load();
+                    let ok = context.request_resize();
+                    egui_state.requested_size.store(None);
+                    if ok {
                         // Resize the content of egui window
                         let ppp = egui_ctx.native_pixels_per_point().unwrap_or(1.0);
                         queue.resize(PhySize::new(
@@ -132,7 +138,6 @@ where
                 // this we would also have a blank GUI when it gets first opened because most DAWs open
                 // their GUI while the window is still unmapped.
                 egui_ctx.request_repaint();
-                (update)(egui_ctx, &setter, &mut state.write());
             },
         );
 
