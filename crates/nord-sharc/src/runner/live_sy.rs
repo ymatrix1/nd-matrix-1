@@ -182,6 +182,13 @@ impl SyModel {
         }
     }
 
+    /// Sets the offset the ISR adds to `DM(0x2400)` (`--index-bias`, opt-in for the SY1SY2 chip,
+    /// D206: its init sets `R3 = 0x80000` like the SMP image, the model stored the plain address).
+    pub fn with_index_bias(mut self, bias: u32) -> Self {
+        self.index_bias = bias;
+        self
+    }
+
     /// Queues one ARM message (an opcode 0 pair: store `value` at DM `addr`). A Stage A state
     /// message also switches the ring refill of its voice (prepare and go on, idle and reset off).
     pub fn send(&mut self, addr: u32, value: u32) {
@@ -351,6 +358,17 @@ mod tests {
         assert_eq!(smp.index_bias, live_smp::INDEX_BIAS);
         assert_eq!(smp.cap_addr, live_smp::FIFO_CAP);
         assert_eq!(smp.fifo_base, live_smp::FIFO_BASE);
+    }
+
+    #[test]
+    fn the_index_bias_is_settable_on_the_sy_model_and_defaults_off() {
+        assert_eq!(SyModel::new(2).index_bias, 0);
+        assert_eq!(
+            SyModel::new(2).with_index_bias(0x8_0000).index_bias,
+            live_smp::INDEX_BIAS
+        );
+        let smp = SyModel::smp(2).with_index_bias(0);
+        assert_eq!((smp.index_bias, smp.cap_addr), (0, live_smp::FIFO_CAP));
     }
 
     #[test]

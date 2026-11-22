@@ -84,3 +84,6 @@ python -m pytest tools/tests/test_arm_smp_flash.py
 
 The D199 tap was not a piano: its history was wiped by the kill routine (s3 of [smp-voice-pitch](smp-voice-pitch.md)) and the order 3 predictor ran away (wrapped sawtooth, `tap_stats` still said `audio`). The pitch follow-up 2 is answered: the tap kept 2 frames per interrupt and one is a zero (half the apparent pitch), and the step law is `0.80618 * 2^(tuning / 1200)`. With `sharc-live --fifo-pace 1` the live history ring equals the reference decode bit for bit (Astoria Grand, `tools/smp_voice_replay.py`) and 12 of 12 pilot programs give a harmonic tap of the same pitch. The peaks of s1 (-7.75, -13.00, -7.36, -19.11 dBFS) are void; see the new table in [smp-voice-pitch](smp-voice-pitch.md) s4.
 
+## Update 2026-11-21 (D211)
+
+Follow-up 4 (SY1SY2): the SY ISR has the same consumer and `R3 = 0x80000` (256 of 256 snapshots); the SY model with the plain index drives the consumer about 128 times per pass against 316 with `--index-bias 0x80000` ([smp-interrupt-rate](smp-interrupt-rate.md) s4). Follow-up 3 (layers 2 and 3): the second voice of the note-on already runs; see the same note s3.

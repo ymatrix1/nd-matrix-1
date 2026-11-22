@@ -20,6 +20,11 @@ from pathlib import Path
 
 HIST_BASE = 0xC0500  # VERIFIED (run): history ring of voice 0, 16 words, even slots left, odd right
 VOICE0 = 0x93928  # VERIFIED (run): `I3` of voice 0 (ring pointer `rec[-26]` = 0x9B000)
+# VERIFIED (run, Astoria Grand, SMP0.script: the second start of the note-on writes the request
+# `0x92526 = 0x9395E` and the history `0xC0510..`, the release voice `0x93CBE` = voice 17): the
+# voice records are `0x36` words apart and the start history of voice `v` is `0xC0500 + 16 v`.
+VOICE_STRIDE = 0x36
+HIST_STRIDE = 16
 COUNTER = -30  # `rec[-30]`: residual number of the next call
 LPC = {0: (0, 0, 0, 0), 1: (0, 0, 0, 1), 2: (0, 0, -1, 2), 3: (0, 1, -3, 3)}  # row = 4 * order
 
@@ -65,7 +70,27 @@ def history_samples(ring: list[int], counter: int) -> list[int]:
     return [s32(ring[2 * ((n + 4) & 7)]) for n in range(counter - 8, counter)]
 
 
-def init_history(msgs: dict[int, list[tuple[int, int]]], lane: int = 0) -> list[int]:
+def voice_addresses(voice: int) -> tuple[int, int]:
+    """`(record I3, history base)` of voice `voice` of the SMP (see `VOICE_STRIDE`)."""
+    return VOICE0 + VOICE_STRIDE * voice, HIST_BASE + HIST_STRIDE * voice
+
+
+def match_counter(ring: list[int], counter: int, decoded: list[int]) -> int | None:
+    """Counter value (`counter` or `counter + 1`) at which the ring equals the reference decode.
+
+    EMPIRICAL (run, Astoria Grand voice 1, stroke 502: counter 379, seven of eight words equal and
+    the eighth is `y(379)`): a dump taken inside the call can hold sample `counter` already, so the
+    ring is one sample ahead of the counter word.
+    """
+    for c in (counter, counter + 1):
+        if c >= 8 and history_samples(ring, c) == decoded[c - 8 : c]:
+            return c
+    return None
+
+
+def init_history(
+    msgs: dict[int, list[tuple[int, int]]], lane: int = 0, base: int = HIST_BASE
+) -> list[int]:
     """Start history `y(-4) .. y(-1)` of `lane` as the ARM wrote it: the first words of the ring.
 
     The ARM writes `0xC0500 + 2 k + lane` for `k = 0..3` (signed 32 bit, left lane 0, right 1).
@@ -75,7 +100,7 @@ def init_history(msgs: dict[int, list[tuple[int, int]]], lane: int = 0) -> list[
         for a, v in msgs[p]:
             first.setdefault(a, v)
     return [
-        (lambda v: v - (1 << 32) if v >= 1 << 31 else v)(first[HIST_BASE + 2 * k + lane])
+        (lambda v: v - (1 << 32) if v >= 1 << 31 else v)(first[base + 2 * k + lane])
         for k in range(4)
     ]
 
@@ -97,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
     ap.add_argument("image", type=Path, help="SMP flat image (target/oracle/smp.bin)")
     ap.add_argument("live", type=Path, help="sharc-live executable")
     ap.add_argument("--stroke", type=int, required=True)
+    ap.add_argument("--voice", type=int, default=0, help="voice index (record 0x36 words apart)")
     ap.add_argument("--passes", type=int, default=900)
     ap.add_argument("--pace-per-pass", type=int, default=2, help="ARM pairs per pass (0 = burst)")
     ns = ap.parse_args(argv)
@@ -115,14 +141,18 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
         for a, v in take[: ns.pace_per_pass or None]:
             link.send(a, v)
         link.run(1)
-    counter = link.dump(VOICE0 + COUNTER, 1)[0]
-    got = history_samples(link.dump(HIST_BASE, 16), counter)
+    record, hist = voice_addresses(ns.voice)
+    counter = link.dump(record + COUNTER, 1)[0]
+    ring = link.dump(hist, 16)
     link.close()
-    init = init_history(msgs)
-    ref = decode_page(page, init, counter)[counter - 8 : counter]
-    print(f"counter {counter}\nhistory {got}\nreference {ref}")
-    print("MATCH" if got == ref else "DIFFERENT")
-    return 0 if got == ref else 1
+    init = init_history(msgs, base=hist)
+    decoded = decode_page(page, init, counter + 1)
+    at = match_counter(ring, counter, decoded)
+    print(f"counter {counter}")
+    print(f"history {history_samples(ring, counter)}")
+    print(f"reference {decoded[counter - 8 : counter]}")
+    print("MATCH" if at is not None else "DIFFERENT")
+    return 0 if at is not None else 1
 
 
 if __name__ == "__main__":

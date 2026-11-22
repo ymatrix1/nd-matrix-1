@@ -53,3 +53,25 @@ def test_script_and_start_history_follow_the_arm_words(tmp_path: Path) -> None:
     msgs = sv.read_script(f)
     assert msgs[815] == [(0xC0506, 0xFFFFFFF7)] and len(msgs) == 3
     assert sv.init_history(msgs) == [0, -41, -57, -9]
+
+
+def test_voice_addresses_step_by_the_record_and_history_strides() -> None:
+    assert sv.voice_addresses(0) == (0x93928, 0xC0500)
+    assert sv.voice_addresses(1) == (0x9395E, 0xC0510)  # second voice of the Astoria Grand note-on
+    assert sv.voice_addresses(17)[0] == 0x93CBE  # the release voice start of the same program
+
+
+def test_init_history_reads_the_base_of_the_voice() -> None:
+    msgs = {7: [(0xC0510 + k, (k + 1) * 10) for k in range(8)]}  # even slots left, odd right
+    assert sv.init_history(msgs, base=0xC0510) == [10, 30, 50, 70]
+    assert sv.init_history(msgs, lane=1, base=0xC0510) == [20, 40, 60, 80]
+
+
+def test_match_counter_accepts_a_ring_one_sample_ahead_of_the_counter() -> None:
+    decoded = list(range(400))  # y(n) = n
+    ahead = [0] * 16
+    for n in range(380, 388):  # y(n) sits at slot 2 * ((n + 4) & 7): samples 380..387 stored
+        ahead[2 * ((n + 4) & 7)] = n
+    assert sv.match_counter(ahead, 387, decoded) == 388  # the counter word lags by one
+    assert sv.match_counter(ahead, 388, decoded) == 388
+    assert sv.match_counter(ahead, 300, decoded) is None
