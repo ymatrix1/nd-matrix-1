@@ -1,0 +1,161 @@
+program,layer,chain,variant,attack_idx,decay_idx,release_idx,oracle_peak,mean_abs_err,max_abs_err,t90_oracle,t90_native,thalf_oracle,thalf_native
+Bank A/12dB Sweep,0,amp,legacy,-64,63,-11,1.0000,0.03552,0.13227,10,9,2231,1524
+Bank A/12dB Sweep,0,amp,settled,-64,63,-11,1.0000,0.00136,0.09216,10,9,2231,2231
+Bank A/12dB Sweep,0,filter,legacy,-1,52,22,0.5837,0.13530,0.21741,10799,7868,,
+Bank A/12dB Sweep,0,filter,settled,-1,52,22,0.5837,0.00005,0.00005,10799,10798,,
+Bank A/B3 Jazz Split,0,amp,legacy,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank A/B3 Jazz Split,0,amp,settled,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank A/B3 Jazz Split,0,filter,legacy,-40,52,-32,1.0000,0.00948,0.22579,415,321,392,392
+Bank A/B3 Jazz Split,0,filter,settled,-40,52,-32,1.0000,0.00006,0.00217,415,414,392,392
+Bank A/Digi Keys Pad,1,amp,legacy,-29,63,-7,1.0000,0.03518,0.27866,1469,1060,2987,2402
+Bank A/Digi Keys Pad,1,amp,settled,-29,63,-7,1.0000,0.00115,0.00235,1469,1468,2987,2987
+Bank A/Digi Keys Pad,1,filter,legacy,4,47,7,0.3998,0.07956,0.14064,10800,7988,,
+Bank A/Digi Keys Pad,1,filter,settled,4,47,7,0.3998,0.00003,0.00003,10800,10799,,
+Bank A/In Stereo Mk I ,0,amp,legacy,-54,63,-64,1.0000,0.00190,0.50045,58,29,9,9
+Bank A/In Stereo Mk I ,0,amp,settled,-54,63,-64,1.0000,0.00095,0.01557,58,57,9,9
+Bank A/In Stereo Mk I ,0,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank A/In Stereo Mk I ,0,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank A/Midnight Upright,0,amp,legacy,-54,63,-64,1.0000,0.00190,0.50045,58,29,9,9
+Bank A/Midnight Upright,0,amp,settled,-54,63,-64,1.0000,0.00095,0.01557,58,57,9,9
+Bank A/Midnight Upright,0,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank A/Midnight Upright,0,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank A/Phat 3 Osc MiniM,2,amp,legacy,-64,63,-8,1.0000,0.01479,0.09216,10,9,2779,2402
+Bank A/Phat 3 Osc MiniM,2,amp,settled,-64,63,-8,1.0000,0.00142,0.09216,10,9,2779,2779
+Bank A/Phat 3 Osc MiniM,2,filter,legacy,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank A/Phat 3 Osc MiniM,2,filter,settled,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank A/Silverface Mk I ,0,amp,legacy,-54,63,-64,1.0000,0.00190,0.50045,58,29,9,9
+Bank A/Silverface Mk I ,0,amp,settled,-54,63,-64,1.0000,0.00095,0.01557,58,57,9,9
+Bank A/Silverface Mk I ,0,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank A/Silverface Mk I ,0,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank A/Tines Layer,0,amp,legacy,-64,29,-20,1.0000,0.01577,0.09216,10,9,1109,1022
+Bank A/Tines Layer,0,amp,settled,-64,29,-20,1.0000,0.00007,0.09216,10,9,1109,1109
+Bank A/Tines Layer,0,filter,legacy,-52,10,-8,1.0000,0.03292,0.15439,80,67,2779,2402
+Bank A/Tines Layer,0,filter,settled,-52,10,-8,1.0000,0.00008,0.01139,80,79,2779,2779
+Bank B/Choral Pad,2,amp,legacy,-64,63,-37,1.0000,0.00101,0.09216,10,9,244,244
+Bank B/Choral Pad,2,amp,settled,-64,63,-37,1.0000,0.00101,0.09216,10,9,244,244
+Bank B/Choral Pad,2,filter,legacy,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank B/Choral Pad,2,filter,settled,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank B/Dyn FM Keys,0,amp,legacy,-55,30,-24,1.0000,0.02352,0.41339,50,29,796,671
+Bank B/Dyn FM Keys,0,amp,settled,-55,30,-24,1.0000,0.00007,0.01829,50,49,796,796
+Bank B/Dyn FM Keys,0,filter,legacy,-53,18,22,1.0000,0.02650,0.03809,68,67,,
+Bank B/Dyn FM Keys,0,filter,settled,-53,18,22,1.0000,0.00009,0.01329,68,67,,
+Bank B/Gradient Whl,0,amp,legacy,-64,63,-8,1.0000,0.01479,0.09216,10,9,2779,2402
+Bank B/Gradient Whl,0,amp,settled,-64,63,-8,1.0000,0.00142,0.09216,10,9,2779,2779
+Bank B/Gradient Whl,0,filter,legacy,-64,-14,5,1.0000,0.01545,0.09216,10,9,,4859
+Bank B/Gradient Whl,0,filter,settled,-64,-14,5,1.0000,0.00008,0.09216,10,9,,
+Bank B/Hot Brass,2,amp,legacy,-64,63,-34,1.0000,0.00710,0.10085,10,9,325,244
+Bank B/Hot Brass,2,amp,settled,-64,63,-34,1.0000,0.00103,0.09216,10,9,325,325
+Bank B/Hot Brass,2,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank B/Hot Brass,2,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank B/PWM Pan Pad,0,amp,legacy,-43,63,-22,1.0000,0.02521,0.49647,283,142,941,671
+Bank B/PWM Pan Pad,0,amp,settled,-43,63,-22,1.0000,0.00111,0.00319,283,282,941,941
+Bank B/PWM Pan Pad,0,filter,legacy,-32,51,-27,1.0000,0.02021,0.15357,1061,1060,615,392
+Bank B/PWM Pan Pad,0,filter,settled,-32,51,-27,1.0000,0.00006,0.00085,1061,1060,615,615
+Bank B/Unity Whl,0,amp,legacy,-57,63,-27,1.0000,0.01775,0.18281,36,29,615,392
+Bank B/Unity Whl,0,amp,settled,-57,63,-27,1.0000,0.00109,0.02549,36,35,615,615
+Bank B/Unity Whl,0,filter,legacy,-31,63,-29,1.0000,0.01421,0.10501,1184,1060,515,392
+Bank B/Unity Whl,0,filter,settled,-31,63,-29,1.0000,0.00087,0.00240,1184,1183,515,515
+Bank C/Bounce Clav,0,amp,legacy,-53,63,-13,1.0000,0.02173,0.08083,68,67,1920,1524
+Bank C/Bounce Clav,0,amp,settled,-53,63,-13,1.0000,0.00131,0.01329,68,67,1920,1920
+Bank C/Bounce Clav,0,filter,legacy,-46,-10,-25,1.0000,0.00517,0.24797,189,142,731,671
+Bank C/Bounce Clav,0,filter,settled,-46,-10,-25,1.0000,0.00008,0.00477,189,188,731,731
+Bank C/Digi Heaven,0,amp,legacy,-54,21,-3,1.0000,0.06312,0.50045,58,29,3959,3443
+Bank C/Digi Heaven,0,amp,settled,-54,21,-3,1.0000,0.00008,0.01557,58,57,3959,3959
+Bank C/Digi Heaven,0,filter,legacy,-50,13,-1,1.0000,0.03023,0.37336,107,67,4540,3443
+Bank C/Digi Heaven,0,filter,settled,-50,13,-1,1.0000,0.00008,0.00843,107,106,4540,4540
+Bank C/Gray Pad Whl,1,amp,legacy,-34,63,-4,1.0000,0.01603,0.29590,847,597,3694,3443
+Bank C/Gray Pad Whl,1,amp,settled,-34,63,-4,1.0000,0.00132,0.00249,847,846,3694,3694
+Bank C/Gray Pad Whl,1,filter,legacy,-19,40,-9,1.0000,0.03724,0.17339,3990,3298,2585,2402
+Bank C/Gray Pad Whl,1,filter,settled,-19,40,-9,1.0000,0.00006,0.00023,3990,3989,2585,2585
+Bank C/Lyle Lead J3,0,amp,legacy,-64,63,-34,1.0000,0.00710,0.10085,10,9,325,244
+Bank C/Lyle Lead J3,0,amp,settled,-64,63,-34,1.0000,0.00103,0.09216,10,9,325,325
+Bank C/Lyle Lead J3,0,filter,legacy,-64,-3,-64,1.0000,0.00632,0.09216,10,9,9,9
+Bank C/Lyle Lead J3,0,filter,settled,-64,-3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank C/Piano Soft Orch,0,amp,legacy,-64,63,-8,1.0000,0.01479,0.09216,10,9,2779,2402
+Bank C/Piano Soft Orch,0,amp,settled,-64,63,-8,1.0000,0.00142,0.09216,10,9,2779,2779
+Bank C/Piano Soft Orch,0,filter,legacy,27,55,10,0.0855,0.00130,0.00660,10799,10798,,
+Bank C/Piano Soft Orch,0,filter,settled,27,55,10,0.0855,0.00001,0.00001,10799,10798,,
+Bank C/Saw Horn,0,amp,legacy,-18,63,-10,1.0000,0.03649,0.24700,4381,3298,2402,2402
+Bank C/Saw Horn,0,amp,settled,-18,63,-10,1.0000,0.00064,0.00166,4381,4380,2402,2402
+Bank C/Saw Horn,0,filter,legacy,-5,31,0,0.8010,0.00006,0.00007,10800,10799,4859,4859
+Bank C/Saw Horn,0,filter,settled,-5,31,0,0.8010,0.00006,0.00007,10800,10799,4859,4859
+Bank C/Vintage OB Pad,0,amp,legacy,-3,63,5,0.6826,0.05158,0.11848,10799,9202,,4859
+Bank C/Vintage OB Pad,0,amp,settled,-3,63,5,0.6826,0.00005,0.00006,10799,10798,,
+Bank C/Vintage OB Pad,0,filter,legacy,9,63,1,0.2784,0.03516,0.06684,10799,8707,5196,4859
+Bank C/Vintage OB Pad,0,filter,settled,9,63,1,0.2784,0.00002,0.00002,10799,10798,5196,5196
+Bank D/3 Vlns Mellotron,0,amp,legacy,-64,63,-30,1.0000,0.00690,0.09216,10,9,471,392
+Bank D/3 Vlns Mellotron,0,amp,settled,-64,63,-30,1.0000,0.00106,0.09216,10,9,471,471
+Bank D/3 Vlns Mellotron,0,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank D/3 Vlns Mellotron,0,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank D/Broken Chip,2,amp,legacy,-54,63,-58,1.0000,0.00191,0.50045,58,29,22,22
+Bank D/Broken Chip,2,amp,settled,-54,63,-58,1.0000,0.00096,0.01557,58,57,22,22
+Bank D/Broken Chip,2,filter,legacy,-48,53,-64,1.0000,0.00713,0.02108,143,142,9,9
+Bank D/Broken Chip,2,filter,settled,-48,53,-64,1.0000,0.00006,0.00630,143,142,9,9
+Bank D/Dyno Stone Mk I ,0,amp,legacy,-54,63,-64,1.0000,0.00190,0.50045,58,29,9,9
+Bank D/Dyno Stone Mk I ,0,amp,settled,-54,63,-64,1.0000,0.00095,0.01557,58,57,9,9
+Bank D/Dyno Stone Mk I ,0,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank D/Dyno Stone Mk I ,0,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank D/Jealous Upright,2,amp,legacy,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank D/Jealous Upright,2,amp,settled,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank D/Jealous Upright,2,filter,legacy,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank D/Jealous Upright,2,filter,settled,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank D/Mirror Image Pad,1,amp,legacy,-19,63,-22,1.0000,0.04296,0.17339,3990,3298,941,671
+Bank D/Mirror Image Pad,1,amp,settled,-19,63,-22,1.0000,0.00055,0.00174,3990,3989,941,941
+Bank D/Mirror Image Pad,1,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank D/Mirror Image Pad,1,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank D/Rose Synth Piano,0,amp,legacy,-54,15,-36,1.0000,0.03567,0.50045,58,29,269,244
+Bank D/Rose Synth Piano,0,amp,settled,-54,15,-36,1.0000,0.00008,0.01557,58,57,269,269
+Bank D/Rose Synth Piano,0,filter,legacy,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank D/Rose Synth Piano,0,filter,settled,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank D/Sunrise Mello,0,amp,legacy,-64,63,-30,1.0000,0.00690,0.09216,10,9,471,392
+Bank D/Sunrise Mello,0,amp,settled,-64,63,-30,1.0000,0.00106,0.09216,10,9,471,471
+Bank D/Sunrise Mello,0,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank D/Sunrise Mello,0,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank E/Affection Whl,0,amp,legacy,-64,28,-17,1.0000,0.02490,0.09216,10,9,1409,1022
+Bank E/Affection Whl,0,amp,settled,-64,28,-17,1.0000,0.00007,0.09216,10,9,1409,1409
+Bank E/Affection Whl,0,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank E/Affection Whl,0,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank E/Big White Scape,1,amp,legacy,-23,63,-4,1.0000,0.03109,0.26049,2716,2008,3694,3443
+Bank E/Big White Scape,1,amp,settled,-23,63,-4,1.0000,0.00097,0.00206,2716,2715,3694,3694
+Bank E/Big White Scape,1,filter,legacy,8,26,24,0.2990,0.02783,0.04629,10800,9350,,
+Bank E/Big White Scape,1,filter,settled,8,26,24,0.2990,0.00002,0.00002,10800,10799,,
+Bank E/Cut Trough Lead,0,amp,legacy,-60,63,-50,1.0000,0.00271,0.56876,21,9,60,42
+Bank E/Cut Trough Lead,0,amp,settled,-60,63,-50,1.0000,0.00097,0.04312,21,20,60,60
+Bank E/Cut Trough Lead,0,filter,legacy,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank E/Cut Trough Lead,0,filter,settled,-64,63,-64,1.0000,0.00096,0.09216,10,9,9,9
+Bank E/Hybrid Knock EP,0,amp,legacy,-54,31,-41,1.0000,0.02008,0.50045,58,29,163,147
+Bank E/Hybrid Knock EP,0,amp,settled,-54,31,-41,1.0000,0.00007,0.01557,58,57,163,163
+Bank E/Hybrid Knock EP,0,filter,legacy,-64,-28,-64,1.0000,0.00215,0.11761,10,9,9,9
+Bank E/Hybrid Knock EP,0,filter,settled,-64,-28,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank E/Pillow Fight,0,amp,legacy,-54,63,-18,1.0000,0.02031,0.50045,58,29,1302,1022
+Bank E/Pillow Fight,0,amp,settled,-54,63,-18,1.0000,0.00122,0.01557,58,57,1302,1302
+Bank E/Pillow Fight,0,filter,legacy,-46,-3,-8,1.0000,0.01619,0.24797,189,142,2779,2402
+Bank E/Pillow Fight,0,filter,settled,-46,-3,-8,1.0000,0.00008,0.00477,189,188,2779,2779
+Bank E/Slow Octaves,1,amp,legacy,-64,63,-13,1.0000,0.02173,0.09216,10,9,1920,1524
+Bank E/Slow Octaves,1,amp,settled,-64,63,-13,1.0000,0.00132,0.09216,10,9,1920,1920
+Bank E/Slow Octaves,1,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank E/Slow Octaves,1,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank E/Topliner,0,amp,legacy,-33,63,-45,1.0000,0.01489,0.37120,949,597,106,76
+Bank E/Topliner,0,amp,settled,-33,63,-45,1.0000,0.00083,0.00247,949,948,106,106
+Bank E/Topliner,0,filter,legacy,-28,63,-42,1.0000,0.01983,0.35103,1633,1060,147,147
+Bank E/Topliner,0,filter,settled,-28,63,-42,1.0000,0.00074,0.00231,1633,1632,147,147
+Bank F/1905 Orchestra,1,amp,legacy,-64,63,-24,1.0000,0.01020,0.09216,10,9,796,671
+Bank F/1905 Orchestra,1,amp,settled,-64,63,-24,1.0000,0.00113,0.09216,10,9,796,796
+Bank F/1905 Orchestra,1,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank F/1905 Orchestra,1,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank F/Atmos Lead Whl,2,amp,legacy,-49,63,-29,1.0000,0.01208,0.45825,124,67,515,392
+Bank F/Atmos Lead Whl,2,amp,settled,-49,63,-29,1.0000,0.00105,0.00728,124,123,515,515
+Bank F/Atmos Lead Whl,2,filter,legacy,2,33,-38,0.4642,0.02722,0.07627,10800,9274,221,147
+Bank F/Atmos Lead Whl,2,filter,settled,2,33,-38,0.4642,0.00003,0.00004,10800,10799,221,221
+Bank F/Chamber Upright,0,amp,legacy,-54,63,-64,1.0000,0.00190,0.50045,58,29,9,9
+Bank F/Chamber Upright,0,amp,settled,-54,63,-64,1.0000,0.00095,0.01557,58,57,9,9
+Bank F/Chamber Upright,0,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank F/Chamber Upright,0,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9
+Bank F/Eddie OB,2,amp,legacy,-42,63,-20,1.0000,0.00695,0.02930,322,321,1109,1022
+Bank F/Eddie OB,2,amp,settled,-42,63,-20,1.0000,0.00113,0.00280,322,321,1109,1109
+Bank F/Eddie OB,2,filter,legacy,-35,63,-37,1.0000,0.00622,0.21029,755,597,244,244
+Bank F/Eddie OB,2,filter,settled,-35,63,-37,1.0000,0.00089,0.00252,755,754,244,244
+Bank F/Glass Pad,1,amp,legacy,-64,63,-24,1.0000,0.01020,0.09216,10,9,796,671
+Bank F/Glass Pad,1,amp,settled,-64,63,-24,1.0000,0.00113,0.09216,10,9,796,796
+Bank F/Glass Pad,1,filter,legacy,-64,3,-64,1.0000,0.01307,0.09216,10,9,9,9
+Bank F/Glass Pad,1,filter,settled,-64,3,-64,1.0000,0.00008,0.09216,10,9,9,9

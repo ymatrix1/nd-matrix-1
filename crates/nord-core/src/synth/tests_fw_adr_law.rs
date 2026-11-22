@@ -85,3 +85,66 @@ fn a_played_note_gets_the_scaled_attack() {
     let shared = s.strip_params().amp.attack.b;
     assert!(b.is_some_and(|b| b < shared), "{b:?} vs {shared}");
 }
+
+#[test]
+fn settled_tables_feed_the_records_of_stored_knobs() {
+    let k = EnvKnobs {
+        attack: 24,
+        decay: 24,
+        release: 4,
+    };
+    let legacy = StripEnvRecords::from_knobs_with(k, 0.0, LEGACY_TABLES);
+    let settled = StripEnvRecords::from_knobs_with(k, 0.0, SETTLED_TABLES);
+    assert_eq!(
+        legacy,
+        StripEnvRecords::from_knobs(k, 0.0),
+        "default = legacy"
+    );
+    // knob 24 is index -40: the oracle installer words after the 16-pass refresh.
+    assert_eq!(settled.attack.b, f32::from_bits(0x3b0e_6533));
+    assert!((settled.decay.a - 0.996_174_7).abs() < 1e-7);
+    assert!(
+        settled.release.a < settled.decay.a,
+        "index -60 falls faster than -40"
+    );
+    assert!(1.0 - settled.decay.a < 0.9 * (1.0 - legacy.decay.a));
+    assert!(settled.attack.b < 0.5 * legacy.attack.b + 1e-3 || settled.attack.b != legacy.attack.b);
+}
+
+#[test]
+fn default_tables_are_still_the_legacy_sweep() {
+    assert_eq!((DEFAULT_TABLES.attack)(-60.0), attack_coeff(-60.0));
+    assert_eq!(
+        (DEFAULT_TABLES.decay_release)(-60.0),
+        decay_release_coeff(-60.0)
+    );
+    assert_ne!((SETTLED_TABLES.attack)(-60.0), attack_coeff(-60.0));
+}
+
+#[test]
+fn the_oracle_law_reads_the_settled_decay_and_release() {
+    // Stored knobs; the panel path maps times through the stale table, which lands on the plateau
+    // anchors where both tables agree (D212 follow-up: invert the settled table).
+    let mut moved = 0;
+    for knob in [10u8, 22, 30, 40, 52, 70, 90] {
+        let e = EnvKnobs {
+            attack: knob,
+            decay: knob,
+            release: knob,
+        };
+        let (mut on, mut off) = (layer(true), layer(false));
+        for s in [&mut on, &mut off] {
+            s.knob_laws = true;
+            s.strip_knobs = Some(StripKnobs { amp: e, filter: e });
+        }
+        let (a, b) = (on.strip_params(), off.strip_params());
+        // the rate `1 - a` is never faster than the stale sweep (it read too high between anchors)
+        assert!(
+            1.0 - a.amp.decay.a <= 1.0 - b.amp.decay.a + 1e-9,
+            "knob {knob}"
+        );
+        moved += usize::from(a.amp.decay.a != b.amp.decay.a);
+        moved += usize::from(a.filter.release.a != b.filter.release.a);
+    }
+    assert!(moved >= 8, "{moved} of 14 decay / release rates moved");
+}
