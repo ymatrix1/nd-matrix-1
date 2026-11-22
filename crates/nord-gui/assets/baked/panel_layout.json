@@ -1,0 +1,10505 @@
+{
+  "chassis_px": {
+    "width": 2632,
+    "height": 650
+  },
+  "bays": {
+    "bay-master": {
+      "x": 0.06421,
+      "y": 0.047692,
+      "w": 0.029635,
+      "h": 0.572308,
+      "px": [
+        169,
+        31,
+        78,
+        372
+      ]
+    },
+    "bay-organ": {
+      "x": 0.095365,
+      "y": 0.047692,
+      "w": 0.18693,
+      "h": 0.572308,
+      "px": [
+        251,
+        31,
+        492,
+        372
+      ]
+    },
+    "bay-piano": {
+      "x": 0.283815,
+      "y": 0.047692,
+      "w": 0.092705,
+      "h": 0.572308,
+      "px": [
+        747,
+        31,
+        244,
+        372
+      ]
+    },
+    "bay-program": {
+      "x": 0.37804,
+      "y": 0.047692,
+      "w": 0.12386,
+      "h": 0.572308,
+      "px": [
+        995,
+        31,
+        326,
+        372
+      ]
+    },
+    "bay-synth": {
+      "x": 0.503419,
+      "y": 0.047692,
+      "w": 0.25,
+      "h": 0.572308,
+      "px": [
+        1325,
+        31,
+        658,
+        372
+      ]
+    },
+    "bay-fx": {
+      "x": 0.754939,
+      "y": 0.047692,
+      "w": 0.221125,
+      "h": 0.572308,
+      "px": [
+        1987,
+        31,
+        582,
+        372
+      ]
+    }
+  },
+  "knobs": [
+    {
+      "index": 0,
+      "encoder": false,
+      "default_value": 0.72,
+      "x": 0.071735,
+      "y": 0.077997,
+      "w": 0.014572,
+      "h": 0.059006,
+      "px": [
+        189,
+        51,
+        38,
+        38
+      ]
+    },
+    {
+      "index": 1,
+      "encoder": false,
+      "default_value": 0.25,
+      "x": 0.072078,
+      "y": 0.247628,
+      "w": 0.0139,
+      "h": 0.056283,
+      "px": [
+        190,
+        161,
+        37,
+        37
+      ]
+    },
+    {
+      "index": 2,
+      "encoder": true,
+      "default_value": 0.5,
+      "x": 0.346505,
+      "y": 0.485,
+      "w": 0.009878,
+      "h": 0.04,
+      "px": [
+        912,
+        315,
+        26,
+        26
+      ]
+    },
+    {
+      "index": 3,
+      "encoder": true,
+      "default_value": 0.5,
+      "x": 0.38996,
+      "y": 0.29851,
+      "w": 0.009878,
+      "h": 0.04,
+      "px": [
+        1026,
+        194,
+        26,
+        26
+      ]
+    },
+    {
+      "index": 4,
+      "encoder": true,
+      "default_value": 0.5,
+      "x": 0.56345,
+      "y": 0.309423,
+      "w": 0.009878,
+      "h": 0.04,
+      "px": [
+        1483,
+        201,
+        26,
+        26
+      ]
+    },
+    {
+      "index": 5,
+      "encoder": true,
+      "default_value": 0.5,
+      "x": 0.584726,
+      "y": 0.309423,
+      "w": 0.009878,
+      "h": 0.04,
+      "px": [
+        1539,
+        201,
+        26,
+        26
+      ]
+    },
+    {
+      "index": 6,
+      "encoder": true,
+      "default_value": 0.5,
+      "x": 0.606003,
+      "y": 0.309423,
+      "w": 0.009878,
+      "h": 0.04,
+      "px": [
+        1595,
+        201,
+        26,
+        26
+      ]
+    },
+    {
+      "index": 7,
+      "encoder": false,
+      "default_value": 0.62,
+      "x": 0.650684,
+      "y": 0.132677,
+      "w": 0.014683,
+      "h": 0.059453,
+      "px": [
+        1713,
+        86,
+        39,
+        39
+      ]
+    },
+    {
+      "index": 8,
+      "encoder": false,
+      "default_value": 0.5,
+      "x": 0.709525,
+      "y": 0.148462,
+      "w": 0.010638,
+      "h": 0.043077,
+      "px": [
+        1867,
+        97,
+        28,
+        28
+      ]
+    },
+    {
+      "index": 9,
+      "encoder": false,
+      "default_value": 0.65,
+      "x": 0.684792,
+      "y": 0.285884,
+      "w": 0.014999,
+      "h": 0.060732,
+      "px": [
+        1802,
+        186,
+        39,
+        39
+      ]
+    },
+    {
+      "index": 10,
+      "encoder": false,
+      "default_value": 0.58,
+      "x": 0.591501,
+      "y": 0.414449,
+      "w": 0.013807,
+      "h": 0.05591,
+      "px": [
+        1557,
+        269,
+        36,
+        36
+      ]
+    },
+    {
+      "index": 11,
+      "encoder": false,
+      "default_value": 0.25,
+      "x": 0.564829,
+      "y": 0.510513,
+      "w": 0.0139,
+      "h": 0.056283,
+      "px": [
+        1487,
+        332,
+        37,
+        37
+      ]
+    },
+    {
+      "index": 12,
+      "encoder": false,
+      "default_value": 0.35,
+      "x": 0.616961,
+      "y": 0.523672,
+      "w": 0.014999,
+      "h": 0.060732,
+      "px": [
+        1624,
+        340,
+        39,
+        39
+      ]
+    },
+    {
+      "index": 13,
+      "encoder": false,
+      "default_value": 0.62,
+      "x": 0.640295,
+      "y": 0.522004,
+      "w": 0.014683,
+      "h": 0.059453,
+      "px": [
+        1685,
+        339,
+        39,
+        39
+      ]
+    },
+    {
+      "index": 14,
+      "encoder": false,
+      "default_value": 0.45,
+      "x": 0.709012,
+      "y": 0.416432,
+      "w": 0.012828,
+      "h": 0.051943,
+      "px": [
+        1866,
+        271,
+        34,
+        34
+      ]
+    },
+    {
+      "index": 15,
+      "encoder": false,
+      "default_value": 0.38,
+      "x": 0.666291,
+      "y": 0.524312,
+      "w": 0.014683,
+      "h": 0.059453,
+      "px": [
+        1754,
+        341,
+        39,
+        39
+      ]
+    },
+    {
+      "index": 16,
+      "encoder": false,
+      "default_value": 0.52,
+      "x": 0.693476,
+      "y": 0.530569,
+      "w": 0.011592,
+      "h": 0.04694,
+      "px": [
+        1825,
+        345,
+        31,
+        31
+      ]
+    },
+    {
+      "index": 17,
+      "encoder": false,
+      "default_value": 0.22,
+      "x": 0.7885,
+      "y": 0.133782,
+      "w": 0.01295,
+      "h": 0.052436,
+      "px": [
+        2075,
+        87,
+        34,
+        34
+      ]
+    },
+    {
+      "index": 18,
+      "encoder": false,
+      "default_value": 0.62,
+      "x": 0.811149,
+      "y": 0.142677,
+      "w": 0.014683,
+      "h": 0.059453,
+      "px": [
+        2135,
+        93,
+        39,
+        39
+      ]
+    },
+    {
+      "index": 19,
+      "encoder": false,
+      "default_value": 0.6,
+      "x": 0.785779,
+      "y": 0.295742,
+      "w": 0.014309,
+      "h": 0.057938,
+      "px": [
+        2068,
+        192,
+        38,
+        38
+      ]
+    },
+    {
+      "index": 20,
+      "encoder": false,
+      "default_value": 0.22,
+      "x": 0.810656,
+      "y": 0.298493,
+      "w": 0.01295,
+      "h": 0.052436,
+      "px": [
+        2134,
+        194,
+        34,
+        34
+      ]
+    },
+    {
+      "index": 21,
+      "encoder": false,
+      "default_value": 0.25,
+      "x": 0.785603,
+      "y": 0.444335,
+      "w": 0.0139,
+      "h": 0.056283,
+      "px": [
+        2068,
+        289,
+        37,
+        37
+      ]
+    },
+    {
+      "index": 22,
+      "encoder": false,
+      "default_value": 0.54,
+      "x": 0.810885,
+      "y": 0.439639,
+      "w": 0.012443,
+      "h": 0.050386,
+      "px": [
+        2134,
+        286,
+        33,
+        33
+      ]
+    },
+    {
+      "index": 23,
+      "encoder": false,
+      "default_value": 0.62,
+      "x": 0.785212,
+      "y": 0.528831,
+      "w": 0.014683,
+      "h": 0.059453,
+      "px": [
+        2067,
+        344,
+        39,
+        39
+      ]
+    },
+    {
+      "index": 24,
+      "encoder": false,
+      "default_value": 0.65,
+      "x": 0.815105,
+      "y": 0.528095,
+      "w": 0.014999,
+      "h": 0.060732,
+      "px": [
+        2145,
+        343,
+        39,
+        39
+      ]
+    },
+    {
+      "index": 25,
+      "encoder": false,
+      "default_value": 0.5,
+      "x": 0.847336,
+      "y": 0.537019,
+      "w": 0.010638,
+      "h": 0.043077,
+      "px": [
+        2230,
+        349,
+        28,
+        28
+      ]
+    },
+    {
+      "index": 26,
+      "encoder": false,
+      "default_value": 0.28,
+      "x": 0.889394,
+      "y": 0.119728,
+      "w": 0.014572,
+      "h": 0.059006,
+      "px": [
+        2341,
+        78,
+        38,
+        38
+      ]
+    },
+    {
+      "index": 27,
+      "encoder": false,
+      "default_value": 0.62,
+      "x": 0.95549,
+      "y": 0.129504,
+      "w": 0.014683,
+      "h": 0.059453,
+      "px": [
+        2515,
+        84,
+        39,
+        39
+      ]
+    },
+    {
+      "index": 28,
+      "encoder": false,
+      "default_value": 0.25,
+      "x": 0.923308,
+      "y": 0.243397,
+      "w": 0.0139,
+      "h": 0.056283,
+      "px": [
+        2430,
+        158,
+        37,
+        37
+      ]
+    },
+    {
+      "index": 29,
+      "encoder": false,
+      "default_value": 0.22,
+      "x": 0.892081,
+      "y": 0.450416,
+      "w": 0.01295,
+      "h": 0.052436,
+      "px": [
+        2348,
+        293,
+        34,
+        34
+      ]
+    },
+    {
+      "index": 30,
+      "encoder": false,
+      "default_value": 0.62,
+      "x": 0.915531,
+      "y": 0.528927,
+      "w": 0.014683,
+      "h": 0.059453,
+      "px": [
+        2410,
+        344,
+        39,
+        39
+      ]
+    }
+  ],
+  "buttons": [
+    {
+      "index": 0,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "rotary-organ",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.073708,
+      "y": 0.378173,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        194,
+        246,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 1,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "rotary-stop",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.074658,
+      "y": 0.473077,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        197,
+        308,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 2,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": "rotary-slow,rotary-fast",
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.073702,
+      "y": 0.567692,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        194,
+        369,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 3,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "org-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.145647,
+      "y": 0.057692,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        383,
+        38,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 4,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "org-a",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.102263,
+      "y": 0.345793,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        269,
+        225,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 5,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "org-b",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.123415,
+      "y": 0.345793,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        325,
+        225,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 6,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "org-preset",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.113982,
+      "y": 0.454183,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        300,
+        295,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 7,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.108093,
+      "y": 0.559519,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        285,
+        364,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 8,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.119871,
+      "y": 0.559519,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        316,
+        364,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 9,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": "org-model",
+      "x": 0.155775,
+      "y": 0.215385,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        410,
+        140,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 10,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": "org-vib",
+      "x": 0.18788,
+      "y": 0.159231,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        495,
+        104,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 11,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "org-vib-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.201979,
+      "y": 0.220481,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        532,
+        143,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 12,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "perc-soft",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.233888,
+      "y": 0.172788,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        616,
+        112,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 13,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "perc-fast",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.248777,
+      "y": 0.172788,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        655,
+        112,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 14,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "perc-third",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.263749,
+      "y": 0.172788,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        694,
+        112,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 15,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "perc-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.262538,
+      "y": 0.214327,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        691,
+        139,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 16,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "pno-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.351568,
+      "y": 0.059231,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        925,
+        39,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 17,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "pno-a",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.290903,
+      "y": 0.341995,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        766,
+        222,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 18,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "pno-b",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.310915,
+      "y": 0.341995,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        818,
+        222,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 19,
+      "variant": "black",
+      "vertical": true,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "pno-t-brt,pno-t-mid,pno-t-sft",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.290992,
+      "y": 0.436154,
+      "w": 0.006459,
+      "h": 0.052308,
+      "px": [
+        766,
+        284,
+        17,
+        34
+      ]
+    },
+    {
+      "index": 20,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.295023,
+      "y": 0.559519,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        777,
+        364,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 21,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.306801,
+      "y": 0.559519,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        808,
+        364,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 22,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "pno-softrel,pno-strres,pno-pednoise",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.334347,
+      "y": 0.146827,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        880,
+        95,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 23,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "pno-uni-1,pno-uni-2",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.357903,
+      "y": 0.146827,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        942,
+        95,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 24,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "pno-touch-m,pno-touch-h",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.334347,
+      "y": 0.241058,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        880,
+        157,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 25,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "pno-comp-1,pno-comp-2",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.357903,
+      "y": 0.241058,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        942,
+        157,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 26,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": "pno-cat",
+      "x": 0.344985,
+      "y": 0.412981,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        908,
+        268,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 27,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "m-whl",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.385128,
+      "y": 0.095385,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1014,
+        62,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 28,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "m-at",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.404249,
+      "y": 0.095385,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1064,
+        62,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 29,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "m-ped",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.423371,
+      "y": 0.095385,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1114,
+        62,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 30,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": true,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.445158,
+      "y": 0.105721,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1172,
+        69,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 31,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.465426,
+      "y": 0.100601,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1225,
+        65,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 32,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "transp-top-led",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.485687,
+      "y": 0.100601,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1278,
+        65,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 33,
+      "variant": "red",
+      "vertical": false,
+      "toggle_led": "store-led",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.38844,
+      "y": 0.167404,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        1022,
+        109,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 34,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.383697,
+      "y": 0.406875,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1010,
+        264,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 35,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.395475,
+      "y": 0.406875,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1041,
+        264,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 36,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "live-led",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.389586,
+      "y": 0.48113,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1025,
+        313,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 37,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "scene2-led",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.389586,
+      "y": 0.571058,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1025,
+        371,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 38,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "plib-org",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.41899,
+      "y": 0.190481,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1103,
+        124,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 39,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "plib-pno",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.440266,
+      "y": 0.190481,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1159,
+        124,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 40,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "plib-syn",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.461543,
+      "y": 0.190481,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1215,
+        124,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 41,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 1,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.416473,
+      "y": 0.512356,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1096,
+        333,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 42,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 2,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.432335,
+      "y": 0.512356,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1138,
+        333,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 43,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 3,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.448198,
+      "y": 0.512356,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1180,
+        333,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 44,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 4,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.46406,
+      "y": 0.512356,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1221,
+        333,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 45,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 5,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.416473,
+      "y": 0.569111,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1096,
+        370,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 46,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 6,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.432335,
+      "y": 0.569111,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1138,
+        370,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 47,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 7,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.448198,
+      "y": 0.569111,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1180,
+        370,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 48,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": 8,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.46406,
+      "y": 0.569111,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1221,
+        370,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 49,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.485325,
+      "y": 0.167404,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1277,
+        109,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 50,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.485331,
+      "y": 0.288462,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1277,
+        188,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 51,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "secedit-led",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.485325,
+      "y": 0.35524,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1277,
+        231,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 52,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.485331,
+      "y": 0.411538,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1277,
+        268,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 53,
+      "variant": "grey",
+      "vertical": true,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.48742,
+      "y": 0.540288,
+      "w": 0.006459,
+      "h": 0.052308,
+      "px": [
+        1283,
+        351,
+        17,
+        34
+      ]
+    },
+    {
+      "index": 54,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "syn-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.570241,
+      "y": 0.057692,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        1501,
+        38,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 55,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "syn-a",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.508982,
+      "y": 0.336995,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1340,
+        219,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 56,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "syn-b",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.52659,
+      "y": 0.336995,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1386,
+        219,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 57,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "syn-c",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.544204,
+      "y": 0.336995,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1432,
+        219,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 58,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "kb-hold",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.513731,
+      "y": 0.451298,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1352,
+        293,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 59,
+      "variant": "red",
+      "vertical": false,
+      "toggle_led": "arp-run",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.540327,
+      "y": 0.448077,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1422,
+        291,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 60,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.520707,
+      "y": 0.559519,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1371,
+        364,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 61,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.532485,
+      "y": 0.559519,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1402,
+        364,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 62,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": "syn-mode-ana,syn-mode-smp",
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.62728,
+      "y": 0.177885,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1651,
+        116,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 63,
+      "variant": "black",
+      "vertical": true,
+      "toggle_led": "syn-keep",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.629363,
+      "y": 0.292115,
+      "w": 0.006459,
+      "h": 0.052308,
+      "px": [
+        1656,
+        190,
+        17,
+        34
+      ]
+    },
+    {
+      "index": 64,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "arp-mode",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.680198,
+      "y": 0.17524,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1790,
+        114,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 65,
+      "variant": "black",
+      "vertical": true,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.738186,
+      "y": 0.153077,
+      "w": 0.006459,
+      "h": 0.052308,
+      "px": [
+        1943,
+        100,
+        17,
+        34
+      ]
+    },
+    {
+      "index": 66,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "v-mono,v-leg",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.653056,
+      "y": 0.319087,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1719,
+        207,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 67,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "vib-whl,vib-dly,vib-on",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.709554,
+      "y": 0.349231,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1868,
+        227,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 68,
+      "variant": "black",
+      "vertical": true,
+      "toggle_led": "vib-menu",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.739872,
+      "y": 0.304471,
+      "w": 0.006459,
+      "h": 0.052308,
+      "px": [
+        1947,
+        198,
+        17,
+        34
+      ]
+    },
+    {
+      "index": 69,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "lfo-wf",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.5657,
+      "y": 0.437837,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1489,
+        285,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 70,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "lfo-d1,lfo-d2",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.596125,
+      "y": 0.557139,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1569,
+        362,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 71,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "osc-p",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.618897,
+      "y": 0.438101,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1629,
+        285,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 72,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "osc-e",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.642074,
+      "y": 0.438101,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1690,
+        285,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 73,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "flt-t",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.664514,
+      "y": 0.437861,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1749,
+        285,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 74,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "flt-e",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.68655,
+      "y": 0.437861,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1807,
+        285,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 75,
+      "variant": "black",
+      "vertical": true,
+      "toggle_led": "flt-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.716571,
+      "y": 0.543293,
+      "w": 0.006459,
+      "h": 0.052308,
+      "px": [
+        1886,
+        353,
+        17,
+        34
+      ]
+    },
+    {
+      "index": 76,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "amp-v1,amp-v2",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.733663,
+      "y": 0.43863,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1931,
+        285,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 77,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "syn-uni-1,syn-uni-2",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.733663,
+      "y": 0.576635,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        1931,
+        375,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 78,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": "fx-master-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.814263,
+      "y": 0.057692,
+      "w": 0.012918,
+      "h": 0.026154,
+      "px": [
+        2143,
+        38,
+        34,
+        17
+      ]
+    },
+    {
+      "index": 79,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": "organ",
+      "cycle_btn": null,
+      "x": 0.762152,
+      "y": 0.149423,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2006,
+        97,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 80,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": "piano",
+      "cycle_btn": null,
+      "x": 0.762158,
+      "y": 0.285505,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2006,
+        186,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 81,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": "synth",
+      "cycle_btn": null,
+      "x": 0.762158,
+      "y": 0.422356,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2006,
+        275,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 82,
+      "variant": "black",
+      "vertical": true,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.764248,
+      "y": 0.537212,
+      "w": 0.006459,
+      "h": 0.052308,
+      "px": [
+        2012,
+        349,
+        17,
+        34
+      ]
+    },
+    {
+      "index": 83,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": "fx-mod1",
+      "x": 0.845092,
+      "y": 0.189375,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2224,
+        123,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 84,
+      "variant": "grey",
+      "vertical": true,
+      "toggle_led": "mod1-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.874294,
+      "y": 0.160625,
+      "w": 0.006459,
+      "h": 0.052308,
+      "px": [
+        2301,
+        104,
+        17,
+        34
+      ]
+    },
+    {
+      "index": 85,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": "fx-mod2",
+      "x": 0.844409,
+      "y": 0.342837,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2222,
+        223,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 86,
+      "variant": "grey",
+      "vertical": true,
+      "toggle_led": "mod2-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.874294,
+      "y": 0.312933,
+      "w": 0.006459,
+      "h": 0.052308,
+      "px": [
+        2301,
+        203,
+        17,
+        34
+      ]
+    },
+    {
+      "index": 87,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": "fx-amp",
+      "x": 0.852061,
+      "y": 0.483077,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2243,
+        314,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 88,
+      "variant": "grey",
+      "vertical": true,
+      "toggle_led": "amp-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.874673,
+      "y": 0.546779,
+      "w": 0.006459,
+      "h": 0.052308,
+      "px": [
+        2302,
+        355,
+        17,
+        34
+      ]
+    },
+    {
+      "index": 89,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "dly-fx1,dly-fx2,dly-fx3",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.924291,
+      "y": 0.174063,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2433,
+        113,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 90,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.891622,
+      "y": 0.266827,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2347,
+        173,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 91,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": "dly-hp,dly-lp",
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.957898,
+      "y": 0.280769,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2521,
+        183,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 92,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "dly-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.957102,
+      "y": 0.341538,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2519,
+        222,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 93,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "comp-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.895422,
+      "y": 0.561538,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2357,
+        365,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 94,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": "rev-brt,rev-drk",
+      "allow_off": true,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.915161,
+      "y": 0.469736,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2409,
+        305,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 95,
+      "variant": "black",
+      "vertical": false,
+      "toggle_led": null,
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": "fx-rev",
+      "x": 0.949088,
+      "y": 0.478462,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2498,
+        311,
+        28,
+        15
+      ]
+    },
+    {
+      "index": 96,
+      "variant": "grey",
+      "vertical": false,
+      "toggle_led": "rev-on",
+      "toggle_pair": null,
+      "cycle_leds": null,
+      "allow_off": false,
+      "cycle_3": null,
+      "prog_btn": null,
+      "split_btn": false,
+      "fx_focus": null,
+      "cycle_btn": null,
+      "x": 0.957482,
+      "y": 0.543942,
+      "w": 0.010638,
+      "h": 0.023077,
+      "px": [
+        2520,
+        354,
+        28,
+        15
+      ]
+    }
+  ],
+  "faders": [
+    {
+      "index": 0,
+      "x": 0.108283,
+      "y": 0.109231,
+      "w": 0.003799,
+      "h": 0.144615,
+      "px": [
+        285,
+        71,
+        10,
+        94
+      ]
+    },
+    {
+      "index": 1,
+      "x": 0.121581,
+      "y": 0.109231,
+      "w": 0.003799,
+      "h": 0.144615,
+      "px": [
+        320,
+        71,
+        10,
+        94
+      ]
+    },
+    {
+      "index": 2,
+      "x": 0.295593,
+      "y": 0.103077,
+      "w": 0.003799,
+      "h": 0.144615,
+      "px": [
+        778,
+        67,
+        10,
+        94
+      ]
+    },
+    {
+      "index": 3,
+      "x": 0.308131,
+      "y": 0.103077,
+      "w": 0.003799,
+      "h": 0.144615,
+      "px": [
+        811,
+        67,
+        10,
+        94
+      ]
+    },
+    {
+      "index": 4,
+      "x": 0.515767,
+      "y": 0.101538,
+      "w": 0.003799,
+      "h": 0.144615,
+      "px": [
+        1358,
+        66,
+        10,
+        94
+      ]
+    },
+    {
+      "index": 5,
+      "x": 0.527546,
+      "y": 0.101538,
+      "w": 0.003799,
+      "h": 0.144615,
+      "px": [
+        1389,
+        66,
+        10,
+        94
+      ]
+    },
+    {
+      "index": 6,
+      "x": 0.539324,
+      "y": 0.101538,
+      "w": 0.003799,
+      "h": 0.144615,
+      "px": [
+        1420,
+        66,
+        10,
+        94
+      ]
+    }
+  ],
+  "fader_ladders": [
+    [
+      {
+        "x": 0.114932,
+        "y": 0.238462,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          155,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.114932,
+        "y": 0.226298,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          147,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.114932,
+        "y": 0.214159,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          139,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.114932,
+        "y": 0.201995,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          131,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.114932,
+        "y": 0.189856,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          123,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.114932,
+        "y": 0.177692,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          116,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.114932,
+        "y": 0.165529,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          108,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.114932,
+        "y": 0.153389,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          100,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.114932,
+        "y": 0.141226,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          92,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.114932,
+        "y": 0.129087,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          84,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.114932,
+        "y": 0.116923,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          303,
+          76,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.128229,
+        "y": 0.238462,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          155,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.128229,
+        "y": 0.226298,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          147,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.128229,
+        "y": 0.214159,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          139,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.128229,
+        "y": 0.201995,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          131,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.128229,
+        "y": 0.189856,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          123,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.128229,
+        "y": 0.177692,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          116,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.128229,
+        "y": 0.165529,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          108,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.128229,
+        "y": 0.153389,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          100,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.128229,
+        "y": 0.141226,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          92,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.128229,
+        "y": 0.129087,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          84,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.128229,
+        "y": 0.116923,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          338,
+          76,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.302242,
+        "y": 0.232308,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          151,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.302242,
+        "y": 0.220144,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          143,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.302242,
+        "y": 0.208005,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          135,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.302242,
+        "y": 0.195841,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          127,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.302242,
+        "y": 0.183702,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          119,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.302242,
+        "y": 0.171538,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          112,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.302242,
+        "y": 0.159375,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          104,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.302242,
+        "y": 0.147236,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          96,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.302242,
+        "y": 0.135072,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          88,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.302242,
+        "y": 0.122933,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          80,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.302242,
+        "y": 0.110769,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          796,
+          72,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.31478,
+        "y": 0.232308,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          151,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.31478,
+        "y": 0.220144,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          143,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.31478,
+        "y": 0.208005,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          135,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.31478,
+        "y": 0.195841,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          127,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.31478,
+        "y": 0.183702,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          119,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.31478,
+        "y": 0.171538,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          112,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.31478,
+        "y": 0.159375,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          104,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.31478,
+        "y": 0.147236,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          96,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.31478,
+        "y": 0.135072,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          88,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.31478,
+        "y": 0.122933,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          80,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.31478,
+        "y": 0.110769,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          829,
+          72,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.522416,
+        "y": 0.230769,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          150,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.522416,
+        "y": 0.218606,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          142,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.522416,
+        "y": 0.206466,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          134,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.522416,
+        "y": 0.194303,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          126,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.522416,
+        "y": 0.182163,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          118,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.522416,
+        "y": 0.17,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          111,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.522416,
+        "y": 0.157837,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          103,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.522416,
+        "y": 0.145697,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          95,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.522416,
+        "y": 0.133534,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          87,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.522416,
+        "y": 0.121394,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          79,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.522416,
+        "y": 0.109231,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1375,
+          71,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.534195,
+        "y": 0.230769,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          150,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.534195,
+        "y": 0.218606,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          142,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.534195,
+        "y": 0.206466,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          134,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.534195,
+        "y": 0.194303,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          126,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.534195,
+        "y": 0.182163,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          118,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.534195,
+        "y": 0.17,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          111,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.534195,
+        "y": 0.157837,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          103,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.534195,
+        "y": 0.145697,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          95,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.534195,
+        "y": 0.133534,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          87,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.534195,
+        "y": 0.121394,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          79,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.534195,
+        "y": 0.109231,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1406,
+          71,
+          3,
+          5
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.545973,
+        "y": 0.230769,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          150,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.545973,
+        "y": 0.218606,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          142,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.545973,
+        "y": 0.206466,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          134,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.545973,
+        "y": 0.194303,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          126,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.545973,
+        "y": 0.182163,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          118,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.545973,
+        "y": 0.17,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          111,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.545973,
+        "y": 0.157837,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          103,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.545973,
+        "y": 0.145697,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          95,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.545973,
+        "y": 0.133534,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          87,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.545973,
+        "y": 0.121394,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          79,
+          3,
+          5
+        ]
+      },
+      {
+        "x": 0.545973,
+        "y": 0.109231,
+        "w": 0.00114,
+        "h": 0.007692,
+        "px": [
+          1437,
+          71,
+          3,
+          5
+        ]
+      }
+    ]
+  ],
+  "drawbars": [
+    {
+      "index": 0,
+      "x": 0.145327,
+      "y": 0.367692,
+      "w": 0.00304,
+      "h": 0.218462,
+      "px": [
+        383,
+        239,
+        8,
+        142
+      ]
+    },
+    {
+      "index": 1,
+      "x": 0.160382,
+      "y": 0.366154,
+      "w": 0.00304,
+      "h": 0.218462,
+      "px": [
+        422,
+        238,
+        8,
+        142
+      ]
+    },
+    {
+      "index": 2,
+      "x": 0.175437,
+      "y": 0.367692,
+      "w": 0.00304,
+      "h": 0.218462,
+      "px": [
+        462,
+        239,
+        8,
+        142
+      ]
+    },
+    {
+      "index": 3,
+      "x": 0.190492,
+      "y": 0.367692,
+      "w": 0.00304,
+      "h": 0.218462,
+      "px": [
+        501,
+        239,
+        8,
+        142
+      ]
+    },
+    {
+      "index": 4,
+      "x": 0.205547,
+      "y": 0.366154,
+      "w": 0.00304,
+      "h": 0.218462,
+      "px": [
+        541,
+        238,
+        8,
+        142
+      ]
+    },
+    {
+      "index": 5,
+      "x": 0.220602,
+      "y": 0.367692,
+      "w": 0.00304,
+      "h": 0.218462,
+      "px": [
+        581,
+        239,
+        8,
+        142
+      ]
+    },
+    {
+      "index": 6,
+      "x": 0.235657,
+      "y": 0.366154,
+      "w": 0.00304,
+      "h": 0.218462,
+      "px": [
+        620,
+        238,
+        8,
+        142
+      ]
+    },
+    {
+      "index": 7,
+      "x": 0.250712,
+      "y": 0.366154,
+      "w": 0.00304,
+      "h": 0.218462,
+      "px": [
+        660,
+        238,
+        8,
+        142
+      ]
+    },
+    {
+      "index": 8,
+      "x": 0.265767,
+      "y": 0.367692,
+      "w": 0.00304,
+      "h": 0.218462,
+      "px": [
+        700,
+        239,
+        8,
+        142
+      ]
+    }
+  ],
+  "drawbar_ladders": [
+    [
+      {
+        "x": 0.153875,
+        "y": 0.363077,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          405,
+          236,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.153875,
+        "y": 0.381659,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          405,
+          248,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.153875,
+        "y": 0.400216,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          405,
+          260,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.153875,
+        "y": 0.418798,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          405,
+          272,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.153875,
+        "y": 0.437356,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          405,
+          284,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.153875,
+        "y": 0.455937,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          405,
+          296,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.153875,
+        "y": 0.474495,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          405,
+          308,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.153875,
+        "y": 0.493077,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          405,
+          321,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.16893,
+        "y": 0.361538,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          445,
+          235,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.16893,
+        "y": 0.38012,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          445,
+          247,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.16893,
+        "y": 0.398678,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          445,
+          259,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.16893,
+        "y": 0.41726,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          445,
+          271,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.16893,
+        "y": 0.435817,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          445,
+          283,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.16893,
+        "y": 0.454399,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          445,
+          295,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.16893,
+        "y": 0.472957,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          445,
+          307,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.16893,
+        "y": 0.491538,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          445,
+          320,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.183986,
+        "y": 0.363077,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          484,
+          236,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.183986,
+        "y": 0.381659,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          484,
+          248,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.183986,
+        "y": 0.400216,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          484,
+          260,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.183986,
+        "y": 0.418798,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          484,
+          272,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.183986,
+        "y": 0.437356,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          484,
+          284,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.183986,
+        "y": 0.455937,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          484,
+          296,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.183986,
+        "y": 0.474495,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          484,
+          308,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.183986,
+        "y": 0.493077,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          484,
+          321,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.199041,
+        "y": 0.363077,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          524,
+          236,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.199041,
+        "y": 0.381659,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          524,
+          248,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.199041,
+        "y": 0.400216,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          524,
+          260,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.199041,
+        "y": 0.418798,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          524,
+          272,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.199041,
+        "y": 0.437356,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          524,
+          284,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.199041,
+        "y": 0.455937,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          524,
+          296,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.199041,
+        "y": 0.474495,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          524,
+          308,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.199041,
+        "y": 0.493077,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          524,
+          321,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.214096,
+        "y": 0.361538,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          564,
+          235,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.214096,
+        "y": 0.38012,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          564,
+          247,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.214096,
+        "y": 0.398678,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          564,
+          259,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.214096,
+        "y": 0.41726,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          564,
+          271,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.214096,
+        "y": 0.435817,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          564,
+          283,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.214096,
+        "y": 0.454399,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          564,
+          295,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.214096,
+        "y": 0.472957,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          564,
+          307,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.214096,
+        "y": 0.491538,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          564,
+          320,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.229151,
+        "y": 0.363077,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          603,
+          236,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.229151,
+        "y": 0.381659,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          603,
+          248,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.229151,
+        "y": 0.400216,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          603,
+          260,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.229151,
+        "y": 0.418798,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          603,
+          272,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.229151,
+        "y": 0.437356,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          603,
+          284,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.229151,
+        "y": 0.455937,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          603,
+          296,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.229151,
+        "y": 0.474495,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          603,
+          308,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.229151,
+        "y": 0.493077,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          603,
+          321,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.244206,
+        "y": 0.361538,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          643,
+          235,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.244206,
+        "y": 0.38012,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          643,
+          247,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.244206,
+        "y": 0.398678,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          643,
+          259,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.244206,
+        "y": 0.41726,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          643,
+          271,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.244206,
+        "y": 0.435817,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          643,
+          283,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.244206,
+        "y": 0.454399,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          643,
+          295,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.244206,
+        "y": 0.472957,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          643,
+          307,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.244206,
+        "y": 0.491538,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          643,
+          320,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.259261,
+        "y": 0.361538,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          682,
+          235,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.259261,
+        "y": 0.38012,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          682,
+          247,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.259261,
+        "y": 0.398678,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          682,
+          259,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.259261,
+        "y": 0.41726,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          682,
+          271,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.259261,
+        "y": 0.435817,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          682,
+          283,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.259261,
+        "y": 0.454399,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          682,
+          295,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.259261,
+        "y": 0.472957,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          682,
+          307,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.259261,
+        "y": 0.491538,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          682,
+          320,
+          7,
+          9
+        ]
+      }
+    ],
+    [
+      {
+        "x": 0.274316,
+        "y": 0.363077,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          722,
+          236,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.274316,
+        "y": 0.381659,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          722,
+          248,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.274316,
+        "y": 0.400216,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          722,
+          260,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.274316,
+        "y": 0.418798,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          722,
+          272,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.274316,
+        "y": 0.437356,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          722,
+          284,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.274316,
+        "y": 0.455937,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          722,
+          296,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.274316,
+        "y": 0.474495,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          722,
+          308,
+          7,
+          9
+        ]
+      },
+      {
+        "x": 0.274316,
+        "y": 0.493077,
+        "w": 0.00266,
+        "h": 0.013077,
+        "px": [
+          722,
+          321,
+          7,
+          9
+        ]
+      }
+    ]
+  ],
+  "leds": [
+    {
+      "index": 0,
+      "id": "rotary-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.087766,
+      "y": 0.232692,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        231,
+        151,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 1,
+      "id": "rotary-organ",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.072693,
+      "y": 0.362788,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        191,
+        236,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 2,
+      "id": "rotary-mic",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.068911,
+      "y": 0.405865,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        181,
+        264,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 3,
+      "id": "rotary-stop",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.070918,
+      "y": 0.457692,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        187,
+        298,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 4,
+      "id": "rotary-slow",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.068247,
+      "y": 0.552308,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        180,
+        359,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 5,
+      "id": "rotary-fast",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.080132,
+      "y": 0.552308,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        211,
+        359,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 6,
+      "id": "rotary-morph",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.072539,
+      "y": 0.595385,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        191,
+        387,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 7,
+      "id": "org-fx-focus",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.126965,
+      "y": 0.072163,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        334,
+        47,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 8,
+      "id": "org-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.140667,
+      "y": 0.072163,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        370,
+        47,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 9,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.114023,
+      "y": 0.310072,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        300,
+        202,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 10,
+      "id": "org-a",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.101188,
+      "y": 0.329255,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        266,
+        214,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 11,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.101367,
+      "y": 0.377572,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        267,
+        245,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 12,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.135169,
+      "y": 0.310072,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        356,
+        202,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 13,
+      "id": "org-b",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.12234,
+      "y": 0.329255,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        322,
+        214,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 14,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.123753,
+      "y": 0.377572,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        326,
+        245,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 15,
+      "id": "org-preset",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.112794,
+      "y": 0.441635,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        297,
+        287,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 16,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.112842,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        297,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 17,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.116451,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        307,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 18,
+      "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.120061,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        316,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 19,
+      "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.12367,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        326,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 20,
+      "id": "org-vib-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.197378,
+      "y": 0.234183,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        520,
+        152,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 21,
+      "id": "perc-soft",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.235467,
+      "y": 0.16024,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        620,
+        104,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 22,
+      "id": "perc-fast",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.250493,
+      "y": 0.16024,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        659,
+        104,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 23,
+      "id": "perc-third",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.26474,
+      "y": 0.16024,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        697,
+        104,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 24,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.235182,
+      "y": 0.223173,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        619,
+        145,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 25,
+      "id": "perc-on",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.257937,
+      "y": 0.228029,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        679,
+        148,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 26,
+      "id": "pno-fx-focus",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.332886,
+      "y": 0.072163,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        876,
+        47,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 27,
+      "id": "pno-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.346588,
+      "y": 0.072163,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        912,
+        47,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 28,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.301523,
+      "y": 0.306274,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        794,
+        199,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 29,
+      "id": "pno-a",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.288688,
+      "y": 0.325457,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        760,
+        212,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 30,
+      "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.288867,
+      "y": 0.370697,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        760,
+        241,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 31,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.321529,
+      "y": 0.306274,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        846,
+        199,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 32,
+      "id": "pno-b",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.308701,
+      "y": 0.325457,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        813,
+        212,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 33,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.310114,
+      "y": 0.370697,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        816,
+        241,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 34,
+      "id": "pno-t-brt",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.309882,
+      "y": 0.451298,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        816,
+        293,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 35,
+      "id": "pno-t-mid",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.309882,
+      "y": 0.464856,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        816,
+        302,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 36,
+      "id": "pno-t-sft",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.309882,
+      "y": 0.478413,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        816,
+        311,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 37,
+      "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.299772,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        789,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 38,
+      "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.303381,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        799,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 39,
+      "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.306991,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        808,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 40,
+      "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.3106,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        818,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 41,
+      "id": "pno-softrel",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.330541,
+      "y": 0.119183,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        870,
+        77,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 42,
+      "id": "pno-strres",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.330541,
+      "y": 0.13274,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        870,
+        86,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 43,
+      "id": "pno-pednoise",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.329817,
+      "y": 0.175529,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        868,
+        114,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 44,
+      "id": "pno-uni-2",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.362349,
+      "y": 0.119183,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        954,
+        77,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 45,
+      "id": "pno-uni-1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.362118,
+      "y": 0.13274,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        953,
+        86,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 46,
+      "id": "pno-touch-m",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.339197,
+      "y": 0.213413,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        893,
+        139,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 47,
+      "id": "pno-touch-h",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.339197,
+      "y": 0.226971,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        893,
+        148,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 48,
+      "id": "pno-comp-2",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.362349,
+      "y": 0.213413,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        954,
+        139,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 49,
+      "id": "pno-comp-1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.362118,
+      "y": 0.226971,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        953,
+        148,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 50,
+      "id": "m-whl",
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.384083,
+      "y": 0.079615,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1011,
+        52,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 51,
+      "id": "m-at",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.405265,
+      "y": 0.079615,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1067,
+        52,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 52,
+      "id": "m-ped",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.421216,
+      "y": 0.079615,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1109,
+        52,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 53,
+      "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.446583,
+      "y": 0.073029,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1175,
+        47,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 54,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.449432,
+      "y": 0.073029,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1183,
+        47,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 55,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.452282,
+      "y": 0.073029,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1190,
+        47,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 56,
+      "id": "mst-clk-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.462249,
+      "y": 0.136683,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1217,
+        89,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 57,
+      "id": "transp-top-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.483526,
+      "y": 0.079159,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1273,
+        51,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 58,
+      "id": "store-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.389165,
+      "y": 0.154856,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1024,
+        101,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 59,
+      "id": "midi-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.387906,
+      "y": 0.258293,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1021,
+        168,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 60,
+      "id": "transp-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.397636,
+      "y": 0.258293,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1047,
+        168,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 61,
+      "id": "live-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.386689,
+      "y": 0.468582,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1018,
+        305,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 62,
+      "id": "numpad-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.387663,
+      "y": 0.508293,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1020,
+        330,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 63,
+      "id": "scene2-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.388054,
+      "y": 0.55375,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1021,
+        360,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 64,
+      "id": "scene2-ped",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.389266,
+      "y": 0.598221,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1025,
+        389,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 65,
+      "id": "plib-org",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.418871,
+      "y": 0.176394,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1102,
+        115,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 66,
+      "id": "plib-pno",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.440605,
+      "y": 0.176394,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1160,
+        115,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 67,
+      "id": "plib-syn",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.461442,
+      "y": 0.176394,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1215,
+        115,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 68,
+      "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": 1,
+      "split": false,
+      "x": 0.419904,
+      "y": 0.499808,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1105,
+        325,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 69,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 2,
+      "split": false,
+      "x": 0.435541,
+      "y": 0.499808,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1146,
+        325,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 70,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 3,
+      "split": false,
+      "x": 0.451386,
+      "y": 0.499808,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1188,
+        325,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 71,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 4,
+      "split": false,
+      "x": 0.467201,
+      "y": 0.499808,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1230,
+        325,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 72,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 5,
+      "split": false,
+      "x": 0.419643,
+      "y": 0.556562,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1105,
+        362,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 73,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 6,
+      "split": false,
+      "x": 0.435541,
+      "y": 0.556562,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1146,
+        362,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 74,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 7,
+      "split": false,
+      "x": 0.451415,
+      "y": 0.556562,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1188,
+        362,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 75,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": 8,
+      "split": false,
+      "x": 0.467206,
+      "y": 0.556562,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1230,
+        362,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 76,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.485645,
+      "y": 0.275913,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1278,
+        179,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 77,
+      "id": "secedit-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.484417,
+      "y": 0.338245,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1275,
+        220,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 78,
+      "id": "syn-fx-focus",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
+      "split": false,
+      "x": 0.551559,
+      "y": 0.072163,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        1452,
+        47,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 79,
+      "id": "syn-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.56526,
+      "y": 0.072163,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        1488,
+        47,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 80,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.518475,
+      "y": 0.304447,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1365,
+        198,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 81,
+      "id": "syn-a",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
+      "split": false,
+      "x": 0.507634,
+      "y": 0.321226,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1336,
+        209,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 82,
+      "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.507539,
+      "y": 0.36512,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1336,
+        237,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 83,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.536088,
+      "y": 0.304447,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1411,
+        198,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 84,
+      "id": "syn-b",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
+      "split": false,
+      "x": 0.525242,
+      "y": 0.321226,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1382,
+        209,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 85,
+      "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.522868,
+      "y": 0.36488,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1376,
+        237,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 86,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.55366,
+      "y": 0.304447,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1457,
+        198,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 87,
+      "id": "syn-c",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
+      "split": false,
+      "x": 0.542856,
+      "y": 0.321226,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1429,
+        209,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 88,
+      "id": "kb-hold",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.512016,
+      "y": 0.435529,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1348,
+        283,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 89,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.510775,
+      "y": 0.478053,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1344,
+        311,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 90,
+      "id": "arp-run",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.53835,
+      "y": 0.435529,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1417,
+        283,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 91,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.537584,
+      "y": 0.474832,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1415,
+        309,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 92,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.525456,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1383,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 93,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.529065,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1393,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 94,
+      "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.532675,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1402,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 95,
+      "id": null,
+      "on": true,
+      "color": "green",
+      "prog_led": null,
+      "split": false,
+      "x": 0.536284,
+      "y": 0.602308,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1412,
+        392,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 96,
+      "id": "syn-mode-smp",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.624958,
+      "y": 0.137067,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1645,
+        89,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 97,
+      "id": "syn-mode-ana",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.624958,
+      "y": 0.152163,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1645,
+        99,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 98,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.62598,
+      "y": 0.218221,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1648,
+        142,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 99,
+      "id": "syn-keep",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.623421,
+      "y": 0.273197,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1641,
+        178,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 100,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.648936,
+      "y": 0.198077,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1708,
+        129,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 101,
+      "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.651162,
+      "y": 0.215673,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1714,
+        140,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 102,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.683279,
+      "y": 0.144519,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1798,
+        94,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 103,
+      "id": "arp-mode",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.683279,
+      "y": 0.159615,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1798,
+        104,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 104,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.703926,
+      "y": 0.208077,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1853,
+        135,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 105,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.736037,
+      "y": 0.133606,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1937,
+        87,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 106,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.734351,
+      "y": 0.216394,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1933,
+        141,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 107,
+      "id": "v-mono",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.651899,
+      "y": 0.274856,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1716,
+        179,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 108,
+      "id": "v-leg",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.651899,
+      "y": 0.289952,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1716,
+        188,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 109,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.648936,
+      "y": 0.362837,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1708,
+        236,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 110,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.659438,
+      "y": 0.362837,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1736,
+        236,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 111,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.686497,
+      "y": 0.351923,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1807,
+        229,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 112,
+      "id": "vib-whl",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.714119,
+      "y": 0.274856,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1880,
+        179,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 113,
+      "id": "vib-dly",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.714119,
+      "y": 0.288413,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1880,
+        187,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 114,
+      "id": "vib-on",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.714119,
+      "y": 0.301971,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1880,
+        196,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 115,
+      "id": "vib-menu",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.737723,
+      "y": 0.285,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1942,
+        185,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 116,
+      "id": "lfo-wf",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.56269,
+      "y": 0.420144,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1481,
+        273,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 117,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.564008,
+      "y": 0.469976,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1484,
+        305,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 118,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.590277,
+      "y": 0.478077,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1554,
+        311,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 119,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.56269,
+      "y": 0.574327,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1481,
+        373,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 120,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.564916,
+      "y": 0.591923,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1487,
+        385,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 121,
+      "id": "lfo-d1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.595703,
+      "y": 0.531178,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1568,
+        345,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 122,
+      "id": "lfo-d2",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.595703,
+      "y": 0.543606,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1568,
+        353,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 123,
+      "id": "osc-p",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.61616,
+      "y": 0.420553,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1622,
+        273,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 124,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.614427,
+      "y": 0.469832,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1617,
+        305,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 125,
+      "id": "osc-e",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.639628,
+      "y": 0.420553,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1684,
+        273,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 126,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.639467,
+      "y": 0.469832,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1683,
+        305,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 127,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.616042,
+      "y": 0.589712,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1621,
+        383,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 128,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.639746,
+      "y": 0.587404,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1684,
+        382,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 129,
+      "id": "flt-t",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.665268,
+      "y": 0.420312,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1751,
+        273,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 130,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.662994,
+      "y": 0.469832,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1745,
+        305,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 131,
+      "id": "flt-e",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.684104,
+      "y": 0.420312,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1801,
+        273,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 132,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.683606,
+      "y": 0.469832,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1799,
+        305,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 133,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.707536,
+      "y": 0.478077,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1862,
+        311,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 134,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.66826,
+      "y": 0.589712,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1759,
+        383,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 135,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.68807,
+      "y": 0.589712,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1811,
+        383,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 136,
+      "id": "flt-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.714274,
+      "y": 0.526635,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1880,
+        342,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 137,
+      "id": "amp-env-led",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.732095,
+      "y": 0.419952,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1927,
+        273,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 138,
+      "id": "amp-v1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.736322,
+      "y": 0.485385,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1938,
+        316,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 139,
+      "id": "amp-v2",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.741095,
+      "y": 0.485385,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1951,
+        316,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 140,
+      "id": "syn-uni-2",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.738109,
+      "y": 0.545913,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1943,
+        355,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 141,
+      "id": "syn-uni-1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.737878,
+      "y": 0.559471,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        1942,
+        364,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 142,
+      "id": "fx-master-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.809282,
+      "y": 0.072163,
+      "w": 0.00266,
+      "h": 0.010769,
+      "px": [
+        2130,
+        47,
+        7,
+        7
+      ]
+    },
+    {
+      "index": 143,
+      "id": "fxf-org-a",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.766426,
+      "y": 0.12125,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2017,
+        79,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 144,
+      "id": "fxf-pno-a",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.764248,
+      "y": 0.257332,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2012,
+        167,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 145,
+      "id": "fxf-pno-b",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.768617,
+      "y": 0.257332,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2023,
+        167,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 146,
+      "id": "fxf-syn-a",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
+      "split": false,
+      "x": 0.762443,
+      "y": 0.394183,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2007,
+        256,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 147,
+      "id": "fxf-syn-b",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
+      "split": false,
+      "x": 0.766432,
+      "y": 0.394183,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2017,
+        256,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 148,
+      "id": "fxf-syn-c",
+      "on": true,
+      "color": "amber",
+      "prog_led": null,
+      "split": false,
+      "x": 0.770422,
+      "y": 0.394183,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2028,
+        256,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 149,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.784574,
+      "y": 0.198077,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2065,
+        129,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 150,
+      "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.788113,
+      "y": 0.218077,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2074,
+        142,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 151,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.810945,
+      "y": 0.208077,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2134,
+        135,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 152,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.837902,
+      "y": 0.218846,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2205,
+        142,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 153,
+      "id": "mod1-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.878989,
+      "y": 0.146538,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2314,
+        95,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 154,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.787733,
+      "y": 0.360385,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2073,
+        234,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 155,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.809585,
+      "y": 0.360385,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2131,
+        234,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 156,
+      "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.84061,
+      "y": 0.37113,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2212,
+        241,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 157,
+      "id": "mod2-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.878989,
+      "y": 0.298846,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2314,
+        194,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 158,
+      "id": "amp-drive-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.789217,
+      "y": 0.426082,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2077,
+        277,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 159,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.786688,
+      "y": 0.508149,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2071,
+        330,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 160,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.848642,
+      "y": 0.51137,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2234,
+        332,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 161,
+      "id": "amp-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.879369,
+      "y": 0.532692,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2315,
+        346,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 162,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.89031,
+      "y": 0.184904,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2343,
+        120,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 163,
+      "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.889818,
+      "y": 0.2025,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2342,
+        132,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 164,
+      "id": "dly-fx1",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.928227,
+      "y": 0.13637,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2443,
+        89,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 165,
+      "id": "dly-fx2",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.928227,
+      "y": 0.149135,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2443,
+        97,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 166,
+      "id": "dly-fx3",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.928227,
+      "y": 0.161899,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2443,
+        105,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 167,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.920872,
+      "y": 0.200817,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2424,
+        131,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 168,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.953778,
+      "y": 0.194904,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2510,
+        127,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 169,
+      "id": "dly-tap",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.889438,
+      "y": 0.253125,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2341,
+        165,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 170,
+      "id": "dly-ana",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.889497,
+      "y": 0.29512,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2341,
+        192,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 171,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.922522,
+      "y": 0.307212,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2428,
+        200,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 172,
+      "id": "dly-hp",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.962398,
+      "y": 0.254303,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2533,
+        165,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 173,
+      "id": "dly-lp",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.962398,
+      "y": 0.267067,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2533,
+        174,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 174,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.969795,
+      "y": 0.309063,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2553,
+        201,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 175,
+      "id": "dly-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.948649,
+      "y": 0.364856,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2497,
+        237,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 176,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.954864,
+      "y": 0.371923,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2513,
+        242,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 177,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.892816,
+      "y": 0.420601,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2350,
+        273,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 178,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.894039,
+      "y": 0.537813,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2353,
+        350,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 179,
+      "id": "comp-on",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.887485,
+      "y": 0.584447,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2336,
+        380,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 180,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.893184,
+      "y": 0.591923,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2351,
+        385,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 181,
+      "id": "rev-brt",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.914514,
+      "y": 0.441731,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2407,
+        287,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 182,
+      "id": "rev-drk",
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.915564,
+      "y": 0.456034,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2410,
+        296,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 183,
+      "id": null,
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.962362,
+      "y": 0.505048,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2533,
+        328,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 184,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.915137,
+      "y": 0.594327,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2409,
+        386,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 185,
+      "id": "rev-on",
+      "on": true,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.949409,
+      "y": 0.56726,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2499,
+        369,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 186,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": false,
+      "x": 0.955244,
+      "y": 0.574327,
+      "w": 0.00209,
+      "h": 0.008462,
+      "px": [
+        2514,
+        373,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 187,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": true,
+      "x": 0.186111,
+      "y": 0.635385,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        490,
+        413,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 188,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": true,
+      "x": 0.258549,
+      "y": 0.635385,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        681,
+        413,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 189,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": true,
+      "x": 0.339672,
+      "y": 0.635385,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        894,
+        413,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 190,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": true,
+      "x": 0.409212,
+      "y": 0.635385,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        1077,
+        413,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 191,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": true,
+      "x": 0.478747,
+      "y": 0.635385,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        1260,
+        413,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 192,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": true,
+      "x": 0.548288,
+      "y": 0.635385,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        1443,
+        413,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 193,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": true,
+      "x": 0.617823,
+      "y": 0.635385,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        1626,
+        413,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 194,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": true,
+      "x": 0.687363,
+      "y": 0.635385,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        1809,
+        413,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 195,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": true,
+      "x": 0.756904,
+      "y": 0.635385,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        1992,
+        413,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 196,
+      "id": null,
+      "on": false,
+      "color": "red",
+      "prog_led": null,
+      "split": true,
+      "x": 0.826439,
+      "y": 0.635385,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2175,
+        413,
+        6,
+        6
+      ]
+    }
+  ],
+  "tris": [
+    {
+      "index": 0,
+      "group": "org-model",
+      "tri_idx": 0,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.158625,
+      "y": 0.153846,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        418,
+        100,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 1,
+      "group": "org-model",
+      "tri_idx": 3,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.163184,
+      "y": 0.153846,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        430,
+        100,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 2,
+      "group": "org-model",
+      "tri_idx": 1,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.158625,
+      "y": 0.170769,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        418,
+        111,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 3,
+      "group": "org-model",
+      "tri_idx": 4,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.163184,
+      "y": 0.170769,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        430,
+        111,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 4,
+      "group": "org-model",
+      "tri_idx": 2,
+      "count": 6,
+      "dir": "left",
+      "on": true,
+      "x": 0.158625,
+      "y": 0.187692,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        418,
+        122,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 5,
+      "group": "org-model",
+      "tri_idx": 5,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.163184,
+      "y": 0.187692,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        430,
+        122,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 6,
+      "group": "org-vib",
+      "tri_idx": 0,
+      "count": 6,
+      "dir": "up",
+      "on": false,
+      "x": 0.210486,
+      "y": 0.159231,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        554,
+        104,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 7,
+      "group": "org-vib",
+      "tri_idx": 1,
+      "count": 6,
+      "dir": "up",
+      "on": false,
+      "x": 0.215046,
+      "y": 0.159231,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        566,
+        104,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 8,
+      "group": "org-vib",
+      "tri_idx": 2,
+      "count": 6,
+      "dir": "up",
+      "on": true,
+      "x": 0.219605,
+      "y": 0.159231,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        578,
+        104,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 9,
+      "group": "org-vib",
+      "tri_idx": 3,
+      "count": 6,
+      "dir": "down",
+      "on": false,
+      "x": 0.210486,
+      "y": 0.176154,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        554,
+        115,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 10,
+      "group": "org-vib",
+      "tri_idx": 4,
+      "count": 6,
+      "dir": "down",
+      "on": false,
+      "x": 0.215046,
+      "y": 0.176154,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        566,
+        115,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 11,
+      "group": "org-vib",
+      "tri_idx": 5,
+      "count": 6,
+      "dir": "down",
+      "on": false,
+      "x": 0.219605,
+      "y": 0.176154,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        578,
+        115,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 12,
+      "group": "pno-cat",
+      "tri_idx": 0,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.347834,
+      "y": 0.349904,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        916,
+        227,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 13,
+      "group": "pno-cat",
+      "tri_idx": 3,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.352394,
+      "y": 0.349904,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        928,
+        227,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 14,
+      "group": "pno-cat",
+      "tri_idx": 1,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.347834,
+      "y": 0.366827,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        916,
+        238,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 15,
+      "group": "pno-cat",
+      "tri_idx": 4,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.352394,
+      "y": 0.366827,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        928,
+        238,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 16,
+      "group": "pno-cat",
+      "tri_idx": 2,
+      "count": 6,
+      "dir": "left",
+      "on": true,
+      "x": 0.347834,
+      "y": 0.38375,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        916,
+        249,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 17,
+      "group": "pno-cat",
+      "tri_idx": 5,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.352394,
+      "y": 0.38375,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        928,
+        249,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 18,
+      "group": "fx-mod1",
+      "tri_idx": 0,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.846801,
+      "y": 0.135529,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2229,
+        88,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 19,
+      "group": "fx-mod1",
+      "tri_idx": 3,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.851361,
+      "y": 0.135529,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2241,
+        88,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 20,
+      "group": "fx-mod1",
+      "tri_idx": 1,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.846801,
+      "y": 0.152452,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2229,
+        99,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 21,
+      "group": "fx-mod1",
+      "tri_idx": 4,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.851361,
+      "y": 0.152452,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2241,
+        99,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 22,
+      "group": "fx-mod1",
+      "tri_idx": 2,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.846801,
+      "y": 0.169375,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2229,
+        110,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 23,
+      "group": "fx-mod1",
+      "tri_idx": 5,
+      "count": 6,
+      "dir": "right",
+      "on": true,
+      "x": 0.851361,
+      "y": 0.169375,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2241,
+        110,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 24,
+      "group": "fx-mod2",
+      "tri_idx": 0,
+      "count": 6,
+      "dir": "left",
+      "on": true,
+      "x": 0.846119,
+      "y": 0.28899,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2227,
+        188,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 25,
+      "group": "fx-mod2",
+      "tri_idx": 3,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.850678,
+      "y": 0.28899,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2239,
+        188,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 26,
+      "group": "fx-mod2",
+      "tri_idx": 1,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.846119,
+      "y": 0.305913,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2227,
+        199,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 27,
+      "group": "fx-mod2",
+      "tri_idx": 4,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.850678,
+      "y": 0.305913,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2239,
+        199,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 28,
+      "group": "fx-mod2",
+      "tri_idx": 2,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.846119,
+      "y": 0.322837,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2227,
+        210,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 29,
+      "group": "fx-mod2",
+      "tri_idx": 5,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.850678,
+      "y": 0.322837,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2239,
+        210,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 30,
+      "group": "fx-amp",
+      "tri_idx": 0,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.853771,
+      "y": 0.429231,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2247,
+        279,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 31,
+      "group": "fx-amp",
+      "tri_idx": 3,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.85833,
+      "y": 0.429231,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2259,
+        279,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 32,
+      "group": "fx-amp",
+      "tri_idx": 1,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.853771,
+      "y": 0.446154,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2247,
+        290,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 33,
+      "group": "fx-amp",
+      "tri_idx": 4,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.85833,
+      "y": 0.446154,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2259,
+        290,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 34,
+      "group": "fx-amp",
+      "tri_idx": 2,
+      "count": 6,
+      "dir": "left",
+      "on": true,
+      "x": 0.853771,
+      "y": 0.463077,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2247,
+        301,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 35,
+      "group": "fx-amp",
+      "tri_idx": 5,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.85833,
+      "y": 0.463077,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2259,
+        301,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 36,
+      "group": "fx-rev",
+      "tri_idx": 0,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.950798,
+      "y": 0.426154,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2503,
+        277,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 37,
+      "group": "fx-rev",
+      "tri_idx": 3,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.955357,
+      "y": 0.426154,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2515,
+        277,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 38,
+      "group": "fx-rev",
+      "tri_idx": 1,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.950798,
+      "y": 0.443077,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2503,
+        288,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 39,
+      "group": "fx-rev",
+      "tri_idx": 4,
+      "count": 6,
+      "dir": "right",
+      "on": false,
+      "x": 0.955357,
+      "y": 0.443077,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2515,
+        288,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 40,
+      "group": "fx-rev",
+      "tri_idx": 2,
+      "count": 6,
+      "dir": "left",
+      "on": false,
+      "x": 0.950798,
+      "y": 0.46,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2503,
+        299,
+        6,
+        6
+      ]
+    },
+    {
+      "index": 41,
+      "group": "fx-rev",
+      "tri_idx": 5,
+      "count": 6,
+      "dir": "right",
+      "on": true,
+      "x": 0.955357,
+      "y": 0.46,
+      "w": 0.00228,
+      "h": 0.009231,
+      "px": [
+        2515,
+        299,
+        6,
+        6
+      ]
+    }
+  ],
+  "oleds": {
+    "main": {
+      "x": 0.412531,
+      "y": 0.290649,
+      "w": 0.066109,
+      "h": 0.126154,
+      "px": [
+        1086,
+        189,
+        174,
+        82
+      ]
+    },
+    "synth": {
+      "x": 0.56193,
+      "y": 0.103077,
+      "w": 0.055471,
+      "h": 0.116923,
+      "px": [
+        1479,
+        67,
+        146,
+        76
+      ]
+    }
+  },
+  "wheels": {
+    "pitch_stick": {
+      "x": 0.022354,
+      "y": 0.147988,
+      "w": 0.023681,
+      "h": 0.060947,
+      "px": [
+        59,
+        96,
+        62,
+        40
+      ]
+    },
+    "mod_wheel": {
+      "x": 0.043569,
+      "y": 0.239478,
+      "w": 0.015446,
+      "h": 0.15489,
+      "px": [
+        115,
+        156,
+        41,
+        101
+      ]
+    }
+  },
+  "keys": [
+    {
+      "midi": 21,
+      "black": false,
+      "x": 0.018237,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        48,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 23,
+      "black": false,
+      "x": 0.036765,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        97,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 24,
+      "black": false,
+      "x": 0.055299,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        146,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 26,
+      "black": false,
+      "x": 0.073827,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        194,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 28,
+      "black": false,
+      "x": 0.092361,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        243,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 29,
+      "black": false,
+      "x": 0.110889,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        292,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 31,
+      "black": false,
+      "x": 0.129423,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        341,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 33,
+      "black": false,
+      "x": 0.147951,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        389,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 35,
+      "black": false,
+      "x": 0.166485,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        438,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 36,
+      "black": false,
+      "x": 0.185013,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        487,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 38,
+      "black": false,
+      "x": 0.203546,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        536,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 40,
+      "black": false,
+      "x": 0.222074,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        585,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 41,
+      "black": false,
+      "x": 0.240608,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        633,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 43,
+      "black": false,
+      "x": 0.259136,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        682,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 45,
+      "black": false,
+      "x": 0.27767,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        731,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 47,
+      "black": false,
+      "x": 0.296198,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        780,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 48,
+      "black": false,
+      "x": 0.314732,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        828,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 50,
+      "black": false,
+      "x": 0.33326,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        877,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 52,
+      "black": false,
+      "x": 0.351794,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        926,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 53,
+      "black": false,
+      "x": 0.370322,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        975,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 55,
+      "black": false,
+      "x": 0.388856,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1023,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 57,
+      "black": false,
+      "x": 0.407384,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        1072,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 59,
+      "black": false,
+      "x": 0.425918,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1121,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 60,
+      "black": false,
+      "x": 0.444446,
+      "y": 0.653846,
+      "w": 0.018534,
+      "h": 0.335385,
+      "px": [
+        1170,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 62,
+      "black": false,
+      "x": 0.46298,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1219,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 64,
+      "black": false,
+      "x": 0.481508,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1267,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 65,
+      "black": false,
+      "x": 0.500036,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1316,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 67,
+      "black": false,
+      "x": 0.518564,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1365,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 69,
+      "black": false,
+      "x": 0.537092,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1414,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 71,
+      "black": false,
+      "x": 0.55562,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1462,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 72,
+      "black": false,
+      "x": 0.574148,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1511,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 74,
+      "black": false,
+      "x": 0.592675,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1560,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 76,
+      "black": false,
+      "x": 0.611203,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1609,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 77,
+      "black": false,
+      "x": 0.629731,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1657,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 79,
+      "black": false,
+      "x": 0.648259,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1706,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 81,
+      "black": false,
+      "x": 0.666787,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1755,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 83,
+      "black": false,
+      "x": 0.685315,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1804,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 84,
+      "black": false,
+      "x": 0.703843,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1853,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 86,
+      "black": false,
+      "x": 0.722371,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1901,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 88,
+      "black": false,
+      "x": 0.740899,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1950,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 89,
+      "black": false,
+      "x": 0.759427,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        1999,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 91,
+      "black": false,
+      "x": 0.777955,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2048,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 93,
+      "black": false,
+      "x": 0.796483,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2096,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 95,
+      "black": false,
+      "x": 0.815011,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2145,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 96,
+      "black": false,
+      "x": 0.833539,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2194,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 98,
+      "black": false,
+      "x": 0.852067,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2243,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 100,
+      "black": false,
+      "x": 0.870595,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2291,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 101,
+      "black": false,
+      "x": 0.889123,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2340,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 103,
+      "black": false,
+      "x": 0.907651,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2389,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 105,
+      "black": false,
+      "x": 0.926179,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2438,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 107,
+      "black": false,
+      "x": 0.944707,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2486,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 108,
+      "black": false,
+      "x": 0.963235,
+      "y": 0.653846,
+      "w": 0.018528,
+      "h": 0.335385,
+      "px": [
+        2535,
+        425,
+        49,
+        218
+      ]
+    },
+    {
+      "midi": 22,
+      "black": true,
+      "x": 0.030348,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        80,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 25,
+      "black": true,
+      "x": 0.067493,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        178,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 27,
+      "black": true,
+      "x": 0.086068,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        227,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 30,
+      "black": true,
+      "x": 0.123213,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        324,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 32,
+      "black": true,
+      "x": 0.141789,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        373,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 34,
+      "black": true,
+      "x": 0.160358,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        422,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 37,
+      "black": true,
+      "x": 0.197509,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        520,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 39,
+      "black": true,
+      "x": 0.216079,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        569,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 42,
+      "black": true,
+      "x": 0.253229,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        667,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 44,
+      "black": true,
+      "x": 0.271799,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        715,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 46,
+      "black": true,
+      "x": 0.290374,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        764,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 49,
+      "black": true,
+      "x": 0.327519,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        862,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 51,
+      "black": true,
+      "x": 0.346095,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        911,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 54,
+      "black": true,
+      "x": 0.38324,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1009,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 56,
+      "black": true,
+      "x": 0.401809,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1058,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 58,
+      "black": true,
+      "x": 0.420385,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1106,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 61,
+      "black": true,
+      "x": 0.45753,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1204,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 63,
+      "black": true,
+      "x": 0.476105,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1253,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 66,
+      "black": true,
+      "x": 0.51325,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1351,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 68,
+      "black": true,
+      "x": 0.531826,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1400,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 70,
+      "black": true,
+      "x": 0.550395,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1449,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 73,
+      "black": true,
+      "x": 0.587546,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1546,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 75,
+      "black": true,
+      "x": 0.606116,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1595,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 78,
+      "black": true,
+      "x": 0.643261,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1693,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 80,
+      "black": true,
+      "x": 0.661836,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1742,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 82,
+      "black": true,
+      "x": 0.680412,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1791,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 85,
+      "black": true,
+      "x": 0.717557,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1889,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 87,
+      "black": true,
+      "x": 0.736132,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        1938,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 90,
+      "black": true,
+      "x": 0.773277,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        2035,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 92,
+      "black": true,
+      "x": 0.791847,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        2084,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 94,
+      "black": true,
+      "x": 0.810422,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        2133,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 97,
+      "black": true,
+      "x": 0.847567,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        2231,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 99,
+      "black": true,
+      "x": 0.866143,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        2280,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 102,
+      "black": true,
+      "x": 0.903288,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        2377,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 104,
+      "black": true,
+      "x": 0.921863,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        2426,
+        425,
+        28,
+        137
+      ]
+    },
+    {
+      "midi": 106,
+      "black": true,
+      "x": 0.940433,
+      "y": 0.653846,
+      "w": 0.010638,
+      "h": 0.210192,
+      "px": [
+        2475,
+        425,
+        28,
+        137
+      ]
+    }
+  ]
+}
