@@ -4,6 +4,8 @@
 
 pub mod audio;
 pub mod baked;
+pub mod debug_dialog;
+pub mod file_picker;
 pub mod firmware_panel;
 pub mod headless_load;
 pub mod library;
