@@ -90,6 +90,17 @@ def program_piano_hash(program: bytes, layer: str = "layer_a") -> int:
     return reader.read_bits(32)
 
 
+def active_layer(layers: dict[str, dict]) -> str:
+    """The piano layer the loader plays: the first with its enable bit, else layer A.
+
+    VERIFIED (`engine/routing.rs::default_layer_a`, `engine-routing.md` s7): an enabled section with
+    no layer enabled plays layer A. Five factory programs (Tines Layer, LoFi Piano, Rising Sun,
+    Piano Soft Orch, 70s CP Strings) store both piano enable bits 0 and sound on layer A; the
+    census bound nothing for them and read `piano_no_chain_tap` (D216).
+    """
+    return next((k for k, v in layers.items() if v["enabled"]), "layer_a")
+
+
 def program_piano_layers(program: bytes) -> dict[str, dict]:
     """`{layer: {enabled, name_hash}}` of both piano layers."""
     reader = ni.BitReader(_piano_payload(program))

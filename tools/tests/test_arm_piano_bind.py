@@ -65,6 +65,14 @@ def test_program_piano_hash_reads_layer_a_and_variation_is_independent() -> None
     assert layers["layer_b"]["enabled"] is False
 
 
+def test_active_layer_is_the_enabled_one_else_layer_a() -> None:
+    off = {"enabled": False, "name_hash": 1}
+    on = {"enabled": True, "name_hash": 2}
+    assert pb.active_layer({"layer_a": off, "layer_b": on}) == "layer_b"
+    assert pb.active_layer({"layer_a": on, "layer_b": on}) == "layer_a"
+    assert pb.active_layer({"layer_a": off, "layer_b": off}) == "layer_a"
+
+
 def test_core0_is_the_candidate_after_manager_zero_or_nothing() -> None:
     mgr = 0x90BF53D0
     assert pb.core0_of(mgr, [0x1000, mgr + 0x30, mgr + 0x40]) == [mgr + 0x30]

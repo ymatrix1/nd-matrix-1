@@ -201,9 +201,7 @@ def bind_program_piano(emu, backup: Path, program: bytes) -> dict:  # noqa: ANN0
     import arm_piano_load as pl
 
     layers = pb.program_piano_layers(program)
-    layer = next((k for k, v in layers.items() if v["enabled"]), None)
-    if layer is None:
-        return {"layer": None}
+    layer = pb.active_layer(layers)
     with zipfile.ZipFile(backup) as archive:
         member = pb.resolve_member(pb.piano_members(archive.namelist()), layers[layer]["name_hash"])
     if member is None:

@@ -37,6 +37,9 @@ WINDOW = "0xC1F89:8:1"
 # about 2,900 ARM ticks after the key, so an arp program is held far longer than the 1,500 ticks of
 # the plain census. 15,000 ticks = 0.625 s = 1.25 beats at 120 bpm.
 ARP_KEY_TICKS = 15_000
+# EMPIRICAL (D205, `smp-voice-pitch.md`): the pilot SMP runs hold the key 3,000 ticks; the 1,500
+# tick census hold is the plain default and is kept for the other chips.
+SMP_KEY_TICKS = 3_000
 CHAINS = ("PNO1", "PNO2", "ORG2", "SY0")
 SMP_FIELDS = ("kind", "peak_dbfs", "fundamental_cycles", "words")
 SY_FIELDS = ("prepare", "go", "peak", "audio_ticks", "first_audio_tick", "voice0_playing_tick")
@@ -86,8 +89,13 @@ def live_command(
     audio: bool,
     chips: list[str] | None = None,
     key_ticks: int | None = None,
+    log: Path | None = None,
 ) -> list[str]:
-    """`arm_dsp_live.py` command line of one run (census, or with the SY return path)."""
+    """`arm_dsp_live.py` command line of one run (census, or with the SY return path).
+
+    The SMP chip writes its tap file (`smp_tap.f32`) into `log`, so a run with that chip needs it:
+    without `--log` the report holds no tap and every piano program reads as `piano_no_chain_tap`.
+    """
     fw = ns.fw_dir
     cmd = [
         sys.executable, str(Path(__file__).resolve().with_name("arm_dsp_live.py")),
@@ -102,6 +110,9 @@ def live_command(
         cmd.append("--sy-timeline")
     if "SMP0" in chips:  # the program's piano sound is served as the SMP flash (D191, D205)
         cmd += ["--piano-bind", str(ns.backup)]
+        if log is not None:
+            cmd += ["--log", str(log)]
+        key_ticks = max(key_ticks or 0, SMP_KEY_TICKS)
     if key_ticks:
         cmd += ["--key-ticks", str(key_ticks)]
     return [*cmd, "--return-path"] if audio else cmd
@@ -171,7 +182,7 @@ def run_live(
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "run.json"
         r = subprocess.run(  # noqa: S603
-            live_command(ns, program, out, audio, chips, key_ticks),
+            live_command(ns, program, out, audio, chips, key_ticks, Path(tmp) / "log"),
             capture_output=True,
             text=True,
             check=False,

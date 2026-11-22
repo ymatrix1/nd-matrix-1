@@ -10,7 +10,7 @@ Tags follow `.agents/rules/provenance-in-code.md`: **VERIFIED** = reproduced by 
 
 | Question | Result | Tag |
 |---|---|---|
-| Can the whole chain (ARM + SHARC oracle) render all 384 programs to audio? | **No.** The live link has one audio-like tap per engine and none for the piano: PNO core 1 lane `2:0` (B3 / organ), PNO core 2 voice window `0xC1F89` (synth voice), SY ring peak (SAMPLE, D150). Piano programs: the chain voices nothing (155 programs have a piano layer in scene I). FX, pan, layer mix and master are not in any tap. A per-program level and spectrum comparison against native is therefore only possible at taps that do not exist for most programs. | VERIFIED (runs, s3) |
+| Can the whole chain (ARM + SHARC oracle) render all 384 programs to audio? | **No.** The live link has one audio-like tap per engine and none for the piano: PNO core 1 lane `2:0` (B3 / organ), PNO core 2 voice window `0xC1F89` (synth voice), SY ring peak (SAMPLE, D150). Piano programs: since D216 the SMP chip tap carries the piano for 152 of the 155 programs that have a piano layer in scene I (the other 3: s3.3). FX, pan, layer mix and master are not in any tap. A per-program level and spectrum comparison against native is therefore only possible at taps that do not exist for most programs. | VERIFIED (runs, s3) |
 | What is the ranked distance then? | **Native default against native with every oracle-verified firmware option** (`--firmware-all --firmware-routing`: firmware tone wheels, firmware filter engine, six FX ports). It measures how far the default path is from the firmware paths that are already verified against the oracle, not from the hardware. Score = `abs(level delta dB) + RMS of band share deltas dB + 6 x abs(centroid delta in octaves)`; median 3.9, p90 12.6, max 22.2; 61 programs above 10, 60 below 1. | EMPIRICAL (numbers), ASSUMED (weights) |
 | What carries the worst 20? | **FX is the only group that moves them; one FX group does not always explain them.** Only single-group reverts were run. Reverting the best single FX group leaves a score of at most 2 in 7 programs, 2 to 5 in 7, and **above 5 in 6** (Melody Pad 11.4, PineScape Synth 10.9, Time Warp Saw 8.0, Crackle n Pd Whl 7.6, Bounce Clav 6.3, Roto EP Ondre J 5.0), so those need two or more FX groups together, which was not tested. Best-single-group carriers: Mod 2 12 programs, Mod 1 3, delay 2, EQ, reverb, compressor 1 each. Organ tone wheels and the synth filter engine reduce the score in none of the 20. | EMPIRICAL (ablation, s4) |
 | Which programs does the chain not voice? | After the L2 wavetable forwarding, the firmware expectation and the arp hold (census rerun 2026-11-19, D170, [silent-programs](silent-programs.md)): **0 synth programs** (Synth Engine was a right-panned arp step that the left-lane window missed; it voices with the two-lane window, census rerun 2026-11-20, D175), **5 organ programs that the firmware itself keeps silent at key 60** (`organ_expected_silent`), **3 SAMPLE programs** with no voice prepare (B3 Old Forest, Grand Vibra Bs, Unclocked Pad, as D154). The first census (13 synth programs flagged) was a harness artefact: 12 of them now voice. | EMPIRICAL |
@@ -102,12 +102,25 @@ In all twenty, only FX groups reduce the score when reverted (s4); for 6 of them
 
 | Flag | Programs | Notes |
 |---|---|---|
-| `piano_no_chain_tap` | 155 | piano layer in scene I; a piano key sends no message to the SMP chip in the census harness ([piano-chain-tap](piano-chain-tap.md), OQ41). No verdict possible. |
+| `piano_no_chain_tap` | 0 | was 155. The SMP chain tap (D205, `program_rank_chain.py --smp`) was run over all 155 piano programs (D216, 2026-11-21): 152 give audio (`smp_peak_dbfs` -34.5 to -14.3, median -18.4 dBFS, post stage ring, layer A, before the chain; `smp_cycles` is the fundamental in cycles per frame, 0.00600 for 140 of them). The tap level is **not** a program level: it is layer A only, before FX, pan and master, and the SMP interrupt rate and layers 2 and 3 are open ([smp-voice-pitch](smp-voice-pitch.md)). |
+| `piano_chain_no_audio` | 3 | Chord N Melody and Forever Split (piano key zone gain 0 at key 60: the firmware keeps the piano silent, `tools/program_expect.py`, expected) and Simple Tune (piano on layer B only; the bind covers layer 0 of core 0, so the tap stays silent: layers 2 and 3, open). |
 | `synth_chain_silent` | 0 | Synth Engine (a right-panned arp step, key word lane bit `0x01`) was the last one, read as silence by the old left-lane window; it voices with the two-lane window `0xC1F89:8:1` ([arp-pan-lanes](arp-pan-lanes.md), D175, census rerun 2026-11-20). The 12 other programs of the first census (Dance Lead, Gravity Pattern, 70s CP Strings, Broken Chip, Calling Whl, Super Org Punch, 90s Organ, Dreamy Syn Tines, Gravity Whl, Moving Chords, Scream Lead AT, Shiny Synth Keys) voice after the L2 forwarding and the arp hold (D170). |
 | `organ_expected_silent` | 5 | Ballad Layer Whl, Wormhole Organ (Pipe 1), Nox Split (Pipe 2), 24 Frames J3, J3 Grand Layers: the firmware keeps the organ layer silent at key 60 (zone gain 0 or stored level 0; `tools/program_expect.py`). The other 33 organ programs voice. |
 | `sample_layer_lost` | 24 | 22 with 3 layers (2 voices), Momentum Whl (2 layers, 1 voice), Quintet Bass Spl and Pizz Quintet Spl (1 voice). Same cause as D154 section 4.3: the third layer gets no voice in the harness. |
 | `sample_no_voice` | 3 | B3 Old Forest, Grand Vibra Bs, Unclocked Pad (D154 follow-up 3). |
 | `sample_voiced_no_audio` | 19 | of the 31 programs with a return-path run, 19 prepare a voice and the SY ring peak is 0 (the desync of D112 / D150); the 12 with audio all read 0.05394 (5 digits, identical across programs): that is the stand-in sample bound by `--ns4b`, **not** a program level. The SY ring peak carries no per-program level information. |
+
+### 3.3a SMP chain-tap census (D216)
+
+Run 2026-11-21 on the 155 programs of the former `piano_no_chain_tap` flag: `program_rank_chain.py --smp target/oracle/smp.bin` (key 60 velocity 100, held 3,000 ticks, `--piano-bind`, about 3 min of CPU per program, 8 workers, 8 batches of 20), then `tools/program_rank_smp.py` merged `smp_peak_dbfs`, `smp_cycles` and the flags into `data/program-ranking.csv` (the other columns are unchanged: the native renders were not repeated, no default changed).
+
+| Outcome | Programs | Why |
+|---|---|---|
+| tap with audio | 152 (83 piano, 42 piano+synth, 22 piano+sample, 3 organ+piano+sample, 2 organ+piano+synth) | peak -34.5 to -14.3 dBFS, median -18.4 |
+| no audio | 3 | Chord N Melody, Forever Split: piano zone gain 0 at key 60 (expected); Simple Tune: piano layer B only, not bound (open) |
+| no tap | 0 | 5 programs (Tines Layer, LoFi Piano, Rising Sun, Piano Soft Orch, 70s CP Strings) store both piano enable bits 0 and sound on layer A; the bind read "no layer" until it used the loader rule (layer A, `engine/routing.rs::default_layer_a`) |
+
+`smp_cycles` (fundamental, cycles per frame) is 0.00600 for 140 programs (the same key 60); outliers: x2 (0.0121: Momentum Whl, Shoreline Whl, Big Felt Pad Whl, French Harpsi), x0.5 (0.0030: Gradient Whl, J3 Split Special) and 0.0003 (LoFi Piano, Clean Marimba AT, DistantGrand). Whether these are octave layers of the sound or a failing pitch estimate is not checked (ASSUMED octave layers).
 
 ## 4. Cause of the worst 20 (ablation)
 
@@ -138,7 +151,7 @@ Carrier = best single-group revert; **only single-group reverts were run**, no p
 
 1. ~~Ablate pairs of FX groups for the 6 programs with a residual above 5~~ Done in [program-ranking-fx](program-ranking-fx.md) (D163): all 63 FX combinations for the worst 20 (Mod 2 plus EQ explain most; the six residual programs need three or four groups), and the before / after of an FX default flip on all 384. Still open: programs 21 to 384 have no carrier (`--ablate-fx`, about 15 s per program with `--jobs 20`).
 2. ~~Diagnose the 13 `synth_chain_silent` and 5 `organ_chain_silent` programs~~ done in [silent-programs](silent-programs.md) (D164, D170): census rerun, Synth Engine answered in [arp-pan-lanes](arp-pan-lanes.md) (D175).
-3. A piano tap: PNO core 1 with the SMP stream (OQ in `docs/OPEN-QUESTIONS.md`).
+3. ~~A piano tap~~ Done as the SMP chip tap (D205, census D216): 152 of 155 piano programs. Open: the tap is layer A before the chain, so it carries no level verdict against native; `smp_cycles` outliers (s3.3a); layers 2 and 3 (Simple Tune).
 4. Re-run after any FX default flip: `tools/program_rank.py` regenerates both CSV files (done 2026-11-19, s1b; six per-bank `program_rank --only "Bank X/"` shards give the same lines as one run).
 
 ## Refactor check (`program_sweep` -> `sweep_load.rs`)
@@ -161,6 +174,9 @@ PYTHONPATH=tools uv run --with unicorn --with capstone python tools/program_rank
 python tools/program_rank.py --native native.jsonl --chain chain/chain.jsonl \
   --csv docs/research/data/program-ranking.csv --ablate ablate.jsonl \
   --cause-csv docs/research/data/program-ranking-ablation.csv --md-tables
+# SMP chain tap of the piano programs only (D216; no native renders): add `--smp $M/target/oracle/smp.bin --entries piano.txt`
+# to the chain command above (`--native` may be a file of engines only), then merge into the committed CSV:
+python tools/program_rank_smp.py --chain chain/chain.jsonl --csv docs/research/data/program-ranking.csv
 uv run pytest tools/tests/test_program_rank.py tools/tests/test_program_rank_chain.py
 cargo test --release -p nord-tools
 ```
