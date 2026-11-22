@@ -113,7 +113,6 @@ where
                 // OLD size, so the host was asked to keep its size while egui drew at the new one.
                 // The request now stays set during the call.
                 if let Some(new_size) = egui_state.requested_size.load() {
-                    let old_size = egui_state.size.load();
                     let ok = context.request_resize();
                     egui_state.requested_size.store(None);
                     if ok {
@@ -138,6 +137,7 @@ where
                 // this we would also have a blank GUI when it gets first opened because most DAWs open
                 // their GUI while the window is still unmapped.
                 egui_ctx.request_repaint();
+                (update)(egui_ctx, &setter, &mut state.write());
             },
         );
 

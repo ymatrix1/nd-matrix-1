@@ -159,8 +159,10 @@ pub fn draw_editor<W: ParamWriter>(
                 .fixed_pos(Pos2::ZERO)
                 .constrain(false)
                 .show(ui.ctx(), |ui| {
+                    // `set_clip_rect` (not `Painter::with_clip_rect`, which intersects with the
+                    // screen-sized clip and cut the letterbox bands that lie outside it).
+                    ui.set_clip_rect(window_in_panel_coords);
                     ui.painter()
-                        .with_clip_rect(window_in_panel_coords)
                         .rect_filled(window_in_panel_coords, 0.0_f32, CHASSIS_DARK);
                     ui.set_clip_rect(panel_rect);
                     ui.scope_builder(UiBuilder::new().max_rect(panel_rect), |ui| {

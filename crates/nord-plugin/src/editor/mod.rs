@@ -102,6 +102,14 @@ mod tests {
         assert_eq!(fresh.editor_state.size(), (900, 243));
     }
 
+    /// Guard: the vendored `nih_plug_egui` must still call the editor's update closure each frame
+    /// (an edit once deleted that line and the editor drew nothing but black).
+    #[test]
+    fn vendored_egui_editor_still_calls_the_update_closure() {
+        let src = include_str!("../../../../vendor/nih_plug_egui/src/editor.rs");
+        assert!(src.contains("(update)(egui_ctx, &setter, &mut state.write());"));
+    }
+
     #[test]
     fn create_returns_an_editor_for_default_params() {
         let params = Arc::new(Stage4Params::default());
