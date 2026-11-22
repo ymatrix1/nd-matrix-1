@@ -771,13 +771,18 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
     }
     if let Some(synth_oled) = assets.layout.oleds.get("synth") {
         let r = synth_oled.in_rect(plate_rect);
-        super::bay_synth::oled::paint_oled_in_rect(
-            &p,
-            r,
-            &mut state.synth_ui,
-            state.loaded_sample_name.as_deref(),
-            None,
-        );
+        if state.program_ui.display1_blank() {
+            // ARM-verified: display 1 blanks while a Program list / Import / Organize screen is open.
+            p.rect_filled(r, 2.0, OLED_BG);
+        } else {
+            super::bay_synth::oled::paint_oled_in_rect(
+                &p,
+                r,
+                &mut state.synth_ui,
+                state.loaded_sample_name.as_deref(),
+                None,
+            );
+        }
     }
 
     // 8. Interactive 88-Key Keybed (single hit-box so drag glissando & black-key priority work)
