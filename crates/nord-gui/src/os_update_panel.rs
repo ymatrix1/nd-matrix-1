@@ -119,10 +119,10 @@ impl OsUpdatePanel {
             "Mac: Nord Stage 4 OS update",
             firmware_setting::DOWNLOAD_MAC,
         );
-        ui.label("2. Drop the downloaded file onto this window, or paste its path:");
+        ui.label("2. Drop the downloaded file onto this window, click Browse, or paste its path:");
         ui.add_space(4.0);
         ui.horizontal(|ui| {
-            let input_w = (ui.available_width() - 112.0).max(180.0);
+            let input_w = (ui.available_width() - 196.0).max(180.0);
             let field_h = ui.spacing().interact_size.y;
             let edit = ui.add(
                 egui::TextEdit::singleline(&mut self.input)
@@ -133,12 +133,22 @@ impl OsUpdatePanel {
                     .hint_text("Path to Update Nord Stage 4 OS v1.66 (.zip / .exe / .dmg)"),
             );
             let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-            if ui
+            let browse_clicked = ui
+                .button("Browse...")
+                .on_hover_cursor(egui::CursorIcon::PointingHand)
+                .on_hover_text("Open File Explorer to select your Nord Stage 4 OS update file")
+                .clicked();
+            let use_clicked = ui
                 .button("Use this file")
                 .on_hover_cursor(egui::CursorIcon::PointingHand)
-                .clicked()
-                || enter
-            {
+                .clicked();
+
+            if browse_clicked || (use_clicked && self.input.trim().is_empty()) {
+                if let Some(p) = crate::file_picker::pick_os_update() {
+                    self.input = p.display().to_string();
+                    self.use_file(&self.input.clone());
+                }
+            } else if use_clicked || enter {
                 self.use_file(&self.input.clone());
             }
         });

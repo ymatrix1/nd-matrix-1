@@ -109,7 +109,7 @@ impl BackupLibraryState {
     ) {
         ui.horizontal(|ui| {
             ui.label("Backup (.ns4b):");
-            let input_w = (ui.available_width() - 72.0).max(160.0);
+            let input_w = (ui.available_width() - 156.0).max(160.0);
             let field_h = ui.spacing().interact_size.y;
             let edit = ui.add(
                 egui::TextEdit::singleline(&mut self.path_input)
@@ -117,18 +117,75 @@ impl BackupLibraryState {
                     .min_size(egui::vec2(input_w, field_h))
                     .margin(egui::Margin::symmetric(8, 5))
                     .vertical_align(egui::Align::Center)
-                    .hint_text("Path to .ns4b backup (or drag-and-drop file)"),
+                    .hint_text("Path to .ns4b backup (or click Browse / drag-and-drop)"),
             );
             let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-            if ui
+            let browse_clicked = ui
+                .button("Browse...")
+                .on_hover_cursor(egui::CursorIcon::PointingHand)
+                .on_hover_text(
+                    "Open File Explorer to choose a .ns4b backup, .ns4p, .npno, or .nsmp4 file",
+                )
+                .clicked();
+            let open_clicked = ui
                 .button("Open")
                 .on_hover_cursor(egui::CursorIcon::PointingHand)
-                .clicked()
-                || enter
-            {
-                let p = PathBuf::from(self.path_input.trim().trim_matches('"'));
-                if let Err(err) = self.open_backup_path(&p) {
-                    self.error_message = Some(err);
+                .clicked();
+
+            let picked = if browse_clicked || (open_clicked && self.path_input.trim().is_empty()) {
+                crate::file_picker::pick_backup_or_sound()
+            } else if open_clicked || enter {
+                let raw = self.path_input.trim().trim_matches('"');
+                (!raw.is_empty()).then(|| PathBuf::from(raw))
+            } else {
+                None
+            };
+
+            if let Some(p) = picked {
+                let ext = p
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .map(|e| e.to_ascii_lowercase());
+                match ext.as_deref() {
+                    Some("npno") => {
+                        self.request_piano_file(p, self.piano_slot_b);
+                    }
+                    Some("nsmp4") => {
+                        self.request_sample_file(p, self.synth_layer_idx);
+                    }
+                    Some("ns4p") => match std::fs::read(&p) {
+                        Ok(bytes) => {
+                            let parsed = nord_core::cbin::CbinFile::parse(&bytes)
+                                .and_then(|c| nord_core::cbin::ProgramDecoded::from_cbin_file(&c));
+                            match parsed {
+                                Ok(mut prog) => {
+                                    if let Some(stem) = p.file_stem().and_then(|s| s.to_str()) {
+                                        if !stem.is_empty() {
+                                            prog.name = stem.to_string();
+                                        }
+                                    }
+                                    panel.apply_program(&prog);
+                                    audio.send_command(crate::audio::AudioCommand::LoadProgram(
+                                        Box::new(prog),
+                                    ));
+                                    self.error_message = None;
+                                }
+                                Err(err) => {
+                                    self.error_message =
+                                        Some(format!("Failed to parse .ns4p: {err:?}"));
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            self.error_message = Some(format!("Failed to read file: {err}"));
+                        }
+                    },
+                    _ => {
+                        self.path_input = p.display().to_string();
+                        if let Err(err) = self.open_backup_path(&p) {
+                            self.error_message = Some(err);
+                        }
+                    }
                 }
             }
         });
