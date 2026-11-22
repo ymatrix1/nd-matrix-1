@@ -16,7 +16,8 @@ path = "src/main.rs"
 
 [dependencies]
 nord-core = { path = "../nord-core" }
-nord-gui = { path = "../nord-gui", default-features = false }
+# `picker`: native file dialogs (rfd) on a worker thread, no window / audio / MIDI stack.
+nord-gui = { path = "../nord-gui", default-features = false, features = ["picker"] }
 nord-panel = { path = "../nord-panel" }
 nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug.git" }
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", features = ["vst3", "standalone"] }

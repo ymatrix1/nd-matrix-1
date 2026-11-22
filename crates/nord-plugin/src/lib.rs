@@ -10,6 +10,7 @@
 
 pub mod audio_out;
 pub mod aux_pedal_params;
+mod core_sync;
 pub mod editor;
 pub mod firmware_params;
 pub mod fx_extra_params;
@@ -17,6 +18,7 @@ pub mod fx_params;
 pub mod fx_selectors;
 pub mod fx_sharing_params;
 pub mod fx_variation_params;
+pub mod loader;
 pub mod menu_extra_params;
 pub mod midi;
 pub mod midi_menu_params;
@@ -30,6 +32,7 @@ pub mod params;
 pub mod pedal_assign_params;
 pub mod piano_extra_params;
 pub mod piano_params;
+pub mod program_hold;
 pub mod program_overrides;
 pub mod program_params;
 pub mod settings_params;
@@ -38,10 +41,12 @@ pub mod synth_gate_params;
 pub mod synth_mod_params;
 pub mod synth_params;
 pub mod synth_pattern_params;
+pub mod wave_tables;
 
 use nih_plug::prelude::*;
 use nord_core::cbin::{CbinError, CbinFile, ProgramDecoded};
 use nord_core::engine::Stage4Engine;
+use nord_gui::audio::garbage::{spawn_reaper, Bin};
 use params::Stage4Params;
 use std::sync::Arc;
 
@@ -50,47 +55,62 @@ pub struct NordStage4Plugin {
     pub params: Arc<Stage4Params>,
     pub engine: Stage4Engine,
     pub sample_rate: f32,
-    /// The program last loaded with [`NordStage4Plugin::load_program`], re-applied whenever the
-    /// engine is rebuilt (`initialize`, `reset`) so a host reset does not drop it.
-    pub program: Option<Box<ProgramDecoded>>,
+    /// What was loaded through [`loader`] (program, sound banks, firmware options), re-applied
+    /// whenever the engine is rebuilt (`initialize`, `reset`) so a host reset does not drop it.
+    pub loaded: loader::Loaded,
+    /// Where the audio thread puts what it must not free (replaced programs and sound banks).
+    pub bin: Bin,
     /// Producer end of the keybed queue, handed to the editor.
     pub note_tx: editor::notes::NoteSender,
     /// Consumer end, drained at the start of every `process()` block.
     pub note_rx: editor::notes::NoteReceiver,
+    /// Producer end of the load queue (programs, sounds, firmware), handed to the editor.
+    pub load_tx: loader::LoadSender,
+    /// Consumer end, drained at the start of every `process()` block.
+    pub load_rx: loader::LoadReceiver,
 }
 
 impl Default for NordStage4Plugin {
     fn default() -> Self {
         let (note_tx, note_rx) = editor::notes::note_queue(editor::notes::NOTE_QUEUE_CAPACITY);
+        let (load_tx, load_rx) = loader::load_queue(loader::LOAD_QUEUE_CAPACITY);
+        // The params sit at their final address inside the `Arc`: build the hold table now.
+        let params = Arc::new(Stage4Params::default());
+        params.program_hold.bind(&params);
         Self {
-            params: Arc::new(Stage4Params::default()),
+            params,
             engine: Stage4Engine::new(44100.0),
             sample_rate: 44100.0,
-            program: None,
+            loaded: loader::Loaded::default(),
+            bin: Bin::inline(),
             note_tx,
             note_rx,
+            load_tx,
+            load_rx,
         }
     }
 }
 
 impl NordStage4Plugin {
-    /// Fresh engine at the current sample rate with the loaded program (if any) applied, then the
-    /// host parameters synced on top (D169: only overridden Touch / Mod 2 replace the program).
+    /// Fresh engine at the current sample rate with everything loaded applied, then the host
+    /// parameters synced on top (D169 / D215: only what the host moved replaces the program).
     fn rebuild_engine(&mut self) {
         self.engine = Stage4Engine::new(self.sample_rate);
-        if let Some(prog) = &self.program {
-            self.engine.apply_program(prog);
-        }
+        self.loaded.restore(&mut self.engine);
         self.params.sync_to_engine(&mut self.engine);
     }
 
-    /// Applies a decoded program to the engine and makes it win over every host parameter that
-    /// still sits at the value it had now (D169). Not real-time safe: call it from the thread that
-    /// owns the plugin while it is not processing (tests, a future loader task).
+    /// Applies a decoded program to the engine and makes it win over every host parameter group
+    /// until the host moves one (D169, D215). Frees the replaced program here: use it from the
+    /// thread that owns the plugin while it is not processing (tests); the editor goes through
+    /// the load queue instead.
     pub fn load_program(&mut self, prog: ProgramDecoded) {
-        self.engine.apply_program(&prog);
-        self.params.program_overrides.rebaseline(&self.params);
-        self.program = Some(Box::new(prog));
+        self.loaded.apply(
+            loader::LoadJob::Program(Box::new(prog)),
+            &mut self.engine,
+            &self.params,
+            &Bin::inline(),
+        );
     }
 
     /// Parses `.ns4p` bytes and calls [`Self::load_program`].
@@ -98,6 +118,14 @@ impl NordStage4Plugin {
         let prog = ProgramDecoded::from_cbin_file(&CbinFile::parse(bytes)?)?;
         self.load_program(prog);
         Ok(())
+    }
+
+    /// Applies every queued editor load (`process()` start): no allocation, no free, no lock.
+    fn drain_loads(&mut self) {
+        while let Some(job) = self.load_rx.pop() {
+            self.loaded
+                .apply(job, &mut self.engine, &self.params, &self.bin);
+        }
     }
 }
 
@@ -123,7 +151,11 @@ impl Plugin for NordStage4Plugin {
     }
 
     fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
-        editor::create(self.params.clone(), self.note_tx.clone())
+        editor::create(
+            self.params.clone(),
+            self.note_tx.clone(),
+            self.load_tx.clone(),
+        )
     }
 
     fn initialize(
@@ -133,6 +165,11 @@ impl Plugin for NordStage4Plugin {
         _context: &mut impl InitContext<Self>,
     ) -> bool {
         self.sample_rate = buffer_config.sample_rate;
+        // An active instance gets a reaper thread (it frees what `process()` replaces); a plugin
+        // that is only scanned never starts one.
+        self.bin = spawn_reaper();
+        // The saved Nord OS update's WAVE tables, parsed off-thread and installed once per process.
+        wave_tables::install_saved_in_background();
         self.rebuild_engine();
         true
     }
@@ -148,6 +185,9 @@ impl Plugin for NordStage4Plugin {
         aux: &mut AuxiliaryBuffers,
         context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
+        // Editor loads first, so the block sync below sees the program that was just loaded.
+        self.drain_loads();
+
         // Synchronize automatable parameters to engine state
         self.params.sync_to_engine(&mut self.engine);
 

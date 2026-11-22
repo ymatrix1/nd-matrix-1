@@ -28,7 +28,9 @@ fn editor() -> EditorState {
     let params = Stage4Params::default();
     let index = Arc::new(ParamIndex::new(&params));
     let (tx, _rx) = note_queue(8);
-    let mut st = EditorState::new(index, tx);
+    let (load_tx, load_rx) = crate::loader::load_queue(8);
+    std::mem::forget(load_rx); // keep the queue connected; these tests do not read it
+    let mut st = EditorState::new(index, tx, load_tx);
     // These tests exercise the classic panel's bays (the baked panel draws no bay widgets).
     st.panel.use_baked_plate = false;
     st

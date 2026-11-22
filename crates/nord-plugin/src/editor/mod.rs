@@ -9,7 +9,7 @@
 //! | File | Role |
 //! |---|---|
 //! | `draw.rs` | one frame: top bar, baked panel fitted to the window, resize handle, sink pump |
-//! | `top_bar.rs` | `OPEN .NS4B` / `DEBUG` / `? HELP` pills |
+//! | `top_bar.rs` | `OPEN .NS4B` / `DEBUG` / `? HELP` pills (open the Library, Diagnostics and Setup Guide tabs) |
 //! | `sink.rs` | `PanelSink` trait and `ParamSink` |
 //! | `map.rs`, `map_area.rs` | `AudioCommand` to `ParamWrite` mapping |
 //! | `probe.rs` | one command per mapping arm; derives the mapped families |
@@ -22,6 +22,8 @@
 //! Spec: `docs/specs/daw-plugin.md`, guide: `docs/plugin-editor.md`.
 
 pub mod coverage;
+#[cfg(test)]
+mod dialog_tests;
 pub mod draw;
 pub mod index;
 pub mod map;
@@ -55,14 +57,19 @@ pub fn default_editor_state() -> Arc<EguiState> {
     EguiState::from_size(draw::DEFAULT_SIZE.0, draw::DEFAULT_SIZE.1)
 }
 
-/// Build the editor for `params`; keybed events go to `notes`.
-pub fn create(params: Arc<Stage4Params>, notes: notes::NoteSender) -> Option<Box<dyn Editor>> {
+/// Build the editor for `params`; keybed events go to `notes`, loads to `loads`.
+pub fn create(
+    params: Arc<Stage4Params>,
+    notes: notes::NoteSender,
+    loads: crate::loader::LoadSender,
+) -> Option<Box<dyn Editor>> {
     let egui_state = params.editor_state.clone();
     // The index holds raw parameter pointers; the state below keeps `params` alive for as long
     // as the editor (and therefore the index) exists.
-    let index = Arc::new(ParamIndex::new(params.as_ref()));
+    // The index also tells the panel which groups a loaded program owns (`program_hold.rs`).
+    let index = Arc::new(ParamIndex::new(params.as_ref()).with_program_hold(params.clone()));
     let keep_alive = params;
-    let st = EditorState::new(index, notes);
+    let st = EditorState::new(index, notes, loads);
     let size_state = egui_state.clone();
     create_egui_editor(
         egui_state,
@@ -116,6 +123,7 @@ mod tests {
     fn create_returns_an_editor_for_default_params() {
         let params = Arc::new(Stage4Params::default());
         let (tx, _rx) = notes::note_queue(8);
-        assert!(create(params, tx).is_some());
+        let (load_tx, _load_rx) = crate::loader::load_queue(4);
+        assert!(create(params, tx, load_tx).is_some());
     }
 }

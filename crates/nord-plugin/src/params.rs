@@ -5,10 +5,6 @@
 
 use nih_plug::prelude::*;
 use nord_core::engine::Stage4Engine;
-use nord_core::morph::LayerId;
-use nord_core::organ::{OrganModel, RotarySpeed};
-use nord_core::piano::{PianoCategory, PianoTimbre, VelocityTouch};
-use nord_core::synth::SynthOscMode;
 
 /// MIDI input mode for the plugin.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Enum, Default)]
@@ -165,6 +161,10 @@ pub struct Stage4Params {
     /// Which of Touch / Mod 2 the host overrides over a loaded program (D169). Not persisted:
     /// derived from the restored values, see `program_overrides.rs`.
     pub program_overrides: crate::program_overrides::ProgramOverrides,
+
+    /// Which parameter groups a loaded program owns until the host moves them (D215). Not
+    /// persisted, not a host parameter; inert until `bind` ran (the plugin does that).
+    pub program_hold: crate::program_hold::ProgramHold,
 
     /// Editor window size, persisted with the plugin state (not a host parameter).
     #[persist = "editor-state"]
@@ -409,6 +409,7 @@ impl Default for Stage4Params {
             layer_fx_sharing: crate::fx_sharing_params::LayerFxSharingBank::default(),
             firmware: crate::firmware_params::FirmwareFlagParams::default(),
             program_overrides: crate::program_overrides::ProgramOverrides::default(),
+            program_hold: crate::program_hold::ProgramHold::default(),
             editor_state: crate::editor::default_editor_state(),
             layer_fx_variation: crate::fx_variation_params::LayerFxVariationBank::default(),
             aftertouch: FloatParam::new(
@@ -610,234 +611,127 @@ impl Default for Stage4Params {
 }
 
 impl Stage4Params {
-    fn set_mask_bit(mask: &mut u8, layer: LayerId, active: bool) {
-        let bit = 1 << (layer as u8);
-        if active {
-            *mask |= bit;
-        } else {
-            *mask &= !bit;
-        }
-    }
-
     /// Synchronizes current NIH-plug parameter values to the `Stage4Engine`.
+    ///
+    /// After a program load the groups the program owns are skipped until the host moves one of
+    /// their parameters (`program_hold.rs`, D215); before the first load every group is written.
     pub fn sync_to_engine(&self, engine: &mut Stage4Engine) {
-        // Master Bus & Clock
-        engine.master_clock.bpm = self.master_bpm.value();
-        engine.master_bus.compressor_amount = self.master_compressor.value();
-        engine.scene.scene_2_active = self.layer_scene_ii.value();
+        use crate::program_hold::Group as G;
 
-        // Layer mask sync
-        let target_mask = if self.layer_scene_ii.value() {
-            &mut engine.scene.scene_2_mask
-        } else {
-            &mut engine.scene.scene_1_mask
-        };
-        Self::set_mask_bit(target_mask, LayerId::OrganA, self.organ_a_enabled.value());
-        Self::set_mask_bit(target_mask, LayerId::OrganB, self.organ_b_enabled.value());
-        Self::set_mask_bit(target_mask, LayerId::PianoA, self.piano_a_enabled.value());
-        Self::set_mask_bit(target_mask, LayerId::PianoB, self.piano_b_enabled.value());
-        Self::set_mask_bit(target_mask, LayerId::SynthA, self.synth_a_enabled.value());
-        Self::set_mask_bit(target_mask, LayerId::SynthB, self.synth_b_enabled.value());
-        Self::set_mask_bit(target_mask, LayerId::SynthC, self.synth_c_enabled.value());
-
-        // Split enabled
-        let split_on = self.split_enabled.value();
-        let split_notes = [
-            self.split_1_note.value() as u8,
-            self.split_2_note.value() as u8,
-            self.split_3_note.value() as u8,
-        ];
-        let split_crossfades = [
-            self.split_1_crossfade.value(),
-            self.split_2_crossfade.value(),
-            self.split_3_crossfade.value(),
-        ];
-        for ((s, note), crossfade) in engine
-            .split_router
-            .splits
-            .iter_mut()
-            .zip(split_notes)
-            .zip(split_crossfades)
-        {
-            s.enabled = split_on;
-            s.midi_note = note;
-            s.crossfade = match crossfade {
-                1 => nord_core::morph::CrossfadeWidth::Small,
-                2 => nord_core::morph::CrossfadeWidth::Large,
-                _ => nord_core::morph::CrossfadeWidth::Off,
-            };
-        }
-
-        // Host changes since the program load decide who wins for Touch and Mod 2 (D169).
+        // Host moves since the load arm their group; Touch / Mod 2 keep their finer D169 rule.
+        self.program_hold.observe();
         self.program_overrides.observe(self);
-        self.firmware.sync_to_engine(engine);
+        let run = |g: G| self.program_hold.runs(g);
 
-        // Morph assignments (depths only; base values are written below)
-        self.morph_assign.sync_to_engine(engine);
-        self.layer_fx.sync_to_engine(engine);
-        self.layer_fx_selectors
-            .sync_to_engine(engine, &self.program_overrides);
-        self.piano_layers.sync_to_engine(engine);
-        self.synth_layers.sync_to_engine(engine);
-        self.program.sync_to_engine(engine);
-        self.synth_mod.sync_to_engine(engine);
-        self.settings.sync_to_engine(engine);
-        self.midi_menu.sync_to_engine(engine);
-        self.output.sync_to_engine(engine);
-        self.menu_extra.sync_to_engine(engine);
-        self.aux_kb.sync_to_engine(engine);
-        self.pedals.sync_to_engine(engine);
-        self.pedal_assign.sync_to_engine(engine);
-        self.synth_gate.sync_to_engine(engine);
-        self.synth_pattern.sync_to_engine(engine);
-        self.organ_layers.sync_to_engine(engine);
-        self.layer_fx_extra
-            .sync_to_engine(engine, &self.program_overrides);
-        self.layer_fx_sharing
-            .sync_to_engine(engine, &self.program_overrides);
-        self.layer_fx_variation.sync_to_engine(engine);
+        // The transport tempo is always the host's.
+        engine.master_clock.bpm = self.master_bpm.value();
 
+        if run(G::Layers) {
+            self.sync_layers_and_splits(engine);
+        }
+        if run(G::Firmware) {
+            self.firmware.sync_to_engine(engine);
+        }
+        if run(G::Morph) {
+            self.morph_assign.sync_to_engine(engine);
+        }
+        if run(G::LayerFx) {
+            self.layer_fx.sync_to_engine(engine);
+        }
+        if run(G::LayerFxSelectors) {
+            self.layer_fx_selectors
+                .sync_to_engine(engine, &self.program_overrides);
+        }
+        if run(G::PianoLayers) {
+            self.piano_layers.sync_to_engine(engine);
+        }
+        if run(G::SynthLayers) {
+            self.synth_layers.sync_to_engine(engine);
+        }
+        if run(G::ProgramArea) {
+            self.program.sync_to_engine(engine);
+        }
+        if run(G::SynthMod) {
+            self.synth_mod.sync_to_engine(engine);
+        }
+        if run(G::System) {
+            self.settings.sync_to_engine(engine);
+        }
+        if run(G::MidiMenu) {
+            self.midi_menu.sync_to_engine(engine);
+        }
+        if run(G::Output) {
+            self.output.sync_to_engine(engine);
+        }
+        if run(G::MenuExtras) {
+            self.menu_extra.sync_to_engine(engine);
+        }
+        if run(G::AuxKb) {
+            self.aux_kb.sync_to_engine(engine);
+        }
+        if run(G::Pedals) {
+            self.pedals.sync_to_engine(engine);
+        }
+        if run(G::PedalAssign) {
+            self.pedal_assign.sync_to_engine(engine);
+        }
+        if run(G::SynthGate) {
+            self.synth_gate.sync_to_engine(engine);
+        }
+        if run(G::SynthPattern) {
+            self.synth_pattern.sync_to_engine(engine);
+        }
+        if run(G::OrganLayers) {
+            self.organ_layers.sync_to_engine(engine);
+        }
+        if run(G::LayerFxExtra) {
+            self.layer_fx_extra
+                .sync_to_engine(engine, &self.program_overrides);
+        }
+        if run(G::LayerFxSharing) {
+            self.layer_fx_sharing
+                .sync_to_engine(engine, &self.program_overrides);
+        }
+        if run(G::LayerFxVariation) {
+            self.layer_fx_variation.sync_to_engine(engine);
+        }
         // Morph controllers
         engine.morph_controllers.mod_wheel = self.mod_wheel.value();
         engine.morph_controllers.control_pedal = self.control_pedal.value();
         engine.morph_controllers.aftertouch = self.aftertouch.value();
 
-        // Layer levels
-        let master_gain = self.master_level.value();
-        engine.layer_levels[0].base = self.organ_a_level.value() * master_gain;
-        engine.layer_levels[1].base = self.organ_b_level.value() * master_gain;
-        engine.layer_levels[2].base = self.piano_a_level.value() * master_gain;
-        engine.layer_levels[3].base = self.piano_b_level.value() * master_gain;
-        engine.layer_levels[4].base = self.synth_a_level.value() * master_gain;
-        engine.layer_levels[5].base = self.synth_b_level.value() * master_gain;
-        engine.layer_levels[6].base = self.synth_c_level.value() * master_gain;
-
-        // Organ settings
-        let organ_model = match self.organ_model.value() {
-            1 => OrganModel::Vox,
-            2 => OrganModel::Farfisa,
-            3 => OrganModel::Pipe1,
-            4 => OrganModel::Pipe2,
-            _ => OrganModel::B3,
-        };
-        engine.organ_a.model = organ_model;
-        engine.organ_b.model = organ_model;
-
-        let drawbars = [
-            self.drawbar_1_16.value() as u8,
-            self.drawbar_2_5_1_3.value() as u8,
-            self.drawbar_3_8.value() as u8,
-            self.drawbar_4_4.value() as u8,
-            self.drawbar_5_2_2_3.value() as u8,
-            self.drawbar_6_2.value() as u8,
-            self.drawbar_7_1_3_5.value() as u8,
-            self.drawbar_8_1_1_3.value() as u8,
-            self.drawbar_9_1.value() as u8,
-        ];
-        engine.organ_a.drawbars = drawbars;
-
-        engine.organ_b.drawbars = [
-            self.drawbar_b_1_16.value() as u8,
-            self.drawbar_b_2_5_1_3.value() as u8,
-            self.drawbar_b_3_8.value() as u8,
-            self.drawbar_b_4_4.value() as u8,
-            self.drawbar_b_5_2_2_3.value() as u8,
-            self.drawbar_b_6_2.value() as u8,
-            self.drawbar_b_7_1_3_5.value() as u8,
-            self.drawbar_b_8_1_1_3.value() as u8,
-            self.drawbar_b_9_1.value() as u8,
-        ];
-
-        engine.organ_a.percussion_enabled = self.organ_perc_enable.value();
-        engine.organ_a.percussion_soft = self.organ_perc_soft.value();
-        engine.organ_a.percussion_fast_decay = self.organ_perc_fast.value();
-        engine.organ_a.percussion_third_harmonic = self.organ_perc_third.value();
-
-        let spd = if self.rotary_speed_fast.value() {
-            RotarySpeed::Fast
-        } else {
-            RotarySpeed::Slow
-        };
-        engine.organ_a.rotary_speed = spd;
-        engine.organ_b.rotary_speed = spd;
-        engine.organ_a.rotary_drive = self.rotary_drive.value();
-        engine.organ_b.rotary_drive = self.rotary_drive.value();
-
-        // Piano settings
-        let cat = match self.piano_category.value() {
-            1 => PianoCategory::Upright,
-            2 => PianoCategory::Electric,
-            3 => PianoCategory::Clav,
-            4 => PianoCategory::Digital,
-            5 => PianoCategory::Misc,
-            _ => PianoCategory::Grand,
-        };
-        let timbre = match self.piano_timbre.value() {
-            0 => PianoTimbre::Soft,
-            2 => PianoTimbre::Bright,
-            3 => PianoTimbre::Dyno1,
-            4 => PianoTimbre::Dyno2,
-            _ => PianoTimbre::Mid,
-        };
-        // The one global parameter replaces both layers' Touch only once the host moved it from
-        // its value at the program load (D169); until then the per-layer program Touch plays.
-        let touch = match self.piano_touch.value() {
-            1 => VelocityTouch::Light,
-            2 => VelocityTouch::Heavy,
-            _ => VelocityTouch::Medium,
-        };
-
-        engine.piano_a.category = cat;
-        engine.piano_b.category = cat;
-        engine.piano_a.timbre = timbre;
-        engine.piano_b.timbre = timbre;
-        if self.program_overrides.touch_overrides() {
-            engine.piano_a.touch = touch;
-            engine.piano_b.touch = touch;
+        if run(G::Levels) {
+            self.sync_levels(engine);
         }
-        engine.piano_a.string_resonance_enabled = self.piano_string_res.value();
-        engine.piano_b.string_resonance_enabled = self.piano_string_res.value();
-        engine.piano_a.pedal_noise_enabled = self.piano_pedal_noise.value();
-        engine.piano_b.pedal_noise_enabled = self.piano_pedal_noise.value();
-
-        // Synth settings
-        let osc_m = match self.synth_osc_mode.value() {
-            1 => SynthOscMode::Wavetable,
-            2 => SynthOscMode::Fm,
-            3 => SynthOscMode::Sample,
-            _ => SynthOscMode::Analog,
-        };
-        let cutoff = self.synth_filter_cutoff.value();
-        let resonance = self.synth_filter_resonance.value();
-        let drive = self.synth_filter_drive.value();
-        let atk = self.synth_attack.value();
-        let dec = self.synth_decay.value();
-        let rel = self.synth_release.value();
-
-        for s in [
-            &mut engine.synth_a,
-            &mut engine.synth_b,
-            &mut engine.synth_c,
-        ] {
-            s.osc_mode = osc_m;
-            s.cutoff_hz = cutoff;
-            s.resonance = resonance;
-            s.filter_drive = drive;
-            s.attack_sec = atk;
-            s.decay_sec = dec;
-            s.release_sec = rel;
+        if run(G::Organ) {
+            self.sync_organ(engine);
+        }
+        if run(G::Piano) {
+            self.sync_piano(engine);
+        }
+        if run(G::Synth) {
+            self.sync_synth(engine);
         }
 
         // Per-layer extras override the global Organ/Piano blocks above.
-        self.organ_extra.sync_to_engine(engine);
-        self.organ_live.sync_to_engine(engine);
-        self.piano_extra.sync_to_engine(engine);
+        if run(G::OrganExtra) {
+            self.organ_extra.sync_to_engine(engine);
+        }
+        if run(G::OrganLive) {
+            self.organ_live.sync_to_engine(engine);
+        }
+        if run(G::PianoExtra) {
+            self.piano_extra.sync_to_engine(engine);
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nord_core::organ::OrganModel;
+    use nord_core::piano::PianoTimbre;
+    use nord_core::synth::SynthOscMode;
 
     #[test]
     fn test_stage4_params_initialization() {

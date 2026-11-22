@@ -5,12 +5,17 @@
 //! a bare name of a field inside a per-layer bank (`drive` is `fx_drive_{n}`). The plugin names
 //! array entries `<prefix>_<id>_<n>` (1-based), so resolving is a suffix match on the param map.
 
+use crate::params::Stage4Params;
+use crate::program_hold::group_of;
 use nih_plug::prelude::{ParamPtr, Params};
 use std::collections::HashMap;
 
 /// Every host parameter of a `Params` tree by id.
 pub struct ParamIndex {
     map: HashMap<String, ParamPtr>,
+    /// The params, when the panel must show a loaded program instead of the host values of the
+    /// groups it owns (`program_hold.rs`). Also keeps them alive for the pointers above.
+    hold: Option<std::sync::Arc<Stage4Params>>,
 }
 
 impl ParamIndex {
@@ -22,6 +27,33 @@ impl ParamIndex {
                 .into_iter()
                 .map(|(id, ptr, _group)| (id, ptr))
                 .collect(),
+            hold: None,
+        }
+    }
+
+    /// Makes [`Self::shown`] hide the host values of the groups a loaded program owns.
+    pub fn with_program_hold(mut self, params: std::sync::Arc<Stage4Params>) -> Self {
+        self.hold = Some(params);
+        self
+    }
+
+    /// Like [`Self::plain`], but `None` while a loaded program owns the parameter's group: the
+    /// panel keeps the program's values there until the host moves the group (D215).
+    pub fn shown(&self, id: &str) -> Option<f32> {
+        if let Some(params) = &self.hold {
+            let owned = group_of(id).is_some_and(|g| params.program_hold.owned_by_program(g));
+            if owned {
+                return None;
+            }
+        }
+        self.plain(id)
+    }
+
+    /// [`Self::shown`] of a `family` (+ optional layer) parameter.
+    pub fn shown_of(&self, family: &str, layer: Option<u8>) -> Option<f32> {
+        match layer {
+            Some(n) => self.shown(&format!("{family}_{n}")),
+            None => self.shown(family),
         }
     }
 

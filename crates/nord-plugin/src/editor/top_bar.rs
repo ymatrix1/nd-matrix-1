@@ -38,15 +38,23 @@ fn pill(ui: &mut Ui, label: &str) -> egui::Response {
     .on_hover_cursor(CursorIcon::PointingHand)
 }
 
+/// Label of the pill: `DEBUG` reads `HIDE DEBUG` while the dialog is open, like the standalone bar.
+pub fn label(which: BarClick, debug_open: bool) -> &'static str {
+    match (which, debug_open) {
+        (BarClick::Debug, true) => "HIDE DEBUG",
+        _ => PILLS.iter().find(|p| p.0 == which).map_or("", |p| p.1),
+    }
+}
+
 /// Draw the pills left to right; returns the one clicked this frame.
-pub fn show(ui: &mut Ui) -> Option<BarClick> {
+pub fn show(ui: &mut Ui, debug_open: bool) -> Option<BarClick> {
     let mut clicked = None;
     ui.spacing_mut().item_spacing.x = 5.0;
     ui.spacing_mut().button_padding = egui::vec2(7.0, 1.5);
     ui.horizontal_centered(|ui| {
         ui.add_space(4.0);
-        for (which, label) in PILLS {
-            if pill(ui, label).clicked() {
+        for (which, _) in PILLS {
+            if pill(ui, label(which, debug_open)).clicked() {
                 clicked = Some(which);
             }
         }
@@ -65,11 +73,19 @@ mod tests {
     }
 
     #[test]
+    fn the_debug_pill_reads_hide_debug_while_the_dialog_is_open() {
+        assert_eq!(label(BarClick::Debug, false), "DEBUG");
+        assert_eq!(label(BarClick::Debug, true), "HIDE DEBUG");
+        assert_eq!(label(BarClick::OpenNs4b, true), "OPEN .NS4B");
+        assert_eq!(label(BarClick::Help, false), "? HELP");
+    }
+
+    #[test]
     fn the_bar_draws_without_a_click() {
         let ctx = egui::Context::default();
         let mut got = Some(BarClick::Help);
         let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| got = show(ui));
+            egui::CentralPanel::default().show(ctx, |ui| got = show(ui, false));
         });
         assert_eq!(got, None);
     }

@@ -20,7 +20,9 @@ required-features = ["app"]
 # `app` pulls the native window, audio output and MIDI input. The DAW plugin editor depends on
 # this crate with `default-features = false` to reuse the panel without cpal/midir/eframe.
 default = ["app"]
-app = ["dep:eframe", "dep:cpal", "dep:midir", "dep:rfd"]
+app = ["dep:eframe", "dep:cpal", "dep:midir", "picker"]
+# Native file dialogs (`rfd`), run on a worker thread so a DAW host's UI thread never blocks.
+picker = ["dep:rfd"]
 
 [target.'cfg(windows)'.dependencies]
 # Audio thread priority (MMCSS "Pro Audio" + THREAD_PRIORITY_TIME_CRITICAL), `audio/priority.rs`.

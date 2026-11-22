@@ -67,9 +67,9 @@ fn osc_mode(i: i32) -> SynthOscMode {
 
 /// Overwrite `state` fields from the host parameters (missing parameters are skipped).
 pub fn sync_panel_from_params(idx: &ParamIndex, s: &mut Stage4PanelState) {
-    let f = |id: &str| idx.plain(id);
-    let b = |id: &str| idx.plain(id).map(|v| v >= 0.5);
-    let i = |id: &str| idx.plain(id).map(|v| v.round() as i32);
+    let f = |id: &str| idx.shown(id);
+    let b = |id: &str| idx.shown(id).map(|v| v >= 0.5);
+    let i = |id: &str| idx.shown(id).map(|v| v.round() as i32);
 
     if let Some(v) = f("master_level") {
         s.master_volume = v;
@@ -188,7 +188,7 @@ pub fn fx_focus_layer(focus: usize) -> u8 {
 
 fn sync_fx_focus(idx: &ParamIndex, s: &mut Stage4PanelState) {
     let n = Some(fx_focus_layer(s.fx_focus));
-    let f = |family: &str| idx.plain_of(family, n);
+    let f = |family: &str| idx.shown_of(family, n);
     for (slot, family) in [
         (&mut s.eq_drive, "fx_drive"),
         (&mut s.eq_bass, "fx_eq_bass"),
