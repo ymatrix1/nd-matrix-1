@@ -2294,7 +2294,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Open:** OQ44 (DSP scale of word 12 under Env To Pitch); layer B word `0xE01FE`; `kFltEnvAmt` selector not checked.
 - **Impact:** `synth_osc_env_word.rs`, `synth_morph_osc_env_tests.rs`, `tools/arm_osc_env_static.py`, `tools/tests/test_arm_osc_env_static.py`, [morph-fw-vs-native](research/morph-fw-vs-native.md) s8, [morph-fw-osc-env-dst](research/morph-fw-osc-env-dst.md), `specs/morph-and-zones.md`, `research/synth-knob-laws.md`, ROADMAP morph line.
 
-### D214. SMP chain-tap census of the 155 piano programs: 152 have a tap, 3 do not; no default changes
+### D216. SMP chain-tap census of the 155 piano programs: 152 have a tap, 3 do not; no default changes
 
 - **Status:** accepted 2026-11-21 (measurement and tooling; no behaviour change).
 - **Decided by:** the task of the parent session (follow-up 1 of [smp-voice-pitch](research/smp-voice-pitch.md)).
