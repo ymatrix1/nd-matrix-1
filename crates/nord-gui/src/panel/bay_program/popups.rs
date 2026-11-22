@@ -33,6 +33,11 @@ impl Popups {
         self.seen = Some((layer, octave));
     }
 
+    /// Directly show the Octave Shift popup for `octave` (Organ, Piano, or Synth octave buttons).
+    pub fn show_octave(&mut self, octave: i8, now_ms: u32) {
+        self.shown = Some((octave, now_ms.saturating_add(SHOW_MS)));
+    }
+
     /// Octave value while the popup is up at `now_ms`.
     pub fn octave(&self, now_ms: u32) -> Option<i8> {
         self.shown

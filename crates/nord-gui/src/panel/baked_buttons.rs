@@ -256,6 +256,10 @@ pub(crate) fn handle_baked_button_click(
                         shift: v,
                     }));
                 }
+                state
+                    .program_ui
+                    .popups
+                    .show_octave(v, state.program_ui.now_ms);
             }
             return;
         }
@@ -268,6 +272,11 @@ pub(crate) fn handle_baked_button_click(
                 state.piano_ui.shift_latch = false;
             } else {
                 piano_logic::octave_step(state, if up { 1 } else { -1 }, &mut edits);
+                let v = state.piano_ui.octave[state.piano_ui.layer()];
+                state
+                    .program_ui
+                    .popups
+                    .show_octave(v, state.program_ui.now_ms);
             }
             for e in edits {
                 audio_handle.send_command(AudioCommand::Piano(e));
@@ -284,6 +293,12 @@ pub(crate) fn handle_baked_button_click(
             send_synth_btn(state, audio_handle, btn, trig);
             if shift {
                 state.piano_ui.shift_latch = false;
+            } else {
+                let v = state.synth_ui.layer().octave;
+                state
+                    .program_ui
+                    .popups
+                    .show_octave(v, state.program_ui.now_ms);
             }
             return;
         }

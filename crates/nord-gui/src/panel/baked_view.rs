@@ -488,6 +488,13 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             .unwrap_or_else(|| assets.layout.tris.iter().map(|t| t.on).collect())
     });
 
+    // Keep ProgramUi clock ticked so ARM-verified OLED popups (Octave Shift, Transpose, etc.) work
+    state.program_ui.now_ms = (ui.input(|i| i.time) * 1000.0) as u32;
+    if state.program_ui.popups.is_showing(state.program_ui.now_ms) {
+        ui.ctx()
+            .request_repaint_after(std::time::Duration::from_millis(100));
+    }
+
     // 3. Pill Buttons (all 97 buttons wired to real Stage4PanelState + AudioCommand + LEDs)
     let shift_key = ui.input(|i| i.modifiers.shift);
     for b in &assets.layout.buttons {
