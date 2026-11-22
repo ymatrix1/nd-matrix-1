@@ -21,7 +21,7 @@ use nih_plug_egui::egui::{
     self, Area, Color32, Context, Id, LayerId, Order, Pos2, Rect, Sense, Stroke, StrokeKind, Ui,
     UiBuilder, Vec2,
 };
-use nih_plug_egui::resizable_window::ResizableWindow;
+use nih_plug_egui::resizable_window::paint_resize_corner;
 use nih_plug_egui::EguiState;
 use nord_gui::audio::{AudioCommand, AudioHandle};
 use nord_gui::panel::{layout_px, render_stage4_panel, Stage4PanelState};
@@ -83,7 +83,35 @@ pub fn fit_scale(size: Vec2) -> f32 {
 
 /// Layer that carries the scaled panel.
 fn panel_layer() -> LayerId {
-    LayerId::new(Order::Background, Id::new("nord-stage-4-panel"))
+    LayerId::new(Order::Middle, Id::new("nord-stage-4-panel"))
+}
+
+/// Smallest editor width the resize handle accepts (logical points).
+pub const MIN_WIDTH: f32 = 400.0;
+
+/// Window size the handle asks for when the pointer is at `pointer`: the aspect is locked to the
+/// panel's, so the window never letterboxes.
+pub fn resize_target(pointer: Pos2, origin: Pos2, handle: f32) -> (u32, u32) {
+    let w = (pointer.x - origin.x + 0.5 * handle).max(MIN_WIDTH);
+    (w.round() as u32, (w * PANEL_H / PANEL_W).round() as u32)
+}
+
+/// Drag handle in the bottom-right corner, in a foreground layer above the panel.
+fn resize_handle(ctx: &Context, egui_state: &EguiState, avail: Rect) {
+    let handle = 18.0_f32;
+    Area::new(Id::new("nord-stage-4-resize"))
+        .order(Order::Foreground)
+        .fixed_pos(avail.max - Vec2::splat(handle))
+        .constrain(false)
+        .show(ctx, |ui| {
+            let (_rect, resp) = ui.allocate_exact_size(Vec2::splat(handle), Sense::drag());
+            if resp.dragged() {
+                if let Some(p) = resp.interact_pointer_pos() {
+                    egui_state.set_requested_size(resize_target(p, avail.min, handle));
+                }
+            }
+            paint_resize_corner(ui, &resp);
+        });
 }
 
 /// Translucent overlay with a tooltip over every dimmed control; returns how many were drawn.
@@ -130,22 +158,16 @@ pub fn draw_editor<W: ParamWriter>(
         ctx.set_zoom_factor(1.0);
     }
 
-    // The central panel (it carries the resize corner) is drawn above the scaled panel layer, and
-    // its default frame fills the whole window with `panel_fill` (CHASSIS_RED in the app style):
-    // opaque, it hid the panel and left only red. Keep it transparent.
-    if ctx.style().visuals.panel_fill != Color32::TRANSPARENT {
-        ctx.style_mut(|s| s.visuals.panel_fill = Color32::TRANSPARENT);
-    }
-
-    ResizableWindow::new("nord-stage-4-editor")
-        .min_size(Vec2::splat(8.0_f32))
-        .show(ctx, egui_state, |ui| {
+    // The scaled panel sits in a `Middle` layer above the (empty, frameless) central panel. Using
+    // `nih_plug_egui`'s `ResizableWindow` here broke every click: its central panel ended up above
+    // the panel layer (to keep its corner reachable) and its full-window widget took the pointer,
+    // so keys and controls never responded. The resize corner is our own foreground handle.
+    egui::CentralPanel::default()
+        .frame(egui::Frame::NONE)
+        .show(ctx, |ui| {
             let avail = ui.max_rect();
-            // Layers (all `Order::Background`): the scaled panel, then this central panel carrying
-            // `ResizableWindow`'s corner handle, moved to the top each frame. The panel covers the
-            // whole window, so without that the corner never got the pointer and the window could
-            // not be resized. The letterbox fill is drawn inside the panel layer, behind the
-            // panel: a separate fill layer ended up above it and hid the whole panel.
+            // The letterbox fill is drawn inside the panel layer, behind the panel: a separate
+            // fill layer ended up above it and hid the whole panel.
             let scale = fit_scale(avail.size());
             let panel_size = Vec2::new(PANEL_W, PANEL_H);
             let offset = ((avail.size() - panel_size * scale) * 0.5).max(Vec2::ZERO);
@@ -155,7 +177,7 @@ pub fn draw_editor<W: ParamWriter>(
             let window_in_panel_coords = to_window.inverse() * avail;
             let panel_rect = Rect::from_min_size(Pos2::ZERO, panel_size);
             Area::new(Id::new("nord-stage-4-panel"))
-                .order(Order::Background)
+                .order(Order::Middle)
                 .fixed_pos(Pos2::ZERO)
                 .constrain(false)
                 .show(ui.ctx(), |ui| {
@@ -171,7 +193,7 @@ pub fn draw_editor<W: ParamWriter>(
                     st.last_overlays = draw_dim_overlay(ui, panel_rect.min, &st.coverage);
                 });
             ui.ctx().set_transform_layer(panel_layer(), to_window);
-            ui.ctx().move_to_top(LayerId::background());
+            resize_handle(ui.ctx(), egui_state, avail);
         });
 
     let mut sink = ParamSink::new(writer, &st.notes);
@@ -351,7 +373,6 @@ mod tests {
                 draw_editor(ctx, &egui_state, &mut st, Recorder::default());
             }));
         }
-        assert_eq!(ctx.style().visuals.panel_fill, Color32::TRANSPARENT);
         // Nothing opaque and window-sized may be drawn after the panel content (the last 100
         // shapes are panel content or overlays): neither the central-panel fill nor a fill layer.
         for s in out.unwrap().shapes.iter().rev().take(100) {
@@ -360,6 +381,69 @@ mod tests {
                 assert!(!(covers && r.fill.a() > 0), "opaque cover {r:?}");
             }
         }
+    }
+
+    /// Press the left button at `pos` (window points) for a few frames, then release.
+    fn click_at(
+        ctx: &Context,
+        egui_state: &EguiState,
+        st: &mut EditorState,
+        size: Vec2,
+        pos: Pos2,
+    ) {
+        let frame = |events: Vec<egui::Event>, st: &mut EditorState| {
+            let input = egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
+                events,
+                ..Default::default()
+            };
+            let _ = ctx.run(input, |ctx| {
+                draw_editor(ctx, egui_state, st, Recorder::default());
+            });
+        };
+        for _ in 0..3 {
+            frame(vec![], st);
+        }
+        frame(vec![egui::Event::PointerMoved(pos)], st);
+        frame(
+            vec![egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: true,
+                modifiers: Default::default(),
+            }],
+            st,
+        );
+        frame(vec![], st);
+        frame(
+            vec![egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: Default::default(),
+            }],
+            st,
+        );
+        frame(vec![], st);
+    }
+
+    /// Regression: clicking the on-screen keybed through the scaled panel layer must play a note
+    /// (the user reported keys and UI doing nothing in the plugin).
+    #[test]
+    fn clicking_a_keybed_key_through_the_scaled_layer_plays_a_note() {
+        let (_params, mut st, notes) = state();
+        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
+        let ctx = Context::default();
+        let size = Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
+        // Lower part of the white keys, middle of the keyboard.
+        click_at(
+            &ctx,
+            &egui_state,
+            &mut st,
+            size,
+            Pos2::new(size.x * 0.5, size.y * 0.9),
+        );
+        assert!(notes.pop().is_some(), "no note reached the queue");
     }
 
     #[test]
