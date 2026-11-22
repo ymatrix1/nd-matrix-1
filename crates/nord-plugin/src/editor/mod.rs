@@ -8,7 +8,8 @@
 //!
 //! | File | Role |
 //! |---|---|
-//! | `draw.rs` | one frame: read-back, panel, dim overlay, sink pump; scaling |
+//! | `draw.rs` | one frame: top bar, baked panel fitted to the window, resize handle, sink pump |
+//! | `top_bar.rs` | `OPEN .NS4B` / `DEBUG` / `? HELP` pills |
 //! | `sink.rs` | `PanelSink` trait and `ParamSink` |
 //! | `map.rs`, `map_area.rs` | `AudioCommand` to `ParamWrite` mapping |
 //! | `probe.rs` | one command per mapping arm; derives the mapped families |
@@ -38,6 +39,7 @@ pub mod readback_menu;
 #[cfg(test)]
 mod section_edit_tests;
 pub mod sink;
+pub mod top_bar;
 pub mod write;
 
 use crate::params::Stage4Params;

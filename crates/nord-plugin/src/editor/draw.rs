@@ -1,43 +1,38 @@
-//! One editor frame: read-back, the shared front panel, dimmed-control overlay, sink pump.
+//! One editor frame: read-back, top bar, the baked front panel, sink pump.
 //!
-//! The panel is the same `render_stage4_panel` the standalone app draws (`nord-gui`), at its
-//! native logical size (`PANEL_W` x `PANEL_H`). The panel lives in its own egui layer whose transform scales
-//! and centres it so the whole panel always fits (aspect preserved, letterboxed in the chassis
-//! colour). The host's DPI scale multiplies on top through `nih_plug_egui`.
-//!
-//! egui's zoom factor is NOT used: `egui_baseview` lays out and tessellates with the native
-//! pixels-per-point, so a zoom factor below 1 only changed font rounding (the panel drew at
-//! 100 %, clipped, and the ppp mismatch is the suspected cause of the flicker in FL Studio).
+//! The panel is the same baked HTML/CSS-ported hardware plate the standalone app draws
+//! (`render_stage4_panel` with `use_baked_plate`, `nord-gui`). It fits itself to the window
+//! (aspect preserved), so the plugin only reserves the top bar and keeps the window at the
+//! plate's aspect with its own resize handle. egui's zoom factor is NOT used: `egui_baseview`
+//! lays out with the native pixels-per-point, so zoom only changed font rounding. The host's DPI
+//! scale multiplies on top through `nih_plug_egui`.
 
-use super::coverage::{Coverage, DIM_TOOLTIP};
+use super::coverage::Coverage;
 use super::index::ParamIndex;
 use super::notes::NoteSender;
 use super::readback::sync_panel_from_params;
 use super::sink::{pump, ParamSink};
+use super::top_bar::{self, BarClick, BAR_HEIGHT};
 use super::write::ParamWriter;
 use crossbeam_channel::Receiver;
-use nih_plug_egui::egui::emath::TSTransform;
 use nih_plug_egui::egui::{
-    self, Area, Color32, Context, Id, LayerId, Order, Pos2, Rect, Sense, Stroke, StrokeKind, Ui,
-    UiBuilder, Vec2,
+    self, Area, Context, Id, Order, Pos2, Rect, Sense, TopBottomPanel, Vec2,
 };
 use nih_plug_egui::resizable_window::paint_resize_corner;
 use nih_plug_egui::EguiState;
 use nord_gui::audio::{AudioCommand, AudioHandle};
-use nord_gui::panel::{layout_px, render_stage4_panel, Stage4PanelState};
+use nord_gui::panel::{render_stage4_panel, Stage4PanelState};
 use nord_gui::style::CHASSIS_DARK;
 use std::sync::Arc;
 
-/// Logical panel size the shared drawing code is laid out for.
-/// Logical panel size the shared drawing code is laid out for (`nord_gui` layout scale 2: 3120 x 840).
-/// Taken from the shared constants: a hand-copied 1560 x 420 went stale when `LAYOUT_SCALE` became 2
-/// and the editor clipped the panel to its left half.
-pub const PANEL_W: f32 = nord_gui::panel::layout_px::PANEL_WIDTH_PX;
-pub const PANEL_H: f32 = nord_gui::panel::layout_px::PANEL_HEIGHT_PX;
-/// Default editor window size: half the native panel size (scale 0.5, ~1950 px wide at 125 % DPI).
-pub const DEFAULT_SIZE: (u32, u32) = (1560, 420);
-/// Smallest scale the editor shrinks to.
-pub const MIN_SCALE: f32 = 0.25;
+/// Baked plate size in pixels (`crates/nord-gui/assets/baked/panel_layout.json` `chassis_px`).
+/// VERIFIED: matches the layout asset, checked by `plate_constants_match_the_baked_layout`.
+pub const PLATE_W: f32 = 2632.0;
+pub const PLATE_H: f32 = 650.0;
+/// Default editor window size: plate at about 60 % plus the top bar.
+pub const DEFAULT_SIZE: (u32, u32) = (1600, 417);
+/// Smallest editor width the resize handle accepts (logical points).
+pub const MIN_WIDTH: f32 = 640.0;
 
 /// Everything the editor keeps between frames (GUI thread only).
 pub struct EditorState {
@@ -47,10 +42,10 @@ pub struct EditorState {
     pub index: Arc<ParamIndex>,
     pub coverage: Coverage,
     pub notes: NoteSender,
-    /// Dim overlays painted in the last frame (for tests and diagnostics).
-    pub last_overlays: usize,
     /// Panel commands dropped for lack of a host parameter.
     pub unmapped: u64,
+    /// Last top-bar pill clicked (the loader window is not in the plugin yet).
+    pub bar_click: Option<BarClick>,
 }
 
 impl EditorState {
@@ -58,42 +53,34 @@ impl EditorState {
         let (handle, rx) = AudioHandle::new();
         let coverage = super::coverage::classify(&index);
         Self {
-            panel: Stage4PanelState::default(),
+            panel: Stage4PanelState {
+                use_baked_plate: true,
+                ..Default::default()
+            },
             handle,
             rx,
             index,
             coverage,
             notes,
-            last_overlays: 0,
             unmapped: 0,
+            bar_click: None,
         }
     }
 }
 
-/// Zoom that makes the whole panel fit a window of `size` logical px.
-pub fn scale_for(size: (u32, u32)) -> f32 {
-    let (w, h) = (size.0 as f32, size.1 as f32);
-    (w / PANEL_W).min(h / PANEL_H).max(MIN_SCALE)
+/// Window size for a plate `width` wide: the plate aspect plus the top bar.
+pub fn size_for_width(width: f32) -> (u32, u32) {
+    let w = width.max(MIN_WIDTH);
+    (
+        w.round() as u32,
+        (w * PLATE_H / PLATE_W + BAR_HEIGHT).round() as u32,
+    )
 }
-
-/// Scale that makes the whole panel fit an area of `size` logical points (aspect preserved).
-pub fn fit_scale(size: Vec2) -> f32 {
-    (size.x / PANEL_W).min(size.y / PANEL_H).max(MIN_SCALE)
-}
-
-/// Layer that carries the scaled panel.
-fn panel_layer() -> LayerId {
-    LayerId::new(Order::Middle, Id::new("nord-stage-4-panel"))
-}
-
-/// Smallest editor width the resize handle accepts (logical points).
-pub const MIN_WIDTH: f32 = 400.0;
 
 /// Window size the handle asks for when the pointer is at `pointer`: the aspect is locked to the
-/// panel's, so the window never letterboxes.
+/// plate's, so the window never letterboxes.
 pub fn resize_target(pointer: Pos2, origin: Pos2, handle: f32) -> (u32, u32) {
-    let w = (pointer.x - origin.x + 0.5 * handle).max(MIN_WIDTH);
-    (w.round() as u32, (w * PANEL_H / PANEL_W).round() as u32)
+    size_for_width(pointer.x - origin.x + 0.5 * handle)
 }
 
 /// Drag handle in the bottom-right corner, in a foreground layer above the panel.
@@ -114,30 +101,6 @@ fn resize_handle(ctx: &Context, egui_state: &EguiState, avail: Rect) {
         });
 }
 
-/// Translucent overlay with a tooltip over every dimmed control; returns how many were drawn.
-///
-/// The overlay also takes the pointer so a dimmed control cannot be clicked or dragged.
-pub fn draw_dim_overlay(ui: &mut Ui, origin: egui::Pos2, coverage: &Coverage) -> usize {
-    let mut n = 0;
-    for id in coverage.dimmed_ids() {
-        let Some(rect) = layout_px::rect_of(id, origin) else {
-            continue;
-        };
-        ui.painter()
-            .rect_filled(rect, 3.0_f32, Color32::from_black_alpha(150));
-        ui.painter().rect_stroke(
-            rect,
-            3.0_f32,
-            Stroke::new(1.0_f32, Color32::from_black_alpha(90)),
-            StrokeKind::Inside,
-        );
-        ui.interact(rect, Id::new(("dimmed", id)), Sense::click_and_drag())
-            .on_hover_text(DIM_TOOLTIP);
-        n += 1;
-    }
-    n
-}
-
 /// Draw one frame of the editor and forward the panel's edits to `writer`.
 pub fn draw_editor<W: ParamWriter>(
     ctx: &Context,
@@ -147,54 +110,31 @@ pub fn draw_editor<W: ParamWriter>(
 ) {
     sync_panel_from_params(&st.index, &mut st.panel);
 
-    // The shared panel would otherwise drive egui's zoom itself (fighting this one every frame
-    // and flickering); the editor always shows the whole panel.
+    // The shared panel would otherwise drive egui's zoom itself; the editor shows the whole plate.
     st.panel.view.host_scaled = true;
     st.panel.view.focus = None;
     st.panel.view.panorama = None;
-
-    // egui_baseview ignores egui's zoom factor (see the module doc): keep it at 1.
     if (ctx.zoom_factor() - 1.0).abs() > 1e-3 {
         ctx.set_zoom_factor(1.0);
     }
 
-    // The scaled panel sits in a `Middle` layer above the (empty, frameless) central panel. Using
-    // `nih_plug_egui`'s `ResizableWindow` here broke every click: its central panel ended up above
-    // the panel layer (to keep its corner reachable) and its full-window widget took the pointer,
-    // so keys and controls never responded. The resize corner is our own foreground handle.
-    egui::CentralPanel::default()
-        .frame(egui::Frame::NONE)
+    let bar_frame = egui::Frame::NONE.fill(CHASSIS_DARK);
+    TopBottomPanel::top("nd_matrix_bar")
+        .exact_height(BAR_HEIGHT)
+        .show_separator_line(false)
+        .frame(bar_frame)
         .show(ctx, |ui| {
-            let avail = ui.max_rect();
-            // The letterbox fill is drawn inside the panel layer, behind the panel: a separate
-            // fill layer ended up above it and hid the whole panel.
-            let scale = fit_scale(avail.size());
-            let panel_size = Vec2::new(PANEL_W, PANEL_H);
-            let offset = ((avail.size() - panel_size * scale) * 0.5).max(Vec2::ZERO);
-            // The panel is laid out in its own coordinates (origin 0,0, native size); the layer
-            // transform maps that onto the window.
-            let to_window = TSTransform::new(avail.min.to_vec2() + offset, scale);
-            let window_in_panel_coords = to_window.inverse() * avail;
-            let panel_rect = Rect::from_min_size(Pos2::ZERO, panel_size);
-            Area::new(Id::new("nord-stage-4-panel"))
-                .order(Order::Middle)
-                .fixed_pos(Pos2::ZERO)
-                .constrain(false)
-                .show(ui.ctx(), |ui| {
-                    // `set_clip_rect` (not `Painter::with_clip_rect`, which intersects with the
-                    // screen-sized clip and cut the letterbox bands that lie outside it).
-                    ui.set_clip_rect(window_in_panel_coords);
-                    ui.painter()
-                        .rect_filled(window_in_panel_coords, 0.0_f32, CHASSIS_DARK);
-                    ui.set_clip_rect(panel_rect);
-                    ui.scope_builder(UiBuilder::new().max_rect(panel_rect), |ui| {
-                        render_stage4_panel(ui, &mut st.panel, &st.handle);
-                    });
-                    st.last_overlays = draw_dim_overlay(ui, panel_rect.min, &st.coverage);
-                });
-            ui.ctx().set_transform_layer(panel_layer(), to_window);
-            resize_handle(ui.ctx(), egui_state, avail);
+            if let Some(click) = top_bar::show(ui) {
+                st.bar_click = Some(click);
+            }
         });
+
+    egui::CentralPanel::default()
+        .frame(egui::Frame::NONE.fill(CHASSIS_DARK))
+        .show(ctx, |ui| {
+            render_stage4_panel(ui, &mut st.panel, &st.handle);
+        });
+    resize_handle(ctx, egui_state, ctx.screen_rect());
 
     let mut sink = ParamSink::new(writer, &st.notes);
     pump(&st.rx, &mut sink);
@@ -207,6 +147,7 @@ mod tests {
     use crate::editor::notes::note_queue;
     use crate::editor::sink::test_support::Recorder;
     use crate::params::Stage4Params;
+    use nord_gui::baked::BakedPanelAssets;
 
     fn state() -> (
         Stage4Params,
@@ -219,64 +160,67 @@ mod tests {
         (params, EditorState::new(index, tx), rx)
     }
 
-    #[test]
-    fn scale_fits_the_panel_and_keeps_the_aspect() {
-        assert!((scale_for((PANEL_W as u32, PANEL_H as u32)) - 1.0).abs() < 1e-6);
-        assert!((scale_for(((PANEL_W / 2.0) as u32, (PANEL_H / 2.0) as u32)) - 0.5).abs() < 1e-6);
-        // Wide window: height limits the scale.
-        assert!((scale_for(((PANEL_W * 2.0) as u32, PANEL_H as u32)) - 1.0).abs() < 1e-6);
-        // Tall window: width limits the scale.
-        assert!((scale_for(((PANEL_W / 2.0) as u32, (PANEL_H * 5.0) as u32)) - 0.5).abs() < 1e-6);
-        assert_eq!(scale_for((1, 1)), MIN_SCALE);
-        assert_eq!(
-            scale_for(DEFAULT_SIZE),
-            DEFAULT_SIZE.0 as f32 / PANEL_W,
-            "default size has the panel aspect"
-        );
+    fn input(size: Vec2, events: Vec<egui::Event>) -> egui::RawInput {
+        egui::RawInput {
+            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
+            events,
+            ..Default::default()
+        }
+    }
+
+    fn default_size_vec() -> Vec2 {
+        Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32)
     }
 
     #[test]
-    fn default_size_has_the_panel_aspect_ratio() {
-        let a = DEFAULT_SIZE.0 as f32 / DEFAULT_SIZE.1 as f32;
-        assert!((a - PANEL_W / PANEL_H).abs() < 0.05, "{a}");
-    }
-
-    #[test]
-    fn a_headless_frame_draws_the_panel_and_one_overlay_per_dimmed_control() {
-        let (_params, mut st, _rx) = state();
-        let egui_state = EguiState::from_size(PANEL_W as u32, PANEL_H as u32);
+    fn plate_constants_match_the_baked_layout() {
         let ctx = Context::default();
-        let out = ctx.run(egui::RawInput::default(), |ctx| {
+        let mut got = (0, 0);
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            let l = BakedPanelAssets::get_or_load(ctx).layout;
+            got = (l.chassis_px.width, l.chassis_px.height);
+        });
+        assert_eq!(got, (PLATE_W as u32, PLATE_H as u32));
+    }
+
+    #[test]
+    fn the_editor_draws_the_baked_plate() {
+        let (_params, st, _rx) = state();
+        assert!(st.panel.use_baked_plate);
+    }
+
+    #[test]
+    fn default_size_has_the_plate_aspect_plus_the_bar() {
+        let (w, h) = DEFAULT_SIZE;
+        let plate_h = h as f32 - BAR_HEIGHT;
+        let a = w as f32 / plate_h;
+        assert!((a - PLATE_W / PLATE_H).abs() < 0.02, "{a}");
+        assert_eq!(size_for_width(w as f32), DEFAULT_SIZE);
+    }
+
+    #[test]
+    fn size_for_width_keeps_the_aspect_and_a_minimum() {
+        let (w, h) = size_for_width(1316.0);
+        assert_eq!(w, 1316);
+        assert_eq!(h, (1316.0 * PLATE_H / PLATE_W + BAR_HEIGHT).round() as u32);
+        assert_eq!(size_for_width(10.0).0, MIN_WIDTH as u32);
+    }
+
+    #[test]
+    fn resize_target_follows_the_pointer_with_the_aspect_locked() {
+        let t = resize_target(Pos2::new(1000.0, 400.0), Pos2::ZERO, 18.0);
+        assert_eq!(t, size_for_width(1009.0));
+    }
+
+    #[test]
+    fn a_headless_frame_draws_the_panel() {
+        let (_params, mut st, _rx) = state();
+        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
+        let ctx = Context::default();
+        let out = ctx.run(input(default_size_vec(), vec![]), |ctx| {
             draw_editor(ctx, &egui_state, &mut st, Recorder::default());
         });
-        assert!(out.shapes.len() > 1000, "only {} shapes", out.shapes.len());
-        assert_eq!(st.last_overlays, st.coverage.dimmed_ids().count());
-        assert!(st.last_overlays > 0, "some controls must be dimmed today");
-    }
-
-    #[test]
-    fn the_panel_is_scaled_by_its_layer_and_egui_zoom_stays_at_one() {
-        let (_params, mut st, _rx) = state();
-        let egui_state = EguiState::from_size(1170, 315);
-        let ctx = Context::default();
-        let size = Vec2::new(1170.0, 315.0);
-        let input = egui::RawInput {
-            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
-            ..Default::default()
-        };
-        // A few frames: the zoom must never leave 1 and the layer transform must settle.
-        for _ in 0..3 {
-            let _ = ctx.run(input.clone(), |ctx| {
-                draw_editor(ctx, &egui_state, &mut st, Recorder::default());
-            });
-        }
-        assert!((ctx.zoom_factor() - 1.0).abs() < 1e-6);
-        let t = ctx
-            .layer_transform_to_global(panel_layer())
-            .expect("panel layer transform");
-        let want = 1170.0 / PANEL_W;
-        assert!((t.scaling - want).abs() < 1e-4, "{} vs {want}", t.scaling);
-        assert!(t.translation.x.abs() < 1.0 && t.translation.y.abs() < 1.0);
+        assert!(out.shapes.len() > 100, "only {} shapes", out.shapes.len());
     }
 
     /// Regression: the shared panel used to set its own zoom every frame (flip-flop with the
@@ -286,14 +230,10 @@ mod tests {
         let (_params, mut st, _rx) = state();
         let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
         let ctx = Context::default();
-        let size = Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
-        let input = egui::RawInput {
-            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
-            ..Default::default()
-        };
+        let size = default_size_vec();
         let mut bounds = vec![];
         for _ in 0..6 {
-            let out = ctx.run(input.clone(), |ctx| {
+            let out = ctx.run(input(size, vec![]), |ctx| {
                 draw_editor(ctx, &egui_state, &mut st, Recorder::default());
             });
             let r = out.shapes.iter().fold(Rect::NOTHING, |r, s| {
@@ -302,84 +242,51 @@ mod tests {
             bounds.push(r);
             assert!((ctx.zoom_factor() - 1.0).abs() < 1e-6);
         }
-        // Frame 0 is egui's Area sizing pass (nothing of the panel is shown); it must then settle.
-        assert!(
-            bounds[1].width() >= size.x - 1.0,
-            "panel drawn: {:?}",
-            bounds[1]
-        );
-        for r in &bounds[1..] {
+        for r in &bounds[2..] {
             assert!(r.max.x <= size.x + 1.0 && r.max.y <= size.y + 1.0, "{r:?}");
-            assert_eq!(*r, bounds[1]);
+            assert_eq!(*r, bounds[2]);
         }
     }
 
-    /// Regression: the scaled panel layer covered the window, so the resize corner (a widget of
-    /// the central panel) never got the pointer and the editor could not be resized.
+    /// The plate fills the window width (no letterbox) at the default size, below the bar.
     #[test]
-    fn dragging_the_bottom_right_corner_requests_a_resize() {
+    fn the_plate_fills_the_default_window() {
         let (_params, mut st, _rx) = state();
         let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
         let ctx = Context::default();
-        let size = Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
-        let frame = |events: Vec<egui::Event>, st: &mut EditorState| {
-            let input = egui::RawInput {
-                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
-                events,
-                ..Default::default()
-            };
-            let _ = ctx.run(input, |ctx| {
-                draw_editor(ctx, &egui_state, st, Recorder::default());
-            });
-        };
-        let corner = Pos2::new(size.x - 4.0, size.y - 4.0);
-        frame(vec![], &mut st);
-        frame(vec![egui::Event::PointerMoved(corner)], &mut st);
-        frame(
-            vec![egui::Event::PointerButton {
-                pos: corner,
-                button: egui::PointerButton::Primary,
-                pressed: true,
-                modifiers: Default::default(),
-            }],
-            &mut st,
-        );
-        let smaller = corner - Vec2::new(300.0, 80.0);
-        frame(vec![egui::Event::PointerMoved(smaller)], &mut st);
-        frame(vec![egui::Event::PointerMoved(smaller)], &mut st);
-        let dbg = format!("{egui_state:?}");
-        assert!(
-            dbg.contains("requested_size: AtomicCell { value: Some("),
-            "{dbg}"
-        );
-    }
-
-    /// Regression: the central panel is drawn above the panel layer; an opaque `panel_fill`
-    /// (CHASSIS_RED in the app style) hid the whole panel, leaving only red.
-    #[test]
-    fn the_top_central_panel_fill_is_transparent_even_with_the_app_style() {
-        let (_params, mut st, _rx) = state();
-        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
-        let ctx = Context::default();
-        nord_gui::style::setup_nord_visuals(&ctx);
-        let size = Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
-        let input = egui::RawInput {
-            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
-            ..Default::default()
-        };
-        let mut out = None;
         for _ in 0..3 {
-            out = Some(ctx.run(input.clone(), |ctx| {
+            let _ = ctx.run(input(default_size_vec(), vec![]), |ctx| {
                 draw_editor(ctx, &egui_state, &mut st, Recorder::default());
-            }));
+            });
         }
-        // Nothing opaque and window-sized may be drawn after the panel content (the last 100
-        // shapes are panel content or overlays): neither the central-panel fill nor a fill layer.
-        for s in out.unwrap().shapes.iter().rev().take(100) {
-            if let egui::Shape::Rect(r) = &s.shape {
-                let covers = r.rect.width() >= size.x - 1.0 && r.rect.height() >= size.y - 1.0;
-                assert!(!(covers && r.fill.a() > 0), "opaque cover {r:?}");
-            }
+        let plate: Rect = ctx
+            .data(|d| d.get_temp(Id::new("ns4_baked_plate_rect")))
+            .expect("plate rect");
+        assert!(
+            (plate.width() - DEFAULT_SIZE.0 as f32).abs() < 2.0,
+            "{plate:?}"
+        );
+        assert!(plate.top() >= BAR_HEIGHT - 1.0, "{plate:?}");
+    }
+
+    fn frame_with(
+        ctx: &Context,
+        egui_state: &EguiState,
+        st: &mut EditorState,
+        size: Vec2,
+        events: Vec<egui::Event>,
+    ) {
+        let _ = ctx.run(input(size, events), |ctx| {
+            draw_editor(ctx, egui_state, st, Recorder::default());
+        });
+    }
+
+    fn button(pos: Pos2, pressed: bool) -> egui::Event {
+        egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: Default::default(),
         }
     }
 
@@ -391,66 +298,98 @@ mod tests {
         size: Vec2,
         pos: Pos2,
     ) {
-        let frame = |events: Vec<egui::Event>, st: &mut EditorState| {
-            let input = egui::RawInput {
-                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
-                events,
-                ..Default::default()
-            };
-            let _ = ctx.run(input, |ctx| {
-                draw_editor(ctx, egui_state, st, Recorder::default());
-            });
-        };
         for _ in 0..3 {
-            frame(vec![], st);
+            frame_with(ctx, egui_state, st, size, vec![]);
         }
-        frame(vec![egui::Event::PointerMoved(pos)], st);
-        frame(
-            vec![egui::Event::PointerButton {
-                pos,
-                button: egui::PointerButton::Primary,
-                pressed: true,
-                modifiers: Default::default(),
-            }],
-            st,
-        );
-        frame(vec![], st);
-        frame(
-            vec![egui::Event::PointerButton {
-                pos,
-                button: egui::PointerButton::Primary,
-                pressed: false,
-                modifiers: Default::default(),
-            }],
-            st,
-        );
-        frame(vec![], st);
+        let moved = vec![egui::Event::PointerMoved(pos)];
+        frame_with(ctx, egui_state, st, size, moved);
+        frame_with(ctx, egui_state, st, size, vec![button(pos, true)]);
+        frame_with(ctx, egui_state, st, size, vec![]);
+        frame_with(ctx, egui_state, st, size, vec![button(pos, false)]);
+        frame_with(ctx, egui_state, st, size, vec![]);
     }
 
-    /// Regression: clicking the on-screen keybed through the scaled panel layer must play a note
-    /// (the user reported keys and UI doing nothing in the plugin).
+    /// Regression: dragging the bottom-right corner must request a (aspect-locked) resize.
     #[test]
-    fn clicking_a_keybed_key_through_the_scaled_layer_plays_a_note() {
+    fn dragging_the_bottom_right_corner_requests_a_resize() {
+        let (_params, mut st, _rx) = state();
+        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
+        let ctx = Context::default();
+        let size = default_size_vec();
+        let corner = Pos2::new(size.x - 4.0, size.y - 4.0);
+        let smaller = corner - Vec2::new(300.0, 80.0);
+        frame_with(&ctx, &egui_state, &mut st, size, vec![]);
+        let at_corner = vec![egui::Event::PointerMoved(corner)];
+        frame_with(&ctx, &egui_state, &mut st, size, at_corner);
+        frame_with(&ctx, &egui_state, &mut st, size, vec![button(corner, true)]);
+        for _ in 0..2 {
+            let moved = vec![egui::Event::PointerMoved(smaller)];
+            frame_with(&ctx, &egui_state, &mut st, size, moved);
+        }
+        let dbg = format!("{egui_state:?}");
+        assert!(
+            dbg.contains("requested_size: AtomicCell { value: Some("),
+            "{dbg}"
+        );
+    }
+
+    /// Point on the white key `midi` of the baked keybed, in window points (lower part of the
+    /// key), after the layout settled.
+    fn white_key_point(ctx: &Context, midi: u8) -> Pos2 {
+        let plate: Rect = ctx
+            .data(|d| d.get_temp(Id::new("ns4_baked_plate_rect")))
+            .expect("plate rect");
+        let mut p = Pos2::ZERO;
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            let l = BakedPanelAssets::get_or_load(ctx).layout;
+            let k = l
+                .keys
+                .iter()
+                .find(|k| k.midi == midi && !k.black)
+                .expect("key");
+            p = Pos2::new(
+                plate.left() + (k.x + k.w * 0.5) * plate.width(),
+                plate.top() + (k.y + k.h * 0.85) * plate.height(),
+            );
+        });
+        p
+    }
+
+    /// Regression: clicking the on-screen keybed must play a note (the user reported keys and UI
+    /// doing nothing in the plugin: the sink dropped `AudioCommand::Keyboard`).
+    #[test]
+    fn clicking_a_keybed_key_plays_that_note() {
         let (_params, mut st, notes) = state();
         let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
         let ctx = Context::default();
-        let size = Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
-        // Lower part of the white keys, middle of the keyboard.
-        click_at(
-            &ctx,
-            &egui_state,
-            &mut st,
-            size,
-            Pos2::new(size.x * 0.5, size.y * 0.9),
+        let size = default_size_vec();
+        for _ in 0..3 {
+            frame_with(&ctx, &egui_state, &mut st, size, vec![]);
+        }
+        let pos = white_key_point(&ctx, 60);
+        click_at(&ctx, &egui_state, &mut st, size, pos);
+        let mut played = vec![];
+        while let Some(ev) = notes.pop() {
+            played.push(ev);
+        }
+        assert!(
+            played
+                .iter()
+                .any(|e| matches!(e, nord_core::midi::MidiEvent::NoteOn { note: 60, .. })),
+            "{played:?}"
         );
-        assert!(notes.pop().is_some(), "no note reached the queue");
     }
 
     #[test]
-    fn fit_scale_matches_scale_for_and_letterboxes() {
-        assert!((fit_scale(Vec2::new(PANEL_W / 2.0, PANEL_H / 2.0)) - 0.5).abs() < 1e-6);
-        assert!((fit_scale(Vec2::new(PANEL_W * 2.0, PANEL_H)) - 1.0).abs() < 1e-6);
-        assert_eq!(fit_scale(Vec2::new(1.0, 1.0)), MIN_SCALE);
+    fn clicking_a_top_bar_pill_is_recorded() {
+        let (_params, mut st, _rx) = state();
+        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
+        let ctx = Context::default();
+        let size = default_size_vec();
+        // First pill sits at the left of the bar.
+        let pos = Pos2::new(30.0, BAR_HEIGHT * 0.5);
+        click_at(&ctx, &egui_state, &mut st, size, pos);
+        assert_eq!(st.bar_click, Some(BarClick::OpenNs4b));
     }
 
     #[test]
@@ -462,7 +401,7 @@ mod tests {
             note: 60,
             velocity: 99,
         });
-        let egui_state = EguiState::from_size(PANEL_W as u32, PANEL_H as u32);
+        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
         let ctx = Context::default();
         let mut rec = Recorder::default();
         // Re-borrow the recorder through a wrapper so the test can inspect it afterwards.
@@ -478,18 +417,5 @@ mod tests {
         assert_eq!(rec.writes.len(), 1);
         assert_eq!(rec.writes[0].family, "master_level");
         assert!(notes.pop().is_some());
-    }
-
-    #[test]
-    fn dim_overlay_blocks_nothing_when_nothing_is_dimmed() {
-        let ctx = Context::default();
-        let empty = Coverage { entries: vec![] };
-        let mut n = usize::MAX;
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
-                n = draw_dim_overlay(ui, egui::pos2(0.0_f32, 0.0_f32), &empty);
-            });
-        });
-        assert_eq!(n, 0);
     }
 }
