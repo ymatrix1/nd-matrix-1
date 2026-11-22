@@ -728,7 +728,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             Color32::from_rgb(32, 24, 26)
         };
         let stroke = if on {
-            egui::Stroke::new(1.0, LED_RED.gamma_multiply(0.5))
+            egui::Stroke::new(1.0_f32, LED_RED.gamma_multiply(0.5))
         } else {
             egui::Stroke::NONE
         };
@@ -912,14 +912,14 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                 // CSS `border-right: 1px solid #9c9a92` & `border-bottom: 1px solid #bdbbb2`
                 key_p.line_segment(
                     [r_down.right_top(), r_down.right_bottom()],
-                    egui::Stroke::new(1.0, Color32::from_rgb(0x9c, 0x9a, 0x92)),
+                    egui::Stroke::new(1.0_f32, Color32::from_rgb(0x9c, 0x9a, 0x92)),
                 );
                 key_p.line_segment(
                     [
                         pos2(r_down.left(), r_down.bottom() - 0.5),
                         pos2(r_down.right(), r_down.bottom() - 0.5),
                     ],
-                    egui::Stroke::new(1.0, Color32::from_rgb(0xa4, 0xa2, 0x99)),
+                    egui::Stroke::new(1.0_f32, Color32::from_rgb(0xa4, 0xa2, 0x99)),
                 );
             }
         }
@@ -963,7 +963,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                         pos2(r_down.left() + 2.0, r_down.bottom() - skirt_h),
                         pos2(r_down.right() - 2.0, r_down.bottom() - skirt_h),
                     ],
-                    egui::Stroke::new(1.0, Color32::from_white_alpha(26)),
+                    egui::Stroke::new(1.0_f32, Color32::from_white_alpha(26)),
                 );
             } else if overlaps_pressed_white {
                 // Restore CSS `.key-black` drop shadow over the pressed white key before painting the black key
