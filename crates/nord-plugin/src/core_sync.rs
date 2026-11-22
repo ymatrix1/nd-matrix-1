@@ -1,6 +1,6 @@
 //! The block sync of the top-level parameters (layers, levels, organ, piano, synth), one function
 //! per [`Group`](crate::program_hold::Group) so a loaded program can keep a group while the host
-//! has not touched it (`program_hold.rs`, D215). Moved out of `params.rs` unchanged.
+//! has not touched it (`program_hold.rs`, D218). Moved out of `params.rs` unchanged.
 
 use crate::params::Stage4Params;
 use nord_core::engine::Stage4Engine;

@@ -1,5 +1,5 @@
 //! The user's Nord OS update ("firmware") WAVE tables, installed into the process off the audio
-//! thread (D215).
+//! thread (D218).
 //!
 //! The standalone app reads them at start-up (`user_config::apply_saved_default`, which sets an
 //! environment variable: unsafe in a multi-threaded host) and installs them once per process

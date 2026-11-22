@@ -19,7 +19,7 @@ Bundles land in `target/bundled/` (`nord-plugin.clap`, `nord-plugin.vst3`). Copy
 5. Hover a dimmed control: tooltip "not automatable in the plugin yet".
 6. Drag the window corner: the panel scales and stays centred; close and reopen: the size is kept; save and reload the project: the size is kept.
 7. Change the host's DPI scaling (or move the window to a HiDPI display): the panel stays sharp and fully visible.
-8. Click `OPEN .NS4B`: the Library tab opens; pick a `.ns4b`, then a program: it loads and a key sounds with the program's patch (D215). The host UI stays responsive while the file dialog is open.
+8. Click `OPEN .NS4B`: the Library tab opens; pick a `.ns4b`, then a program: it loads and a key sounds with the program's patch (D218). The host UI stays responsive while the file dialog is open.
 9. Click `DEBUG` and `? HELP`: the diagnostics dialog and the Setup Guide open inside the editor window and close again.
 10. After a program load, move one knob of a group: that group follows the host again, other groups keep the program. Reload the project: the program is gone (TD-21).
 11. Record the host name, version, OS and the results in `docs/research/` with the date.

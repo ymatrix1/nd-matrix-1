@@ -1,4 +1,4 @@
-//! The load path from the editor (GUI thread) to the engine (audio thread), D215.
+//! The load path from the editor (GUI thread) to the engine (audio thread), D218.
 //!
 //! Programs, piano and sample banks and firmware options are **built on the GUI side** (the
 //! library worker threads decode `.ns4b` / `.ns4p` / `.npno` / `.nsmp4`; the OS update's WAVE tables
@@ -110,7 +110,7 @@ impl Loaded {
         match job {
             LoadJob::Program(prog) => {
                 engine.apply_program(&prog);
-                // The program wins again: Touch / Mod 2 (D169) and every other group (D215) stay
+                // The program wins again: Touch / Mod 2 (D169) and every other group (D218) stay
                 // the program's until the host moves them.
                 params.program_overrides.rebaseline(params);
                 params.program_hold.hold(Group::PROGRAM);

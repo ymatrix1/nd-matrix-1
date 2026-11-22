@@ -79,7 +79,7 @@ Known limits: `fxx_filter_res` has host range 0..1 while the engine accepts 0..1
 
 Status: tested headlessly (frame shape count, sink mapping, coverage, persistence, queue to `process()`). **Not verified in a host**: no DAW was available; see `docs/plugin-editor.md` for the smoke test.
 
-## Loading (D215)
+## Loading (D218)
 
 | Part | Behaviour |
 |---|---|

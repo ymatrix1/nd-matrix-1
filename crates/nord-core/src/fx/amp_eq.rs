@@ -85,7 +85,37 @@ impl LayerFxChain {
         true
     }
 
+    /// Firmware compressor stage (`FirmwareFx::compressor`) on one frame, built on first use.
+    /// It runs even while `comp_enabled` is false (amount 0, unity) so the layer latency does not
+    /// change.
+    fn process_fw_compressor(&mut self, l: f32, r: f32) -> [f32; 2] {
+        let amount = if self.comp_enabled {
+            fw_map::unit_to_ui(self.comp_amount)
+        } else {
+            0.0
+        };
+        let row = self.firmware_fx.compressor_row;
+        let stage = self.fw_comp.get_or_insert_with(|| {
+            fw_stage::FwCompressorStage::new(if row {
+                fw_params::compressor_for_amount_row(amount)
+            } else {
+                fw_params::compressor_for_amount(amount)
+            })
+        });
+        if amount != self.fw_comp_amount {
+            fw_params::set_compressor_amount(stage.compressor_mut(), amount, false);
+        }
+        self.fw_comp_amount = amount;
+        stage.process_frame([l, r])
+    }
+
     pub(super) fn process_amp_eq_comp(&mut self, mut l: f32, mut r: f32, inv_fs: f32) -> [f32; 2] {
+        // Opt-in `compressor_first` (D214): the firmware gain computer runs ahead of the amp, so its
+        // block-rate gain steps meet the amp / LP24 low-pass instead of the output.
+        if self.firmware_fx.compressor && self.firmware_fx.compressor_first {
+            [l, r] = self.process_fw_compressor(l, r);
+        }
+
         // Opt-in firmware drive stage (`FirmwareFx::amp`): replaces the tube drive and the cabinet
         // voicing below for the amps whose type switch installs drive stage words.
         let fw_amp = self.process_fw_amp(&mut l, &mut r);
@@ -250,27 +280,14 @@ impl LayerFxChain {
             }
         }
 
-        // Opt-in firmware gain computer with the `kCmpAmt` words (latency 4 frames). It runs even
-        // while `comp_enabled` is false (amount 0, unity) so the layer latency does not change.
+        // Opt-in firmware gain computer with the `kCmpAmt` words (latency 4 frames); with
+        // `compressor_first` it already ran above.
         if self.firmware_fx.compressor {
-            let amount = if self.comp_enabled {
-                fw_map::unit_to_ui(self.comp_amount)
+            return if self.firmware_fx.compressor_first {
+                [l, r]
             } else {
-                0.0
+                self.process_fw_compressor(l, r)
             };
-            let row = self.firmware_fx.compressor_row;
-            let stage = self.fw_comp.get_or_insert_with(|| {
-                fw_stage::FwCompressorStage::new(if row {
-                    fw_params::compressor_for_amount_row(amount)
-                } else {
-                    fw_params::compressor_for_amount(amount)
-                })
-            });
-            if amount != self.fw_comp_amount {
-                fw_params::set_compressor_amount(stage.compressor_mut(), amount, false);
-            }
-            self.fw_comp_amount = amount;
-            return stage.process_frame([l, r]);
         }
         self.fw_comp = None;
 

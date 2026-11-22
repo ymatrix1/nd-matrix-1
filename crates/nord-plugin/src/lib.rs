@@ -93,7 +93,7 @@ impl Default for NordStage4Plugin {
 
 impl NordStage4Plugin {
     /// Fresh engine at the current sample rate with everything loaded applied, then the host
-    /// parameters synced on top (D169 / D215: only what the host moved replaces the program).
+    /// parameters synced on top (D169 / D218: only what the host moved replaces the program).
     fn rebuild_engine(&mut self) {
         self.engine = Stage4Engine::new(self.sample_rate);
         self.loaded.restore(&mut self.engine);
@@ -101,7 +101,7 @@ impl NordStage4Plugin {
     }
 
     /// Applies a decoded program to the engine and makes it win over every host parameter group
-    /// until the host moves one (D169, D215). Frees the replaced program here: use it from the
+    /// until the host moves one (D169, D218). Frees the replaced program here: use it from the
     /// thread that owns the plugin while it is not processing (tests); the editor goes through
     /// the load queue instead.
     pub fn load_program(&mut self, prog: ProgramDecoded) {

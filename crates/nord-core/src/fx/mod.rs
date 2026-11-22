@@ -128,6 +128,8 @@ mod tests_firmware_fx;
 #[cfg(test)]
 mod tests_fw_amp_chain;
 #[cfg(test)]
+mod tests_fw_comp_first;
+#[cfg(test)]
 mod tests_fw_delay_morph;
 #[cfg(test)]
 mod tests_fw_delay_time;

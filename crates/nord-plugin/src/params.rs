@@ -162,7 +162,7 @@ pub struct Stage4Params {
     /// derived from the restored values, see `program_overrides.rs`.
     pub program_overrides: crate::program_overrides::ProgramOverrides,
 
-    /// Which parameter groups a loaded program owns until the host moves them (D215). Not
+    /// Which parameter groups a loaded program owns until the host moves them (D218). Not
     /// persisted, not a host parameter; inert until `bind` ran (the plugin does that).
     pub program_hold: crate::program_hold::ProgramHold,
 
@@ -614,7 +614,7 @@ impl Stage4Params {
     /// Synchronizes current NIH-plug parameter values to the `Stage4Engine`.
     ///
     /// After a program load the groups the program owns are skipped until the host moves one of
-    /// their parameters (`program_hold.rs`, D215); before the first load every group is written.
+    /// their parameters (`program_hold.rs`, D218); before the first load every group is written.
     pub fn sync_to_engine(&self, engine: &mut Stage4Engine) {
         use crate::program_hold::Group as G;
 

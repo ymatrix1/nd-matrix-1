@@ -38,7 +38,7 @@ impl ParamIndex {
     }
 
     /// Like [`Self::plain`], but `None` while a loaded program owns the parameter's group: the
-    /// panel keeps the program's values there until the host moves the group (D215).
+    /// panel keeps the program's values there until the host moves the group (D218).
     pub fn shown(&self, id: &str) -> Option<f32> {
         if let Some(params) = &self.hold {
             let owned = group_of(id).is_some_and(|g| params.program_hold.owned_by_program(g));
