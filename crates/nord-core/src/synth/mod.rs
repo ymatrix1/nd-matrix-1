@@ -28,6 +28,7 @@ mod fw_adr_law;
 mod fw_coef_memo;
 mod fw_cutoff_env;
 mod fw_env_rates;
+mod fw_env_settled;
 mod fw_filter;
 pub mod fw_filter_law;
 mod fw_filter_table_d;
@@ -85,7 +86,8 @@ pub use fw_cutoff_env::{
     fw_r_of_hz, fw_stage_r_of_knob, FW_R_CLIP, FW_STAGE_RATE_HZ,
 };
 pub use fw_env_rates::{
-    attack_coeff, attack_time_passes, decay_release_coeff, rate_index_from_word, RATE_INDEX_MAX,
+    attack_coeff, attack_time_passes, decay_release_coeff, rate_index_from_word, RateTables,
+    DEFAULT_TABLES, LEGACY_TABLES, RATE_INDEX_MAX, SETTLED_TABLES,
 };
 pub use fw_filter::{
     cutoff_to_r, FilterEngine, FwCoefs, FwFilter, FwFilterType, TablePos, FW_CLIP_LIMIT,

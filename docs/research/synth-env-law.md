@@ -42,7 +42,7 @@ Caveat: a plateau at half level on the chain output does not prove a half level 
 - Only the first index of each plateau matches (-64, -58, -53, ...).
 - The decay and release table (`DECAY_BITS`) has the same shape: the committed velocity sweep measures release ratio 0.9606 at word -60 against 0.9317 in the table (`1 - a` 1.7 times too large), 0.99617 at -40 against 0.99530.
 
-`fw_adr_law::ATTACK_B` holds the settled attack table (128 entries, test `attack_table_equals_the_oracle_csv`) and only the opt-in law uses it. The default tables are unchanged (no flip). The settled decay and release table is not measured yet.
+`fw_adr_law::ATTACK_B` holds the settled attack table (128 entries, test `attack_table_equals_the_oracle_csv`) and only the opt-in law uses it. The default tables are unchanged (no flip). The settled decay and release table was measured in D212 ([synth-env-rates-settled](synth-env-rates-settled.md)): the same shape, 104 of 129 indexes stale.
 
 ## 5. Native against oracle per program (key 60, velocity 100, `g = 98`; `data/synth-env-law-programs.csv`)
 
@@ -66,7 +66,7 @@ All 8 attack coefficients agree to 3 digits; the level at key off agrees within 
 
 ## 7. Follow-ups
 
-- Measure the settled decay / release table at every integer index (release ratio of the 128 words, slow words by the level at key off) and replace the plateaus; then score `--synth-fw-adr-law` together with `--synth-fw-env-law` on the hardware clips before any default flip.
-- The amp chain peak exceeds 1 (4.0 at `g = 127`, 3.8 at 126, 1.2 at attack -50 and `g = 127`) when the decay word is -64 (not with decay -20); `peak = 1` for `g <= 98`. Unexplained; the level after the peak settles at 0.5.
+- (Done, D212) Measure the settled decay / release table at every integer index (release ratio of the 128 words, slow words by the level at key off) and replace the plateaus; then score `--synth-fw-adr-law` together with `--synth-fw-env-law` on the hardware clips before any default flip.
+- The amp chain peak exceeds 1 (4.0 at `g = 127`, 3.8 at 126, 1.2 at attack -50 and `g = 127`) when the decay word is -64 (not with decay -20); `peak = 1` for `g <= 98`. Explained as a fitted law in D212: the chain limit `DM(F - 22)` is `1 + 0.2 k` (592 of 592 rows), no factory program reaches it ([synth-env-rates-settled](synth-env-rates-settled.md) s3).
 - Hardware check of the audible sustain (finite Decay on a held key).
 - The 80s Sci-Fi base cutoff offset and the LFO / input gain terms stay open (D200).
