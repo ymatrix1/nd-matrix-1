@@ -47,7 +47,7 @@ pub fn osc_env_dsp_word(steps: f32, to_pitch: bool) -> f32 {
 
 /// Pitch excursion in semitones of the ORG core 2 oscillator stage under Env To Pitch, for the
 /// dispatched amount `steps` (`-60..60`) and the oscillator envelope `level` (`0..1`, chain
-/// `F + 6`): `48 * osc_env_dsp_word(steps, true) * level` (D214).
+/// `F + 6`): `48 * osc_env_dsp_word(steps, true) * level` (D217).
 ///
 /// VERIFIED: the oracle pitch (FFT peak of the oscillator output, Time Warp Saw recall, word 12
 /// injected at `DM(0xE02F4)`, `F + 6` held) is `48 * word * level` semitones for words `-1..1` and

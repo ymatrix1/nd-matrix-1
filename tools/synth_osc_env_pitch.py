@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""Osc Env Amount under Env To Pitch: ORG core 2 oracle against the native engine (OQ44, D214).
+r"""Osc Env Amount under Env To Pitch: ORG core 2 oracle against the native engine (OQ44, D217).
 
 The ARM sends the dispatched amount as common word 12 (`DM(0xE02F4)`, `osc_env_dsp_word`) and, for
 Env To Pitch, zeroes strip words 20 / 24 (the Osc Ctrl routes) and writes common word 4 =

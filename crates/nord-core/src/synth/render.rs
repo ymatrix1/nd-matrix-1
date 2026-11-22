@@ -258,7 +258,7 @@ impl SynthLayer {
                     let dec = (self.osc_env_decay_sec * tau_frac).max(0.003);
                     v.oenv -= v.oenv * (inv_fs / dec).min(1.0);
                     if self.osc_env_fw_pitch && self.osc_env_to_pitch {
-                        // VERIFIED (D214): the oracle osc chain `F + 6` stops at 0.5 (Wooden
+                        // VERIFIED (D217): the oracle osc chain `F + 6` stops at 0.5 (Wooden
                         // Queen, Circus Box, Saw Horn: 3 of 3 programs, pitch steady at
                         // `24 * word`), as the amp and filter chains do (D210).
                         v.oenv = v.oenv.max(0.5);
@@ -283,7 +283,7 @@ impl SynthLayer {
             // blip" clip, Env Amt +5.5 shows ~6-7 semitone onset peaks (+6.6 predicted), accuracy
             // limited to ~1 semitone by 5 ms onset detection. ASSUMED: +/-0.5 of Osc Ctrl range.
             let env_pitch = if self.osc_env_to_pitch && self.osc_env_fw_pitch {
-                // VERIFIED (D214): the ORG core 2 pitch path adds `48 * word * level` semitones.
+                // VERIFIED (D217): the ORG core 2 pitch path adds `48 * word * level` semitones.
                 // ASSUMED: key velocity scales the level (the amount word is velocity free).
                 let vel = if self.osc_env_velocity {
                     v.velocity

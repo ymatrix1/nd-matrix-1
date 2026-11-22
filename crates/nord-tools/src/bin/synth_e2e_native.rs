@@ -85,7 +85,7 @@ fn run(args: &[String]) -> Result<(), String> {
         2 => &mut *engine.synth_c,
         _ => return Err("--layer must be 0, 1 or 2".into()),
     };
-    // The engine mix sets this per frame; a bare layer render takes it from the option (D214).
+    // The engine mix sets this per frame; a bare layer render takes it from the option (D217).
     layer.osc_env_fw_pitch = opts.synth_osc_env_morph;
     if let Some(a) = flag(args, "--osc-env-amount") {
         let steps: f32 = a.parse().map_err(|_| "bad --osc-env-amount")?;

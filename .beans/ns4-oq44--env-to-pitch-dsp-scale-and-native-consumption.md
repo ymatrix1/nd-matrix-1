@@ -17,10 +17,10 @@ OQ44: DSP consumer of Osc Env Amount word 12 under Env To Pitch.
 - [x] Oracle scale, curve, sign: 48 * word * level semitones (46 rows, 0.03 st)
 - [x] Native consumes osc_env_dsp_word behind the flag, decay stops at 0.5
 - [x] Oracle vs native trace on affected programs (8 traced, 1 decisive, 2 unresolved)
-- [x] Tests, research, D214, spec, OQ44 closed
+- [x] Tests, research, D217, spec, OQ44 closed
 
 ## Out of Scope
 Default flip, layers B/C, velocity term.
 
 ## Summary of Changes
-See docs/research/synth-osc-env-pitch.md and D214.
+See docs/research/synth-osc-env-pitch.md and D217.

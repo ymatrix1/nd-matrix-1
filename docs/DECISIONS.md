@@ -2294,7 +2294,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Open:** OQ44 (DSP scale of word 12 under Env To Pitch); layer B word `0xE01FE`; `kFltEnvAmt` selector not checked.
 - **Impact:** `synth_osc_env_word.rs`, `synth_morph_osc_env_tests.rs`, `tools/arm_osc_env_static.py`, `tools/tests/test_arm_osc_env_static.py`, [morph-fw-vs-native](research/morph-fw-vs-native.md) s8, [morph-fw-osc-env-dst](research/morph-fw-osc-env-dst.md), `specs/morph-and-zones.md`, `research/synth-knob-laws.md`, ROADMAP morph line.
 
-### D214. OQ44 answered: Env To Pitch plays `48 * word * level` semitones; the opt-in `--synth-osc-env-morph` now plays it and the osc envelope decay stops at 0.5; no flip
+### D217. OQ44 answered: Env To Pitch plays `48 * word * level` semitones; the opt-in `--synth-osc-env-morph` now plays it and the osc envelope decay stops at 0.5; no flip
 
 - **Status:** accepted (opt-in only). **Decided by:** agent (research); default flip not decided.
 - **Context:** D213 verified the ARM word of the Osc Env Amount (`x / 60` for Osc Ctrl, the pitch taper over 48 for Env To Pitch) but not what the DSP does with it (OQ44). The native engine plays Env To Pitch as +/-12 st linear (`EMPIRICAL`, one clip).

@@ -61,7 +61,7 @@ Layer A of the 8 programs with a layer A amount was traced ([synth-osc-env-pitch
 
 ## Implications
 
-OQ44 is answered: the DSP scale is 48 semitones per unit word times the envelope level, linear in level, odd in sign. The native opt-in reproduces it on the one program with a large settled excursion (Wooden Queen). No default changes; flip proposal in D214.
+OQ44 is answered: the DSP scale is 48 semitones per unit word times the envelope level, linear in level, odd in sign. The native opt-in reproduces it on the one program with a large settled excursion (Wooden Queen). No default changes; flip proposal in D217.
 
 ## Follow-ups
 
