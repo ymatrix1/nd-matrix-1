@@ -7,6 +7,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 | # | Date | Decision | Status |
 |---|---|---|---|
 | [D215](#d215-plugin-top-bar-loads-through-a-bounded-queue-to-the-audio-thread-a-loaded-program-is-held-per-group-until-the-host-moves-that-group) | 2026-11-22 | Plugin top bar loads through a bounded queue to the audio thread; a loaded program is held per group until the host moves that group | proposed |
+| [D217](#d217-oq44-answered-env-to-pitch-plays-48-word-level-semitones-the-opt-in-synth-osc-env-morph-now-plays-it-and-the-osc-envelope-decay-stops-at-05-no-flip) | 2026-11-21 | OQ44 answered: Env To Pitch plays `48 * word * level` semitones; opt-in `--synth-osc-env-morph` plays it, osc envelope decay stops at 0.5; no flip | accepted (opt-in) |
 | [D214](#d214-the-opennord-resonance-quadratic-is-the-lp12-damping-table-d-not-b-both-native-tables-and-the-per-type-selection-equal-the-oracle-stage-for-all-128-knobs-the-firmware-position-map-stays-opt-in) | 2026-11-21 | The OpenNord resonance quadratic is the LP12 damping table `D`, not `B`; native tables equal the oracle for all 128 knobs | proposed |
 | [D211](#d211-the-smp-chip-interrupt-rate-is-the-dsp-frame-rate-4340234-hz-the-second-voice-runs-under-pacing-the-sy1sy2-chip-has-the-same-fifo-bias-opt-in-the-tap-level-per-class-is-not-a-parity-number) | 2026-11-21 | The SMP chip interrupt rate is the DSP frame rate 43,402.34 Hz; the second voice runs under pacing; the SY1SY2 chip has the same FIFO bias (opt-in); the tap level per class is not a parity number | accepted |
 | [D208](#d208-unrolling-skipping-unheld-voices-and-simd-do-not-pay-on-the-firmware-organ-stages-nothing-changes-but-a-test-only-probe) | 2026-11-21 | Unrolling, skipping unheld voices and SIMD do not pay on the firmware organ stages; nothing changes but a test only probe | accepted |
@@ -2296,6 +2297,17 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Open:** OQ44 (DSP scale of word 12 under Env To Pitch); layer B word `0xE01FE`; `kFltEnvAmt` selector not checked.
 - **Impact:** `synth_osc_env_word.rs`, `synth_morph_osc_env_tests.rs`, `tools/arm_osc_env_static.py`, `tools/tests/test_arm_osc_env_static.py`, [morph-fw-vs-native](research/morph-fw-vs-native.md) s8, [morph-fw-osc-env-dst](research/morph-fw-osc-env-dst.md), `specs/morph-and-zones.md`, `research/synth-knob-laws.md`, ROADMAP morph line.
 
+### D216. SMP chain-tap census of the 155 piano programs: 152 have a tap, 3 do not; no default changes
+
+- **Status:** accepted 2026-11-21 (measurement and tooling; no behaviour change).
+- **Decided by:** the task of the parent session (follow-up 1 of [smp-voice-pitch](research/smp-voice-pitch.md)).
+- **Context:** D205 added `program_rank_chain.py --smp` and the ranking columns `smp_peak_dbfs`, `smp_cycles` but did not run it over the 155 `piano_no_chain_tap` programs. The first pilot batch (8 programs) returned no tap for all of them.
+- **Decision:** (1) `program_rank_chain.py` passes `--log` to the live run (the tap file `smp_tap.f32` is only written with a log directory) and holds the key at least `SMP_KEY_TICKS` = 3,000 ticks (the D205 pilot hold, EMPIRICAL). (2) `arm_piano_bind.active_layer`: when neither piano enable bit is set the loader plays layer A (`engine/routing.rs::default_layer_a`, VERIFIED, [engine-routing](research/engine-routing.md) s7); five programs (Tines Layer, LoFi Piano, Rising Sun, Piano Soft Orch, 70s CP Strings) bound nothing before. (3) `tools/program_rank_smp.py` merges the census (`smp_peak_dbfs`, `smp_cycles`, flags) into the committed `program-ranking.csv` and adds the two columns before `flags`; it reads only the piano records, so the 70 min native renders (14 GB) were not repeated and no other column changed. (4) Result: 152 of 155 give audio (-34.5 to -14.3 dBFS, median -18.4, EMPIRICAL, layer A before the chain), `piano_no_chain_tap` is 0, new flag `piano_chain_no_audio` on 3 (Chord N Melody and Forever Split: key zone gain 0 at key 60, expected; Simple Tune: piano layer B only, open).
+- **Why:** the ranking had no verdict for 155 of 384 programs; the tap is now a real piano signal (D205) and costs about 3 min of CPU per program.
+- **Alternatives:** rerun the full native + chain census (rejected: 70 min and 14 GB to fill two columns); regenerate every column from a fresh chain census (rejected: the merge keeps every other flag as it was).
+- **Open:** the tap is layer A before the chain: no level verdict against native; `smp_cycles` outliers (x2 in 4 programs, x0.5 in 2, 0.0003 in 3, unchecked); layers 2 and 3 (Simple Tune); the ranking CSV was not regenerated from fresh native renders.
+- **Impact:** `tools/program_rank_chain.py`, `tools/program_rank_smp.py` (+ test), `tools/arm_piano_bind.py`, `tools/arm_dsp_live.py`, `docs/research/data/program-ranking.csv`, [program-ranking](research/program-ranking.md) s3.3 / s3.3a, [audio-remaining](research/audio-remaining.md) row 24, OQ41, [smp-voice-pitch](research/smp-voice-pitch.md), bean `ns4-pnoc`.
+
 ### D214. The OpenNord resonance quadratic is the LP12 damping table `D`, not `B`; both native tables and the per-type selection equal the oracle stage for all 128 knobs; the firmware position map stays opt-in
 
 - **Status:** proposed 2026-11-21 (number chosen above D213 after fetching `origin/main`; renumber on merge if another branch takes it). No default changes; the flip below is a proposal for the owner.
@@ -2307,6 +2319,17 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Flip proposal (owner):** `--synth-fw-resonance` could become the default for the strip chain. Needs a listening check on resonance sweeps with LP24 programs and re-recorded `render_hash` baselines. Nothing flipped.
 - **Open:** the audible Q on hardware (peak against knob for LP12 and LP24); the smoother's effect on knob moves.
 - **Impact:** `tools/synth_res_oracle.py` + `tools/tests/test_synth_res_oracle.py`, `tools/synth_scaling_crosscheck.py` + test, `crates/nord-core/src/synth/fw_filter_law.rs` (test only), `data/synth-res-settled.csv`, `data/synth-res-sweep.csv`, [synth-resonance-law](research/synth-resonance-law.md), [synth-env-rates-settled](research/synth-env-rates-settled.md) s5, `specs/synth-engine.md` s3 and s4.6.
+
+### D217. OQ44 answered: Env To Pitch plays `48 * word * level` semitones; the opt-in `--synth-osc-env-morph` now plays it and the osc envelope decay stops at 0.5; no flip
+
+- **Status:** accepted (opt-in only). **Decided by:** agent (research); default flip not decided.
+- **Context:** D213 verified the ARM word of the Osc Env Amount (`x / 60` for Osc Ctrl, the pitch taper over 48 for Env To Pitch) but not what the DSP does with it (OQ44). The native engine plays Env To Pitch as +/-12 st linear (`EMPIRICAL`, one clip).
+- **Decision:** the ORG core 2 oscillator stage adds `48 * word * level` semitones (`level` = osc chain `F + 6`), VERIFIED on 46 oracle rows (max error 0.03 st, [synth-osc-env-pitch](research/synth-osc-env-pitch.md)). `SynthLayer::osc_env_fw_pitch`, set from `--synth-osc-env-morph`, plays it on Env To Pitch layers (`osc_env_pitch_semitones`) and stops the osc envelope decay at 0.5 (oracle, 3 of 3 programs with an excursion). The recall with the bit set also zeroes strip words 20 / 24 and sets common word 4 to `0x30000000` (documented, not consumed).
+- **Why:** the oracle is the reference. Wooden Queen (22.1 st peak) matches the oracle within 0.2 st at 6 of 6 times with the flag and is flat without it.
+- **Alternatives:** keep the linear +/-12 st (off by up to 4x, ignores the taper); a new flag (the existing flag already gates the morph of the same word).
+- **Impact:** opt-in only. 3 of 384 programs move the pitch by more than 2 st (Wooden Queen, Cinema Rise, Lyle Lead J3); 9 have a non-zero amount. Key velocity scaling is `ASSUMED`.
+- **Flip proposal (owner):** `--synth-osc-env-morph` could become the default after an audible A/B of those 3 programs. Nothing flipped.
+- **Open:** layers B / C, Cinema Rise and Circus Box traces (estimator limit), the velocity term.
 
 ### D215. Plugin top bar loads through a bounded queue to the audio thread; a loaded program is held per group until the host moves that group
 

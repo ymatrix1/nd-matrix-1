@@ -22,7 +22,13 @@ required-features = ["app"]
 default = ["app"]
 app = ["dep:eframe", "dep:cpal", "dep:midir", "picker"]
 # Native file dialogs (`rfd`), run on a worker thread so a DAW host's UI thread never blocks.
-picker = ["dep:rfd"]
+picker = ["dep:rfd", "dep:wayland-sys"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# rfd's xdg-portal backend (ashpd) enables wayland-sys' link-time `client` build, which needs
+# libwayland-dev; `dlopen` loads libwayland-client at runtime instead, as winit does, so a plugin
+# build needs no extra system package (CI bundle step, D215).
+wayland-sys = { version = "0.31", features = ["dlopen"], optional = true }
 
 [target.'cfg(windows)'.dependencies]
 # Audio thread priority (MMCSS "Pro Audio" + THREAD_PRIORITY_TIME_CRITICAL), `audio/priority.rs`.

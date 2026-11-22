@@ -45,6 +45,19 @@ pub fn osc_env_dsp_word(steps: f32, to_pitch: bool) -> f32 {
     semitones.copysign(u) / PITCH_WORD_SEMITONES
 }
 
+/// Pitch excursion in semitones of the ORG core 2 oscillator stage under Env To Pitch, for the
+/// dispatched amount `steps` (`-60..60`) and the oscillator envelope `level` (`0..1`, chain
+/// `F + 6`): `48 * osc_env_dsp_word(steps, true) * level` (D217).
+///
+/// VERIFIED: the oracle pitch (FFT peak of the oscillator output, Time Warp Saw recall, word 12
+/// injected at `DM(0xE02F4)`, `F + 6` held) is `48 * word * level` semitones for words `-1..1` and
+/// levels `0.25..1`, max error 0.2 semitones (estimator error); checked by
+/// `synth_osc_env_pitch_tests.rs` over `data/synth-osc-env-pitch-oracle.csv`. The sign follows the
+/// word (negative lowers the pitch).
+pub fn osc_env_pitch_semitones(steps: f32, level: f32) -> f32 {
+    PITCH_WORD_SEMITONES * osc_env_dsp_word(steps, true) * level
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -73,6 +86,16 @@ mod tests {
         // ARM words of Time Warp Saw layer A: `-48 -> 0xBF133336`, `-24 -> 0xBDD33336`.
         assert!((osc_env_dsp_word(-48.0, true) - f32::from_bits(0xBF13_3336)).abs() < 1e-6);
         assert!((osc_env_dsp_word(-24.0, true) - f32::from_bits(0xBDD3_3336)).abs() < 1e-6);
+    }
+
+    #[test]
+    fn pitch_semitones_scale_with_level_and_follow_the_taper() {
+        assert_eq!(osc_env_pitch_semitones(60.0, 0.0), 0.0);
+        assert!((osc_env_pitch_semitones(60.0, 1.0) - 48.0).abs() < 1e-4);
+        assert!((osc_env_pitch_semitones(-60.0, 0.5) + 24.0).abs() < 1e-4);
+        // Amount 33 of 60: `T(127 * 33 / 60 = 69.85)` is about 10.5 semitones (hardware clip: ~11.6).
+        let st = osc_env_pitch_semitones(33.0, 1.0);
+        assert!((10.0..11.0).contains(&st), "{st}");
     }
 
     #[test]
