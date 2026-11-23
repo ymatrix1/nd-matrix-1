@@ -315,7 +315,7 @@ fn render_dialog_contents(
                 shadcn_card(
                     ui,
                     "Computer Keyboard & Velocity",
-                    "Play the Nord Stage 4 directly from your computer keyboard.",
+                    crate::branding::COMPUTER_KB_CARD_DESC,
                     |ui| {
                         crate::panel::computer_kb_bar::show_bar(ui, &mut state.computer_kb);
                     },
@@ -352,7 +352,7 @@ fn render_dialog_contents(
                 }
                 shadcn_card(
                     ui,
-                    "Nord Stage 4 Backup & Sample Browser (.ns4b)",
+                    crate::branding::BROWSER_CARD_TITLE,
                     "Open a factory or user .ns4b backup and browse Programs, Pianos, and Samples directly here.",
                     |ui| {
                         library.render_browser_inline(ui, state, audio_handle);

@@ -46,6 +46,7 @@ Short version:
 6. **Keep `.reference/` git-ignored.** Large local reference dumps (`.ns4b` is 3.14 GB, updater binaries, PDFs) live in `.reference/` for local inspection and stay out of git. Unit tests use deterministic synthetic fixtures in memory.
 7. **Standardize task plans, beans, and PR descriptions** with: **Context**, **Higher Goal**, **Acceptance Criteria** (`- [ ]` / `- [x]`), **Out of Scope**, **Summary of Changes**.
 8. **Keep `docs/ROADMAP.md` checkboxes in sync** with delivered scope in the same commit/PR.
+9. **Firmware-derived files only shrink (D128).** Never track raw firmware artifacts or new class B/C dumps; `python tools/check_fw_derived.py` enforces it against `tools/fw-derived-baseline.txt`, which may only lose lines (remove a path in the PR that migrates or deletes the file), never gain them.
 
 ## Task tracking (beans)
 
@@ -83,6 +84,7 @@ uv run ruff check tools/
 uv run ruff format --check tools/
 uv run pytest
 python tools/check_tests.py
+python tools/check_fw_derived.py
 ```
 
 ## Landing the Plane (Session Completion)

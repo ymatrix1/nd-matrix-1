@@ -51,7 +51,7 @@ Not verified: the Steinberg SDK headers behind the generated bindings. The SDK h
 
 - No shipped binary in the plugin tree carries a copyleft license; CI job `licenses` keeps it that way.
 - VST3 hosts see the same class ID and parameter IDs, so existing projects should load. This is not host-tested (no DAW here): see the checklist in `docs/HOST_COMPATIBILITY.md` section 7.10.
-- D233 (PR #614, not on `main` when this was written) needs its Decision set to option (b), chosen by the owner 2026-11-23, status accepted, impact `crates/nord-plugin/Cargo.toml`, `vendor/nih_plug_egui/Cargo.toml`, `tools/check_licenses.py`, this note. `docs/research/plugin-licensing.md` also lives on that branch; update it there after #614 merges.
+- D233 records option (b) as accepted (owner, 2026-11-23); OQ45 is answered there.
 
 ## 5. Follow-ups
 
