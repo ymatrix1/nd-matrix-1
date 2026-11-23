@@ -6,6 +6,10 @@
 </p>
 
 <p align="center">
+  <img src="docs/img/gui/keyboard.png" alt="ND Matrix 1 front panel and keybed" width="100%">
+</p>
+
+<p align="center">
   <a href="https://github.com/sponsors/ymatrix1"><img alt="Sponsor on GitHub" src="https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white"></a>
 </p>
 
