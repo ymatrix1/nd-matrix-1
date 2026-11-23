@@ -3,6 +3,7 @@ name = "nord-sharc"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish.workspace = true
 repository.workspace = true
 description = "ADSP-214xx (SHARC) VISA instruction decoder and test-oracle core for the DSP images in the Nord Stage 4 firmware."
 
