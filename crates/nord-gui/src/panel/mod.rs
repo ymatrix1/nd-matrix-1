@@ -169,7 +169,7 @@ fn render_panel_at(
     label(
         painter,
         pos2(panel_rect.left() + 20.0, panel_rect.top() + 6.0),
-        "nord stage 4",
+        crate::branding::CHASSIS_WORDMARK,
         13.0,
         Color32::WHITE,
         Align2::LEFT_TOP,
