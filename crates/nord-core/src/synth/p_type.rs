@@ -34,6 +34,12 @@ pub fn type_cutoff_scale(model: FilterModel) -> f32 {
 /// 1.47 / 1.58 against 3.53, Transkun notes), A:25 Sidechain Whl II 1.0 to 2.2 (2.87 to 2.94 against
 /// 4.32; no PUMP, brightness only), A:76 is dominated by its LP12 layer B and A:81 is insensitive. Four-clip mean 3.17 / 3.95 at 4.4, 2.44 / 2.58 at 2.0
 /// (`--synth-super-lp24 2.0`, opt-in). The note lists are unverified, so the default stays (D22).
+///
+/// D221 (`docs/research/a25-brilliance-bisect.md`): the bisect of `legacy_all` on A:25 finds this factor
+/// is the source of the clip's remaining 8 dB at 3..8 kHz: the default reads +14.2 dB against +5.7 to +6.0
+/// for 1.0 to 2.2 (synth layer silenced: +6.0; `emu_vs_hw_a25_super_results.json`, one clip, velocity
+/// 100, compressor first). EMPIRICAL status unchanged: the value stays 4.4 until D116's flip criteria
+/// are met; `tests_super_lp24_a25.rs` pins the direction at the layer level.
 pub const SUPER_LP24_TYPE_SCALE: f32 = 4.4;
 
 /// Total cutoff factor of a table row on a filter type: the row factor times the type factor

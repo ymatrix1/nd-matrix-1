@@ -1,0 +1,294 @@
+{
+ "video": "_zksT69H30c",
+ "note": "A:25 legacy_all bisect (docs/research/a25-brilliance-bisect.md)",
+ "segments": [
+  {
+   "id": "super_lp24_sidechain",
+   "entry": "Program/Bank A/Sidechain Whl II.ns4p",
+   "engine": "A:25",
+   "at_s": 594,
+   "duration_s": 28,
+   "variants": [
+    {
+     "label": "default"
+    },
+    {
+     "label": "base_cf",
+     "flags": [
+      "--fx-compressor-first"
+     ]
+    },
+    {
+     "label": "fwd_piano-level",
+     "flags": [
+      "--fx-compressor-first",
+      "--legacy-piano-level"
+     ]
+    },
+    {
+     "label": "fwd_piano-touch",
+     "flags": [
+      "--fx-compressor-first",
+      "--legacy-piano-touch"
+     ]
+    },
+    {
+     "label": "fwd_fx-rate",
+     "flags": [
+      "--fx-compressor-first",
+      "--legacy-fx-rate"
+     ]
+    },
+    {
+     "label": "fwd_morph",
+     "flags": [
+      "--fx-compressor-first",
+      "--legacy-morph"
+     ]
+    },
+    {
+     "label": "fwd_routing",
+     "flags": [
+      "--fx-compressor-first",
+      "--legacy-routing"
+     ]
+    },
+    {
+     "label": "fwd_synth-velocity",
+     "flags": [
+      "--fx-compressor-first",
+      "--legacy-synth-velocity"
+     ]
+    },
+    {
+     "label": "fwd_arp",
+     "flags": [
+      "--fx-compressor-first",
+      "--legacy-arp"
+     ]
+    },
+    {
+     "label": "fwd_1khz-tick",
+     "flags": [
+      "--fx-compressor-first",
+      "--legacy-1khz-tick"
+     ]
+    },
+    {
+     "label": "fwd_synth-layer-law",
+     "flags": [
+      "--fx-compressor-first",
+      "--legacy-synth-layer-law"
+     ]
+    },
+    {
+     "label": "fwd_no-synth-stages",
+     "flags": [
+      "--fx-compressor-first",
+      "--no-synth-stages"
+     ]
+    },
+    {
+     "label": "fwd_no-knob-laws",
+     "flags": [
+      "--fx-compressor-first",
+      "--no-synth-knob-laws"
+     ]
+    },
+    {
+     "label": "fwd_sample-ratio",
+     "flags": [
+      "--fx-compressor-first",
+      "--sample-kernel",
+      "ratio"
+     ]
+    },
+    {
+     "label": "fwd_synth-chain-legacy",
+     "flags": [
+      "--fx-compressor-first",
+      "--synth-chain",
+      "legacy"
+     ]
+    },
+    {
+     "label": "fwd_fx-legacy",
+     "flags": [
+      "--legacy-fx-ports",
+      "--legacy-mod2"
+     ]
+    },
+    {
+     "label": "fwd_all-nonfx",
+     "flags": [
+      "--fx-compressor-first",
+      "--legacy-piano-level",
+      "--legacy-piano-touch",
+      "--legacy-fx-rate",
+      "--legacy-morph",
+      "--legacy-routing",
+      "--legacy-synth-velocity",
+      "--legacy-arp",
+      "--legacy-1khz-tick",
+      "--legacy-synth-layer-law",
+      "--no-synth-stages",
+      "--no-synth-knob-laws",
+      "--sample-kernel",
+      "ratio",
+      "--synth-chain",
+      "legacy"
+     ]
+    },
+    {
+     "label": "ref_legacy_all",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first"
+     ]
+    },
+    {
+     "label": "rev_piano-level",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--firmware-piano-level"
+     ]
+    },
+    {
+     "label": "rev_piano-touch",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--firmware-piano-touch"
+     ]
+    },
+    {
+     "label": "rev_fx-rate",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--fx-rate-match"
+     ]
+    },
+    {
+     "label": "rev_morph",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--firmware-morph"
+     ]
+    },
+    {
+     "label": "rev_routing",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--firmware-routing"
+     ]
+    },
+    {
+     "label": "rev_synth-velocity",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--firmware-synth-velocity"
+     ]
+    },
+    {
+     "label": "rev_arp",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--arp-firmware"
+     ]
+    },
+    {
+     "label": "rev_arp-gate",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--arp-fw-gate"
+     ]
+    },
+    {
+     "label": "rev_synth-layer-law",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--firmware-synth-layer-law"
+     ]
+    },
+    {
+     "label": "rev_synth-stages",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--synth-stages"
+     ]
+    },
+    {
+     "label": "rev_knob-laws",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--synth-knob-laws"
+     ]
+    },
+    {
+     "label": "rev_sample-key",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--sample-kernel",
+      "key"
+     ]
+    },
+    {
+     "label": "rev_synth-chain-strip",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity",
+      "--fx-compressor-first",
+      "--synth-chain",
+      "strip"
+     ]
+    },
+    {
+     "label": "rev_fx-default",
+     "flags": [
+      "--legacy-all",
+      "--firmware-fx-ports",
+      "parity"
+     ]
+    }
+   ]
+  }
+ ]
+}
