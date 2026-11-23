@@ -97,6 +97,9 @@ jobs:
       - name: Firmware-derived files only shrink (ratchet)
         run: uv run python tools/check_fw_derived.py
 
+      - name: No vendor photos tracked or embedded
+        run: uv run python tools/check_no_vendor_photos.py
+
   licenses:
     name: No copyleft crate in the shipped plugin tree
     runs-on: ubuntu-24.04

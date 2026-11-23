@@ -46,6 +46,8 @@ The project does not bypass, remove or defeat any access control, signature chec
 
 Users bring their own lawfully obtained update and backup files.
 
+Found and removed: two Nord product photographs of the Stage 4 (`crates/nord-gui/assets/panel_texture.jpg`, `keyboard_full.jpg`, with the vendor logo) were tracked, and the first was embedded in every GUI binary. They contradicted D16 and are removed; `tools/check_no_vendor_photos.py` runs in CI to keep tracked JPEGs and `include_bytes!` of JPEGs out of `crates/` and `assets/`. They remain in git history (section 8, question 5).
+
 Not yet fully true, stated plainly: the inventory still tracks class B (code images such as `bass-fw-image.csv`, `farfisa-fw-image.csv`, `organ/*/prog_*.rs`) and class C (numeric table dumps without a closed form such as `synth-p-words.csv`, `synth-fm-tables.csv`, `fx/fw_*_tables.rs`). D128 decides that these move to runtime loading from the user's own OS update file in follow-up PRs. Until each migration lands the files remain in the tree and in history. See [firmware-derived-data-inventory](research/firmware-derived-data-inventory.md) for the current list and order. Whether such tables are protectable at all, and in which jurisdiction, is an open question in section 8.
 
 ## 5. Trademarks
@@ -77,7 +79,7 @@ These are questions, not conclusions.
 2. In the US, does 17 USC 1201(f) (reverse engineering for interoperability) cover this work, given that no technical protection measure is circumvented (section 3), and what does it say about publishing derived tables?
 3. In the EU, does Art. 6 of the Software Directive 2009/24/EC (decompilation for interoperability) apply, and what limits does it put on publishing what is learned?
 4. Which jurisdiction's rules apply to a project whose contributors and users are in several countries?
-5. Commit `8a3f060` removed `helper.exe` (the vendor's USB driver installer), `sram.bin` and `sram.asm` from the tree, but they remain in git history. Is history rewriting needed, and is that decision (left to the owner in D128) enough?
+5. Commit `8a3f060` removed `helper.exe` (the vendor's USB driver installer), `sram.bin` and `sram.asm` from the tree, but they remain in git history, as do the two product photos `panel_texture.jpg` and `keyboard_full.jpg` (first tracked in or before commit `f821f0d7`, removed from the tree in the "remove vendor photos" change, section 4). Is history rewriting needed, and is that decision (left to the owner in D128) enough?
 6. Are class B and C derived tables (section 4) copyrightable expression or unprotectable facts, and does moving them to runtime loading fully resolve the concern?
 7. Does the PolyForm Noncommercial licence of this repository interact with any of the above?
 
