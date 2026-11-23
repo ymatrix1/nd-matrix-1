@@ -1,0 +1,6 @@
+# cargo xtask bundle names the .clap/.vst3 bundles (and the binary inside them) after this
+# `name`, not the crate. The crate stays `nord-plugin`; shipped files are `nd-matrix-1.*`.
+# Host-visible IDs (CLAP_ID, VST3_CLASS_ID, NAME, parameter IDs) are unchanged (D16).
+# tools/release_package.py PLUGIN_STEM must equal this value (pinned by a test).
+[nord-plugin]
+name = "nd-matrix-1"

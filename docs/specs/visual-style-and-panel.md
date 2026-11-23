@@ -360,6 +360,9 @@ Our product name is **ND Matrix 1**. "Nord", "Nord Stage 4" and "Clavia" appear 
 | Procedural chassis wordmark | `nd matrix 1` (`branding::CHASSIS_WORDMARK`) | rule |
 | Library drawer heading | `Backup & Sample Library (Nord Stage 4 files)` | descriptive |
 | File dialog filter (backups, sounds) | `Backup and sound files for Nord Stage 4` | descriptive |
-| Plugin name, installers, bundle names, `.desktop` | `ND Matrix 1` | already compliant |
+| Plugin name, installers, `.desktop` | `ND Matrix 1` | already compliant |
+| Shipped plugin bundle files | `nd-matrix-1.clap`, `nd-matrix-1.vst3` (`bundler.toml`; legacy `nord-plugin.*` removed by installers) | rule |
 
 Unchanged on purpose: crate and binary names (`nord-*`), host parameter IDs and CLAP/VST3 ids (saved DAW projects), data matches such as `prog.name == "Nord Stage 4 Program"` (written by the hardware), hardware text mirrored on the OLED (`Nord Sample Library 4`), pedal model names, and official download links. Pinned by tests in `crates/nord-gui/src/branding.rs` and `file_picker.rs`.
+
+"Nord OS update" and "Nord OS update file" stay as labels because they name the vendor's firmware file the user must supply (nominative use), not our product.

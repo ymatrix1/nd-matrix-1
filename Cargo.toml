@@ -15,8 +15,8 @@ version = "0.1.2"
 edition = "2021"
 license = "PolyForm-Noncommercial-1.0.0"
 publish = false
-repository = "https://github.com/ymatrix1/nord-stage-4-emulator"
-authors = ["Yuri Olive <yuri@github.com>"]
+repository = "https://github.com/ymatrix1/nd-matrix-1"
+authors = ["ymatrix1"]
 
 # nih_plug_egui with the HiDPI plugin-resize fix (see vendor/nih_plug_egui/README-VENDORED.md).
 [patch."https://github.com/robbert-vdh/nih-plug.git"]

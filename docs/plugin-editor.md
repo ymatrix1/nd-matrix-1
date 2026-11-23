@@ -8,7 +8,7 @@ The CLAP/VST3 plugin has an egui editor (`crates/nord-plugin/src/editor/`, spec:
 cargo xtask bundle nord-plugin --release
 ```
 
-Bundles land in `target/bundled/` (`nord-plugin.clap`, `nord-plugin.vst3`). Copy them to the host's plugin folder (Windows: `%COMMONPROGRAMFILES%\CLAP`, `%COMMONPROGRAMFILES%\VST3`; macOS and Linux: the usual user folders). Quick check without a host: `cargo build -p nord-plugin --release`.
+Bundles land in `target/bundled/` (`nd-matrix-1.clap`, `nd-matrix-1.vst3`). Copy them to the host's plugin folder (Windows: `%COMMONPROGRAMFILES%\CLAP`, `%COMMONPROGRAMFILES%\VST3`; macOS and Linux: the usual user folders). Quick check without a host: `cargo build -p nord-plugin --release`.
 
 ## Smoke test (Reaper, Bitwig)
 

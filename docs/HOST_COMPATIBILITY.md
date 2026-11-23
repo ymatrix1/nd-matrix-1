@@ -238,7 +238,7 @@ Drives the `Plugin` trait the way nih-plug's wrappers do (initialize, process pe
 
 Run once per host and record host name, version, OS, date and the result of every line in `docs/research/` (the editor checklist in [plugin-editor.md](plugin-editor.md) covers the panel itself):
 
-1. Build the bundles: `cargo xtask bundle nord-plugin --release`; copy `target/bundled/nord-plugin.clap` and `.vst3` to the host's plugin folders; rescan. Record the scan time and whether the plugin appears in both formats.
+1. Build the bundles: `cargo xtask bundle nord-plugin --release`; copy `target/bundled/nd-matrix-1.clap` and `.vst3` to the host's plugin folders; rescan. Record the scan time and whether the plugin appears in both formats.
 2. Insert on an instrument track; play MIDI notes from a keyboard or the piano roll: sound on all three engines (Scene I default), no clicks, no stuck notes after stop.
 3. Set the buffer to 64, 128, 512 and 2048 frames and the sample rate to 44.1, 48 and 96 kHz: no dropouts with a 10-note chord; watch the host CPU meter with 88 keys held (the all-layers worst case is expected to overload, see 7.1).
 4. Open and close the editor 10 times, resize it, move it between monitors of different DPI: no crash, the panel stays sharp.
