@@ -75,23 +75,6 @@ pub const DRAWBAR_WHITE: Color32 = Color32::from_rgb(0xEC, 0xEB, 0xE6);
 /// Black sub/mutation drawbar cap (`#1A1C1E`).
 pub const DRAWBAR_BLACK: Color32 = Color32::from_rgb(0x1A, 0x1C, 0x1E);
 
-/// Raw JPEG bytes of the authentic Nord Stage 4 high-fidelity front panel texture.
-pub const PANEL_TEXTURE_BYTES: &[u8] = include_bytes!("../assets/panel_texture.jpg");
-
-/// Decodes and loads the embedded panel texture into an `egui::TextureHandle`.
-pub fn load_panel_texture(ctx: &egui::Context) -> egui::TextureHandle {
-    let img = image::load_from_memory(PANEL_TEXTURE_BYTES)
-        .expect("Embedded panel_texture.jpg must be valid JPEG");
-    let rgba = img.to_rgba8();
-    let (w, h) = (rgba.width() as usize, rgba.height() as usize);
-    let color_image = egui::ColorImage::from_rgba_unmultiplied([w, h], &rgba.into_raw());
-    ctx.load_texture(
-        "stage4_panel_texture",
-        color_image,
-        egui::TextureOptions::LINEAR,
-    )
-}
-
 /// Red of the Program / Master blocks behind legends (`bay_program`, `panel::frames`).
 pub const PROGRAM_RED: Color32 = Color32::from_rgb(115, 18, 22);
 
@@ -148,7 +131,7 @@ pub fn dim_legend(ink: Color32) -> Color32 {
     ink
 }
 
-/// Configure egui visual style to match authentic Nord chassis aesthetics.
+/// Configure egui visual style to use our own chassis colours (`CHASSIS_RED`, `MODULE_SLATE`, `OLED_BG`); the panel art itself is the baked plate (`baked.rs`).
 pub fn setup_nord_visuals(ctx: &egui::Context) {
     let mut visuals = egui::Visuals::dark();
     visuals.panel_fill = CHASSIS_RED;
@@ -194,13 +177,5 @@ mod tests {
         }
         // The legacy greys (150 and 105) were below the floor.
         assert!(contrast_ratio(Color32::from_gray(105), MODULE_SLATE) < LEGEND_MIN_CONTRAST);
-    }
-
-    #[test]
-    fn test_embedded_panel_texture_valid_jpeg() {
-        assert!(PANEL_TEXTURE_BYTES.len() > 1000);
-        let img = image::load_from_memory(PANEL_TEXTURE_BYTES).expect("Valid JPEG");
-        assert!(img.width() >= 1000);
-        assert!(img.height() >= 100);
     }
 }

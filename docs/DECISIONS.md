@@ -407,6 +407,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 - **Alternatives:** Photo-derived art (rejected: rights); full menus before release (delays the visual goal); renaming per-layer IDs (breaks saved projects); all keybed variants up front (more layout work for no early benefit).
 - **Impact:** Unblocks B7 art direction, B8d/B9d scope, B8g layout and B9a-c parameter work. The remaining Phase 6b unknown is OQ13 (hardware behaviour).
 - **Follow-up (2026-11-23, `ns4-tm7q`):** user-facing text now follows the naming rule in [visual-style-and-panel.md](specs/visual-style-and-panel.md#10-naming-and-trademark-rule-for-user-facing-text-d16-follow-up): the product is "ND Matrix 1" and "Nord Stage 4" appears only descriptively.
+- **Follow-up (2026-11-23, `ns4-3o8r`):** two Nord product photographs, `crates/nord-gui/assets/panel_texture.jpg` and `keyboard_full.jpg`, were found tracked (first in or before commit `f821f0d7`), and the first was embedded in the GUI binary (`PANEL_TEXTURE_BYTES`). Both are removed; the GUI uses the baked plate and theme colours. `tools/check_no_vendor_photos.py` (CI) blocks their return. They remain in git history (owner decision, [LEGAL.md](LEGAL.md) section 8).
 
 ### D17. Chip identity: FX, PNO and ORG run on ADSP-2157x (SHARC+), SY1SY2 and SMP on ADSP-2148x
 
