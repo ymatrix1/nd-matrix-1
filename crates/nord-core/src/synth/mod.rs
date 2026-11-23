@@ -325,8 +325,9 @@ pub struct SynthLayer {
     /// Strip chain only, opt-in (default `None` = [`p_type::SUPER_LP24_TYPE_SCALE`] 4.4): the SUPER
     /// wave 0 / LP24 type factor (`--synth-super-lp24`, grid of D113).
     pub super_lp24_scale: Option<f32>,
-    /// Strip chain only, opt-in (default off): only the firmware resonance table position of
-    /// [`fw_filter_law::resonance_position`] (`--synth-fw-resonance`); implied by `fw_filter_law`.
+    /// Strip chain only, default on since D223 (`--legacy-synth-resonance` turns it off): only the
+    /// firmware resonance table position of [`fw_filter_law::resonance_position`]; implied by
+    /// `fw_filter_law`. VERIFIED against the oracle stage for all 128 knobs (D214).
     pub fw_resonance: bool,
     /// Decoded: the raw `kFltType` of the layer is 3 ("LP+HP"), the stage `0x1257B2`.
     pub filter_raw3: bool,
@@ -553,7 +554,7 @@ impl SynthLayer {
             strip_stages: true,
             fw_filter_law: None,
             super_lp24_scale: None,
-            fw_resonance: false,
+            fw_resonance: true,
             filter_raw3: false,
             unison_gain: 1.0,
             unison_fw_weights: false,
