@@ -92,13 +92,24 @@ pub fn start_slot(slot: &mut Option<PendingPick>, kind: PickKind) {
     }
 }
 
+/// Filter label and extensions the dialog of `kind` offers (descriptive labels, no brand name).
+pub fn filter_for(kind: PickKind) -> (&'static str, &'static [&'static str]) {
+    match kind {
+        PickKind::BackupOrSound => (
+            crate::branding::BACKUP_SOUND_FILTER_LABEL,
+            BACKUP_AND_SOUND_EXTS,
+        ),
+        PickKind::OsUpdate => ("Nord OS Update", OS_UPDATE_EXTS),
+    }
+}
+
 /// Shows the dialog on the calling thread and blocks until it closes.
 #[cfg(feature = "picker")]
 fn pick_blocking(kind: PickKind) -> Option<PathBuf> {
     match kind {
         PickKind::BackupOrSound => rfd::FileDialog::new()
             .set_title("Open Nord Stage 4 Backup or Sound File")
-            .add_filter("Nord Stage 4 Files", BACKUP_AND_SOUND_EXTS)
+            .add_filter(filter_for(kind).0, filter_for(kind).1)
             .add_filter("All Files", &["*"])
             .pick_file(),
         PickKind::OsUpdate => rfd::FileDialog::new()
@@ -129,6 +140,17 @@ mod tests {
         assert!(OS_UPDATE_EXTS.contains(&"zip"));
         assert!(OS_UPDATE_EXTS.contains(&"exe"));
         assert!(OS_UPDATE_EXTS.contains(&"dmg"));
+    }
+
+    #[test]
+    fn filter_labels_are_descriptive_not_brand_like() {
+        let (label, exts) = filter_for(PickKind::BackupOrSound);
+        assert_eq!(label, "Backup and sound files for Nord Stage 4");
+        assert_ne!(label, "Nord Stage 4 Files");
+        assert!(exts.contains(&"ns4b"));
+        let (label, exts) = filter_for(PickKind::OsUpdate);
+        assert_eq!(label, "Nord OS Update");
+        assert!(exts.contains(&"zip"));
     }
 
     fn wait(pick: &PendingPick) -> PickPoll {

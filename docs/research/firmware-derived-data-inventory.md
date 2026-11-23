@@ -61,6 +61,9 @@ Large tables (above ~20 KB) first, they have the highest size and the clearest r
 | `crates/nord-core/src/synth/p_table.rs` | 20 KB | per-wave P table (EMPIRICAL fit, not a dump) | `synth/p_table.rs` | not applicable, fitted to hardware clips | stays (class D) |
 | `crates/nord-core/src/fx/fw_delay_table.rs`, `fw_eq_tables.rs`, `fw_coeffs.rs`, `fx/tables.rs` | 11, 7, 9, 9 KB | delay thresholds, EQ words, biquad sets | FX | FX / ARM images | synthetic |
 | `docs/research/data/synth-filter-tables.csv`, `synth-filter-table-d.csv`, `synth-env-rate-table.csv`, `synth-env-rates-settled.csv`, `synth-sync-table.json`, `synth-knob-laws.csv`, `synth-velocity-law.csv`, `synth-wave-types.csv` | 2 to 93 KB | small DM tables and laws | `synth/fw_*.rs` | core 2 DM or ARM | synthetic |
+| `docs/research/data/synth-filter-t3-tables.csv` + `crates/nord-core/src/synth/fw_stage3_tables.rs` | 5 KB + 6 KB | `T0`, `T1`, `T2` words of stage `0x1257B2` (129 each) | `synth/fw_stage3_tables.rs` (generated) | core 2 DM `0xB0A9F`, `0xB0C0D`, `0xB0C8E` | closed-form stand-in |
+| `crates/nord-core/src/synth/fw_filter_tables.rs` | 7 KB | resonance tables A, B, C (129 words each, generated from `synth-filter-tables.csv`) | synth filter | core 2 DM `0xB0D0F`, `0xB0D90`, `0xB1015` | synthetic tables |
+| `crates/nord-core/src/fx/fw_lp24_tables.rs` | 7 KB | Amp LP24 words captured from the ARM (generated from `fx-lp24-words.csv`) | `fx/fw_lp24` | FX core 1 context `0xC1A28` | synthetic tables |
 | `crates/nord-core/src/engine/zone_table.rs` | 14 KB | key ranges of zone codes | engine | ARM0 code constants | closed form from spec |
 
 Already at runtime (the model to copy): `synth/fw_wave_tables.rs` reads the 46 WAVE tables from the user's image (`--synth-wave-tables PATH`, `NS4_WAVE_TABLES`; D22, D127). Its registry CSV `synth-wave-registry.csv` holds addresses and counts only.
@@ -79,6 +82,16 @@ Already at runtime (the model to copy): `synth/fw_wave_tables.rs` reads the 46 W
 | `docs/research/data/program-sweep.json`, `synth-program-velocity.csv`, `synth-sustped-programs.csv` | up to 208 KB | per factory program results (program names and parameters) | `program_sweep` | Names of factory programs are Nord content; values are our output |
 | `docs/research/sharc-fixed/*.csv` | 312 KB, 999 KB | fixed-point probe results of our own SHARC runs | docs | stay |
 | `crates/nord-panel/data/photo_anchors_*.csv`, `assets/panel/proof/*.png`, `assets/blender/build_proof.py` | small, PNG up to 1 MB | panel geometry anchors and proof renders of the panel look | `nord-panel` | Not firmware. Source photos are Nord product images: confirm the provenance in follow-up 6 |
+
+## Enforcement
+
+`python tools/check_fw_derived.py` (CI step "Firmware-derived files only shrink (ratchet)", tests in `tools/tests/test_check_fw_derived.py`) reads `tools/fw-derived-baseline.txt`, which lists every tracked class B and C path (7 B, 31 C) plus 2 reviewed class D false positives of the name heuristics. It fails when:
+
+- a baseline path is no longer tracked (stale: remove the line, the ratchet only goes down);
+- a new tracked file looks derived and is not in the baseline: class A patterns, `*-fw-image.*`, `fw_*_tables.rs`, `prog_*.rs` under `*_fw/`, or names containing `fw-image`, `-tables.`, `p-words` under `docs/research/data/` or `crates/`;
+- a tracked binary over 32 KB (png, jpg, bin, ...) is outside the allowlist in the script (GUI panel art and screenshots only).
+
+Review of the lists above against `git ls-files` (2026-11-23) found four tracked class C files the tables did not name; they are now listed under Class C and in the baseline: `docs/research/data/synth-filter-t3-tables.csv`, `crates/nord-core/src/synth/fw_stage3_tables.rs`, `crates/nord-core/src/synth/fw_filter_tables.rs`, `crates/nord-core/src/fx/fw_lp24_tables.rs`. `synth/p_table.rs` is named in the Class C table but marked "stays (class D)", so it is not in the baseline. `fw_wave_tables.rs` (runtime loader) and `arm-bulk-tables.json` (own harness capture) match the name heuristics and are baselined as class D.
 
 ## Counts
 
