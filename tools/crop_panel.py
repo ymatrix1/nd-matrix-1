@@ -1,10 +1,13 @@
-"""Extract and crop high-fidelity panel textures from reference images.
+"""Crop a local reference photo to measure panel layout (measurement only).
 
-Used to prepare 1:1 hardware photorealistic texture assets for crates/nord-gui.
+The input photo is the vendor's and stays in the git-ignored `.reference/`; the crops go to
+`.reference/crops/` by default. Never write them under `crates/` or `assets/`: D16 forbids
+shipping photo pixels (see `tools/check_no_vendor_photos.py`).
 """
 
 from __future__ import annotations
 
+import argparse
 import os
 from typing import Tuple
 
@@ -52,7 +55,7 @@ def calculate_keyboard_bounds(
 
 def crop_panel_and_keyboard(
     image_path: str,
-    output_dir: str = "crates/nord-gui/assets",
+    output_dir: str = os.path.join(".reference", "crops"),
     panel_fraction: float = 0.52,
 ) -> Tuple[str, str]:
     """Crops the keyboard and upper front panel from a reference image and saves textures."""
@@ -93,12 +96,18 @@ def crop_panel_and_keyboard(
     return (kb_path, panel_path)
 
 
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("image", help="reference photo, e.g. .reference/<name>.jpg (git-ignored)")
+    parser.add_argument("--out", default=os.path.join(".reference", "crops"))
+    args = parser.parse_args(argv)
+    if not os.path.exists(args.image):
+        print(f"Reference image not found at {args.image}")
+        return 1
+    kb, pan = crop_panel_and_keyboard(args.image, output_dir=args.out)
+    print(f"Generated crops:\n  Keyboard: {kb}\n  Panel: {pan}")
+    return 0
+
+
 if __name__ == "__main__":
-    ref_image = os.path.join(".reference", "NS4_HA88_TopDown-01_241008.jpg")
-    if not os.path.exists(ref_image):
-        ref_image = os.path.join(".reference", "foto.jpg")
-    if os.path.exists(ref_image):
-        kb, pan = crop_panel_and_keyboard(ref_image)
-        print(f"Generated textures:\n  Keyboard: {kb}\n  Panel: {pan}")
-    else:
-        print(f"Reference image not found at {ref_image}")
+    raise SystemExit(main())

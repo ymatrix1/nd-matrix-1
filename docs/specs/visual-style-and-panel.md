@@ -346,5 +346,6 @@ To achieve 1:1 visual parity with the approved `nd matrix 1` HTML/CSS reference 
   - `panel_layout.json`: normalized `(x, y, w, h)` bounding boxes for all annotated `data-control-id` controls, LEDs, OLEDs, and 88 keys.
 - **Runtime Loader & 1:1 View (`crates/nord-gui/src/baked.rs`, `crates/nord-gui/src/panel/baked_view.rs`):**
   - `BakedPanelAssets::get_or_load` uploads the baked atlas and splits `panel_plate_2x.png` into `<= 2048px` horizontal GPU texture tiles so OpenGL contexts with `max_texture_side = 2048` never fail.
+  - No photo texture ships: the former embedded `panel_texture.jpg` (a vendor photo) is removed (D16); all panel pixels come from the baked plate and sprite atlas, and chrome colours from `style.rs` tokens. `tools/check_no_vendor_photos.py` enforces it in CI.
   - `render_baked_panel` renders the tiled plate, interactive `pitch_stick`, `mod_wheel`, rotated knobs, buttons, faders, 9 drawbars, live LEDs, live `main` and `synth` OLEDs, and the 88-key keybed wired to `AudioHandle::send_keyboard_midi`.
   - Controlled by `Stage4PanelState::use_baked_plate` (enabled in the standalone `nd-matrix-1` binary; `false` by default in `Stage4PanelState::default()` so existing procedural layout and legibility tests remain valid).

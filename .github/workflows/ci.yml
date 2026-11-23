@@ -94,6 +94,9 @@ jobs:
       - name: Every source file has a unit test (ratchet)
         run: uv run python tools/check_tests.py
 
+      - name: No vendor photos tracked or embedded
+        run: uv run python tools/check_no_vendor_photos.py
+
   dco:
     name: DCO sign-off on PR commits
     if: github.event_name == 'pull_request'
