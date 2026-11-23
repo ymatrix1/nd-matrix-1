@@ -45,8 +45,10 @@ fn text_like(head: &[u8]) -> bool {
 /// the smallest total pointer to length word distance).
 pub fn find_chain(data: &[u8]) -> Vec<(usize, usize)> {
     let words: Vec<u32> = data
-        .chunks_exact(4)
-        .map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|c| u32::from_le_bytes(*c))
         .collect();
     let n = words.len();
     let mut ptr_at: HashMap<usize, Vec<usize>> = HashMap::new();
