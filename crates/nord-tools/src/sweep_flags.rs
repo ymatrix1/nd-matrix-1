@@ -1,5 +1,5 @@
 //! Flags and controller messages of `program_sweep` (D166): `--legacy-arp`, `--legacy-morph`,
-//! `--arp-fw-gate`, `--legacy-fx-rate` (D180), and the Mod Wheel / Control Pedal / aftertouch values sent before the notes.
+//! `--arp-fw-gate`, `--legacy-fx-rate` (D180), `--legacy-synth-resonance` (D223), and the Mod Wheel / Control Pedal / aftertouch values sent before the notes.
 
 use nord_core::midi::MidiEvent;
 use nord_core::render::TimedEvent;
@@ -54,6 +54,11 @@ pub fn apply_legacy_flags(o: &mut FirmwareOptions, args: &[String]) {
     if has("--legacy-fx-rate") {
         o.fx_rate_match = false;
     }
+    // D223: the firmware resonance position is the default in both modes; the legacy flag turns
+    // it off in both.
+    if has("--legacy-synth-resonance") {
+        o.synth_fw_resonance = false;
+    }
     // D173: the default FX ports are PARITY; the firmware mode (every port on) is left alone.
     if has("--legacy-fx-ports") && o.fx == nord_core::fx::FirmwareFx::DEFAULT {
         o.fx = nord_core::fx::FirmwareFx::PRE_PARITY;
@@ -90,6 +95,16 @@ mod tests {
         let mut fw = FirmwareOptions::firmware_all();
         apply_legacy_flags(&mut fw, &args(&["--legacy-fx-ports"]));
         assert_eq!(fw.fx, FirmwareFx::ALL);
+    }
+
+    #[test]
+    fn legacy_synth_resonance_turns_the_d223_default_off_in_both_modes() {
+        for mut o in [FirmwareOptions::default(), FirmwareOptions::firmware_all()] {
+            apply_legacy_flags(&mut o, &args(&[]));
+            assert!(o.synth_fw_resonance);
+            apply_legacy_flags(&mut o, &args(&["--legacy-synth-resonance"]));
+            assert!(!o.synth_fw_resonance);
+        }
     }
 
     #[test]
