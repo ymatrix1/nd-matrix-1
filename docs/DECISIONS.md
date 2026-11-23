@@ -2400,6 +2400,8 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Open:** the wheel position of A:25 (a raised wheel makes the hardware brighter); a hold-out SUPER LP24 clip; why the `enabled` edit leaves the synth layer sounding; a velocity-calibrated replay.
 - **Impact:** `synth/p_type.rs` (provenance), `synth/tests_super_lp24_a25.rs` (new), `docs/research/data/emu_vs_hw_a25_bisect*.json`, `_a25_super*.json`, [treble-excess-by-engine](research/treble-excess-by-engine.md) (corrected), [audio-remaining](research/audio-remaining.md) row 23, [effects-and-routing](specs/effects-and-routing.md) s4.0c, [synth-engine](specs/synth-engine.md) s4.6. Default render and `render_hash` unchanged.
 
+### D223. Default flip audit of the validated opt-ins: only `--synth-fw-resonance` flips; the envelope law and the settled tables make hardware clips worse, the rest need hardware
+
 - **Status:** accepted 2026-11-22 (number chosen above D218, the highest on `main`; renumber on merge if another branch takes it)
 - **Decided by:** owner ("por mim pode flipar o que foi validado", 2026-11-22) within the D22 rule and the 2026-11-17 rule (a flip must not make a hardware clip worse); the agent audited.
 - **Context:** Many opt-ins landed in D189 .. D217 with oracle evidence and "owner decides the flip" proposals. The owner approved flipping what is validated against the firmware. Reverb ports (owner veto), Mod 2, unison / per-type gain, `--synth-filter-gain` (D201) and the D203 FX words are out of scope.
