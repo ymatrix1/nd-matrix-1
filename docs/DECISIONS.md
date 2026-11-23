@@ -7,6 +7,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 | # | Date | Decision | Status |
 |---|---|---|---|
 | [D224](#d224-sy-pitch-entry-e-eighth-hunt-the-sy-census-rerun-with-the-fifo-index-bias-is-negative-the-arm-stream-is-identical-and-the-window-stays-untouched) | 2026-11-22 | SY pitch entry `e`, eighth hunt: the SY census rerun with the FIFO index bias is negative; the ARM stream is identical and the window stays untouched | proposed |
+| [D225](#d225-organ-presence-gap-re-run-on-the-merged-note-stream-b3wheels-stays-opt-in-flip-criterion-proposed) | 2026-11-22 | Organ presence-gap re-run on the merged note stream: `B3Wheels` stays opt-in; flip criterion proposed | proposed |
 | [D220](#d220-the-b3-leslie-too-dark-gap--128-db-at-38-khz-is-the-replayed-note-set-no-stage-changes-emuvshwpy---merge-gap-is-the-opt-in) | 2026-11-22 | The B3 "Leslie too dark" gap (-12.8 dB at 3..8 kHz) is the replayed note set; `emu_vs_hw.py --merge-gap` is the opt-in | proposed |
 | [D219](#d219-sy-pitch-entry-e-seventh-hunt-static-census-of-the-arm-call-sites-of-the-path-1-writers-no-sender-can-name-the-pitch-window-the-sy-has-no-constant-comm-site---sample-pitch-fw-stays-opt-in) | 2026-11-22 | SY pitch entry `e`, seventh hunt: 313 ARM call sites of the path 1 writers, none names the window or has a constant SY comm; `--sample-pitch fw` stays opt-in | proposed |
 | [D218](#d218-plugin-top-bar-loads-through-a-bounded-queue-to-the-audio-thread-a-loaded-program-is-held-per-group-until-the-host-moves-that-group) | 2026-11-22 | Plugin top bar loads through a bounded queue to the audio thread; a loaded program is held per group until the host moves that group | proposed |
@@ -2366,6 +2367,16 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Resolve the comm of the 249 unknown sites interprocedurally first (value now low: the live stream, the messages that matter, has no window address); build the flash directory model (high cost, lead 1).
 - **Limits:** the SY chip was idle for all passes (`lane_peak` 0.0, no voice started), so a writer that fires only in a playing voice is not exercised; one program; the watch samples once per tick batch.
 - **Impact:** `tools/sy_script_window_census.py`, `tools/tests/test_sy_script_window_census.py`, [sy-fifo-bias-census-rerun](research/sy-fifo-bias-census-rerun.md), OQ22, [audio-remaining](research/audio-remaining.md) row 2, [synth-engine](specs/synth-engine.md), bean ns4-sy8h. No `nord-core` change, no default change.
+
+### D225. Organ presence-gap re-run on the merged note stream: `B3Wheels` stays opt-in; flip criterion proposed
+
+- **Status:** proposed 2026-11-22 (D220 to D224 are taken or reserved by #596, #600, #601, #605 and #607; renumber on merge if D225 is taken)
+- **Decided by:** task of the parent session; owner decides the `B3Wheels` flip.
+- **Context:** [organ-presence-gap](research/organ-presence-gap.md) kept `B3Wheels` opt-in because it read 7 to 20 dB under the B3 clip at 1.5 to 8 kHz on the confirmed notes. D220 showed that note set was the wrong one and added `--merge-gap`. The follow-up was to re-run the gap with the merged stream, which could reopen the D22 flip.
+- **Decision:** (1) No engine, default or `render_hash` change; no tool change (this PR only runs `--merge-gap`). (2) `B3Wheels` stays opt-in. (3) Proposed flip criterion for the owner: `bw+r+l` (`--tone-source b3wheels --firmware-routing --b3-tail on --organ-level firmware`) on the merged stream within 3 dB at presence and brilliance, and a score no worse than Legacy on both B3 Chords n Solo and B3 Old Forest.
+- **Why:** [organ-presence-rerun](research/organ-presence-rerun.md): on the merged stream B3 Chords scores 4.04 for Legacy against 7.22 for `bw+r+l`; presence -3.0 against -10.9 dB, brilliance +1.3 against -9.0 dB; 1.5 to 3 kHz peakiness 14.8 (Legacy) and 11.8 dB (`B3Wheels`) against 22.0 dB on the hardware. The stream moves both paths by 10 to 17 dB but the B3Wheels-minus-Legacy distance stays (presence -8.9, -4.2, -7.9 dB over confirmed, raw, merged). Old Forest merged favours `B3Wheels` (4.38 against 5.52), so the clips disagree.
+- **Alternatives:** flip now (rejected: one clip each way, 1 to 3 kHz lines absent, D22 bar unmet); fit a presence stage to `B3Wheels` (rejected: fitted to one clip, the lines are partials, not a level).
+- **Impact:** `docs/research/organ-presence-rerun.md`, data `emu_vs_hw_organ_presence_rerun{,_results}.json`, [audio-remaining](research/audio-remaining.md) row 9, ROADMAP 7b.3, bean `ns4-opgr`.
 
 ### D220. The B3 "Leslie too dark" gap (-12.8 dB at 3..8 kHz) is the replayed note set; no stage changes, `emu_vs_hw.py --merge-gap` is the opt-in
 

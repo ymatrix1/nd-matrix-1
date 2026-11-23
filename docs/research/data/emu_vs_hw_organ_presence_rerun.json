@@ -1,0 +1,32 @@
+{
+  "video": "_zksT69H30c",
+  "note": "organ-presence-gap re-run (docs/research/organ-presence-rerun.md): B3 Legacy default against the opt-in B3Wheels paths on the B3 Chords n Solo and B3 Old Forest clips, run with confirmed-only, Transkun as is and Transkun --merge-gap 0.3.",
+  "segments": [
+    {
+      "id": "organ_b3",
+      "entry": "Program/Bank A/B3 Chords n Solo.ns4p",
+      "engine": "organ B3",
+      "at_s": 238,
+      "duration_s": 25,
+      "variants": [
+        {"label": "default", "flags": []},
+        {"label": "bw", "flags": ["--tone-source", "b3wheels"]},
+        {"label": "bw+routing+level", "flags": ["--tone-source", "b3wheels", "--firmware-routing", "--b3-tail", "on", "--organ-level", "firmware"]},
+        {"label": "bw+routing+level+rotary-scaled", "flags": ["--tone-source", "b3wheels", "--firmware-routing", "--b3-tail", "on", "--organ-level", "firmware", "--rotary-drive", "scaled"]},
+        {"label": "bw+routing+level+leslie-fw", "flags": ["--tone-source", "b3wheels", "--firmware-routing", "--b3-tail", "on", "--organ-level", "firmware", "--leslie", "firmware"]}
+      ]
+    },
+    {
+      "id": "fx_reverb",
+      "entry": "Program/Bank A/B3 Old Forest.ns4p",
+      "engine": "organ B3 + Spring reverb 0.62 (kRvbType 0)",
+      "at_s": 2078,
+      "duration_s": 20,
+      "variants": [
+        {"label": "default", "flags": []},
+        {"label": "bw+routing+level", "flags": ["--tone-source", "b3wheels", "--firmware-routing", "--b3-tail", "on", "--organ-level", "firmware"]},
+        {"label": "bw+routing+level+rotary-scaled", "flags": ["--tone-source", "b3wheels", "--firmware-routing", "--b3-tail", "on", "--organ-level", "firmware", "--rotary-drive", "scaled"]}
+      ]
+    }
+  ]
+}
