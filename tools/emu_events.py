@@ -18,6 +18,7 @@ from typing import Any
 
 import midi_events
 import note_env
+import note_offsets
 
 STREAM_DIR = Path(__file__).resolve().parents[1] / "docs" / "research" / "data"
 STREAM_NAME = "transkun"
@@ -30,11 +31,18 @@ def stream_path(events_from: str, video: str) -> Path:
     return Path(events_from)
 
 
-def segment_events(stream: Path, seg: dict[str, Any], out: Path) -> Path:
-    """Writes the stream sliced to the segment window (times re-based to 0)."""
+def segment_events(stream: Path, seg: dict[str, Any], out: Path, merge_gap: float = 0.0) -> Path:
+    """Writes the stream sliced to the segment window (times re-based to 0).
+
+    ``merge_gap`` > 0 joins same-key re-triggers closer than that many seconds
+    (`note_offsets.merge_retriggers`): a Leslie makes a piano transcriber re-trigger one held
+    organ key many times, and the replay then holds a different note set than the player did.
+    """
     doc = json.loads(stream.read_text(encoding="utf-8"))
     cut = midi_events.slice_events(doc, float(seg["at_s"]), float(seg["duration_s"]))
     cut.pop("program_ranges", None)
+    if merge_gap > 0:
+        cut["events"] = note_offsets.merge_retriggers(cut["events"], merge_gap)
     out.write_text(json.dumps(cut), encoding="utf-8")
     return out
 
