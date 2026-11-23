@@ -50,6 +50,6 @@ Final build, default against `--legacy-synth-resonance`, same 17 segments ([defa
 
 ## 5. Follow-ups
 
-- Find the ASSUMED link of the envelope law: oracle trace of the voice level that multiplies the filter envelope amount (D207 open: key tracking word `w38`, layers B / C strips, running LFO scale).
+- Done in D231 ([synth-env-level-link](synth-env-level-link.md)): the level link is VERIFIED; the regression is the fitted row and type cutoff factors. Open: pad source gap. Original item: find the ASSUMED link of the envelope law: oracle trace of the voice level that multiplies the filter envelope amount (D207 open: key tracking word `w38`, layers B / C strips, running LFO scale).
 - Re-measure the pass period (D212 follow-up: invert the settled table in `strip_map.rs`) and re-score the settled tables.
 - Split the attack velocity scaling (VERIFIED) out of `--synth-fw-adr-law` so it can flip without the audible sustain.

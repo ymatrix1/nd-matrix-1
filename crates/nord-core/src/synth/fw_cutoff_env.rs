@@ -17,9 +17,12 @@
 //! Tags (`.agents/rules/provenance-in-code.md`): the law is VERIFIED against the SHARC oracle
 //! (`docs/research/data/synth-cutoff-env-oracle.csv`: 17 base knobs 0..=114 within 0.6 % in `R`,
 //! 8 amount x level points within 0.5 % in `R`, tests below); the stage rate `2F` is VERIFIED
-//! through `fc0` against the panel table (13.75 Hz is `A0 / 2`, 440 Hz at knob 60). That the engine
-//! `level` is the oracle chain level times the velocity peak, and that key tracking multiplies
-//! the Hz cutoff before this law, are ASSUMED. Spec: `docs/specs/synth-engine.md` s4.3.
+//! through `fc0` against the panel table (13.75 Hz is `A0 / 2`, 440 Hz at knob 60). D231 settles
+//! the level link: the engine `level` (filter chain times the velocity factor `F = G / 128`) is
+//! VERIFIED against the oracle peak for 2 programs x 5 key bytes x 2 velocity settings
+//! (`synth-env-level-link.csv`, test `level_link_rows_equal_the_oracle_peak`); key tracking adds
+//! its semitones 1:1 to the same index sum (VERIFIED, D207 `m0`), so multiplying the Hz cutoff
+//! first is equivalent below the `R` clip. Spec: `docs/specs/synth-engine.md` s4.3.
 //!
 //! D207 adds the other terms of the same index sum (`tools/synth_cutoff_terms.py`,
 //! `docs/research/data/synth-cutoff-terms-oracle.csv`): the LFO term `512 * depth * lfo`
@@ -362,6 +365,35 @@ mod tests {
                 "{inputs}: {got} {oracle}"
             );
         }
+    }
+
+    #[test]
+    fn level_link_rows_equal_the_oracle_peak() {
+        use crate::synth::fw_velocity::filter_factor;
+        let csv = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../docs/research/data/synth-env-level-link.csv"
+        ));
+        let mut n = 0;
+        for l in csv.lines().skip(1) {
+            // program,amount_knob,vel_setting,g,chain_peak,f4_peak,slot_f,index_before,index_peak,semitones_peak
+            let f: Vec<&str> = l.split(',').collect();
+            let amount: f32 = f[1].parse::<f32>().unwrap() / 127.0;
+            let on = f[2] == "1";
+            let g: u8 = f[3].parse().unwrap();
+            let chain: f32 = f[4].parse().unwrap();
+            let oracle: f32 = f[9].parse().unwrap();
+            // engine: level = chain * fenv_peak, fenv_peak = F(g) with the setting on, else 1
+            let level = chain * if on { filter_factor(g) } else { 1.0 };
+            let base_hz = fw_cutoff_hz_of_knob(40.0);
+            let semis = 12.0 * (fw_env_cutoff_hz(base_hz, amount, level) / base_hz).log2();
+            assert!(
+                (semis - oracle).abs() < 0.05,
+                "{l}: {semis} against {oracle}"
+            );
+            n += 1;
+        }
+        assert!(n >= 16, "{n} rows");
     }
 
     #[test]
