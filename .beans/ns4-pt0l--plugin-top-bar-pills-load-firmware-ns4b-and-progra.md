@@ -22,7 +22,8 @@ Clicking OPEN .NS4B in a DAW loads an `.ns4b` and a program that then sounds, li
 - [x] File picker on a worker thread (`rfd`, feature `picker`)
 - [x] Headless end-to-end test: OPEN pill, synthetic `.ns4b`, program, audible `process()` (`tests/load_path.rs`)
 - [x] D218, `docs/specs/daw-plugin.md`, TD-21, `docs/plugin-editor.md`, ROADMAP B11a updated
-- [ ] Load checked by hand in FL Studio, Reaper and Bitwig (no DAW run here)
+- [x] Load checked by hand in FL Studio (2026-11-22, `HOST_COMPATIBILITY.md` 7.9)
+- [ ] Load checked by hand in Reaper and Bitwig
 
 ## Out of Scope
 - Pushing program values into host parameters; persisting the loaded program in project state; `LoadPreset` (TD-21)
