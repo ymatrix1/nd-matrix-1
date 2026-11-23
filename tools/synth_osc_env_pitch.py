@@ -10,7 +10,10 @@ stage then adds `48 * word * level` semitones to its pitch, `level` the osc enve
 * `law`: Time Warp Saw recall, osc ADR slowed to nothing, `F + 6` poked to `level` before every
   pass, word 12 swept; the pitch is the FFT peak of the oscillator output (`DM(0xC1F89)` PEx lane)
   against the word 0 run. Writes `data/synth-osc-env-pitch-oracle.csv`.
-* `trace`: per factory program (layer A): recall capture + injected osc ADR words and word 12,
+* `layers`: per factory layer with an amount, the law at held levels 0.5 / 1.0 (probe word and the
+  program's own word), layers A, B, C (voice slot = layer, addresses `osc_adr_addr` ...).
+* `velocity`: pitch against the key byte `g` for a capture of a program with `kOscEnvVel` on.
+* `trace`: per factory program and layer: recall capture + injected osc ADR words and word 12,
   the oscillator path (filter stage nulled), pitch trace per window next to the model
   `48 * word * F+6` and next to the native render (`synth_e2e_native --synth-osc-env-morph`).
 
@@ -33,7 +36,13 @@ import numpy as np
 OSC_ADR = 0xE0020
 WORD12 = 0xE02F4
 OSC_LEVEL = 0xC118E
+WORD_KEY = 0xC1DCC  # slot 0 controller (key) word
 OSC_SAMPLES = 0xC1F89  # 8 words per pass, PEx lane = every other word
+# VERIFIED (this tool, `layers`): layer L plays in voice slot L (Cinema Rise A, B, C; Detuned
+# Fanfare A, B). Its strip is 2 L (62 words each), its common block `0xE02E8 + 32 L`, its osc
+# envelope chain `F + 6` sits at `0xC118E + 62 (L >> 1) + (L & 1)` (two lanes per strip chain) and
+# its voice record at `0xC1F89 + 54 L`.
+STRIP_WORDS, COMMON_STRIDE, RECORD_STRIDE = 62, 32, 54
 # VERIFIED (synth-env-oracle-trace s3): 2 frames per pass, F = 43,402.34 Hz, 4 PEx samples per pass.
 ORACLE_RATE_HZ = 86_804.69
 SLOWEST_RATE = 0x3F000000  # rate index +63: the chain does not move on its own
@@ -41,6 +50,36 @@ NULL_B_STAGE = (0xC0B8C, 0x125B79)  # oscillator path: filter B stage nulled (e2
 SEMITONES_FULL = 48.0
 MIN_MEASURABLE_HZ = 40.0  # the peak search starts at 20 Hz; the window holds too few cycles below
 LAW_HOLD = (2400, 4200)  # passes of the steady window (key down from pass 2000)
+
+
+def osc_adr_addr(layer: int) -> int:
+    """`DM` of the layer osc ADR attack word (strip `2 layer`)."""
+    return OSC_ADR + 2 * STRIP_WORDS * layer
+
+
+def word12_addr(layer: int) -> int:
+    """`DM` of the layer common word 12 (`osc_env_dsp_word`)."""
+    return WORD12 + COMMON_STRIDE * layer
+
+
+def level_addr(layer: int) -> int:
+    """`DM` of the layer osc envelope chain `F + 6` (lane `layer & 1` of chain `layer >> 1`)."""
+    return OSC_LEVEL + STRIP_WORDS * (layer >> 1) + (layer & 1)
+
+
+def samples_addr(layer: int) -> int:
+    """`DM` of the layer voice record (8 words per pass, PEx lane = every other word)."""
+    return OSC_SAMPLES + RECORD_STRIDE * layer
+
+
+def vel_factor(g: int) -> float:
+    """Velocity factor `G / 128` of the key byte `g` (`G = 128` for `g = 127`, VERIFIED)."""
+    return (128 if g >= 127 else g) / 128.0
+
+
+def key_word(g: int, layer_byte: int = 0x0B) -> int:
+    """Synth key word of slot 0 with the velocity byte `0x80 + g` (byte 1), `layer_byte` on top."""
+    return (layer_byte << 24) | ((0x80 + g) << 8)
 
 
 def f2w(x: float) -> int:
@@ -123,12 +162,13 @@ class Oracle:  # pragma: no cover - needs the local firmware image
         width = sum(n for _, n in taps)
         return np.fromfile(out, dtype="<u4").reshape(passes, width).view("<f4").astype(np.float64)
 
-    def pitch(self, word: float, level: float | None, passes: int = 4200) -> float:
-        """Steady oscillator frequency in Hz for word 12 = `word` and `F + 6` held at `level`."""
-        writes = {WORD12: f2w(word), OSC_ADR: SLOWEST_RATE, OSC_ADR + 1: SLOWEST_RATE,
-                  OSC_ADR + 2: SLOWEST_RATE}  # fmt: skip
-        hold = [] if level is None else [(OSC_LEVEL, f2w(level))]
-        a = self.run(writes, hold, passes, ((OSC_SAMPLES, 8),))
+    def pitch(self, word: float, level: float | None, passes: int = 4200, layer: int = 0) -> float:
+        """Steady frequency in Hz of `layer` for its word 12 = `word`, `F + 6` held at `level`."""
+        adr = osc_adr_addr(layer)
+        writes = {word12_addr(layer): f2w(word), adr: SLOWEST_RATE, adr + 1: SLOWEST_RATE,
+                  adr + 2: SLOWEST_RATE}  # fmt: skip
+        hold = [] if level is None else [(level_addr(layer), f2w(level))]
+        a = self.run(writes, hold, passes, ((samples_addr(layer), 8),))
         x = a[LAW_HOLD[0] : LAW_HOLD[1], 0:8:2].reshape(-1)
         return pitch_peak_hz(x, ORACLE_RATE_HZ)
 
@@ -182,17 +222,22 @@ def at_times(trace: np.ndarray, rate: float, t0: float, times: list[float]) -> l
 
 TIMES_S = (0.01, 0.02, 0.04, 0.08, 0.16, 0.25)
 KEY_ON_PASS, TRACE_PASSES = 2000, 8000
-CSV_TRACE = ("program", "t_ms", "oracle_st", "model_st", "native_fw_st", "native_lin_st")
+CSV_TRACE = ("program", "layer", "t_ms", "oracle_st", "model_st", "native_fw_st", "native_lin_st")
+CSV_LAYERS = ("program", "layer", "amount", "word", "level", "probe_word", "oracle_probe_st",
+              "model_probe_st", "oracle_own_st", "model_own_st")  # fmt: skip
+PROBE_WORD = 0.1  # 4.8 st at level 1: far above the estimator floor for every voice
+HOLD_LEVELS = (0.5, 1.0)
 
 
 def native_trace(
-    exe: str, prog: Path, amount: float | None, fw: bool
+    exe: str, prog: Path, amount: float | None, fw: bool, layer: int = 0
 ) -> np.ndarray:  # pragma: no cover
-    """Native pitch trace `[sample, Hz]` of layer A (filter off, unity amp), note 60 at frame 0."""
+    """Native pitch trace `[sample, Hz]` of `layer` (filter off, unity amp), note 60 at frame 0."""
     out = Path("target/synth_osc_env_pitch/native.f32")
     out.parent.mkdir(parents=True, exist_ok=True)
-    cmd = [exe, str(prog), "--out", str(out), "--layer", "0", "--note", "60", "--velocity", "100",
-           "--frames", "24000", "--start", "0", "--hold", "20000", "--no-filter", "--unity"]  # fmt: skip  # noqa: E501
+    cmd = [exe, str(prog), "--out", str(out), "--layer", str(layer), "--note", "60",
+           "--velocity", "100", "--frames", "24000", "--start", "0", "--hold", "20000",
+           "--no-filter", "--unity"]  # fmt: skip
     if fw:
         cmd.append("--synth-osc-env-morph")
     if amount is not None:
@@ -202,69 +247,144 @@ def native_trace(
     return pitch_trace(x, 48_000.0, 1024, 480, 20.0, 4000.0)
 
 
-def trace(ns: argparse.Namespace) -> int:  # pragma: no cover - needs local firmware images
-    import arm_dsp_capture as cap
+def env_layers(prog: Path) -> list[tuple[int, dict[str, int]]]:  # pragma: no cover - reads files
+    """`(layer, fields)` of the layers with Env To Pitch and a non-zero amount."""
     import ns4_synth_fields as nf
+
+    pl = nf.synth_payload_from_ns4p(prog.read_bytes())
+    out = [(i, nf.read_layer_fields(pl, i)) for i in range(3)]
+    return [(i, f) for i, f in out if f["osc_env_to_pitch"] and f["osc_env_amt"]]
+
+
+def program_work(ns: argparse.Namespace, prog: Path) -> Path:  # pragma: no cover - needs captures
+    """Oracle work dir (`load` / `key` / `adr` scripts) of the recall capture of `prog`."""
+    import arm_dsp_capture as cap
     import synth_e2e_oracle as eo
+
+    capture = Path(ns.captures) / f"{Path(ns.programs).name}__{prog.stem.replace(' ', '_')}.txt.gz"
+    if not capture.exists():
+        capture = Path(ns.captures) / f"{cap.out_name(prog)}.txt.gz"
+    rows = list(cap.read_rows(capture))
+    work = Path(ns.scratch) / f"work_{prog.stem.replace(' ', '_')}"
+    work.mkdir(parents=True, exist_ok=True)
+    (work / "load.script").write_text(eo.core2_load_script(rows))
+    (work / "key.script").write_text(eo.key_script(rows, KEY_ON_PASS, KEY_ON_PASS + 10_850))
+    (work / "adr.script").write_text("")
+    return work
+
+
+def write_csv(path: Path, fields: tuple[str, ...], rows: list[dict]) -> None:  # pragma: no cover
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        wr = csv.DictWriter(fh, fieldnames=fields, lineterminator="\n")
+        wr.writeheader()
+        wr.writerows(rows)
+
+
+def trace(ns: argparse.Namespace) -> int:  # pragma: no cover - needs local firmware images
     import synth_env_trace as t
 
     table = pitch_table(Path(ns.root))
     rows_out = []
     for prog in sorted(Path(ns.programs).glob("*.ns4p")):
-        capture = (
-            Path(ns.captures) / f"{Path(ns.programs).name}__{prog.stem.replace(' ', '_')}.txt.gz"
-        )
-        rows = list(cap.read_rows(capture))
-        work = Path(ns.scratch) / f"work_{prog.stem.replace(' ', '_')}"
-        work.mkdir(parents=True, exist_ok=True)
-        off = KEY_ON_PASS + 10_850
-        (work / "load.script").write_text(eo.core2_load_script(rows))
-        (work / "key.script").write_text(eo.key_script(rows, KEY_ON_PASS, off))
-        (work / "adr.script").write_text("")
-        f = nf.read_layer_fields(nf.synth_payload_from_ns4p(prog.read_bytes()), 0)
-        steps = float(f["osc_env_amt"])
-        adr = {OSC_ADR + i: t.rate_word(f[k]) for i, k in
-               enumerate(("osc_env_attack", "osc_env_decay", "osc_env_release"))}  # fmt: skip
-        o = Oracle(ns.sharc_sys, ns.image, work, Path(ns.scratch))
-        word = dsp_word(steps, table)
+        o = Oracle(ns.sharc_sys, ns.image, program_work(ns, prog), Path(ns.scratch))
+        for layer, f in env_layers(prog):
+            steps = float(f["osc_env_amt"])
+            adr0 = osc_adr_addr(layer)
+            adr = {adr0 + i: t.rate_word(f[k]) for i, k in
+                   enumerate(("osc_env_attack", "osc_env_decay", "osc_env_release"))}  # fmt: skip
+            word = dsp_word(steps, table)
 
-        def run(w: float) -> np.ndarray:
-            a = o.run({**adr, WORD12: f2w(w)}, [], KEY_ON_PASS + TRACE_PASSES,
-                      ((OSC_LEVEL, 1), (OSC_SAMPLES, 8)))  # fmt: skip
-            return a
+            def run(w: float, layer: int = layer, adr: dict[int, int] = adr) -> np.ndarray:
+                return o.run({**adr, word12_addr(layer): f2w(w)}, [], KEY_ON_PASS + TRACE_PASSES,
+                             ((level_addr(layer), 1), (samples_addr(layer), 8)))  # fmt: skip
 
-        base_run, mod_run = run(0.0), run(word)
-        win, hop = 2048, 1024
+            base_run, mod_run = run(0.0), run(word)
 
-        def tr(a: np.ndarray) -> np.ndarray:
-            x = a[KEY_ON_PASS:, 1:9:2].reshape(-1)
-            return pitch_trace(x, ORACLE_RATE_HZ, win, hop, 20.0, 4000.0)
+            def tr(a: np.ndarray) -> np.ndarray:
+                x = a[KEY_ON_PASS:, 1:9:2].reshape(-1)
+                return pitch_trace(x, ORACLE_RATE_HZ, 2048, 1024, 20.0, 4000.0)
 
-        tb, tm = tr(base_run), tr(mod_run)
-        ref = float(np.median(tb[:, 1]))
-        o_st = np.column_stack([tm[:, 0], [semitones(v, ref) for v in tm[:, 1]]])
-        lvl = mod_run[KEY_ON_PASS:, 0]
-        m_st = np.column_stack([tm[:, 0], [model_semitones(word, lvl[min(int(c / 4), len(lvl) - 1)])
-                                            for c in tm[:, 0]]])  # fmt: skip
-        nb = native_trace(ns.native, prog, 0.0, True)
-        nref = float(np.median(nb[:, 1]))
-        series = {}
-        for key, fw in (("fw", True), ("lin", False)):
-            n = native_trace(ns.native, prog, None, fw)
-            series[key] = np.column_stack([n[:, 0], [semitones(v, nref) for v in n[:, 1]]])
-        for tt in TIMES_S:
-            rows_out.append({
-                "program": prog.stem, "t_ms": round(tt * 1000),
-                "oracle_st": round(at_times(o_st, ORACLE_RATE_HZ, 0, [tt])[0], 2),
-                "model_st": round(at_times(m_st, ORACLE_RATE_HZ, 0, [tt])[0], 2),
-                "native_fw_st": round(at_times(series["fw"], 48_000.0, 0, [tt])[0], 2),
-                "native_lin_st": round(at_times(series["lin"], 48_000.0, 0, [tt])[0], 2),
-            })  # fmt: skip
-        print(prog.stem, "amount", steps, "word", round(word, 4), file=sys.stderr)
-    with Path(ns.out).open("w", encoding="utf-8", newline="") as fh:
-        wr = csv.DictWriter(fh, fieldnames=CSV_TRACE, lineterminator="\n")
-        wr.writeheader()
-        wr.writerows(rows_out)
+            tb, tm = tr(base_run), tr(mod_run)
+            ref = float(np.median(tb[:, 1]))
+            o_st = np.column_stack([tm[:, 0], [semitones(v, ref) for v in tm[:, 1]]])
+            lvl = mod_run[KEY_ON_PASS:, 0]
+            m_st = np.column_stack(
+                [tm[:, 0], [model_semitones(word, lvl[min(int(c / 4), len(lvl) - 1)])
+                            for c in tm[:, 0]]])  # fmt: skip
+            nb = native_trace(ns.native, prog, 0.0, True, layer)
+            nref = float(np.median(nb[:, 1]))
+            series = {}
+            for key, fw in (("fw", True), ("lin", False)):
+                n = native_trace(ns.native, prog, None, fw, layer)
+                series[key] = np.column_stack([n[:, 0], [semitones(v, nref) for v in n[:, 1]]])
+            for tt in TIMES_S:
+                rows_out.append({
+                    "program": prog.stem, "layer": "ABC"[layer], "t_ms": round(tt * 1000),
+                    "oracle_st": round(at_times(o_st, ORACLE_RATE_HZ, 0, [tt])[0], 2),
+                    "model_st": round(at_times(m_st, ORACLE_RATE_HZ, 0, [tt])[0], 2),
+                    "native_fw_st": round(at_times(series["fw"], 48_000.0, 0, [tt])[0], 2),
+                    "native_lin_st": round(at_times(series["lin"], 48_000.0, 0, [tt])[0], 2),
+                })  # fmt: skip
+            print(prog.stem, "ABC"[layer], "amount", steps, "word", round(word, 4), file=sys.stderr)
+    write_csv(Path(ns.out), CSV_TRACE, rows_out)
+    return 0
+
+
+VEL_KEYS = (0, 16, 32, 64, 98, 127)
+
+
+def velocity(ns: argparse.Namespace) -> int:  # pragma: no cover - needs local firmware images
+    """Pitch of layer A against the key byte `g`, `F + 6` held at 1.0, for one capture.
+
+    Needs a capture of a program with `kOscEnvVel` on (a factory program with the bit patched in
+    the `.ns4p`); `--captures` is that gz file.
+    """
+    import arm_dsp_capture as cap
+    import synth_e2e_oracle as eo
+
+    rows = list(cap.read_rows(Path(ns.captures)))
+    work = Path(ns.scratch) / "work_velocity"
+    work.mkdir(parents=True, exist_ok=True)
+    (work / "load.script").write_text(eo.core2_load_script(rows))
+    (work / "adr.script").write_text("")
+    o = Oracle(ns.sharc_sys, ns.image, work, Path(ns.scratch))
+    slow = {OSC_ADR + i: SLOWEST_RATE for i in range(3)}
+    rows_out, base = [], 0.0
+    for g in VEL_KEYS:
+        (work / "key.script").write_text(f"{KEY_ON_PASS} {WORD_KEY:#x} {key_word(g):#x}\n")
+        a = o.run(slow, [(OSC_LEVEL, f2w(1.0))], 4200, ((OSC_SAMPLES, 8),))
+        f = pitch_peak_hz(a[LAW_HOLD[0] : LAW_HOLD[1], 0:8:2].reshape(-1), ORACLE_RATE_HZ)
+        base = base or f
+        rows_out.append({"g": g, "hz": round(f, 2), "oracle_st": round(semitones(f, base), 3)})
+    full = rows_out[-1]["oracle_st"]
+    for r in rows_out:
+        r["model_st"] = round(full * vel_factor(r["g"]) / vel_factor(VEL_KEYS[-1]), 3)
+    write_csv(Path(ns.out), ("g", "hz", "oracle_st", "model_st"), rows_out)
+    return 0
+
+
+def layers(ns: argparse.Namespace) -> int:  # pragma: no cover - needs local firmware images
+    """Held-level law of every layer with an amount: the probe word and the program's own word."""
+    table = pitch_table(Path(ns.root))
+    rows_out = []
+    for prog in sorted(Path(ns.programs).glob("*.ns4p")):
+        o = Oracle(ns.sharc_sys, ns.image, program_work(ns, prog), Path(ns.scratch))
+        for layer, f in env_layers(prog):
+            word = dsp_word(float(f["osc_env_amt"]), table)
+            base = o.pitch(0.0, 1.0, layer=layer)
+            for level in HOLD_LEVELS:
+                probe = semitones(o.pitch(PROBE_WORD, level, layer=layer), base)
+                own = semitones(o.pitch(word, level, layer=layer), base)
+                rows_out.append({
+                    "program": prog.stem, "layer": "ABC"[layer], "amount": f["osc_env_amt"],
+                    "word": round(word, 5), "level": level, "probe_word": PROBE_WORD,
+                    "oracle_probe_st": round(probe, 3),
+                    "model_probe_st": round(model_semitones(PROBE_WORD, level), 3),
+                    "oracle_own_st": round(own, 3),
+                    "model_own_st": round(model_semitones(word, level), 3),
+                })  # fmt: skip
+                print(rows_out[-1], file=sys.stderr)
+    write_csv(Path(ns.out), CSV_LAYERS, rows_out)
     return 0
 
 
@@ -275,13 +395,19 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - CLI wiring
     for a in ("--sharc-sys", "--image", "--work", "--out"):
         p.add_argument(a, required=True)
     p.add_argument("--scratch", default="target/synth_osc_env_pitch")
-    q = sub.add_parser("trace")
-    for a in ("--sharc-sys", "--image", "--programs", "--captures", "--native", "--out"):
-        q.add_argument(a, required=True)
-    q.add_argument("--root", default=".")
-    q.add_argument("--scratch", default="target/synth_osc_env_pitch")
+    for name in ("trace", "layers"):
+        q = sub.add_parser(name)
+        for a in ("--sharc-sys", "--image", "--programs", "--captures", "--out"):
+            q.add_argument(a, required=True)
+        q.add_argument("--native", default="")
+        q.add_argument("--root", default=".")
+        q.add_argument("--scratch", default="target/synth_osc_env_pitch")
+    v = sub.add_parser("velocity")
+    for a in ("--sharc-sys", "--image", "--captures", "--out"):
+        v.add_argument(a, required=True)
+    v.add_argument("--scratch", default="target/synth_osc_env_pitch")
     ns = ap.parse_args(argv)
-    return law(ns) if ns.cmd == "law" else trace(ns)
+    return {"law": law, "trace": trace, "layers": layers, "velocity": velocity}[ns.cmd](ns)
 
 
 if __name__ == "__main__":

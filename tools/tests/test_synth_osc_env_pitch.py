@@ -62,3 +62,22 @@ def test_at_times_interpolates_a_trace() -> None:
 def test_f2w_is_the_float32_bit_pattern() -> None:
     assert m.f2w(1.0) == 0x3F800000
     assert m.f2w(-1.0) == 0xBF800000
+
+
+def test_layer_addresses_follow_the_slot_layout() -> None:
+    assert [m.word12_addr(k) for k in range(3)] == [0xE02F4, 0xE0314, 0xE0334]
+    assert [m.osc_adr_addr(k) for k in range(3)] == [0xE0020, 0xE009C, 0xE0118]
+    assert [m.level_addr(k) for k in range(4)] == [0xC118E, 0xC118F, 0xC11CC, 0xC11CD]
+    assert [m.samples_addr(k) for k in range(3)] == [0xC1F89, 0xC1FBF, 0xC1FF5]
+
+
+def test_velocity_factor_is_g_over_128_with_a_full_top() -> None:
+    assert m.vel_factor(0) == 0.0
+    assert m.vel_factor(64) == 0.5
+    assert m.vel_factor(126) == 126 / 128
+    assert m.vel_factor(127) == 1.0
+
+
+def test_key_word_carries_the_velocity_byte() -> None:
+    assert m.key_word(98) == 0x0B00E200  # the factory key 60, velocity 100
+    assert m.key_word(0) == 0x0B008000

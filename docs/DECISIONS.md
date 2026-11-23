@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D222](#d222-env-to-pitch-holds-on-layers-b-and-c-and-the-key-velocity-factor-is-g--128-the-opt-in-uses-it-no-flip) | 2026-11-22 | Env To Pitch holds on layers B and C and the key velocity factor is `G / 128`; the opt-in uses it; no flip | accepted |
 | [D226](#d226-piano-release-voice-stroke-523-decodes-with-the-order-4-row-and-the-key-up-record-equals-the-slew-model-opt-in---piano-keyup-fw-plays-the-firmware-key-up-ratio-and-decay-no-flip) | 2026-11-22 | Piano release voice: stroke 523 decodes with the order 4 row, the key-up record equals the slew model; opt-in `--piano-keyup-fw`; no flip | accepted |
 | [D224](#d224-sy-pitch-entry-e-eighth-hunt-the-sy-census-rerun-with-the-fifo-index-bias-is-negative-the-arm-stream-is-identical-and-the-window-stays-untouched) | 2026-11-22 | SY pitch entry `e`, eighth hunt: the SY census rerun with the FIFO index bias is negative; the ARM stream is identical and the window stays untouched | proposed |
 | [D221](#d221-the-other-8-db-of-a25-brilliance-is-the-super-lp24-type-factor-44-of-its-synth-layer-not-a-legacy_all-piano-or-fx-member-the-existing-opt-in---synth-super-lp24-removes-it-no-flip) | 2026-11-22 | The other 8 dB of A:25 brilliance is the SUPER LP24 type factor 4.4 of its synth layer, not a `legacy_all` piano or FX member; the existing opt-in `--synth-super-lp24` removes it; no flip | proposed |
@@ -2347,7 +2348,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** keep the linear +/-12 st (off by up to 4x, ignores the taper); a new flag (the existing flag already gates the morph of the same word).
 - **Impact:** opt-in only. 3 of 384 programs move the pitch by more than 2 st (Wooden Queen, Cinema Rise, Lyle Lead J3); 9 have a non-zero amount. Key velocity scaling is `ASSUMED`.
 - **Flip proposal (owner):** `--synth-osc-env-morph` could become the default after an audible A/B of those 3 programs. Nothing flipped.
-- **Open:** layers B / C, Cinema Rise and Circus Box traces (estimator limit), the velocity term.
+- **Open:** layers B / C, Cinema Rise and Circus Box traces (estimator limit), the velocity term (answered in D222).
 
 ### D218. Plugin top bar loads through a bounded queue to the audio thread; a loaded program is held per group until the host moves that group
 
@@ -2401,6 +2402,17 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Build the flash file system model first (deferred: layout unknown, high cost, listed as lead 1); resolve the comm of the 249 unknown sites interprocedurally first (deferred, lead 4).
 - **Limits:** ~845 inlined path 1 senders are not resolved by this tool (their offsets come from `arm-param-table.csv`); the tracker resets at branches; the SY FIFO consumer in `sharc-live` still has the stale replay of D199 (lead 2).
 - **Impact:** `tools/arm_sender_sites.py`, `tools/arm_const_track.py`, `tools/sy_flash_service_hunt.py` (refactor), their tests, [sy-pitch-writer-static-census](research/sy-pitch-writer-static-census.md), [sy-pitch-entry-writer](research/sy-pitch-entry-writer.md) s11, OQ22, [audio-remaining](research/audio-remaining.md) row 2, [synth-engine](specs/synth-engine.md) s sample pitch. Bean `ns4-pw7h`.
+
+### D222. Env To Pitch holds on layers B and C and the key velocity factor is `G / 128`; the opt-in uses it; no flip
+
+- **Status:** accepted (opt-in only). **Decided by:** agent (research); default flip not decided.
+- **Context:** D217 verified `48 * word * level` on layer A of 8 programs; layers B / C, Circus Box, Cinema Rise and the velocity term were open, and the velocity scaling was `ASSUMED` linear in the note velocity.
+- **Decision:** (1) Layer `L` plays in slot `L`: strip `2 L`, common block `32 L`, chain `0xC118E + 62 (L >> 1) + (L & 1)`, record `0xC1F89 + 54 L`; the law is unchanged (held-level oracle on every sounding amount layer within 0.09 st; Cinema Rise A / B / C and Circus Box resolved). (2) With `kOscEnvVel` on the pitch scales by `G / 128` (`G` = key byte `g`, 128 at `g = 127`), VERIFIED on Wooden Queen with the bit patched (6 of 6 key bytes within 0.002 st); `SynthLayer::osc_env_fw_pitch` now uses `fw_velocity::filter_factor(key_byte(velocity))` instead of the linear velocity. (3) `tools/synth_osc_env_pitch.py` gets layer addressing and the subcommands `layers` and `velocity`; `trace` covers every layer.
+- **Why:** [synth-osc-env-pitch](research/synth-osc-env-pitch.md) s5: native opt-in within 0.12 st of the oracle at 12 of 12 times on Cinema Rise B and C; the velocity series equals `22.07 G / 128`.
+- **Alternatives:** keep the linear velocity (off by 3x at velocity 40: `G / 128` = 0.09 against 0.31).
+- **Impact:** opt-in only (`--synth-osc-env-morph`); default path unchanged. 13 layers in 9 programs have an amount (D217 said 14: miscount). Bounce Clav B and Lyle Lead J3 B are silent in the oracle voice record and stay unverified.
+- **Open:** whether Lyle Lead J3 B and Bounce Clav B sound on hardware; audible A/B; the flip.
+
 
 ### D226. Piano release voice: stroke 523 decodes with the order 4 row and the key-up record equals the slew model; opt-in `--piano-keyup-fw` plays the firmware key-up ratio and decay; no flip
 

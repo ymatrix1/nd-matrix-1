@@ -284,9 +284,11 @@ impl SynthLayer {
             // limited to ~1 semitone by 5 ms onset detection. ASSUMED: +/-0.5 of Osc Ctrl range.
             let env_pitch = if self.osc_env_to_pitch && self.osc_env_fw_pitch {
                 // VERIFIED (D217): the ORG core 2 pitch path adds `48 * word * level` semitones.
-                // ASSUMED: key velocity scales the level (the amount word is velocity free).
+                // VERIFIED (D222): with `kOscEnvVel` on the pitch scales by `G / 128`, the filter
+                // envelope factor of the key byte `g` (`tools/synth_osc_env_pitch.py velocity`,
+                // Wooden Queen with the bit patched: 6 of 6 key bytes within 0.05 st).
                 let vel = if self.osc_env_velocity {
-                    v.velocity
+                    super::fw_velocity::filter_factor(super::fw_velocity::key_byte(v.velocity))
                 } else {
                     1.0
                 };

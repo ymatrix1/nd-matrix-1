@@ -154,3 +154,43 @@ fn fw_pitch_decay_stops_at_half_the_peak_like_the_oracle_chain() {
     assert!((run(true) - 0.5).abs() < 1e-4, "{}", run(true));
     assert!(run(false) < 0.01, "default decays to 0");
 }
+
+/// Settled pitch factor of a voice with `osc_env_velocity` on: `v.oenv` is 1.0 (no decay), so the
+/// excursion is `48 * word * G / 128` semitones.
+fn fw_pitch_vel_semitones(velocity: u8) -> f32 {
+    let mut s = SynthLayer::legacy(48_000.0);
+    s.osc_env_to_pitch = true;
+    s.osc_env_velocity = true;
+    s.osc_env_amount = 0.5;
+    s.osc_env_fw_pitch = true;
+    s.osc_env_attack_sec = 0.0005;
+    s.osc_env_decay_sec = 60.0;
+    s.note_on(60, velocity);
+    for _ in 0..4800 {
+        s.render_frame();
+    }
+    let v = s.voices.iter().find(|v| v.active).unwrap();
+    let g =
+        crate::synth::fw_velocity::filter_factor(crate::synth::fw_velocity::key_byte(v.velocity));
+    crate::synth_osc_env_word::osc_env_pitch_semitones(0.5 * 60.0, v.oenv * g)
+}
+
+#[test]
+fn fw_pitch_velocity_scales_by_g_over_128_like_the_oracle() {
+    // VERIFIED (D222): oracle Wooden Queen, key byte g 0 / 16 / 32 / 64 / 98 / 127 gives
+    // 0 / 2.76 / 5.52 / 11.03 / 16.9 / 22.07 st = `22.07 G / 128` (G = 128 at g = 127).
+    let top = fw_pitch_vel_semitones(127);
+    assert!(top > 1.0);
+    let g = |vel: u8| {
+        crate::synth::fw_velocity::effective_g(crate::synth::key_velocity::key_velocity_g(vel))
+            as f32
+    };
+    for vel in [1u8, 40, 64, 100] {
+        let want = top * g(vel) / 128.0;
+        assert!(
+            (fw_pitch_vel_semitones(vel) - want).abs() < 0.02 * top,
+            "vel {vel}"
+        );
+    }
+    assert!(fw_pitch_vel_semitones(1) < 0.01 * top, "g = 0 is silent");
+}
