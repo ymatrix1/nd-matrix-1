@@ -197,6 +197,8 @@ mod tests_perf;
 mod tests_sample_pitch;
 #[cfg(test)]
 mod tests_strip;
+#[cfg(test)]
+mod tests_super_lp24_a25;
 mod voice;
 mod voice_alloc;
 pub mod voice_edges;
