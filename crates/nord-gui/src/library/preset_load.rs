@@ -17,12 +17,12 @@ use std::io::BufReader;
 impl BackupLibraryState {
     /// Bytes of an archive entry of the opened backup.
     pub(super) fn read_archive_entry(&self, name: &str) -> Result<Vec<u8>, String> {
-        let (Some(path), Some(archive)) = (&self.backup_path, &self.archive) else {
+        let Some((path, archive, real)) = self.source_of(name) else {
             return Err("Open an .ns4b archive first".to_string());
         };
         let file = File::open(path).map_err(|e| format!("{e}"))?;
         archive
-            .read_entry(&mut BufReader::new(file), name)
+            .read_entry(&mut BufReader::new(file), &real)
             .map_err(|e| format!("{e}"))
     }
 
@@ -68,11 +68,7 @@ impl BackupLibraryState {
                 return;
             }
         };
-        let refs = self
-            .archive
-            .as_ref()
-            .map(|a| preset.resolve_sounds(a))
-            .unwrap_or_default();
+        let refs = self.resolve_refs(self.bank_of(entry), |a| preset.resolve_sounds(a));
         self.notices.extend(missing_sounds(&preset, single, &refs));
         panel.apply_section_preset(&preset, single);
         audio.send_command(AudioCommand::Program(ProgramEdit::LoadPreset {

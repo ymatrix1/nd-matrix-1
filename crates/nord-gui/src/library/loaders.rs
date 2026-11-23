@@ -34,7 +34,7 @@ impl BackupLibraryState {
             });
             return;
         }
-        let (Some(path), Some(archive)) = (self.backup_path.clone(), self.archive.clone()) else {
+        let Some((path, archive, real)) = self.source_of(entry_name) else {
             self.error_message = Some("Open an .ns4b archive first".to_string());
             self.notices.push(FwMessage::PianoNotFound);
             return;
@@ -51,7 +51,7 @@ impl BackupLibraryState {
                 .and_then(|f| {
                     let mut r = BufReader::new(f);
                     archive
-                        .read_entry(&mut r, &entry)
+                        .read_entry(&mut r, &real)
                         .map_err(|e| format!("read '{entry}' failed: {e}"))
                 })
                 .and_then(|bytes| NpnoSound::from_npno_bytes(&bytes));
@@ -98,7 +98,7 @@ impl BackupLibraryState {
             });
             return;
         }
-        let (Some(path), Some(archive)) = (self.backup_path.clone(), self.archive.clone()) else {
+        let Some((path, archive, real)) = self.source_of(entry_name) else {
             self.error_message = Some("Open an .ns4b archive first".to_string());
             self.notices.push(FwMessage::SampleNotFound);
             return;
@@ -115,7 +115,7 @@ impl BackupLibraryState {
                 .and_then(|f| {
                     let mut r = BufReader::new(f);
                     archive
-                        .read_entry(&mut r, &entry)
+                        .read_entry(&mut r, &real)
                         .map_err(|e| format!("read '{entry}' failed: {e}"))
                 })
                 .and_then(|bytes| {

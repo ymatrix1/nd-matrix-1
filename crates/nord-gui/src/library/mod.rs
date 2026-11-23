@@ -4,6 +4,7 @@
 //! retained `Arc` references on the UI thread so the real-time CPAL audio callback never drops
 //! heap allocations when hot-swapping instruments.
 
+mod banks;
 mod export;
 mod init_load;
 mod loaders;
@@ -19,6 +20,7 @@ mod ui;
 
 use crate::panel::bay_program::store::PER_BANK;
 use crate::panel::FwMessage;
+pub use banks::BankMerge;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 pub use init_load::{init_program, InitTarget};
 use nord_core::cbin::{Ns4BackupArchive, PresetIndex, PresetSection, ProgramDecoded, SlotIndex};
@@ -94,6 +96,12 @@ pub struct BackupLibraryState {
     program_slots: Vec<(u16, String)>,
     /// The same for the Preset Library: `(section, flat location, entry path)`.
     preset_slots: Vec<(PresetSection, u16, String)>,
+    /// Banks merged after the primary one (`banks.rs`).
+    extra_banks: Vec<banks::ExtraBank>,
+    /// Catalog key of an entry of a later bank -> `(bank index, real entry name)`.
+    origin: HashMap<String, (usize, String)>,
+    /// `(bank index, real entry name)` -> catalog key (also for skipped duplicates).
+    key_by_real: HashMap<(usize, String), String>,
     layout_rev: u32,
     synced_layout_rev: u32,
     piano_cache: HashMap<String, Arc<NpnoSound>>,
@@ -140,6 +148,9 @@ impl BackupLibraryState {
             export_path: String::new(),
             program_slots: Vec::new(),
             preset_slots: Vec::new(),
+            extra_banks: Vec::new(),
+            origin: HashMap::new(),
+            key_by_real: HashMap::new(),
             layout_rev: 0,
             synced_layout_rev: 0,
             piano_cache: HashMap::new(),
@@ -220,6 +231,9 @@ impl BackupLibraryState {
             .collect();
         samples.sort();
 
+        self.extra_banks.clear();
+        self.origin.clear();
+        self.key_by_real.clear();
         // Retire any cached sounds from a previous archive cleanly on the UI thread later
         for (_, arc) in self.piano_cache.drain() {
             self.retired_pianos.push(arc);

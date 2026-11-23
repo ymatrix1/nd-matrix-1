@@ -335,18 +335,22 @@ fn render_dialog_contents(
                 );
             }
             DebugTab::Library => {
-                // Accept .ns4b drag-and-drop directly onto the Settings window
-                if let Some(path) = ctx.input(|i| {
-                    i.raw.dropped_files.iter().find_map(|f| {
-                        f.path.as_ref().filter(|p| {
+                // Accept .ns4b drag-and-drop directly onto the Settings window; several files
+                // at once are merged into one catalog.
+                let dropped: Vec<std::path::PathBuf> = ctx.input(|i| {
+                    i.raw
+                        .dropped_files
+                        .iter()
+                        .filter_map(|f| f.path.clone())
+                        .filter(|p| {
                             p.extension()
                                 .and_then(|e| e.to_str())
                                 .is_some_and(|e| e.eq_ignore_ascii_case("ns4b"))
                         })
-                    })
-                    .cloned()
-                }) {
-                    if let Err(err) = library.open_backup_path(&path) {
+                        .collect()
+                });
+                for path in dropped {
+                    if let Err(err) = library.add_backup_path(&path) {
                         library.error_message = Some(err);
                     }
                 }

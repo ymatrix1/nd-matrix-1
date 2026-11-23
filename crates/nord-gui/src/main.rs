@@ -21,7 +21,8 @@ struct CliArgs {
     initial_program: Option<PathBuf>,
     /// `--program A:14`: panel location to load from `--backup` (no file path).
     initial_slot: Option<String>,
-    initial_backup: Option<PathBuf>,
+    /// `.ns4b` files to open; the first is the primary bank, the rest are merged into it.
+    initial_backups: Vec<PathBuf>,
     initial_piano: Option<PathBuf>,
     initial_sample: Option<PathBuf>,
     firmware: nord_core::render_opts::FirmwareOptions,
@@ -52,7 +53,7 @@ fn parse_cli_args<I: IntoIterator<Item = String>>(args: I) -> CliArgs {
             }
         } else if arg == "--backup" || arg == "-b" {
             if let Some(path) = iter.next() {
-                parsed.initial_backup = Some(PathBuf::from(path));
+                parsed.initial_backups.push(PathBuf::from(path));
             }
         } else if arg == "--piano" {
             if let Some(path) = iter.next() {
@@ -67,7 +68,7 @@ fn parse_cli_args<I: IntoIterator<Item = String>>(args: I) -> CliArgs {
             if lower.ends_with(".ns4p") {
                 parsed.initial_program = Some(PathBuf::from(arg));
             } else if lower.ends_with(".ns4b") {
-                parsed.initial_backup = Some(PathBuf::from(arg));
+                parsed.initial_backups.push(PathBuf::from(arg));
             } else if lower.ends_with(".npno") {
                 parsed.initial_piano = Some(PathBuf::from(arg));
             } else if lower.ends_with(".nsmp4") {
@@ -140,9 +141,9 @@ impl Stage4App {
                 eprintln!("[GUI] Could not read program file: {}", path.display());
             }
         }
-        if let Some(path) = cli.initial_backup {
-            match app.library.open_backup_path(&path) {
-                Ok(()) => app
+        for path in &cli.initial_backups {
+            match app.library.add_backup_path(path) {
+                Ok(_) => app
                     .debug_dialog
                     .open_tab(nord_gui::debug_dialog::DebugTab::Library),
                 Err(e) => {
@@ -778,7 +779,7 @@ mod tests {
             parsed.initial_program,
             Some(PathBuf::from("bank_a/patch.ns4p"))
         );
-        assert_eq!(parsed.initial_backup, Some(PathBuf::from("restore.ns4b")));
+        assert_eq!(parsed.initial_backups, vec![PathBuf::from("restore.ns4b")]);
         assert_eq!(parsed.initial_piano, Some(PathBuf::from("grand.npno")));
         assert_eq!(parsed.initial_sample, Some(PathBuf::from("strings.nsmp4")));
 
@@ -788,8 +789,16 @@ mod tests {
 
         let positional = parse_cli_args(["nd-matrix-1".to_string(), "factory.ns4b".to_string()]);
         assert_eq!(
-            positional.initial_backup,
-            Some(PathBuf::from("factory.ns4b"))
+            positional.initial_backups,
+            vec![PathBuf::from("factory.ns4b")]
+        );
+
+        let many = parse_cli_args(
+            ["nord-stage4", "a.ns4b", "--backup", "b.ns4b", "C.NS4B"].map(String::from),
+        );
+        assert_eq!(
+            many.initial_backups,
+            ["a.ns4b", "b.ns4b", "C.NS4B"].map(PathBuf::from)
         );
     }
 

@@ -81,8 +81,8 @@ impl BackupLibraryState {
         path: &std::path::Path,
         dialog: &mut crate::debug_dialog::DebugDialogState,
     ) {
-        match self.open_backup_path(path) {
-            Ok(()) => {
+        match self.add_backup_path(path) {
+            Ok(_) => {
                 self.path_input = path.display().to_string();
                 self.error_message = None;
                 dialog.open_tab(crate::debug_dialog::DebugTab::Library);
@@ -206,7 +206,7 @@ impl BackupLibraryState {
                     },
                     _ => {
                         self.path_input = p.display().to_string();
-                        if let Err(err) = self.open_backup_path(&p) {
+                        if let Err(err) = self.add_backup_path(&p) {
                             self.error_message = Some(err);
                         }
                     }
@@ -231,6 +231,33 @@ impl BackupLibraryState {
                 self.pianos.len(),
                 self.samples.len()
             ));
+        }
+        if self.is_open() {
+            ui.add_space(2.0);
+            ui.horizontal_wrapped(|ui| {
+                let names: Vec<String> = self
+                    .bank_paths()
+                    .iter()
+                    .map(|p| {
+                        p.file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("bank")
+                            .to_string()
+                    })
+                    .collect();
+                ui.small(format!(
+                    "Banks ({}): {}  •  Export / Organize use the first",
+                    names.len(),
+                    names.join(", ")
+                ));
+                if ui
+                    .small_button("Close all")
+                    .on_hover_text("Close every bank. Browse / Open / drag-and-drop adds more banks to the open ones.")
+                    .clicked()
+                {
+                    self.close_banks();
+                }
+            });
         }
 
         ui.add_space(6.0);

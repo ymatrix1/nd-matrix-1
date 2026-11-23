@@ -19,16 +19,17 @@ impl BackupLibraryState {
         panel: &mut Stage4PanelState,
         audio: &AudioHandle,
     ) {
-        let (Some(path), Some(archive)) = (&self.backup_path, &self.archive) else {
+        let Some((path, archive, real)) = self.source_of(entry_name) else {
             self.error_message = Some("Open an .ns4b archive first".to_string());
             return;
         };
-        let res = File::open(path)
+        let owner = self.bank_of(entry_name);
+        let res = File::open(&path)
             .map_err(|e| format!("{e}"))
             .and_then(|f| {
                 let mut r = BufReader::new(f);
                 archive
-                    .read_entry(&mut r, entry_name)
+                    .read_entry(&mut r, &real)
                     .map_err(|e| format!("{e}"))
             })
             .and_then(|bytes| {
@@ -39,7 +40,7 @@ impl BackupLibraryState {
 
         match res {
             Ok(mut prog) => {
-                let refs = archive.resolve_program_sounds(&prog);
+                let refs = self.resolve_refs(owner, |a| a.resolve_program_sounds(&prog));
                 self.notices.extend(missing_sounds(&prog, &refs));
                 let active_mask = prog.global.scene_1_mask | prog.global.scene_2_mask;
                 let piano_jobs = [
