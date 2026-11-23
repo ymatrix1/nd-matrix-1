@@ -17,4 +17,5 @@ Rules:
 - Do not upgrade a tag without new evidence. Code that only matches its own design formula (e.g. a biquad hitting its target gain) proves the implementation, not the hardware: tag the underlying parameter `ASSUMED`.
 - When a constant is inherited from older code with no recorded source, tag it `ASSUMED` rather than leaving it untagged.
 - New or touched constants in `crates/nord-core/src/` must carry a tag in the same commit.
+- Firmware-derived tables and code images (D128 classes B and C) are listed in `tools/fw-derived-baseline.txt`. That baseline may only shrink: never add a path to it, remove paths as files move to runtime loading. `tools/check_fw_derived.py` enforces this in CI.
 - Mirror the status in the relevant spec (`docs/specs/`) and move unresolved items to `docs/OPEN-QUESTIONS.md`.
