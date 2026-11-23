@@ -386,7 +386,8 @@ pub struct FirmwareOptions {
     pub synth_super_lp24_milli: Option<u16>,
     /// `--synth-fw-filter` sets `synth_filter_law_milli` to [`SYNTH_FW_FILTER_UNIT_MILLI`] and keeps
     /// leaves the strip stages at their default (see `from_args`); it is a shortcut, not a separate field.
-    /// `--synth-fw-resonance`: `SynthLayer::fw_resonance` (the firmware resonance table position only).
+    /// `SynthLayer::fw_resonance` (the firmware resonance table position only; VERIFIED, D214). On by
+    /// default since D223; `--legacy-synth-resonance` and `--legacy-all` turn it off.
     pub synth_fw_resonance: bool,
     /// `--synth-stage3`: `SynthLayer::fw_stage3` (raw filter type 3 runs the stage `0x1257B2`).
     pub synth_stage3: bool,
@@ -490,7 +491,7 @@ impl Default for FirmwareOptions {
             synth_stages: true,
             synth_filter_law_milli: None,
             synth_super_lp24_milli: None,
-            synth_fw_resonance: false,
+            synth_fw_resonance: true,
             synth_stage3: false,
             synth_unison_gain_milli: None,
             synth_unison_weights: false,
@@ -585,7 +586,7 @@ impl FirmwareOptions {
             synth_stages: true,
             synth_filter_law_milli: None,
             synth_super_lp24_milli: None,
-            synth_fw_resonance: false,
+            synth_fw_resonance: true,
             synth_stage3: false,
             synth_unison_gain_milli: None,
             synth_unison_weights: false,
@@ -709,6 +710,9 @@ impl FirmwareOptions {
         o.measured_laws |= has("--measured-laws");
         o.synth_stages |= has("--synth-stages");
         o.synth_fw_resonance |= has("--synth-fw-resonance");
+        if has("--legacy-synth-resonance") {
+            o.synth_fw_resonance = false;
+        }
         if has("--synth-oracle") {
             o.synth_p = Some(PSpec::Coupled);
             o.synth_unison_weights = true;
@@ -1259,8 +1263,8 @@ impl FirmwareOptions {
         if !self.synth_stages {
             parts.push("no-stages".into());
         }
-        if self.synth_fw_resonance {
-            parts.push("fw-resonance".into());
+        if !self.synth_fw_resonance {
+            parts.push("legacy-resonance".into());
         }
         if self.synth_stage3 {
             parts.push("stage3".into());
@@ -1821,11 +1825,16 @@ mod tests {
         o.apply_to(&mut e);
         assert_eq!(e.synth_a.fw_filter_law, Some(1.015));
         assert_eq!(e.synth_c.fw_filter_law, Some(1.015));
-        let r = FirmwareOptions::from_args(&["--synth-fw-resonance".into()]).unwrap();
-        assert!(r.synth_fw_resonance && r.summary().contains("fw-resonance"));
-        assert!(!FirmwareOptions::default().synth_fw_resonance);
-        r.apply_to(&mut e);
+        assert!(FirmwareOptions::default().synth_fw_resonance);
+        assert!(FirmwareOptions::firmware_all().synth_fw_resonance);
+        assert!(!FirmwareOptions::legacy_all().synth_fw_resonance);
+        let r = FirmwareOptions::from_args(&["--legacy-synth-resonance".into()]).unwrap();
+        assert!(!r.synth_fw_resonance && r.summary().contains("legacy-resonance"));
+        let mut e = Stage4Engine::new(48_000.0);
+        FirmwareOptions::default().apply_to(&mut e);
         assert!(e.synth_b.fw_resonance && e.synth_b.fw_filter_law.is_none());
+        r.apply_to(&mut e);
+        assert!(!e.synth_b.fw_resonance && !e.synth_a.fw_resonance && !e.synth_c.fw_resonance);
         assert!(FirmwareOptions::from_args(&["--synth-filter-law".into(), "x".into()]).is_err());
         assert!(FirmwareOptions::from_args(&["--synth-filter-law".into(), "99".into()]).is_err());
     }
