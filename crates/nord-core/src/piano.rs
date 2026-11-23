@@ -893,6 +893,12 @@ pub struct PianoLayer {
     /// and the first (extra) voice, which the SMP mutes, is not started. Only `.npno` sounds with a
     /// level model; needs `firmware_velocity_level`. Default `false` (D22, OQ20).
     pub firmware_slew: bool,
+    /// Key-up sample (note-off stroke) with the firmware level ratio and decay on the engine
+    /// envelope path (`piano/slew_voice.rs::key_up_decay_tau_s`, `docs/research/piano-release-voice.md`):
+    /// amplitude `F15` (1.0, 0.922 at velocity 127) in the units of the note amplitude `level`,
+    /// instead of `0.30 * level`, and time constant 0.2426 s instead of 1.15 s. No effect with
+    /// `firmware_slew` (that path already plays the record). Default `false` (D22).
+    pub firmware_key_up: bool,
     /// Notes struck with the damper pedal down take the firmware voice list too (the same
     /// voices and gains as with the pedal up, `piano/pedal_voices.rs`, VERIFIED by the ARM run
     /// `tools/arm_piano_pedal.py`) instead of the legacy damper-stroke path. Default `false`
@@ -999,6 +1005,7 @@ impl PianoLayer {
             firmware_velocity_level: true,
             firmware_touch: true,
             firmware_slew: false,
+            firmware_key_up: false,
             firmware_pedal_voices: false,
             firmware_timbre_gain: false,
             firmware_bus_scale: false,
@@ -1200,6 +1207,13 @@ impl PianoLayer {
                 .voices
                 .iter()
                 .any(|v| v.active && !v.is_release_sample && v.note == note && v.slew.is_active());
+        // Firmware key-up ratio on the engine path: the record gain is `F15` where the note's is
+        // `level` (both times 0.21875), so the key-up amplitude is `F15` in note-amplitude units.
+        let rel_scale = if self.firmware_key_up && !slewed && amp > 1e-6 {
+            (slew_voice::release_sample_level(velocity) / amp).min(8.0)
+        } else {
+            rel_scale
+        };
         let (rel_scale, rel_slew) = if slewed {
             (
                 1.0,
@@ -1495,6 +1509,11 @@ impl PianoLayer {
         };
 
         let mut dec_release_sample: Option<f32> = None;
+        let key_up_tau = if self.firmware_key_up {
+            slew_voice::key_up_decay_tau_s()
+        } else {
+            1.15
+        };
         let mut dec_soft: Option<f32> = None;
         let mut dec_hard: Option<f32> = None;
         let mut dec_sustain: Option<f32> = None;
@@ -1585,7 +1604,7 @@ impl PianoLayer {
                 continue;
             }
             if v.is_release_sample {
-                v.env *= *dec_release_sample.get_or_insert_with(|| (-inv_fs / 1.15).exp());
+                v.env *= *dec_release_sample.get_or_insert_with(|| (-inv_fs / key_up_tau).exp());
             } else if v.releasing {
                 if v.soft_release {
                     v.env *= *dec_soft.get_or_insert_with(|| (-inv_fs / 0.180).exp());
@@ -1817,6 +1836,59 @@ mod tests {
             .voices
             .iter()
             .any(|v| v.active && v.is_release_sample && v.stroke_idx == Some(rel_idx)));
+    }
+
+    #[test]
+    fn test_firmware_key_up_ratio_and_decay_are_opt_in() {
+        let sfz = "<group> lokey=c4 hikey=b4 pitch_keycenter=60
+<region> sample=n.wav
+<region> sample=r.wav trigger=release
+";
+        let wav = build_test_wav_i16(48_000, 261.63, 16_384);
+        let sound = Arc::new(
+            NpnoSound::from_sfz_str("Key Up", sfz, |_| Ok(wav.clone())).expect("SFZ parses"),
+        );
+        let amp_of = |fw: bool| {
+            let mut piano = PianoLayer::new(48_000.0);
+            piano.firmware_key_up = fw;
+            piano.set_sound(Some(sound.clone()));
+            piano.note_on(60, 100);
+            let note_amp = piano.voices[0].amp;
+            piano.note_off(60);
+            let v = piano
+                .voices
+                .iter()
+                .find(|v| v.is_release_sample)
+                .expect("key-up voice");
+            (note_amp, v.amp)
+        };
+        let (note, default) = amp_of(false);
+        assert!(
+            (default - 0.30 * note).abs() < 1e-6,
+            "default {default} note {note}"
+        );
+        let (note, fw) = amp_of(true);
+        let want = slew_voice::release_sample_level(100).min(8.0 * note);
+        assert!(
+            (fw - want).abs() < 1e-5,
+            "fw {fw} want {want} (note {note})"
+        );
+        // Decay constant: 0.2426 s per e-fold at 48 kHz in the opt-in path.
+        let mut piano = PianoLayer::new(48_000.0);
+        piano.firmware_key_up = true;
+        piano.set_sound(Some(sound));
+        piano.note_on(60, 100);
+        piano.note_off(60);
+        for _ in 0..4800 {
+            piano.render_frame();
+        }
+        let env = piano
+            .voices
+            .iter()
+            .find(|v| v.is_release_sample)
+            .map_or(0.0, |v| v.env);
+        let want_env = (-0.1f32 / slew_voice::key_up_decay_tau_s()).exp();
+        assert!((env - want_env).abs() < 0.01, "env {env} want {want_env}");
     }
 
     #[test]

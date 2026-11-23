@@ -58,6 +58,15 @@ pub(super) fn release_sample_level(velocity: u8) -> f32 {
     hi + (lo - hi) * t
 }
 
+/// Time constant of the key-up record's decay on the engine envelope path: `F17` per update, one
+/// update every second interrupt at the DSP frame rate (`2 / F / -ln F17` = 0.2426 s).
+/// VERIFIED: `F17 = 0x3F7FF38E` and the 1-update-per-pass trajectory = oracle F0 of voice 17
+/// (stroke 523), `tests::key_up_record_equals_the_oracle_trajectory`, max error 1 LSB.
+pub(super) fn key_up_decay_tau_s() -> f32 {
+    let f17 = f64::from(f32::from_bits(RELEASE_SAMPLE_RATE));
+    (2.0 / crate::organ::FIRMWARE_FRAME_RATE_HZ / -f17.ln()) as f32
+}
+
 /// The record the SMP voice-start handler leaves for a main voice (before update 1).
 pub(super) fn initial_record(level: f32, rate: f32) -> SlewRecord {
     SlewRecord {
@@ -324,6 +333,49 @@ mod tests {
         let after = v.tick().0;
         assert!(after < 0.5 * hold, "release must decay: {hold} -> {after}");
         assert!(!v.is_done() || after < DONE_GAIN);
+    }
+
+    /// Oracle trajectory of the key-up record (Astoria Grand, note off of a held C4, voice 17, stroke
+    /// 523, `tools/smp_voice_replay.py` replay of `SMP0.script`, record `0x93CBE`, `F0` read after
+    /// each pass; one record update per pass; `docs/research/piano-release-voice.md` s3). Row =
+    /// `(update number n, F0 = F1, F15 word)`; n = 5 is the first row read, `F15 = 0x3F7FFFFE * F17^n`.
+    const KEY_UP_ORACLE: [(usize, i32, u32); 6] = [
+        (5, 0x1BF9_31EC, 0x3F7F_C1C8),
+        (6, 0x1BF7_D5BC, 0x3F7F_B559),
+        (9, 0x1BF3_C19F, 0x3F7F_900E),
+        (105, 0x1B72_7418, 0x3F7A_F1DC),
+        (235, 0x1AC7_124E, 0x3F74_D2F0),
+        (384, 0x1A07_C6A3, 0x3F6D_FDF3),
+    ];
+
+    #[test]
+    fn key_up_record_equals_the_oracle_trajectory() {
+        let mut rec = initial_record(
+            release_sample_level(100),
+            f32::from_bits(RELEASE_SAMPLE_RATE),
+        );
+        let (mut n, mut left) = (0, 0);
+        for (want_n, want_left, f15) in KEY_UP_ORACLE {
+            while n < want_n {
+                left = rec.step().left;
+                n += 1;
+            }
+            assert_eq!(rec.x_state.to_bits(), f15, "F15 after {n} updates");
+            // The oracle reads 1 LSB high in tie cases of the multiplier (smp-slew.md s1).
+            assert!(
+                (left - want_left).abs() <= 1,
+                "F0 after {n} updates: {left}"
+            );
+        }
+    }
+
+    #[test]
+    fn key_up_tau_is_0_2426_s() {
+        assert!(
+            (key_up_decay_tau_s() - 0.2426).abs() < 1e-3,
+            "{}",
+            key_up_decay_tau_s()
+        );
     }
 
     #[test]

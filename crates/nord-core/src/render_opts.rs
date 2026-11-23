@@ -318,6 +318,9 @@ pub struct FirmwareOptions {
     pub piano_touch: bool,
     /// `--piano-slew-fw`: `PianoLayer::firmware_slew` (SMP voice-gain slew, opt-in; D22).
     pub piano_slew: bool,
+    /// `--piano-keyup-fw`: `PianoLayer::firmware_key_up` (firmware key-up ratio and decay on the
+    /// engine envelope path, opt-in; D226).
+    pub piano_key_up: bool,
     /// `--firmware-piano-pedal-voices`: `PianoLayer::firmware_pedal_voices` (notes struck with
     /// the damper pedal down take the firmware voice list, VERIFIED by the ARM run; opt-in, D22).
     pub piano_pedal_voices: bool,
@@ -472,6 +475,7 @@ impl Default for FirmwareOptions {
             piano_bus_scale: false,
             piano_touch: true,
             piano_slew: false,
+            piano_key_up: false,
             piano_pedal_voices: false,
             piano_timbre_gain: false,
             piano_chain_scale: false,
@@ -567,6 +571,7 @@ impl FirmwareOptions {
             piano_bus_scale: false,
             piano_touch: true,
             piano_slew: false,
+            piano_key_up: false,
             piano_pedal_voices: false,
             piano_timbre_gain: false,
             piano_chain_scale: false,
@@ -676,6 +681,7 @@ impl FirmwareOptions {
             o.synth_velocity_fw = false;
         }
         o.piano_slew |= has("--piano-slew-fw");
+        o.piano_key_up |= has("--piano-keyup-fw");
         o.piano_pedal_voices |= has("--firmware-piano-pedal-voices");
         o.piano_timbre_gain |= has("--firmware-piano-timbre");
         o.piano_chain_scale |= has("--firmware-piano-chain");
@@ -886,6 +892,8 @@ impl FirmwareOptions {
         engine.piano_b.firmware_touch = self.piano_touch;
         engine.piano_a.firmware_slew = self.piano_slew;
         engine.piano_b.firmware_slew = self.piano_slew;
+        engine.piano_a.firmware_key_up = self.piano_key_up;
+        engine.piano_b.firmware_key_up = self.piano_key_up;
         engine.piano_a.firmware_pedal_voices = self.piano_pedal_voices;
         engine.piano_b.firmware_pedal_voices = self.piano_pedal_voices;
         engine.piano_a.firmware_timbre_gain = self.piano_timbre_gain;
@@ -973,6 +981,8 @@ impl FirmwareOptions {
         engine.piano_b.firmware_touch = self.piano_touch;
         engine.piano_a.firmware_slew = self.piano_slew;
         engine.piano_b.firmware_slew = self.piano_slew;
+        engine.piano_a.firmware_key_up = self.piano_key_up;
+        engine.piano_b.firmware_key_up = self.piano_key_up;
         engine.piano_a.firmware_pedal_voices = self.piano_pedal_voices;
         engine.piano_b.firmware_pedal_voices = self.piano_pedal_voices;
         engine.piano_a.firmware_timbre_gain = self.piano_timbre_gain;
@@ -1214,6 +1224,9 @@ impl FirmwareOptions {
         }
         if self.piano_slew {
             parts.push("piano-slew".into());
+        }
+        if self.piano_key_up {
+            parts.push("piano-keyup".into());
         }
         if self.piano_pedal_voices {
             parts.push("piano-pedal-voices".into());
