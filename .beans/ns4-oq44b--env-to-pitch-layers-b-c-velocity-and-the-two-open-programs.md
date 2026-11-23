@@ -18,10 +18,10 @@ D217 verified `48 * word * level` semitones on layer A of 8 programs. Layers B a
 - [x] Held-level law of all 13 layers with an amount (`tools/synth_osc_env_pitch.py layers`)
 - [x] Circus Box and Cinema Rise A / B / C resolved against the oracle
 - [x] Key velocity term measured and implemented behind the flag (`G / 128`)
-- [x] Tests, research note, D219, spec
+- [x] Tests, research note, D222, spec
 
 ## Out of Scope
 Default flip; `kOscEnvDst = 0` depth; audible A/B; why Bounce Clav B and Lyle Lead J3 B are silent in the oracle voice record.
 
 ## Summary of Changes
-See docs/research/synth-osc-env-pitch.md and D219.
+See docs/research/synth-osc-env-pitch.md and D222.

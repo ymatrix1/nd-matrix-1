@@ -26,7 +26,7 @@ The **Nord Stage 4 DAW Plugin** (`nord-plugin`) brings the 3-engine, 7-layer Nor
 | **Ableton Live** | VST3 | Intended; host routing not verified | Transport tempo is read in processing | Not host-tested |
 | **Apple Logic Pro / MainStage** | AUv2 via external wrapper | Not verified | Not verified | Not host-tested |
 | **PreSonus Studio One** | CLAP, VST3 | Intended; host routing not verified | Transport tempo is read in processing | Not host-tested |
-| **FL Studio** | CLAP, VST3 | Intended; host routing not verified | Transport tempo is read in processing | Not host-tested |
+| **FL Studio** | CLAP, VST3 | Intended; host routing not verified | Transport tempo is read in processing | Top bar and program load checked by hand 2026-11-22 (7.9); the rest not host-tested |
 | **Steinberg Cubase / Nuendo** | VST3 | Intended; host routing not verified | Transport tempo is read in processing | Not host-tested |
 
 Release archives (see [RELEASING.md](RELEASING.md)) ship with this file and a README that states the plugin is not DAW-verified; update both when a host test result is recorded.
@@ -225,7 +225,7 @@ Drives the `Plugin` trait the way nih-plug's wrappers do (initialize, process pe
 
 | Item | Why |
 |---|---|
-| Any DAW (Reaper, Bitwig, Live, Cubase, Studio One, FL Studio, Logic) | No host available; section 3 stays "not host-tested" |
+| Any DAW (Reaper, Bitwig, Live, Cubase, Studio One, Logic) | No host available; section 3 stays "not host-tested". FL Studio: only the top bar and program load, see 7.9 |
 | VST3 | No VST3 SDK validator is installable with cargo or pip (it needs the SDK and CMake plus a C++ toolchain). The release DLL contains the `GetPluginFactory` string, which is weak evidence only; the VST3 bundle (`cargo xtask bundle nord-plugin --release`) was not built or validated |
 | Standalone wrapper (`nord-plugin-standalone`) | Needs an audio device; not run |
 | AUv2 | Needs macOS and `clap-wrapper` |
@@ -264,3 +264,14 @@ The plugin has two audio layouts (main 1-2 + aux 3-4, then stereo only; see [daw
 | `clap-validator` 0.4.1 on that CLAP bundle | **44 run, 31 passed, 4 failed, 0 warnings, 9 skipped.** The 4 failures are the same upstream nih-plug ones as 7.4 (`state-invalid-random` abort, `state-reproducibility-basic` / `-binary` / `-buffered`). `layout-audio-ports-config` (tries every layout) and `process-audio-basic-*` passed with the new port. `scan-time` passed this run (92 ms; it was 117 to 130 ms before, so treat it as noise) |
 
 Not verified: any DAW, which layout a host picks, that the aux port shows up as a second track or channel pair (Reaper, Bitwig, Live), and the VST3 bundle beyond building it.
+
+### 7.9 FL Studio, top bar and program load (`ns4-pt0l`, 2026-11-22)
+
+Manual check by the owner on Windows 11, VST3 build of `main` at `7902ab1b` (release, `nord_plugin.dll` copied over the installed `nd matrix 1.vst3`). Reported result: everything worked.
+
+| Check | Result |
+|---|---|
+| `OPEN .NS4B`, `DEBUG`, `? HELP` open their dialogs inside the editor | Worked |
+| Pick an `.ns4b`, then a program; a key sounds with the program | Worked |
+
+Not covered: Reaper, Bitwig, other hosts, CLAP in FL Studio, project save and reload (the loaded program is not stored in project state, TD-21), HiDPI. Pitfall: an installer or copy that adds a differently named file next to the installed `nd matrix 1.vst3` leaves the host loading the old plugin; overwrite the installed file.

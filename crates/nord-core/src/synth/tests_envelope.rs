@@ -177,7 +177,7 @@ fn fw_pitch_vel_semitones(velocity: u8) -> f32 {
 
 #[test]
 fn fw_pitch_velocity_scales_by_g_over_128_like_the_oracle() {
-    // VERIFIED (D219): oracle Wooden Queen, key byte g 0 / 16 / 32 / 64 / 98 / 127 gives
+    // VERIFIED (D222): oracle Wooden Queen, key byte g 0 / 16 / 32 / 64 / 98 / 127 gives
     // 0 / 2.76 / 5.52 / 11.03 / 16.9 / 22.07 st = `22.07 G / 128` (G = 128 at g = 127).
     let top = fw_pitch_vel_semitones(127);
     assert!(top > 1.0);

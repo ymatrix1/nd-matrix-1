@@ -87,7 +87,7 @@ Both oracle core 2 images (`target/PNO` and `target/synth_env/sram`) give 22.066
 
 ## Implications
 
-OQ44 is answered: the DSP scale is 48 semitones per unit word times the envelope level (times `G / 128` with Env Velocity), linear in level, odd in sign, the same on layers A, B and C. The native opt-in reproduces it on Wooden Queen and Cinema Rise B / C. No default changes; flip proposal in D217 / D219.
+OQ44 is answered: the DSP scale is 48 semitones per unit word times the envelope level (times `G / 128` with Env Velocity), linear in level, odd in sign, the same on layers A, B and C. The native opt-in reproduces it on Wooden Queen and Cinema Rise B / C. No default changes; flip proposal in D217 / D222.
 
 ## Follow-ups
 

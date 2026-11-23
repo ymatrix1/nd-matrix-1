@@ -178,3 +178,15 @@ def test_pyproject_version_tracks_workspace_version():
     text = (rp.ROOT / "pyproject.toml").read_text(encoding="utf-8")
     match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.M)
     assert match and match.group(1) == rp.workspace_version()
+
+
+def test_bundler_toml_does_not_rename_the_plugin_bundle():
+    """cargo xtask bundle must emit `{PLUGIN_STEM}.clap`; a bundler.toml `name` renames it
+    and the release packager then fails with "missing build output" (v0.1.2 release)."""
+    import tomllib
+
+    path = rp.ROOT / "bundler.toml"
+    if not path.exists():
+        return
+    renamed = tomllib.loads(path.read_text(encoding="utf-8")).get("nord-plugin", {}).get("name")
+    assert renamed in (None, rp.PLUGIN_STEM)
