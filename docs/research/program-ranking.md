@@ -103,7 +103,7 @@ In all twenty, only FX groups reduce the score when reverted (s4); for 6 of them
 | Flag | Programs | Notes |
 |---|---|---|
 | `piano_no_chain_tap` | 0 | was 155. The SMP chain tap (D205, `program_rank_chain.py --smp`) was run over all 155 piano programs (D216, 2026-11-21): 152 give audio (`smp_peak_dbfs` -34.5 to -14.3, median -18.4 dBFS, post stage ring, layer A, before the chain; `smp_cycles` is the fundamental in cycles per frame, 0.00600 for 140 of them). The tap level is **not** a program level: it is layer A only, before FX, pan and master, and the SMP interrupt rate and layers 2 and 3 are open ([smp-voice-pitch](smp-voice-pitch.md)). |
-| `piano_chain_no_audio` | 3 | Chord N Melody and Forever Split (piano key zone gain 0 at key 60: the firmware keeps the piano silent, `tools/program_expect.py`, expected) and Simple Tune (piano on layer B only; the bind covers layer 0 of core 0, so the tap stays silent: layers 2 and 3, open). |
+| `piano_chain_no_audio` | 3 | Chord N Melody and Forever Split (piano key zone gain 0 at key 60: the firmware keeps the piano silent, `tools/program_expect.py`, expected) and Simple Tune (piano on layer B only; D230: it plays on piano core 2 and its voices write bus `0x9405A`, which the tapped ring does not carry; a bus tap is open). |
 | `synth_chain_silent` | 0 | Synth Engine (a right-panned arp step, key word lane bit `0x01`) was the last one, read as silence by the old left-lane window; it voices with the two-lane window `0xC1F89:8:1` ([arp-pan-lanes](arp-pan-lanes.md), D175, census rerun 2026-11-20). The 12 other programs of the first census (Dance Lead, Gravity Pattern, 70s CP Strings, Broken Chip, Calling Whl, Super Org Punch, 90s Organ, Dreamy Syn Tines, Gravity Whl, Moving Chords, Scream Lead AT, Shiny Synth Keys) voice after the L2 forwarding and the arp hold (D170). |
 | `organ_expected_silent` | 5 | Ballad Layer Whl, Wormhole Organ (Pipe 1), Nox Split (Pipe 2), 24 Frames J3, J3 Grand Layers: the firmware keeps the organ layer silent at key 60 (zone gain 0 or stored level 0; `tools/program_expect.py`). The other 33 organ programs voice. |
 | `sample_layer_lost` | 24 | 22 with 3 layers (2 voices), Momentum Whl (2 layers, 1 voice), Quintet Bass Spl and Pizz Quintet Spl (1 voice). Same cause as D154 section 4.3: the third layer gets no voice in the harness. |
@@ -117,10 +117,10 @@ Run 2026-11-21 on the 155 programs of the former `piano_no_chain_tap` flag: `pro
 | Outcome | Programs | Why |
 |---|---|---|
 | tap with audio | 152 (83 piano, 42 piano+synth, 22 piano+sample, 3 organ+piano+sample, 2 organ+piano+synth) | peak -34.5 to -14.3 dBFS, median -18.4 |
-| no audio | 3 | Chord N Melody, Forever Split: piano zone gain 0 at key 60 (expected); Simple Tune: piano layer B only, not bound (open) |
+| no audio | 3 | Chord N Melody, Forever Split: piano zone gain 0 at key 60 (expected); Simple Tune: piano layer B only, plays on core 2 but its bus is not in the ring (D230) |
 | no tap | 0 | 5 programs (Tines Layer, LoFi Piano, Rising Sun, Piano Soft Orch, 70s CP Strings) store both piano enable bits 0 and sound on layer A; the bind read "no layer" until it used the loader rule (layer A, `engine/routing.rs::default_layer_a`) |
 
-`smp_cycles` (fundamental, cycles per frame) is 0.00600 for 140 programs (the same key 60); outliers: x2 (0.0121: Momentum Whl, Shoreline Whl, Big Felt Pad Whl, French Harpsi), x0.5 (0.0030: Gradient Whl, J3 Split Special) and 0.0003 (LoFi Piano, Clean Marimba AT, DistantGrand). Whether these are octave layers of the sound or a failing pitch estimate is not checked (ASSUMED octave layers).
+`smp_cycles` (fundamental, cycles per frame) is 0.00600 for 140 programs (the same key 60). Nine outliers (D230, [piano-smp-pitch-outliers](piano-smp-pitch-outliers.md)): four are real layer octaves (x2: Momentum Whl, Shoreline Whl, Big Felt Pad Whl, piano layer A octave +1; x0.5: J3 Split Special, octave -1), five were a failing pitch detector and are corrected in the CSV (French Harpsi, Gradient Whl, LoFi Piano, Clean Marimba AT, DistantGrand: 0.00602 to 0.00607). `tools/smp_pitch_audit.py` checks the column against `2^octave` of the played layer: 148 `ok`, 4 `octave_shift`, 0 `mismatch`. Simple Tune (piano layer B only) plays on piano core 2; its voices write bus `0x9405A`, which the tapped ring does not carry, so it stays `piano_chain_no_audio`.
 
 ## 4. Cause of the worst 20 (ablation)
 
@@ -151,7 +151,7 @@ Carrier = best single-group revert; **only single-group reverts were run**, no p
 
 1. ~~Ablate pairs of FX groups for the 6 programs with a residual above 5~~ Done in [program-ranking-fx](program-ranking-fx.md) (D163): all 63 FX combinations for the worst 20 (Mod 2 plus EQ explain most; the six residual programs need three or four groups), and the before / after of an FX default flip on all 384. Still open: programs 21 to 384 have no carrier (`--ablate-fx`, about 15 s per program with `--jobs 20`).
 2. ~~Diagnose the 13 `synth_chain_silent` and 5 `organ_chain_silent` programs~~ done in [silent-programs](silent-programs.md) (D164, D170): census rerun, Synth Engine answered in [arp-pan-lanes](arp-pan-lanes.md) (D175).
-3. ~~A piano tap~~ Done as the SMP chip tap (D205, census D216): 152 of 155 piano programs. Open: the tap is layer A before the chain, so it carries no level verdict against native; `smp_cycles` outliers (s3.3a); layers 2 and 3 (Simple Tune).
+3. ~~A piano tap~~ Done as the SMP chip tap (D205, census D216): 152 of 155 piano programs. Open: the tap is layer A before the chain, so it carries no level verdict against native; layer B bus tap (Simple Tune, D230); `smp_cycles` outliers answered (s3.3a).
 4. Re-run after any FX default flip: `tools/program_rank.py` regenerates both CSV files (done 2026-11-19, s1b; six per-bank `program_rank --only "Bank X/"` shards give the same lines as one run).
 
 ## Refactor check (`program_sweep` -> `sweep_load.rs`)

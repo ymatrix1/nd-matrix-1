@@ -206,7 +206,8 @@ def bind_program_piano(emu, backup: Path, program: bytes) -> dict:  # noqa: ANN0
         member = pb.resolve_member(pb.piano_members(archive.namelist()), layers[layer]["name_hash"])
     if member is None:
         return {"layer": layer, "member": None}
-    return {"layer": layer, "member": member, **pb.bind_piano(emu, pl.read_npno(backup, member))}
+    npno = pl.read_npno(backup, member)
+    return {"layer": layer, "member": member, **pb.bind_piano(emu, npno, layer=layer)}
 
 
 def attach_smp_flash(chips, backup: Path, bound: dict, log: Path | None):  # noqa: ANN001, ANN201  # pragma: no cover

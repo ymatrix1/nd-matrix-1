@@ -185,26 +185,59 @@ def tap_stats(data: bytes) -> dict[str, object]:
     }
 
 
-def tap_fundamental(data: bytes, harmonics: int = 4) -> float | None:
-    """Fundamental of a captured tap in cycles per tap frame (harmonic-sum pitch of the left lane).
+# EMPIRICAL (D230, `piano-smp-pitch-outliers.md`): the autocorrelation window, the lag range and the
+# peak threshold were chosen on 10 taps (9 piano programs the old harmonic-sum detector got wrong
+# plus Astoria Grand); all 10 give the octave of the program within 1.2 %.
+PITCH_WINDOW = 4096  # frames from the onset
+PITCH_LAGS = (33, 1000)  # cycles per frame 0.03 .. 0.001 (1.3 kHz .. 43 Hz at 43.4 kHz)
+PITCH_ONSET = 0.05  # onset: first frame above this fraction of the peak
+PITCH_PEAK = 0.85  # the first autocorrelation maximum above this fraction of the best one
+
+
+def tap_fundamental(data: bytes) -> float | None:
+    """Fundamental of a captured tap in cycles per tap frame (autocorrelation of the left lane).
 
     The tap holds one frame per audio interrupt (D205); the pitch in Hz is `cycles * frame_rate`
     and the frame rate of the SMP chip is the DSP frame rate 43,402.34 Hz (D211, VERIFIED: ARM
-    literal, not 48 kHz). The window starts at the loudest sample and spans 8,192 frames.
-    `None` for a silent or too short tap.
+    literal, not 48 kHz). The window starts at the onset (first frame above `PITCH_ONSET` of the
+    peak) and spans `PITCH_WINDOW` frames. The pitch is the **first** normalised autocorrelation
+    maximum within `PITCH_PEAK` of the best one, refined by the harmonic sum inside that octave.
+    D230: the earlier harmonic-sum detector (4 harmonics, bins 40..4000 of a 2^17 FFT) read its
+    lowest candidate (0.0003, three programs), half the pitch (Gradient Whl) or twice (French
+    Harpsi, strong even harmonics). `None` for a silent or too short tap.
     """
     import numpy as np  # local: only the pitch check needs it
 
     x = np.frombuffer(data[: len(data) // 8 * 8], dtype="<f4").reshape(-1, 2)[:, 0].astype(float)
     if len(x) < 1024 or not np.isfinite(x).all() or float(np.abs(x).max()) < 3e-5:
         return None
-    start = int(np.argmax(np.abs(x)))
-    seg = x[start : start + 8192]
+    start = int(np.argmax(np.abs(x) >= PITCH_ONSET * float(np.abs(x).max())))
+    seg = x[start : start + PITCH_WINDOW]
     seg = seg - seg.mean()
+    lo, hi = PITCH_LAGS[0], min(PITCH_LAGS[1], len(seg) // 2)
+    if hi <= lo + 2:
+        return None
+    ac = np.fft.irfft(np.abs(np.fft.rfft(seg, n=1 << 14)) ** 2)[: len(seg)]
+    lags = np.arange(lo - 1, hi + 2)
+    energy = np.concatenate(([0.0], np.cumsum(seg**2)))
+    head = energy[len(seg) - lags]  # sum of seg[:n - lag] squared
+    tail = energy[-1] - energy[lags]  # sum of seg[lag:] squared
+    r = ac[lags] / np.sqrt(np.maximum(head * tail, 1e-30))
+    best = float(r[1:-1].max())
+    for i in range(1, len(r) - 1):
+        if r[i] >= PITCH_PEAK * best and r[i] >= r[i - 1] and r[i] >= r[i + 1]:
+            return _refine_pitch(seg, 1.0 / lags[i])
+    return None
+
+
+def _refine_pitch(seg, coarse: float, harmonics: int = 4) -> float:  # noqa: ANN001
+    """Harmonic-sum refinement of the autocorrelation pitch `coarse` within +-3 % (the lag has
+    1 % resolution at 0.006 cycles per frame; the harmonic sum is the D205 detector, accurate to
+    0.1 %, but only trusted inside the octave the autocorrelation chose)."""
+    import numpy as np
+
     size = 1 << 17
     mag = np.abs(np.fft.rfft(seg * np.hanning(len(seg)), n=size))
-    cand = np.arange(40, 4000)  # bins: 0.0003 .. 0.03 cycles per frame at this size
-    score = np.array(
-        [sum(mag[min(k * c, len(mag) - 1)] for k in range(1, harmonics + 1)) for c in cand]
-    )
+    cand = np.arange(int(0.97 * coarse * size), int(1.03 * coarse * size) + 1)
+    score = [sum(mag[min(k * c, len(mag) - 1)] for k in range(1, harmonics + 1)) for c in cand]
     return float(cand[int(np.argmax(score))] / size)
