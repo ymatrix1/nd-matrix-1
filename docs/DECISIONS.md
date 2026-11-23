@@ -2398,6 +2398,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** keep the linear velocity (off by 3x at velocity 40: `G / 128` = 0.09 against 0.31).
 - **Impact:** opt-in only (`--synth-osc-env-morph`); default path unchanged. 13 layers in 9 programs have an amount (D217 said 14: miscount). Bounce Clav B and Lyle Lead J3 B are silent in the oracle voice record and stay unverified.
 - **Open:** whether Lyle Lead J3 B and Bounce Clav B sound on hardware; audible A/B; the flip.
+
 ### D223. Default flip audit of the validated opt-ins: only `--synth-fw-resonance` flips; the envelope law and the settled tables make hardware clips worse, the rest need hardware
 
 - **Status:** accepted 2026-11-22 (number chosen above D218, the highest on `main`; renumber on merge if another branch takes it)
