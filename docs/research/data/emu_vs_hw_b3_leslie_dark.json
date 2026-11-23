@@ -1,0 +1,47 @@
+{
+ "video": "_zksT69H30c",
+ "note": "B3 Leslie darkness bisect (docs/research/b3-leslie-dark.md): the organ_b3 clip with the stage ablations, run with three note streams.",
+ "segments": [
+  {
+   "id": "organ_b3",
+   "entry": "Program/Bank A/B3 Chords n Solo.ns4p",
+   "engine": "organ B3",
+   "at_s": 238,
+   "duration_s": 25,
+   "variants": [
+    {
+     "label": "default",
+     "flags": []
+    },
+    {
+     "label": "rotary-off",
+     "flags": [],
+     "edits": {
+      "organ.rotary_enabled": false
+     }
+    },
+    {
+     "label": "rotary-scaled",
+     "flags": [
+      "--rotary-drive",
+      "scaled"
+     ]
+    },
+    {
+     "label": "leslie-fw",
+     "flags": [
+      "--leslie",
+      "firmware"
+     ]
+    },
+    {
+     "label": "fw-all",
+     "flags": [
+      "--firmware-all",
+      "--firmware-routing"
+     ]
+    }
+   ]
+  }
+ ]
+}

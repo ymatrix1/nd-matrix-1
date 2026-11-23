@@ -313,6 +313,7 @@ def run_all(args: argparse.Namespace) -> dict[str, Any]:
                 emu_events.stream_path(args.events_from, spec["video"]),
                 seg,
                 work / seg["id"] / "events_transcribed.json",
+                args.merge_gap,
             )
         if args.note_range:
             lo, hi = args.note_range
@@ -406,6 +407,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Replay the transcribed note stream (velocities, sustain pedal) sliced to each "
         "segment instead of the video-detected notes: 'transkun' = "
         "docs/research/data/piano_events_<video>.json (tools/transcribe_clip.py).",
+    )
+    p.add_argument(
+        "--merge-gap",
+        type=float,
+        default=0.0,
+        metavar="SECONDS",
+        help="With --events-from: join same-key re-triggers closer than SECONDS (0.3 turns the 525 "
+        "Transkun notes of the B3 clip into 96, the player's note set; default off).",
     )
     p.add_argument(
         "--note-range",
