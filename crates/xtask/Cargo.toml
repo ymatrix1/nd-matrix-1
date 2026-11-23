@@ -6,4 +6,4 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-nih_plug_xtask = { git = "https://github.com/robbert-vdh/nih-plug.git" }
+nih_plug_xtask = { git = "https://github.com/davemollen/nih-plug.git", rev = "95034d55de49b3d792289a0faf5df15b889e86d9" }

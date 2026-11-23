@@ -4,6 +4,15 @@
 
 `nord-plugin` exports CLAP and VST3 wrappers around `Stage4Engine`. Hosts own and restore the NIH-plug parameter state. The plugin synchronizes those values into the engine before processing each audio block.
 
+## Format wrappers and licensing (`ns4-pvb3`)
+
+| Item | Value | Status |
+|---|---|---|
+| Framework | nih-plug PR #263 head `95034d55de49b3d792289a0faf5df15b889e86d9` from `https://github.com/davemollen/nih-plug.git` (VST3 wrapper on the `vst3` 0.3.0 crate, `MIT OR Apache-2.0`); pinned by `rev` in `crates/nord-plugin/Cargo.toml`, `crates/xtask/Cargo.toml`, `vendor/nih_plug_egui/Cargo.toml` and the `[patch]` table in `Cargo.toml` | VERIFIED (`cargo tree -p nord-plugin -i vst3`, [research](../research/permissive-vst3-binding.md)) |
+| Copyleft | none in the shipped tree; `tools/check_licenses.py` (CI job `licenses`) fails on GPL, AGPL, LGPL, MPL, SSPL, EUPL, CDDL, EPL or similar unless an `OR` arm is permissive | VERIFIED (`tools/tests/test_check_licenses.py`, 500 crates checked) |
+| Stable identity (D16) | CLAP ID `org.ndmatrix.nd-matrix-1`, VST3 class ID `NDMatrix1Emulato`, string parameter IDs in `param-ids.snapshot`, VST3 parameter ID = nih-plug `hash_param_id` of the string ID | VERIFIED (`plugin_ids` and `param_snapshot` tests) |
+| VST3 host behaviour | Steinberg `validator` 47 of 47 pass; no host loaded the new wrapper yet | VERIFIED (validator), host testing pending ([HOST_COMPATIBILITY 7.10](../HOST_COMPATIBILITY.md)) |
+
 ## Audio ports (`ns4-ux21`)
 
 `AUDIO_IO_LAYOUTS` (`audio_out.rs`) lists two layouts, no audio input:

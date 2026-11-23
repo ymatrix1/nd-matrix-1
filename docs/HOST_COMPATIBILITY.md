@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The **Nord Stage 4 DAW Plugin** (`nord-plugin`) brings the 3-engine, 7-layer Nord Stage 4 DSP architecture to modern Digital Audio Workstations. Built on `nih-plug`, it currently exports **CLAP** and **VST3**; source builds may also provide a standalone target. AUv2 requires a separate `clap-wrapper` packaging step and is not built or tested by this project.
+The **Nord Stage 4 DAW Plugin** (`nord-plugin`) brings the 3-engine, 7-layer Nord Stage 4 DSP architecture to modern Digital Audio Workstations. Built on `nih-plug` (pinned to a VST3 wrapper on the permissive `vst3` crate, see 7.10), it currently exports **CLAP** and **VST3**; source builds may also provide a standalone target. AUv2 requires a separate `clap-wrapper` packaging step and is not built or tested by this project.
 
 ---
 
@@ -226,7 +226,7 @@ Drives the `Plugin` trait the way nih-plug's wrappers do (initialize, process pe
 | Item | Why |
 |---|---|
 | Any DAW (Reaper, Bitwig, Live, Cubase, Studio One, Logic) | No host available; section 3 stays "not host-tested". FL Studio: only the top bar and program load, see 7.9 |
-| VST3 | No VST3 SDK validator is installable with cargo or pip (it needs the SDK and CMake plus a C++ toolchain). The release DLL contains the `GetPluginFactory` string, which is weak evidence only; the VST3 bundle (`cargo xtask bundle nord-plugin --release`) was not built or validated |
+| VST3 | Validated headlessly with the Steinberg `validator` (7.10). Not loaded in any VST3 host |
 | Standalone wrapper (`nord-plugin-standalone`) | Needs an audio device; not run |
 | AUv2 | Needs macOS and `clap-wrapper` |
 | Automation lanes, project save/load, editor open/close, HiDPI, window resize in a host | Need a host |
@@ -275,3 +275,28 @@ Manual check by the owner on Windows 11, VST3 build of `main` at `7902ab1b` (rel
 | Pick an `.ns4b`, then a program; a key sounds with the program | Worked |
 
 Not covered: Reaper, Bitwig, other hosts, CLAP in FL Studio, project save and reload (the loaded program is not stored in project state, TD-21), HiDPI. Pitfall: an installer or copy that adds a differently named file next to the installed `nd matrix 1.vst3` leaves the host loading the old plugin; overwrite the installed file.
+
+### 7.10 Permissive VST3 binding (`ns4-pvb3`, 2026-11-23)
+
+The VST3 wrapper moved from the GPLv3 `vst3-sys` to the MIT or Apache-2.0 `vst3` crate by pinning nih-plug PR #263 (head `95034d5`, see [permissive-vst3-binding.md](research/permissive-vst3-binding.md)). Headless evidence, Linux x86_64, debug bundles from `cargo xtask bundle nord-plugin` built in a copy outside the checkout:
+
+| Check | Result |
+|---|---|
+| `cargo test -p nord-plugin` | all passed, including `plugin_ids` (CLAP ID, VST3 class ID `NDMatrix1Emulato`, parameter-ID hashes) and `param_snapshot` with `param-ids.snapshot` unchanged |
+| Steinberg `validator` (vst3sdk master `3cdf9ca`, built with CMake) on `nord-plugin.vst3` | **47 tests passed, 0 failed.** Class `ND Matrix 1`, category `Audio Module Class`, subcategories `Instrument\|Synth\|Stereo`, `cid = 4E444D617472697831456D756C61746F` (the pinned class ID) |
+| `clap-validator` 0.4.1 on `nord-plugin.clap` | 44 run, 32 passed, 4 failed (the same upstream nih-plug failures as 7.4: `state-invalid-random`, `state-reproducibility-basic`, `-binary`, `-buffered`), 8 skipped; the CLAP wrapper is unchanged by the switch |
+| `python tools/check_licenses.py` | 500 third-party crates, no copyleft; `cargo tree -p nord-plugin -i vst3-sys` finds nothing |
+
+Not verified: any VST3 host, project save and restore through the new wrapper, editor open and resize through the new `IPlugView`, host automation, Windows and macOS builds.
+
+Manual host checklist (owner, one VST3 host is enough for a first pass; compare with the previous release build if you have a project saved with it):
+
+1. Install the `nord-plugin.vst3` bundle and rescan: the plugin appears once, named `ND Matrix 1`, category instrument.
+2. Open a project saved with the previous (GPL binding) build: the plugin loads, parameter values and the editor size are restored, no "unknown plugin" prompt (the class ID did not change).
+3. Insert on an instrument track and play notes: sound, no stuck notes after stop.
+4. Open and close the editor 10 times, resize it with the corner handle, move it between monitors of different DPI: no crash, the panel stays sharp.
+5. Automate `master_level` and an Organ drawbar with a write lane; play back: the panel knob follows. Move a parameter in the host's generic UI: the panel follows. Automation written with the old build still drives the same parameters.
+6. Save the project, close the host, reopen: values, editor size and layer scene return. Duplicate the track: the copy keeps its own state.
+7. Remove the plugin during playback and with the editor open: no crash.
+8. Record host name, version, OS and the result of every line here.
+

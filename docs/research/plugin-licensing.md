@@ -130,3 +130,5 @@ Reproduce: `cargo metadata --format-version 1 > meta.json`, then walk `resolve.n
 - If option (b): prototype PR #263 or `nice-plug` against the current plugin, keep `param-ids.snapshot` and VST3/CLAP class IDs identical, test in two hosts.
 - Ask the owner whether the LICENSE PR should name nord-plugin explicitly, and align `crates/nord-plugin/Cargo.toml` `license`.
 - Re-check nih-plug #263, #274, #281 and `nice-plug` when the decision is taken.
+
+**Update 2026-11-23:** the owner chose option (b); see D233 and [permissive-vst3-binding](permissive-vst3-binding.md).
