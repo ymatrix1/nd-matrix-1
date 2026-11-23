@@ -1,6 +1,6 @@
 # Plugin editor: build and host smoke test
 
-The CLAP/VST3 plugin has an egui editor (`crates/nord-plugin/src/editor/`, spec: `docs/specs/daw-plugin.md`, section Editor). It was verified by unit and headless frame tests only. **It has not been loaded in a DAW.** Run the smoke test below in Reaper and Bitwig before ticking the host item of B11 (`ns4-hud1`) and B13.
+The CLAP/VST3 plugin has an egui editor (`crates/nord-plugin/src/editor/`, spec: `docs/specs/daw-plugin.md`, section Editor). It was verified by unit and headless frame tests only. **It was loaded by hand in FL Studio on Windows (2026-11-22, top bar and program load only, `docs/HOST_COMPATIBILITY.md` 7.9); the full smoke test below has not been run.** Run it in Reaper and Bitwig before ticking the host item of B11 (`ns4-hud1`) and B13.
 
 ## Build
 
