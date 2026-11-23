@@ -93,3 +93,6 @@ jobs:
 
       - name: Every source file has a unit test (ratchet)
         run: uv run python tools/check_tests.py
+
+      - name: Firmware-derived files only shrink (ratchet)
+        run: uv run python tools/check_fw_derived.py
