@@ -110,3 +110,25 @@ def test_build_outputs_and_parser(tmp_path):
         ["slice", "e.json", "--at", "1", "--duration", "2", "--out", "o"]
     )
     assert args.fn is tc.cmd_slice
+
+
+def test_segment_events_merge_gap_joins_retriggers(tmp_path):
+    doc = {
+        "events": [
+            {"midi": 60, "onset_s": 1.0, "offset_s": 1.2, "velocity": 50},
+            {"midi": 60, "onset_s": 1.4, "offset_s": 1.9, "velocity": 70},
+            {"midi": 60, "onset_s": 3.0, "offset_s": 3.5, "velocity": 60},
+            {"midi": 64, "onset_s": 1.1, "offset_s": 1.3, "velocity": 80},
+        ],
+        "pedal": [],
+    }
+    src = tmp_path / "s.json"
+    src.write_text(json.dumps(doc))
+    seg = {"at_s": 0.0, "duration_s": 10.0}
+    plain = json.loads(ev.segment_events(src, seg, tmp_path / "a.json").read_text())
+    assert len(plain["events"]) == 4
+    merged = json.loads(ev.segment_events(src, seg, tmp_path / "b.json", 0.3).read_text())
+    got = sorted((e["midi"], e["onset_s"], e["offset_s"]) for e in merged["events"])
+    assert got == [(60, 1.0, 1.9), (60, 3.0, 3.5), (64, 1.1, 1.3)]
+    # the first velocity is kept
+    assert [e["velocity"] for e in merged["events"] if e["midi"] == 60][0] == 50
