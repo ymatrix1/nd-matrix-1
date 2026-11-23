@@ -2755,6 +2755,7 @@ name = "nord-core"
 version = "0.1.2"
 dependencies = [
  "miniz_oxide 0.8.9",
+ "nord-sharc",
  "serde",
  "serde_json",
 ]

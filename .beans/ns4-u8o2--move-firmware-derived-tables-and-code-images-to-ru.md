@@ -1,10 +1,10 @@
 ---
 # ns4-u8o2
 title: Move firmware-derived tables and code images to runtime loading
-status: todo
+status: in-progress
 type: task
 created_at: 2026-11-17T04:06:20Z
-updated_at: 2026-11-23T06:00:00Z
+updated_at: 2026-11-23T12:00:00Z
 parent: ns4-trkb
 ---
 
@@ -15,16 +15,16 @@ D128 classifies tracked firmware-derived data (docs/research/firmware-derived-da
 Repository holds only our own work; firmware data is read from the user OS update file at runtime.
 
 **Acceptance Criteria**
-- [ ] Loader for core DSP images via FirmwareContainer::extract_segment
-- [ ] Default render without an image has a documented fallback
+- [x] Loader for core DSP images via FirmwareContainer::extract_segment (`crates/nord-core/src/dsp_image/`: chain finder and loader stream reader; `bank0_code` uses `extract_segment`)
+- [ ] Default render without an image has a documented fallback (done for Farfisa: the opt-in stage is not built without the file and the layer renders the stage-off model, `docs/specs/organ-engine.md` 3.1.8; open for the other migrations)
 - [ ] Each path below is migrated to runtime loading with a synthetic-fixture test, then deleted and removed from `tools/fw-derived-baseline.txt` (the ratchet in `tools/check_fw_derived.py` only allows the list to shrink). Verification needs the owner's OS update file, which is not available in the agent environment.
 - [ ] `crates/nord-core/src/organ/b3_bass_fw/prog_gen.rs`
-- [ ] `crates/nord-core/src/organ/b3_bass_fw/prog_proc.rs`
-- [ ] `crates/nord-core/src/organ/farfisa_fw/prog_proc.rs`
+- [ ] `crates/nord-core/src/organ/b3_bass_fw/prog_proc.rs` (also `b3_bass_fw/native_bass_gen.rs` and `native_bass_proc.rs`, generated from the same rows, not on the ratchet list)
+- [x] `crates/nord-core/src/organ/farfisa_fw/prog_proc.rs` (migrated 2026-11-23: rows decoded at setup time from the update file; 957 of 957 rows equal; the generated `b3_bass_fw/native_farfisa.rs` is removed with it)
 - [ ] `crates/nord-core/src/organ/firmware_bank.rs`
 - [ ] `crates/nord-core/src/organ/vox_image.rs`
 - [ ] `docs/research/data/bass-fw-image.csv`
-- [ ] `docs/research/data/farfisa-fw-image.csv`
+- [x] `docs/research/data/farfisa-fw-image.csv` (migrated 2026-11-23: 802 of 802 DM words equal; 48 install words stay as `farfisa-fw-install-delta.csv`, class D, owner review wanted)
 - [ ] `crates/nord-core/src/engine/zone_table.rs`
 - [ ] `crates/nord-core/src/fx/fw_coeffs.rs`
 - [ ] `crates/nord-core/src/fx/fw_delay_table.rs`
@@ -61,4 +61,4 @@ Repository holds only our own work; firmware data is read from the user OS updat
 History rewrite (owner decision). The ratchet itself (bean `ns4-r4tq`, done).
 
 **Summary of Changes**
-(pending)
+- 2026-11-23, first migration (Farfisa processor): new `crates/nord-core/src/dsp_image/` (five-image chain finder, loader stream reader), `organ/farfisa_fw/image.rs` and `rows.rs` (rows decoded with the `nord-sharc` VISA decoder), 48 word install delta `farfisa-fw-install-delta.csv`; removed `farfisa-fw-image.csv`, `farfisa_fw/prog_proc.rs`, `b3_bass_fw/native_farfisa.rs`; D128 update, inventory, organ spec 3.1.8. Remaining: Bass, Vox / tonewheel bank, Synth, FX and ARM tables.

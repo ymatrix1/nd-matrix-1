@@ -339,6 +339,17 @@ pub fn decode_text(insn: &Insn) -> String {
     }
 }
 
+/// Whether the move instruction of type `kind` and 48-bit word `w` carries the `LW` flag (a long
+/// word transfer of the register pair). Bit 39 in types 14a, 15a and 15b, bit 30 in 3a and 3b;
+/// VERIFIED against ADI elfdump (`core/longword.rs`). [`decode_text`] does not print the flag.
+pub fn lw_flag(kind: Kind, w: u64) -> bool {
+    match kind {
+        Kind::T14a | Kind::T15a | Kind::T15b => bits(w, 39, 39) == 1,
+        Kind::T3a | Kind::T3b => bits(w, 30, 30) == 1,
+        _ => false,
+    }
+}
+
 /// One disassembly line in the format of `tools/sharc_visa.py`.
 pub fn listing_line(offset: usize, insn: &Insn) -> String {
     format!(
@@ -526,5 +537,29 @@ mod tests {
             };
             assert!(!decode_text(&insn).is_empty());
         }
+    }
+
+    /// ADI: `1180 0009 2196` is `dm(0x92196)=r0 (LW)`, the plain form `1100 ...` is not.
+    #[test]
+    fn the_long_word_flag_is_read_from_the_move_types() {
+        let flag = |p: &[u16]| {
+            let (k, _) = classify(p[0], p.get(1).copied());
+            let mut parcels = [0u16; 3];
+            parcels[..p.len()].copy_from_slice(p);
+            let insn = Insn {
+                kind: k,
+                parcels,
+                len: p.len(),
+            };
+            lw_flag(k, word48(insn.words()))
+        };
+        assert!(flag(&[0x1180, 0x0009, 0x2196]));
+        assert!(!flag(&[0x1100, 0x0009, 0x2196]));
+        assert!(flag(&[0x9688, 0x0160]), "type 15b");
+        assert!(flag(&[0x5abe, 0xc000, 0x0000]), "type 3a");
+        assert!(
+            !flag(&[0x0f08, 0x0000, 0x0000]),
+            "an immediate load has no flag"
+        );
     }
 }

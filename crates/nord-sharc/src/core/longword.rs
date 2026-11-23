@@ -13,16 +13,12 @@
 //! takes the lower word, and the same rule holds in SIMD mode (the 25 LW shapes of
 //! `census_regress.rs`). The Type 4 forms are not modelled.
 use super::Core;
-use crate::visa::{bits, Kind};
+use crate::visa::Kind;
 
 impl Core {
     /// Whether the move instruction carries the `LW` flag.
     pub(super) fn lw_flag(kind: Kind, w: u64) -> bool {
-        match kind {
-            Kind::T14a | Kind::T15a | Kind::T15b => bits(w, 39, 39) == 1,
-            Kind::T3a | Kind::T3b => bits(w, 30, 30) == 1,
-            _ => false,
-        }
+        crate::visa::lw_flag(kind, w)
     }
 }
 

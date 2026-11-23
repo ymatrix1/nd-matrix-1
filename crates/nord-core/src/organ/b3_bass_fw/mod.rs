@@ -17,7 +17,6 @@ mod fast;
 mod fastexec;
 mod native_bass_gen;
 mod native_bass_proc;
-mod native_farfisa;
 #[cfg(test)]
 pub(super) mod native_gen;
 mod plan;
@@ -25,10 +24,9 @@ mod plan;
 mod probe;
 mod prog_gen;
 mod prog_proc;
-mod tables;
+pub(in crate::organ) mod tables;
 
 use compile::Program;
-#[cfg(test)]
 use tables::kind;
 
 pub(super) use prog_gen::GEN_ROWS;
@@ -179,18 +177,6 @@ impl Machine {
         self.main_fn = Some(native_bass_proc::proc_call);
     }
 
-    /// Runs the generated straight line Farfisa processor.
-    pub(super) fn use_native_farfisa(&mut self) {
-        self.main_fn = Some(native_farfisa::proc_call);
-    }
-
-    /// Back to the interpreter (tests compare it with the straight line routines).
-    #[cfg(test)]
-    pub(super) fn use_interpreter(&mut self) {
-        self.gen_fn = None;
-        self.main_fn = None;
-    }
-
     /// One call of the processor with the `preset`.
     pub(super) fn call_main(&mut self, preset: (u32, u32)) {
         if let Some(routine) = self.main_fn {
@@ -256,8 +242,7 @@ impl Machine {
 }
 
 /// `true` when every `INS` / `LOOP` row of `rows` is followed by its full body (generated tables).
-#[cfg(test)]
-pub(super) fn rows_valid(rows: &[Row]) -> bool {
+pub(in crate::organ) fn rows_valid(rows: &[Row]) -> bool {
     let mut p = 0;
     while p < rows.len() {
         let (k, n) = (

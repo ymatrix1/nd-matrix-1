@@ -134,7 +134,6 @@ mod tests {
     use super::super::compile::compile;
     use super::super::{Machine, GEN_ROWS, PROC_ROWS};
     use super::*;
-    use crate::organ::farfisa_fw::FARFISA_ROWS;
 
     #[test]
     fn jumps_become_nested_labeled_blocks_and_loops_become_for() {
@@ -185,12 +184,6 @@ mod tests {
             "proc_call",
             "B3 Bass processor 0x122296",
             &PROC_ROWS,
-        );
-        check(
-            "native_farfisa.rs",
-            "proc_call",
-            "Farfisa processor 0x122B85",
-            &FARFISA_ROWS,
         );
     }
 

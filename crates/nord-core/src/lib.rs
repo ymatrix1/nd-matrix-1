@@ -8,6 +8,7 @@ pub mod bench_gui_prog;
 pub mod bench_gui_reload;
 pub mod bench_organ_fw;
 pub mod cbin;
+pub mod dsp_image;
 pub mod engine;
 pub mod firmware;
 pub mod firmware_setting;
