@@ -73,6 +73,24 @@ impl BackupLibraryState {
         });
     }
 
+    /// Opens a dropped / command-line `.ns4b` and shows it in the Studio Settings "Library &
+    /// Backup" tab (the current template), not the legacy docked drawer. On failure the error is
+    /// kept in `error_message` and the dialog stays as it was.
+    pub fn open_backup_in_settings(
+        &mut self,
+        path: &std::path::Path,
+        dialog: &mut crate::debug_dialog::DebugDialogState,
+    ) {
+        match self.open_backup_path(path) {
+            Ok(()) => {
+                self.path_input = path.display().to_string();
+                self.error_message = None;
+                dialog.open_tab(crate::debug_dialog::DebugTab::Library);
+            }
+            Err(err) => self.error_message = Some(err),
+        }
+    }
+
     /// Shows the outcome of an Export / Live import in the status strip.
     fn report(&mut self, result: Result<String, String>) {
         match result {
@@ -384,6 +402,32 @@ mod tests {
             lib.render_drawer(ctx, &mut panel, &audio);
         });
         assert!(!lib.drawer_open);
+    }
+
+    #[test]
+    fn dropped_backup_opens_settings_library_tab_not_the_drawer() {
+        use crate::debug_dialog::{DebugDialogState, DebugTab};
+        let meta = b"<backup file_version=\"1\" backup_format_version=\"1\" product_id=\"46\" product_version=\"166\" product_build=\"2934\" manager_version=\"786\" manager_build=\"1234\"/>";
+        let zip = super::super::support::build_synthetic_zip_stored(&[
+            ("meta.xml", meta),
+            ("Piano/Grand/Dummy.npno", b"x"),
+        ]);
+        let path = std::env::temp_dir().join(format!("ns4_drop_{}.ns4b", std::process::id()));
+        std::fs::write(&path, zip).unwrap();
+
+        let mut lib = BackupLibraryState::new();
+        let mut dlg = DebugDialogState::default();
+        lib.open_backup_in_settings(&path, &mut dlg);
+        let _ = std::fs::remove_file(&path);
+        assert!(dlg.open && dlg.tab == DebugTab::Library);
+        assert!(!lib.drawer_open, "legacy drawer stays closed");
+        assert_eq!(lib.pianos.len(), 1);
+
+        // A bad file reports the error and does not open the dialog.
+        let mut lib = BackupLibraryState::new();
+        let mut dlg = DebugDialogState::default();
+        lib.open_backup_in_settings(std::path::Path::new("missing.ns4b"), &mut dlg);
+        assert!(!dlg.open && lib.error_message.is_some());
     }
 
     /// Headless harness: drawer + a central button, frames 50 ms apart.
