@@ -2,7 +2,7 @@
 
 ## 1. Scope
 
-Specifies the 1:1 visual layout, color palette, typography, hardware widgets, LED indicators, OLED displays, and interactive behaviors for the Nord Stage 4 Emulator GUI (Standalone & CLAP/VST3 DAW Plugin).
+Specifies the 1:1 visual layout, color palette, typography, hardware widgets, LED indicators, OLED displays, and interactive behaviors for the ND Matrix 1 GUI (Standalone & CLAP/VST3 DAW Plugin).
 
 Derived directly from the hardware reference images in `.reference/`:
 - `foto.jpg` (Full Nord Stage 4 Hammer Action 88 top panel & keybed)
@@ -94,7 +94,7 @@ Every custom UI widget in `crates/nord-gui` / `crates/nord-plugin` must render t
 
 ### 4.2a Program load -> panel state, checked against the demo video (`ns4-6c08`)
 
-Ground truth: frames of `NEW NORD STAGE 4 - PROGRAMAS PRESETS DEMO (PART A)` (Stage 4 Compact, bank A in order; frames and the backup stay in git-ignored `.reference/` and `target/video_frames/`). Reproduce ours with `python tools/gui_shots.py --backup <ns4b> --program A:14 --sections organ` (`--program` takes a panel location; `nord-stage4 --backup X --program A:14 --screenshot out.png` does the same). A location is `bank:page+button`, the file's `location_index` 3 is `A:14` (checked for A:14, A:24, A:34, A:77 against the names on the OLED).
+Ground truth: frames of `NEW NORD STAGE 4 - PROGRAMAS PRESETS DEMO (PART A)` (Stage 4 Compact, bank A in order; frames and the backup stay in git-ignored `.reference/` and `target/video_frames/`). Reproduce ours with `python tools/gui_shots.py --backup <ns4b> --program A:14 --sections organ` (`--program` takes a panel location; `nd-matrix-1 --backup X --program A:14 --screenshot out.png` does the same). A location is `bank:page+button`, the file's `location_index` 3 is `A:14` (checked for A:14, A:24, A:34, A:77 against the names on the OLED).
 
 | Rule | Evidence | Tag |
 |---|---|---|
@@ -347,4 +347,4 @@ To achieve 1:1 visual parity with the approved `nd matrix 1` HTML/CSS reference 
 - **Runtime Loader & 1:1 View (`crates/nord-gui/src/baked.rs`, `crates/nord-gui/src/panel/baked_view.rs`):**
   - `BakedPanelAssets::get_or_load` uploads the baked atlas and splits `panel_plate_2x.png` into `<= 2048px` horizontal GPU texture tiles so OpenGL contexts with `max_texture_side = 2048` never fail.
   - `render_baked_panel` renders the tiled plate, interactive `pitch_stick`, `mod_wheel`, rotated knobs, buttons, faders, 9 drawbars, live LEDs, live `main` and `synth` OLEDs, and the 88-key keybed wired to `AudioHandle::send_keyboard_midi`.
-  - Controlled by `Stage4PanelState::use_baked_plate` (enabled in the standalone `nord-stage4` binary; `false` by default in `Stage4PanelState::default()` so existing procedural layout and legibility tests remain valid).
+  - Controlled by `Stage4PanelState::use_baked_plate` (enabled in the standalone `nd-matrix-1` binary; `false` by default in `Stage4PanelState::default()` so existing procedural layout and legibility tests remain valid).

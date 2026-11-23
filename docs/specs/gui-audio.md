@@ -56,7 +56,7 @@ Code: `audio/{priority,garbage,probe}.rs`, `audio/callback.rs`, `fx/master.rs`, 
 
 ### Real callback probe
 
-`nord-stage4 --audio-probe <secs> [--backup <.ns4b> --program "Program/Bank A/Horizon Whl.ns4p"] [--arp up] [--keys 6] [--layers 3|7] [--audio-buffer N] [--no-thread-boost] [firmware flags]` opens the default output device like the GUI (same `AudioCallback`, buffer and boost flags), plays the bench engine for `<secs>` after 2 s of warm-up and prints the meter. It makes sound and needs a device. `ns4 bench --gui` times the render alone; the probe adds the driver, the thread class and the scheduler.
+`nd-matrix-1 --audio-probe <secs> [--backup <.ns4b> --program "Program/Bank A/Horizon Whl.ns4p"] [--arp up] [--keys 6] [--layers 3|7] [--audio-buffer N] [--no-thread-boost] [firmware flags]` opens the default output device like the GUI (same `AudioCallback`, buffer and boost flags), plays the bench engine for `<secs>` after 2 s of warm-up and prints the meter. It makes sound and needs a device. `ns4 bench --gui` times the render alone; the probe adds the driver, the thread class and the scheduler.
 
 ### Program reload bench
 

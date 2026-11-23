@@ -169,7 +169,7 @@ fn refresh_midi(
     choice: &MidiChoice,
     conn: &mut Option<(String, MidiInputConnection<()>)>,
 ) {
-    let mut midi_in = match MidiInput::new("Nord Stage 4 MIDI In") {
+    let mut midi_in = match MidiInput::new("ND Matrix 1 MIDI In") {
         Ok(m) => m,
         Err(e) => {
             eprintln!("[MIDI] Failed to initialize MidiInput: {}", e);
@@ -204,7 +204,7 @@ fn refresh_midi(
             let (h, k) = (handle.clone(), Arc::clone(active_keys));
             match midi_in.connect(
                 &ports[i],
-                "nord-stage-4-input",
+                "nd-matrix-1-input",
                 move |_stamp, message, _| handle_midi_bytes(message, &h, &k),
                 (),
             ) {

@@ -1,6 +1,6 @@
 //! Firmware-path A/B switching for the standalone GUI.
 //!
-//! * CLI: `nord-stage4 --firmware-all | --legacy-all | --tone-source ... | --measured-laws ...`
+//! * CLI: `nd-matrix-1 --firmware-all | --legacy-all | --tone-source ... | --measured-laws ...`
 //!   (same flags as `ns4 render-patch`, parsed by `FirmwareOptions::from_args`).
 //! * In-app engine bar (`bar.rs`; tooltips from `info.rs`) with a dropdown per engine path, sent as
 //!   `AudioCommand::SetFirmwareOptions` and applied on the audio thread between blocks.
@@ -53,7 +53,7 @@ impl HeadlessRequest {
 
 /// Window title that names the active firmware set.
 pub fn window_title(opts: &FirmwareOptions) -> String {
-    format!("Nord Stage 4 Emulator [{}]", opts.summary())
+    format!("ND Matrix 1 [{}]", opts.summary())
 }
 
 /// Builds an engine, applies `opts` through the audio command path and renders `frames` frames of
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn headless_flags_parse() {
-        assert!(!HeadlessRequest::from_args(&args(&["nord-stage4"])).is_headless());
+        assert!(!HeadlessRequest::from_args(&args(&["nd-matrix-1"])).is_headless());
         let r = HeadlessRequest::from_args(&args(&["x", "--self-test", "o.wav", "--dump-options"]));
         assert_eq!(r.self_test_wav, Some(PathBuf::from("o.wav")));
         assert!(r.dump_options && r.is_headless());

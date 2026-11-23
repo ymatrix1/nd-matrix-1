@@ -10,7 +10,7 @@
 //! `#[global_allocator]`; counting is armed per thread and only around `process()`.
 
 use nih_plug::prelude::*;
-use nord_plugin::NordStage4Plugin;
+use nord_plugin::NdMatrix1Plugin;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::collections::VecDeque;
@@ -63,7 +63,7 @@ fn count_allocator_calls(f: impl FnOnce()) -> usize {
 }
 
 struct Init;
-impl InitContext<NordStage4Plugin> for Init {
+impl InitContext<NdMatrix1Plugin> for Init {
     fn plugin_api(&self) -> PluginApi {
         PluginApi::Clap
     }
@@ -78,7 +78,7 @@ struct Ctx {
     events: VecDeque<NoteEvent<()>>,
 }
 
-impl ProcessContext<NordStage4Plugin> for Ctx {
+impl ProcessContext<NdMatrix1Plugin> for Ctx {
     fn plugin_api(&self) -> PluginApi {
         PluginApi::Clap
     }
@@ -106,10 +106,10 @@ fn new_ctx(tempo: f64) -> Ctx {
     }
 }
 
-fn activate(sample_rate: f32, max_block: u32) -> NordStage4Plugin {
-    let mut plugin = NordStage4Plugin::default();
+fn activate(sample_rate: f32, max_block: u32) -> NdMatrix1Plugin {
+    let mut plugin = NdMatrix1Plugin::default();
     let ok = plugin.initialize(
-        &NordStage4Plugin::AUDIO_IO_LAYOUTS[0],
+        &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0],
         &BufferConfig {
             sample_rate,
             min_buffer_size: None,
@@ -124,7 +124,7 @@ fn activate(sample_rate: f32, max_block: u32) -> NordStage4Plugin {
 
 /// Runs one block of `frames` into `out` (two channels) and returns the process status.
 fn process_block(
-    plugin: &mut NordStage4Plugin,
+    plugin: &mut NdMatrix1Plugin,
     ctx: &mut Ctx,
     out: &mut [Vec<f32>; 2],
     frames: usize,
@@ -219,7 +219,7 @@ fn reset_and_reactivation_keep_the_plugin_sound_and_finite() {
     plugin.deactivate();
     // Re-activation at another rate, as a host does after a project sample-rate change.
     let ok = plugin.initialize(
-        &NordStage4Plugin::AUDIO_IO_LAYOUTS[0],
+        &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0],
         &BufferConfig {
             sample_rate: 96_000.0,
             min_buffer_size: None,

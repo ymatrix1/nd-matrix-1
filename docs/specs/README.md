@@ -2,7 +2,7 @@
 
 Status: v1.1 · Synced with `main` (2026-11-13)
 
-Every subsystem of the Nord Stage 4 Emulator has a dedicated specification document in this directory. Changes to subsystem behavior or public interfaces MUST update the corresponding spec in the same PR/commit.
+Every subsystem of the ND Matrix 1 has a dedicated specification document in this directory. Changes to subsystem behavior or public interfaces MUST update the corresponding spec in the same PR/commit.
 
 ## Subsystem Index
 

@@ -1,6 +1,6 @@
 //! Per-user remembered choices for the front ends (D129): only the **path** of the user's Nord OS
 //! update file, in `<config dir>/ns4/config.json`. The firmware and the tables read from it are
-//! never stored (D22). Libraries and tests never read this file: only the `ns4` and `nord-stage4`
+//! never stored (D22). Libraries and tests never read this file: only the `ns4` and `nd-matrix-1`
 //! binaries call [`apply_saved_default`] once at start-up.
 //!
 //! Precedence for the WAVE-bank source, first match wins: `--synth-wave-tables PATH`, then

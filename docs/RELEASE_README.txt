@@ -1,4 +1,4 @@
-Nord Stage 4 Emulator - release archive
+ND Matrix 1 - release archive
 =======================================
 
 Source-available (non-commercial) software emulator, DSP engine and
@@ -26,7 +26,7 @@ Contents
 --------
 
   ns4                       command-line tool (inspect presets, offline render)
-  nord-stage4               standalone GUI (audio + MIDI)
+  nd-matrix-1               standalone GUI (audio + MIDI)
   nord-plugin-standalone    standalone host of the plugin build
   nord-plugin.clap          CLAP plugin
   nord-plugin.vst3          VST3 plugin (a folder bundle; copy the whole folder)
@@ -70,7 +70,7 @@ macOS (Apple silicon, arm64)
   the quarantine flag on the files you installed, for example:
     xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/nord-plugin.vst3
     xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/CLAP/nord-plugin.clap
-  Do the same for ns4, nord-stage4 and nord-plugin-standalone before running them.
+  Do the same for ns4, nd-matrix-1 and nord-plugin-standalone before running them.
 
 Linux (x86_64)
   CLAP, this user:   ~/.clap/nord-plugin.clap
@@ -87,6 +87,6 @@ Run the standalone programs
 
   ns4 info
   ns4 render-demo --frames 48000
-  nord-stage4
+  nd-matrix-1
 
 The programs are not installed anywhere; run them from the extracted folder.

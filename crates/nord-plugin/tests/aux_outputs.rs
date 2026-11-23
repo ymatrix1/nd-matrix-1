@@ -7,7 +7,7 @@
 
 use nih_plug::prelude::*;
 use nord_plugin::params::Stage4Params;
-use nord_plugin::NordStage4Plugin;
+use nord_plugin::NdMatrix1Plugin;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::mem::MaybeUninit;
@@ -51,7 +51,7 @@ unsafe impl GlobalAlloc for Counting {
 static ALLOC: Counting = Counting;
 
 struct Init;
-impl InitContext<NordStage4Plugin> for Init {
+impl InitContext<NdMatrix1Plugin> for Init {
     fn plugin_api(&self) -> PluginApi {
         PluginApi::Clap
     }
@@ -64,7 +64,7 @@ struct Ctx {
     transport: Transport,
 }
 
-impl ProcessContext<NordStage4Plugin> for Ctx {
+impl ProcessContext<NdMatrix1Plugin> for Ctx {
     fn plugin_api(&self) -> PluginApi {
         PluginApi::Clap
     }
@@ -92,10 +92,10 @@ fn ctx() -> Ctx {
 }
 
 /// Activates with layout `layout` (0 = main + aux, 1 = stereo only).
-fn activate(layout: usize) -> NordStage4Plugin {
-    let mut plugin = NordStage4Plugin::default();
+fn activate(layout: usize) -> NdMatrix1Plugin {
+    let mut plugin = NdMatrix1Plugin::default();
     let ok = plugin.initialize(
-        &NordStage4Plugin::AUDIO_IO_LAYOUTS[layout],
+        &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[layout],
         &BufferConfig {
             sample_rate: 48_000.0,
             min_buffer_size: None,
@@ -111,7 +111,7 @@ fn activate(layout: usize) -> NordStage4Plugin {
 /// Makes Organ, Piano A and Synth A default to output 3-4 (global mode choice index 1). Host
 /// parameter values cannot be set from outside nih-plug, so the routed plugin is built with other
 /// defaults; `sync_to_engine` then pushes them every block exactly as automation would.
-fn route_everything_to_3_4(plugin: &mut NordStage4Plugin) {
+fn route_everything_to_3_4(plugin: &mut NdMatrix1Plugin) {
     let mut params = Stage4Params::default();
     for i in [0usize, 2, 4] {
         params.output.sources[i].global =
@@ -120,7 +120,7 @@ fn route_everything_to_3_4(plugin: &mut NordStage4Plugin) {
     plugin.params = std::sync::Arc::new(params);
 }
 
-fn hold_chord(plugin: &mut NordStage4Plugin) {
+fn hold_chord(plugin: &mut NdMatrix1Plugin) {
     for note in [48u8, 60, 64, 67] {
         assert!(plugin.note_tx.push(nord_core::midi::MidiEvent::NoteOn {
             channel: 0,
@@ -147,7 +147,7 @@ fn bits(v: &[f32]) -> Vec<u32> {
 
 /// Renders `blocks` blocks; returns the main pair bits and the aux pair bits (aux empty when
 /// `with_aux` is false).
-fn render(plugin: &mut NordStage4Plugin, with_aux: bool, blocks: usize) -> [Vec<u32>; 4] {
+fn render(plugin: &mut NdMatrix1Plugin, with_aux: bool, blocks: usize) -> [Vec<u32>; 4] {
     let mut c = ctx();
     let mut out: [Vec<u32>; 4] = Default::default();
     for _ in 0..blocks {

@@ -1,4 +1,4 @@
-//! Shadcn/ui-inspired separate-window Settings & Diagnostics dialog for `nord-stage4`.
+//! Shadcn/ui-inspired separate-window Settings & Diagnostics dialog for `nd-matrix-1`.
 //!
 //! Opens in its own native OS viewport (`show_viewport_immediate`) so it is never clipped by the
 //! compact Nord Stage 4 hardware window, while sharing the exact same borderless dark hardware
@@ -513,7 +513,7 @@ pub fn show_debug_dialog(
 
     let viewport_id = ViewportId::from_hash_of("ns4_shadcn_debug_viewport");
     let builder = ViewportBuilder::default()
-        .with_title("Nord Stage 4 — Studio Settings & Diagnostics")
+        .with_title("ND Matrix 1 — Studio Settings & Diagnostics")
         .with_decorations(false)
         .with_transparent(true)
         .with_inner_size([880.0, 520.0])

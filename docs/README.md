@@ -1,6 +1,6 @@
 # Documentation Index
 
-Canonical documentation for the **Nord Stage 4 Emulator** project (interoperability, research, preservation, and compatibility).
+Canonical documentation for the **ND Matrix 1** project (interoperability, research, preservation, and compatibility).
 
 | Document | Purpose |
 |---|---|

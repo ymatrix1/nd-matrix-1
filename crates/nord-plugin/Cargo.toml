@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-description = "CLAP and VST3 DAW Plugin and Standalone wrapper for the Nord Stage 4 Emulator"
+description = "CLAP and VST3 DAW Plugin and Standalone wrapper for the ND Matrix 1"
 
 [lib]
 crate-type = ["cdylib", "lib"]

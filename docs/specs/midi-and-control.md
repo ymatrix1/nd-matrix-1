@@ -2,7 +2,7 @@
 
 ## 1. Scope
 
-Specifies the MIDI Control Change (`CC`), Bank Select, Program Change, and Aftertouch mapping for the Nord Stage 4 Emulator (`NordStage4` / `MIDIOutKeyboard` in firmware).
+Specifies the MIDI Control Change (`CC`), Bank Select, Program Change, and Aftertouch mapping for the ND Matrix 1 (`NordStage4` / `MIDIOutKeyboard` in firmware).
 
 Implemented in [`crates/nord-core/src/midi.rs`](../../crates/nord-core/src/midi.rs) and [`crates/nord-core/src/engine/`](../../crates/nord-core/src/engine/mod.rs).
 

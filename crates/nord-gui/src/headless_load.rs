@@ -1,5 +1,5 @@
 //! Loads a program by its panel location (`A:14`) from the opened `.ns4b` backup without any
-//! click, for repeatable screenshots: `nord-stage4 --backup X.ns4b --program A:14 --screenshot ...`.
+//! click, for repeatable screenshots: `nd-matrix-1 --backup X.ns4b --program A:14 --screenshot ...`.
 //!
 //! The request goes through the same path as the program dial (`ProgramUi::select_loc`, then the
 //! library's load queue), so the panel state is the one a real program change produces.
