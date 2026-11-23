@@ -91,3 +91,13 @@ def test_find_cores_and_pool_read_the_pool_pointer_words() -> None:
     assert pb.pool_of(emu, manager) == pool
     found = pb.find_cores(emu, pool, lo=ae.SRAM_BASE, hi=ae.SRAM_BASE + 0x10000, step=0x10000)
     assert core in found
+
+
+def test_core_of_follows_the_layer_core_stride() -> None:
+    """D230: layer A is core 0, layer B core 2 (four cores `CORE_STRIDE` apart)."""
+    mgr = 0x90BF5420
+    cores = [mgr + 0x30 + k * pb.CORE_STRIDE for k in range(4)] + [0x1000]
+    assert pb.core_of(mgr, cores, "layer_a") == [cores[0]]
+    assert pb.core_of(mgr, cores, "layer_b") == [cores[2]]
+    assert pb.core_of(mgr, cores[:2], "layer_b") == []
+    assert pb.CORE_STRIDE == 95_936

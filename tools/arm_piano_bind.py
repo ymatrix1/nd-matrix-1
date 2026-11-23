@@ -119,6 +119,13 @@ CORE_POOL_OFFSET = 0x14
 # EMPIRICAL (settled state of `arm_piano_load`: managers `0x90BF53D0` / `0x90BF53E0`, core 0
 # `0x90BF5400`; the full machine of `arm_dsp_live` puts all three at the same relative offsets).
 CORE0_AFTER_MANAGER = 0x30
+# EMPIRICAL (run, D230, `piano-smp-pitch-outliers.md` s3): the four piano core objects of the
+# pool sit 95,936 bytes apart (`0x176C0`, candidates of `find_cores`). Simple Tune (piano layer B
+# only) bound to core 0, 1 or 3 starts no voice (381 key messages, 0 stroke descriptors); bound to
+# core 2 it starts three voices (3 of 3 descriptors, `law_ok`). Layer A is core 0 (every other
+# census program). Layer B on core 2 is one program; core 1 and 3 are not identified.
+CORE_STRIDE = 0x176C0
+LAYER_CORE = {"layer_a": 0, "layer_b": 2}
 
 
 def find_cores(emu, pool: int, **scan) -> list[int]:  # noqa: ANN001
@@ -137,17 +144,25 @@ def pool_of(emu, manager: int) -> int:  # noqa: ANN001
 def core0_of(manager: int, candidates: list[int]) -> list[int]:
     """Core 0 among the pool-pointer candidates: the one `CORE0_AFTER_MANAGER` after manager 0
     (empty when it is not a candidate: nothing is bound rather than a guess)."""
-    expected = manager + CORE0_AFTER_MANAGER
+    return core_of(manager, candidates, "layer_a")
+
+
+def core_of(manager: int, candidates: list[int], layer: str) -> list[int]:
+    """The core object that plays piano `layer` (`LAYER_CORE`): `CORE0_AFTER_MANAGER` after
+    manager 0 plus `LAYER_CORE[layer]` strides (empty when it is not a candidate)."""
+    expected = manager + CORE0_AFTER_MANAGER + LAYER_CORE[layer] * CORE_STRIDE
     return [expected] if expected in candidates else []
 
 
-def bind_piano(emu, npno: bytes, entry: int = 1) -> dict:  # noqa: ANN001  # pragma: no cover
+def bind_piano(  # noqa: ANN001  # pragma: no cover
+    emu, npno: bytes, entry: int = 1, layer: str = "layer_a"
+) -> dict:
     """Serve `npno` as library entry `entry`, load it with the firmware loader and bind it to
     core 0 layer 0 (`arm_piano_load`), then model the DSP link as always ready.
 
-    ASSUMED: entry/volume id 1 is free (the harness library is empty); core 0 layer 0 is the layer
-    the key path reads (the piano layers 2 and 3 are not separated yet, OQ41). Returns the loader
-    status and the bound pool object (0: not bound)."""
+    ASSUMED: entry/volume id 1 is free (the harness library is empty). The object goes to slot 0 of
+    the core that plays `layer` (`LAYER_CORE`, D230: layer B is core 2); only one layer is bound.
+    Returns the loader status and the bound pool object (0: not bound)."""
     import arm_piano_load as pl
 
     pl.LibraryStub({entry: pl.device_image(npno, "Library.npno")}).install(emu)
@@ -157,7 +172,7 @@ def bind_piano(emu, npno: bytes, entry: int = 1) -> dict:  # noqa: ANN001  # pra
     status = pl.load_sound(emu, managers[0], entry)
     pool = pool_of(emu, managers[0])
     cores = find_cores(emu, pool)
-    cores = core0_of(managers[0], cores)
+    cores = core_of(managers[0], cores, layer)
     info = {"status": status, "managers": managers, "pool": pool, "cores": cores}
     if not cores:
         return {**info, "bound": 0}
