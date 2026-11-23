@@ -2479,6 +2479,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Why:** The pad needs a source side explanation (SUPER spectrum, filter input gain, the ASSUMED `2 / 1.971` unit) before its fitted 0.63 can go; flipping now breaks the owner rule (no clip worse).
 - **Alternatives:** Make the law imply the oracle unit (rejected: pad 6.7); refit the factors under the law (rejected: more fitting on the same clips, not evidence); flip the law (rejected: lead and pad worse).
 - **Impact:** `tools/synth_env_level_link.py`, `tools/tests/test_synth_env_level_link.py`, `crates/nord-core/src/synth/fw_cutoff_env.rs` (tag and test), [synth-env-level-link](research/synth-env-level-link.md), `data/synth-env-level-link.csv`, `data/synth-env-level-clips.csv`, spec `synth-engine.md` s4.7, [default-flip-audit](research/default-flip-audit.md) follow-up, ROADMAP.
+
 ### D233. The DAW plugin ships CLAP and standalone only until a permissive VST3 binding is validated (option a recommended)
 
 - **Status:** proposed 2026-11-23 
