@@ -136,7 +136,7 @@ pub fn run(args: &[String], config: &Path, env: Option<&str>) -> Result<String, 
             let p = args.get(1).ok_or(USAGE)?;
             let n = set(Path::new(p), config)?;
             Ok(format!(
-                "Saved. {n} WAVE tables read from {p}. Applies to every ns4 and nord-stage4 start (NS4_WAVE_TABLES or --synth-wave-tables still override it)."
+                "Saved. {n} WAVE tables read from {p}. Applies to every ns4 and nd-matrix-1 start (NS4_WAVE_TABLES or --synth-wave-tables still override it)."
             ))
         }
         Some("status") | None => Ok(describe(&status(env, config))),

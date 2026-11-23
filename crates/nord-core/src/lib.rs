@@ -1,4 +1,4 @@
-// Declaration-only crate root exposing all Nord Stage 4 Emulator subsystems.
+// Declaration-only crate root exposing all ND Matrix 1 subsystems.
 pub mod bench;
 pub mod bench_fw_mod2;
 pub mod bench_gui;

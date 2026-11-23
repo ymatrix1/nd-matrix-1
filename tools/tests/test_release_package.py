@@ -68,7 +68,7 @@ def test_tag_must_match_cargo_version():
 
 
 def test_archive_stem():
-    assert rp.archive_stem("v1.0.0", WIN) == "nord-stage-4-emulator-v1.0.0-windows-x86_64"
+    assert rp.archive_stem("v1.0.0", WIN) == "nd-matrix-1-v1.0.0-windows-x86_64"
 
 
 def test_collect_excludes_stray_files(tmp_path):
@@ -102,7 +102,7 @@ def test_write_sha256_is_lf_and_sha256sum_format(tmp_path):
 def test_package_zip_uses_forward_slashes_and_top_folder(tmp_path):
     root = make_tree(tmp_path, WIN)
     archive = rp.package(WIN.triple, "v1.2.3", tmp_path / "out", root)
-    assert archive.name == "nord-stage-4-emulator-v1.2.3-windows-x86_64.zip"
+    assert archive.name == "nd-matrix-1-v1.2.3-windows-x86_64.zip"
     with zipfile.ZipFile(archive) as zf:
         names = zf.namelist()
     stem = archive.name[: -len(".zip")]

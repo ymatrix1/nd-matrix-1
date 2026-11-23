@@ -1,4 +1,4 @@
-<h1 align="center">Nord Stage 4 Emulator</h1>
+<h1 align="center">ND Matrix 1</h1>
 
 <p align="center">
   <strong>Source-available (non-commercial) DSP sound engine, binary preset toolkit (<code>CBIN</code> / <code>.ns4b</code> / <code>.ns4p</code>), and High-Level Emulator for the Clavia Nord Stage 4.</strong><br>
@@ -43,16 +43,16 @@ Read the full specification suite in [`docs/`](docs/README.md):
 
 ## Download
 
-**Playing the GUI:** `nord-stage4` plays from a MIDI keyboard (first MIDI port, velocity passed through unchanged), the mouse (velocity 88) or the computer keyboard (`A S D F G H J K L ; '` white keys, `W E T Y U O P` black keys, `Z` / `X` octave, `C` / `V` velocity, `Space` sustain; see [GUI testing](docs/gui-testing.md)).
+**Playing the GUI:** `nd-matrix-1` plays from a MIDI keyboard (first MIDI port, velocity passed through unchanged), the mouse (velocity 88) or the computer keyboard (`A S D F G H J K L ; '` white keys, `W E T Y U O P` black keys, `Z` / `X` octave, `C` / `V` velocity, `Space` sustain; see [GUI testing](docs/gui-testing.md)).
 
-Tagged releases ship `ns4` (CLI), `nord-stage4` (GUI), `nord-plugin-standalone`, and the CLAP + VST3 DAW plugins in multiple formats (all with `.sha256` checksums):
+Tagged releases ship `ns4` (CLI), `nd-matrix-1` (GUI), `nord-plugin-standalone`, and the CLAP + VST3 DAW plugins in multiple formats (all with `.sha256` checksums):
 - **Windows (x86_64):** `-setup.exe` installer (with selectable GUI, CLI, VST3 & CLAP components) and portable `.zip`
 - **macOS (arm64):** `.pkg` installer (selectable app, VST3 & CLAP), `.dmg` disk image, and portable `.tar.gz`
 - **Linux (x86_64):** `.deb` package, portable `.AppImage` (run with `--install-plugins` to copy CLAP/VST3 to `~/.clap` and `~/.vst3`), and `.tar.gz`
 
 All builds are unsigned and provided **AS IS, without warranty or support of any kind**. The plugin has **not** been verified in any DAW yet ([docs/HOST_COMPATIBILITY.md](docs/HOST_COMPATIBILITY.md)). Maintainers: see [docs/RELEASING.md](docs/RELEASING.md).
 
-**Real WAVE sounds (optional, one time):** the WAVE wavetables are Nord firmware and are not in this repository. Download the official Nord OS update and give that file to the app (`nord-stage4`: button "Nord OS update file", or `ns4 firmware set <file>`); see [Where to get the Nord OS update](docs/guides/nord-os-update.md). Without it a placeholder wavetable plays. Only `nord-stage4` and `ns4` use the saved file; the plugin (CLAP/VST3) and `nord-tools` do not read it; they keep the placeholder wavetable.
+**Real WAVE sounds (optional, one time):** the WAVE wavetables are Nord firmware and are not in this repository. Download the official Nord OS update and give that file to the app (`nd-matrix-1`: button "Nord OS update file", or `ns4 firmware set <file>`); see [Where to get the Nord OS update](docs/guides/nord-os-update.md). Without it a placeholder wavetable plays. Only `nd-matrix-1` and `ns4` use the saved file; the plugin (CLAP/VST3) and `nord-tools` do not read it; they keep the placeholder wavetable.
 
 ---
 

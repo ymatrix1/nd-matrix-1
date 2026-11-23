@@ -32,7 +32,7 @@ impl Status {
 pub struct SwitchInfo {
     /// Bar group.
     pub group: &'static str,
-    /// CLI flag (`ns4 render-patch` / `nord-stage4`).
+    /// CLI flag (`ns4 render-patch` / `nd-matrix-1`).
     pub flag: &'static str,
     /// Label in the bar.
     pub label: &'static str,

@@ -15,7 +15,7 @@ fn run_cli(args: &[String]) -> Result<String, String> {
     let cmd = args.get(1).map(String::as_str).unwrap_or("info");
     match cmd {
         "info" => Ok(
-            "Nord Stage 4 Emulator (nord-core v0.1.0)\n\
+            "ND Matrix 1 (nord-core v0.1.0)\n\
              Targets: Standalone + CLAP/VST3 DAW Plugin\n\
              Engines: Organ (2x B3/Vox/Farf/Pipe + Rotary 122), Piano (2x + Modal String Resonance), Synth (3x Wave 2 PolyBLEP + ZDF Ladder)\n\
              Routing: 7 Independent Per-Layer FX Racks + 4 Split Zones + 3-Source Morph Matrix"

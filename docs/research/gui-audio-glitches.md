@@ -53,7 +53,7 @@ The `E40` change is a bit-identical 4 to 5 percent. The idle skip is a factor of
 
 ## 4b. Why the GUI said `load 34%, 5% late` and the bench says 12 to 15 ms
 
-Both cannot describe the same render. Not verified (no GUI trace of the owner's session exists): the GUI run most likely did not have Horizon Whl's seven firmware Cathedral reverbs active. Evidence: the same bench **without** a loaded program (default racks: engine reverb `Stage` mix 0.15, `--firmware-fx` on, Scene II, 10 keys, 480 frames) gave mean 5.9 ms (59 percent) in a single run on this host, p99 14.7, 149 of 3000 late (5 percent), no keys held 3.4 ms (34 percent). That matches the GUI numbers (34 to 59 percent load, 5 percent late, one worst block far above the mean) and is host jitter on a render that is itself 30 to 60 percent of the budget. Loading Horizon Whl through the bench (`apply_program` with its FX words) takes the same flags to 12 to 15 ms. So the possible causes of the gap are: a different FX state in the GUI (the program's FX not applied, or applied later through another path), a faster host at the time, or both. What to check on the GUI machine: run `nord-stage4` with `--fx-idle-skip` off and on and compare the `load` figure after loading A:16; if load stays near 34 percent with the program loaded, the GUI program-load path does not enable the program's reverb racks and the bench overstates it.
+Both cannot describe the same render. Not verified (no GUI trace of the owner's session exists): the GUI run most likely did not have Horizon Whl's seven firmware Cathedral reverbs active. Evidence: the same bench **without** a loaded program (default racks: engine reverb `Stage` mix 0.15, `--firmware-fx` on, Scene II, 10 keys, 480 frames) gave mean 5.9 ms (59 percent) in a single run on this host, p99 14.7, 149 of 3000 late (5 percent), no keys held 3.4 ms (34 percent). That matches the GUI numbers (34 to 59 percent load, 5 percent late, one worst block far above the mean) and is host jitter on a render that is itself 30 to 60 percent of the budget. Loading Horizon Whl through the bench (`apply_program` with its FX words) takes the same flags to 12 to 15 ms. So the possible causes of the gap are: a different FX state in the GUI (the program's FX not applied, or applied later through another path), a faster host at the time, or both. What to check on the GUI machine: run `nd-matrix-1` with `--fx-idle-skip` off and on and compare the `load` figure after loading A:16; if load stays near 34 percent with the program loaded, the GUI program-load path does not enable the program's reverb racks and the bench overstates it.
 
 ## 5. Guidance
 
@@ -72,7 +72,7 @@ The glitches are the firmware FX racks running at about 1.3 times the block budg
 
 ## 6. Round 2 (2026-11-19, D167): the crackle that survives D161 with the new defaults
 
-- **Checked:** 2026-11-19 (`main` @ `6a8ba992` plus this branch). **Sources:** `nord-stage4 --audio-probe` (new: the real cpal callback without a window), `ns4 bench --gui --reload` (new), cpal 0.15.3 `host/wasapi/stream.rs`, Windows 11, Ryzen 9 5900XT (16 cores), default output device 48 kHz F32, driver default buffer 480 frames (10 ms). **Question:** after D161 and the heavier defaults (firmware Mod 2, Touch, arp walk, morph), what still makes the GUI crackle?
+- **Checked:** 2026-11-19 (`main` @ `6a8ba992` plus this branch). **Sources:** `nd-matrix-1 --audio-probe` (new: the real cpal callback without a window), `ns4 bench --gui --reload` (new), cpal 0.15.3 `host/wasapi/stream.rs`, Windows 11, Ryzen 9 5900XT (16 cores), default output device 48 kHz F32, driver default buffer 480 frames (10 ms). **Question:** after D161 and the heavier defaults (firmware Mod 2, Touch, arp walk, morph), what still makes the GUI crackle?
 
 ### 6.1 Findings
 
@@ -119,7 +119,7 @@ Reading: the boost removes the scheduler losses (C: 13 to 0 late, 20.9 to 4.5 ms
 | Meter: callback gap, slow gaps, clamped frames, thread class; `MasterBus::clamped_frames` | bit-identical (`ns4 bench --gui --layers 3 --keys 4 --frames 480 --blocks 100 --warmup 100` prints hash `0x550c3621bf91cf88` before and after) | on |
 | `garbage.rs` queue and `ns4-reaper`: the callback no longer frees program boxes or replaced sound banks | none | on |
 | `reserve_firmware_stages`, in-place stage re-init (TD-18) | bit-identical (`fx::tests_reserve_stages`) | on in `standalone_engine` |
-| `nord-stage4 --audio-probe`, `ns4 bench --gui --reload / --reload-pool / --program2`, master clamp line in `ns4 bench --gui` | tools | |
+| `nd-matrix-1 --audio-probe`, `ns4 bench --gui --reload / --reload-pool / --program2`, master clamp line in `ns4 bench --gui` | tools | |
 
 ## Implications (round 2)
 

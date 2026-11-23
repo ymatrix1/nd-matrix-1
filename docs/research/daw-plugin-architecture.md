@@ -1,8 +1,8 @@
-# Research & Architecture Evaluation: DAW Plugin Architecture for Nord Stage 4 Emulator
+# Research & Architecture Evaluation: DAW Plugin Architecture for ND Matrix 1
 
 ## 1. Executive Summary
 
-This document presents the research, evaluation, and architectural blueprint for hosting the **Nord Stage 4 Emulator** as a professional Digital Audio Workstation (DAW) plugin.
+This document presents the research, evaluation, and architectural blueprint for hosting the **ND Matrix 1** as a professional Digital Audio Workstation (DAW) plugin.
 
 The Nord Stage 4 architecture poses several unique requirements:
 1. **Three-Engine, 7-Layer Multitimbral Architecture:** Two Organ layers (A/B), two Piano layers (A/B), and three Synth layers (A/B/C) operating simultaneously with dedicated per-layer effects racks.
@@ -33,7 +33,7 @@ We evaluated the primary frameworks available in the Rust audio ecosystem:
 ### Why `nih-plug` was Selected
 
 1. **Multi-format Generation from a Single Codebase:**
-   `nih-plug` allows implementing the `Plugin` trait once for `NordStage4Plugin` and producing:
+   `nih-plug` allows implementing the `Plugin` trait once for `NdMatrix1Plugin` and producing:
    - CLAP plugin binaries (`.clap`)
    - VST3 plugin bundles (`.vst3`)
    - Standalone desktop binaries

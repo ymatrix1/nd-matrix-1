@@ -18,7 +18,7 @@ use nord_plugin::editor::index::ParamIndex;
 use nord_plugin::editor::top_bar::BarClick;
 use nord_plugin::editor::write::{ParamWrite, ParamWriter};
 use nord_plugin::loader::LoadJob;
-use nord_plugin::NordStage4Plugin;
+use nord_plugin::NdMatrix1Plugin;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::mem::MaybeUninit;
@@ -63,7 +63,7 @@ unsafe impl GlobalAlloc for Counting {
 static ALLOC: Counting = Counting;
 
 struct Init;
-impl InitContext<NordStage4Plugin> for Init {
+impl InitContext<NdMatrix1Plugin> for Init {
     fn plugin_api(&self) -> PluginApi {
         PluginApi::Clap
     }
@@ -76,7 +76,7 @@ struct Ctx {
     transport: Transport,
 }
 
-impl ProcessContext<NordStage4Plugin> for Ctx {
+impl ProcessContext<NdMatrix1Plugin> for Ctx {
     fn plugin_api(&self) -> PluginApi {
         PluginApi::Clap
     }
@@ -103,10 +103,10 @@ fn ctx() -> Ctx {
     Ctx { transport }
 }
 
-fn activate() -> NordStage4Plugin {
-    let mut plugin = NordStage4Plugin::default();
+fn activate() -> NdMatrix1Plugin {
+    let mut plugin = NdMatrix1Plugin::default();
     let ok = plugin.initialize(
-        &NordStage4Plugin::AUDIO_IO_LAYOUTS[1],
+        &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[1],
         &BufferConfig {
             sample_rate: 48_000.0,
             min_buffer_size: None,
@@ -120,7 +120,7 @@ fn activate() -> NordStage4Plugin {
 }
 
 /// One block; returns (left, right, allocator calls during `process()`).
-fn process(plugin: &mut NordStage4Plugin) -> (Vec<f32>, Vec<f32>, usize) {
+fn process(plugin: &mut NdMatrix1Plugin) -> (Vec<f32>, Vec<f32>, usize) {
     let (mut l, mut r) = (vec![0.0f32; FRAMES], vec![0.0f32; FRAMES]);
     let mut buffer = Buffer::default();
     // SAFETY: the slices outlive `buffer` and are exactly `FRAMES` long.
@@ -143,7 +143,7 @@ fn process(plugin: &mut NordStage4Plugin) -> (Vec<f32>, Vec<f32>, usize) {
     (l, r, events)
 }
 
-fn play_chord(plugin: &NordStage4Plugin) {
+fn play_chord(plugin: &NdMatrix1Plugin) {
     for note in [48u8, 60, 64, 67] {
         assert!(plugin.note_tx.push(MidiEvent::NoteOn {
             channel: 0,
@@ -153,7 +153,7 @@ fn play_chord(plugin: &NordStage4Plugin) {
     }
 }
 
-fn energy(blocks: usize, plugin: &mut NordStage4Plugin) -> f32 {
+fn energy(blocks: usize, plugin: &mut NdMatrix1Plugin) -> f32 {
     (0..blocks)
         .map(|_| {
             let (l, r, _) = process(plugin);
@@ -371,7 +371,7 @@ fn open_ns4b_then_load_a_program_and_it_sounds() {
 
 #[test]
 fn a_load_with_no_audio_thread_running_is_reported_not_lost_silently() {
-    let plugin = NordStage4Plugin::default();
+    let plugin = NdMatrix1Plugin::default();
     let index = Arc::new(ParamIndex::new(plugin.params.as_ref()));
     let mut st = EditorState::new(index, plugin.note_tx.clone(), plugin.load_tx.clone());
     let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);

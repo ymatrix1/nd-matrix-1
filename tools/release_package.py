@@ -8,8 +8,8 @@ forward-slash zip entries, and an allowlist so nothing outside the expected file
 
 Archive layout (one top-level folder, so extraction never litters the cwd):
 
-    nord-stage-4-emulator-<tag>-<platform>/
-        ns4[.exe]  nord-stage4[.exe]  nord-plugin-standalone[.exe]
+    nd-matrix-1-<tag>-<platform>/
+        ns4[.exe]  nd-matrix-1[.exe]  nord-plugin-standalone[.exe]
         nord-plugin.clap  nord-plugin.vst3/
         README.txt  HOST_COMPATIBILITY.md  [LICENSE*]
 
@@ -31,8 +31,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-PRODUCT = "nord-stage-4-emulator"
-BINS = ("ns4", "nord-stage4", "nord-plugin-standalone")
+PRODUCT = "nd-matrix-1"
+BINS = ("ns4", "nd-matrix-1", "nord-plugin-standalone")
 PLUGIN_STEM = "nord-plugin"
 README_SRC = Path("docs/RELEASE_README.txt")
 EXTRA_DOCS = (("docs/HOST_COMPATIBILITY.md", "HOST_COMPATIBILITY.md"),)
@@ -93,7 +93,7 @@ def version_from_tag(tag: str, cargo_version: str) -> str:
 
 
 def archive_stem(label: str, platform: Platform) -> str:
-    """Top-level folder and archive base name, e.g. `nord-stage-4-emulator-v0.1.0-linux-x86_64`."""
+    """Top-level folder and archive base name, e.g. `nd-matrix-1-v0.1.0-linux-x86_64`."""
     return f"{PRODUCT}-{label}-{platform.name}"
 
 

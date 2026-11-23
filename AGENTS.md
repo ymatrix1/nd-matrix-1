@@ -4,7 +4,7 @@ Canonical instructions for every AI coding agent (Claude Code, Google Antigravit
 
 ## Project
 
-**Nord Stage 4 Emulator** (`nord-stage-4-emulator`) is a source-available (non-commercial) software emulator, DSP engine, and Clavia Binary (`CBIN` / `.ns4b` / `.ns4p`) interoperability toolkit for the Nord Stage 4 hardware keyboard (`product_id=46`), built for **interoperability, research, preservation, and compatibility**.
+**ND Matrix 1** (`nord-stage-4-emulator`) is a source-available (non-commercial) software emulator, DSP engine, and Clavia Binary (`CBIN` / `.ns4b` / `.ns4p`) interoperability toolkit for the Nord Stage 4 hardware keyboard (`product_id=46`), built for **interoperability, research, preservation, and compatibility**.
 
 **Status:** Phase 0 (specs & reverse engineering) and Phase 1–5 core architecture (`crates/nord-core` + `tools/`) implemented and verified.
 

@@ -8,13 +8,13 @@ use nih_plug::prelude::*;
 use nord_core::cbin::ProgramDecoded;
 use nord_core::piano::VelocityTouch;
 use nord_plugin::fx_selectors::Mod2Sel;
-use nord_plugin::NordStage4Plugin;
+use nord_plugin::NdMatrix1Plugin;
 use std::collections::VecDeque;
 use std::mem::MaybeUninit;
 use std::sync::Arc;
 
 struct Init;
-impl InitContext<NordStage4Plugin> for Init {
+impl InitContext<NdMatrix1Plugin> for Init {
     fn plugin_api(&self) -> PluginApi {
         PluginApi::Clap
     }
@@ -28,7 +28,7 @@ struct Ctx {
     events: VecDeque<NoteEvent<()>>,
 }
 
-impl ProcessContext<NordStage4Plugin> for Ctx {
+impl ProcessContext<NdMatrix1Plugin> for Ctx {
     fn plugin_api(&self) -> PluginApi {
         PluginApi::Clap
     }
@@ -65,15 +65,15 @@ fn config() -> BufferConfig {
     }
 }
 
-fn activate() -> NordStage4Plugin {
-    let mut plugin = NordStage4Plugin::default();
-    let layout = &NordStage4Plugin::AUDIO_IO_LAYOUTS[0];
+fn activate() -> NdMatrix1Plugin {
+    let mut plugin = NdMatrix1Plugin::default();
+    let layout = &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0];
     assert!(plugin.initialize(layout, &config(), &mut Init));
     plugin
 }
 
 /// One 256-frame `process()` block; returns the summed absolute output.
-fn process(plugin: &mut NordStage4Plugin, ctx: &mut Ctx) -> f32 {
+fn process(plugin: &mut NdMatrix1Plugin, ctx: &mut Ctx) -> f32 {
     let (mut l, mut r) = (vec![0.0f32; 256], vec![0.0f32; 256]);
     let mut buffer = Buffer::default();
     // SAFETY: the slices outlive `buffer` and are exactly 256 frames long.
@@ -91,7 +91,7 @@ fn process(plugin: &mut NordStage4Plugin, ctx: &mut Ctx) -> f32 {
 /// Moves a host parameter to `text` (the value a host automation or project load would set).
 /// `Param::set_plain_value` is crate-private in nih-plug, so the param object is replaced by one
 /// whose current value is the new one; `value()` is all the plugin reads. Only the ids used here.
-fn set_param(plugin: &mut NordStage4Plugin, id: &str, text: &str) {
+fn set_param(plugin: &mut NdMatrix1Plugin, id: &str, text: &str) {
     assert!(
         plugin.params.param_map().iter().any(|(i, _, _)| i == id),
         "{id} is not a host parameter id"
@@ -145,11 +145,11 @@ fn program() -> ProgramDecoded {
     p
 }
 
-fn touches(plugin: &NordStage4Plugin) -> (VelocityTouch, VelocityTouch) {
+fn touches(plugin: &NdMatrix1Plugin) -> (VelocityTouch, VelocityTouch) {
     (plugin.engine.piano_a.touch, plugin.engine.piano_b.touch)
 }
 
-fn play_piano(plugin: &mut NordStage4Plugin, velocity: f32) -> f32 {
+fn play_piano(plugin: &mut NdMatrix1Plugin, velocity: f32) -> f32 {
     let mut ctx = new_ctx();
     ctx.events.push_back(NoteEvent::NoteOn {
         timing: 0,
@@ -279,13 +279,13 @@ fn an_untouched_host_without_a_program_equals_the_engine_defaults() {
 fn an_old_session_restores_its_touch_and_mod2_as_before() {
     let fixture: serde_json::Value =
         serde_json::from_str(include_str!("fixtures/old_state_v1.json")).unwrap();
-    let mut plugin = NordStage4Plugin::default();
+    let mut plugin = NdMatrix1Plugin::default();
     for (id, text) in fixture.as_object().unwrap() {
         if !id.starts_with('_') {
             set_param(&mut plugin, id, text.as_str().unwrap());
         }
     }
-    let layout = &NordStage4Plugin::AUDIO_IO_LAYOUTS[0];
+    let layout = &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0];
     assert!(plugin.initialize(layout, &config(), &mut Init));
     let mut ctx = new_ctx();
     process(&mut plugin, &mut ctx);

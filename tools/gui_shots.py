@@ -1,9 +1,9 @@
-"""Build nord-stage4 once and write one PNG per panel section (default 2x).
+"""Build nd-matrix-1 once and write one PNG per panel section (default 2x).
 
     python tools/gui_shots.py [--out DIR] [--scale 2] [--sections organ,piano] [--no-build]
                               [--backup X.ns4b --program A:14]
 
-Each shot is one `nord-stage4 --screenshot ... --screenshot-section ...` run: the window opens
+Each shot is one `nd-matrix-1 --screenshot ... --screenshot-section ...` run: the window opens
 off-screen without focus and the process exits 0 after saving. Every child has a hard timeout
 and is killed if it overruns (only the child this script started). Stdlib only.
 """
@@ -21,7 +21,7 @@ TIMEOUT_S = 30
 
 
 def exe_path():
-    name = "nord-stage4.exe" if os.name == "nt" else "nord-stage4"
+    name = "nd-matrix-1.exe" if os.name == "nt" else "nd-matrix-1"
     return os.path.join(ROOT, "target", "release", name)
 
 
@@ -67,7 +67,7 @@ def main(argv=None):
     os.makedirs(args.out, exist_ok=True)
     if not args.no_build:
         subprocess.run(
-            ["cargo", "build", "--release", "-p", "nord-gui", "--bin", "nord-stage4"],
+            ["cargo", "build", "--release", "-p", "nord-gui", "--bin", "nd-matrix-1"],
             cwd=ROOT,
             check=True,
         )

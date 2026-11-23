@@ -85,7 +85,7 @@ All major front-panel controls are exposed as host-automatable parameters with s
 - **Piano per layer extras:** `pianoy_{string_res,pedal_noise}_{1,2}` are ANDed with the global `piano_string_res` / `piano_pedal_noise`.
 - **Synth per layer (A/B/C = `_1`/`_2`/`_3`):** `synthx_{unison,voice,priority,glide,kb_track,filter_env,osc_env,osc_env_pitch}_{1,2,3}`.
 - **Firmware-law switches (`fwx_*`, additive, `firmware_params.rs`, D169):** `fwx_arp_walk` (default on; off = legacy arp, the offline `--legacy-arp`), `fwx_arp_gate` (default off: the opt-in 2/3 gate), `fwx_morph_law` (default on; off = legacy morph, `--legacy-morph`), `fwx_touch_curves` (default on; off = Medium curve for every note, `--legacy-piano-touch`). Defaults equal the engine defaults, so an untouched host renders bit-identically.
-- **Loaded program versus host (D169):** `piano_touch` and the Mod 2 parameters (`fxsel_mod2_type_n`, `fxsel_mod2_rate_n`, `fxy_mod2_var_n`, `fxx_mod2_amount_n`) replace a loaded program's per-layer Touch and firmware Mod 2 only after the host moved them from the value they had when the program was loaded (before any load: from the default). Untouched, the program plays; once moved, the host value wins until the next program load, even if it returns to the default (an undo or state recall is a host change). Saved sessions restore their parameters before activation, so every non-default restored value counts as moved and old sessions play as before. The plugin has no file loader yet (`NordStage4Plugin::load_program` is an API, TD-21); every other parameter still overwrites a loaded program. No id changed meaning.
+- **Loaded program versus host (D169):** `piano_touch` and the Mod 2 parameters (`fxsel_mod2_type_n`, `fxsel_mod2_rate_n`, `fxy_mod2_var_n`, `fxx_mod2_amount_n`) replace a loaded program's per-layer Touch and firmware Mod 2 only after the host moved them from the value they had when the program was loaded (before any load: from the default). Untouched, the program plays; once moved, the host value wins until the next program load, even if it returns to the default (an undo or state recall is a host change). Saved sessions restore their parameters before activation, so every non-default restored value counts as moved and old sessions play as before. The plugin has no file loader yet (`NdMatrix1Plugin::load_program` is an API, TD-21); every other parameter still overwrites a loaded program. No id changed meaning.
 - **Synth Section:** `synth_a_level`, `synth_b_level`, `synth_c_level`, `synth_a_enabled`, `synth_b_enabled`, `synth_c_enabled`, `synth_osc_mode`, `synth_filter_cutoff`, `synth_filter_resonance`, `synth_filter_drive`, `synth_attack`, `synth_decay`, `synth_release`.
 
 ---
@@ -100,7 +100,7 @@ cargo build --release -p nord-plugin
 ```
 
 - Linux CLAP: `target/release/libnord_plugin.so` (copy to `~/.clap/nord-stage-4.clap`)
-- Linux VST3: `target/release/libnord_plugin.so` (packaged into `~/.vst3/Nord Stage 4.vst3/Contents/x86_64-linux/Nord Stage 4.so`)
+- Linux VST3: `target/release/libnord_plugin.so` (packaged into `~/.vst3/ND Matrix 1.vst3/Contents/x86_64-linux/ND Matrix 1.so`)
 - Standalone Binary: `target/release/nord-plugin-standalone`
 
 ### macOS Audio Unit (AUv2) Packaging
@@ -156,7 +156,7 @@ Counting `#[global_allocator]` tests (alloc, free and realloc all count; armed o
 |---|---|---|
 | `nord-core/tests/no_alloc_audio_path.rs::worst_case_polyphony_with_fx_and_multi_out_never_touches_the_heap` | The 7.1 workload for 1500 blocks with key retrigger, sustain pedal, tempo changes, `process_block_multi` and `process_block` alternating | 0 allocator calls |
 | `nord-core/tests/no_alloc_audio_path.rs::process_block_with_telemetry_publishing_never_touches_the_heap` (existing) | 400 blocks with MIDI and telemetry | 0 |
-| `nord-plugin/tests/host_lifecycle.rs::process_never_touches_the_heap_over_a_long_worst_case_run` | `NordStage4Plugin::process` for 1500 blocks: sync of all 811 parameters, event routing, on-screen keybed queue, 88 keys held, Scene I | 0 |
+| `nord-plugin/tests/host_lifecycle.rs::process_never_touches_the_heap_over_a_long_worst_case_run` | `NdMatrix1Plugin::process` for 1500 blocks: sync of all 811 parameters, event routing, on-screen keybed queue, 88 keys held, Scene I | 0 |
 
 ```bash
 cargo test --release -p nord-core --test no_alloc_audio_path

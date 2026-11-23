@@ -51,7 +51,7 @@ use params::Stage4Params;
 use std::sync::Arc;
 
 /// The Nord Stage 4 DAW Plugin.
-pub struct NordStage4Plugin {
+pub struct NdMatrix1Plugin {
     pub params: Arc<Stage4Params>,
     pub engine: Stage4Engine,
     pub sample_rate: f32,
@@ -70,7 +70,7 @@ pub struct NordStage4Plugin {
     pub load_rx: loader::LoadReceiver,
 }
 
-impl Default for NordStage4Plugin {
+impl Default for NdMatrix1Plugin {
     fn default() -> Self {
         let (note_tx, note_rx) = editor::notes::note_queue(editor::notes::NOTE_QUEUE_CAPACITY);
         let (load_tx, load_rx) = loader::load_queue(loader::LOAD_QUEUE_CAPACITY);
@@ -91,7 +91,7 @@ impl Default for NordStage4Plugin {
     }
 }
 
-impl NordStage4Plugin {
+impl NdMatrix1Plugin {
     /// Fresh engine at the current sample rate with everything loaded applied, then the host
     /// parameters synced on top (D169 / D218: only what the host moved replaces the program).
     fn rebuild_engine(&mut self) {
@@ -129,9 +129,9 @@ impl NordStage4Plugin {
     }
 }
 
-impl Plugin for NordStage4Plugin {
-    const NAME: &'static str = "nd matrix 1";
-    const VENDOR: &'static str = "OpenNord";
+impl Plugin for NdMatrix1Plugin {
+    const NAME: &'static str = "ND Matrix 1";
+    const VENDOR: &'static str = "ND Matrix Contributors";
     const URL: &'static str = "https://github.com/ymatrix1/nord-stage-4-emulator";
     const EMAIL: &'static str = "yuri@github.com";
 
@@ -256,8 +256,8 @@ impl Plugin for NordStage4Plugin {
     fn deactivate(&mut self) {}
 }
 
-impl ClapPlugin for NordStage4Plugin {
-    const CLAP_ID: &'static str = "org.opennord.nord-stage-4";
+impl ClapPlugin for NdMatrix1Plugin {
+    const CLAP_ID: &'static str = "org.ndmatrix.nd-matrix-1";
     const CLAP_DESCRIPTION: Option<&'static str> =
         Some("Open-source 7-layer multitimbral keyboard emulator");
     const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
@@ -269,8 +269,8 @@ impl ClapPlugin for NordStage4Plugin {
     ];
 }
 
-impl Vst3Plugin for NordStage4Plugin {
-    const VST3_CLASS_ID: [u8; 16] = *b"NordStage4Emulat";
+impl Vst3Plugin for NdMatrix1Plugin {
+    const VST3_CLASS_ID: [u8; 16] = *b"NDMatrix1Emulato";
     const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] = &[
         Vst3SubCategory::Instrument,
         Vst3SubCategory::Synth,
@@ -278,8 +278,8 @@ impl Vst3Plugin for NordStage4Plugin {
     ];
 }
 
-nih_export_clap!(NordStage4Plugin);
-nih_export_vst3!(NordStage4Plugin);
+nih_export_clap!(NdMatrix1Plugin);
+nih_export_vst3!(NdMatrix1Plugin);
 
 #[cfg(test)]
 mod tests {
@@ -287,7 +287,7 @@ mod tests {
     use std::mem::MaybeUninit;
 
     struct MockInitContext;
-    impl InitContext<NordStage4Plugin> for MockInitContext {
+    impl InitContext<NdMatrix1Plugin> for MockInitContext {
         fn plugin_api(&self) -> PluginApi {
             PluginApi::Clap
         }
@@ -300,7 +300,7 @@ mod tests {
         transport: Transport,
     }
 
-    impl ProcessContext<NordStage4Plugin> for MockProcessContext {
+    impl ProcessContext<NdMatrix1Plugin> for MockProcessContext {
         fn plugin_api(&self) -> PluginApi {
             PluginApi::Clap
         }
@@ -319,10 +319,10 @@ mod tests {
 
     #[test]
     fn test_editor_keybed_note_reaches_process_output() {
-        let mut plugin = NordStage4Plugin::default();
+        let mut plugin = NdMatrix1Plugin::default();
         let mut init_ctx = MockInitContext;
         plugin.initialize(
-            &NordStage4Plugin::AUDIO_IO_LAYOUTS[0],
+            &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0],
             &BufferConfig {
                 sample_rate: 48000.0,
                 min_buffer_size: None,
@@ -369,12 +369,12 @@ mod tests {
     /// Host-visible metadata must point at the live repository and carry no manufacturer name.
     #[test]
     fn test_plugin_metadata_url_matches_cargo_repository_and_has_no_vendor_name() {
-        assert_eq!(NordStage4Plugin::URL, env!("CARGO_PKG_REPOSITORY"));
+        assert_eq!(NdMatrix1Plugin::URL, env!("CARGO_PKG_REPOSITORY"));
         let shown = [
-            NordStage4Plugin::NAME,
-            NordStage4Plugin::VENDOR,
-            NordStage4Plugin::URL,
-            <NordStage4Plugin as ClapPlugin>::CLAP_ID,
+            NdMatrix1Plugin::NAME,
+            NdMatrix1Plugin::VENDOR,
+            NdMatrix1Plugin::URL,
+            <NdMatrix1Plugin as ClapPlugin>::CLAP_ID,
         ];
         for text in shown {
             assert!(!text.to_lowercase().contains("clavia"), "{text}");
@@ -383,7 +383,7 @@ mod tests {
 
     #[test]
     fn test_plugin_instantiation_and_reset() {
-        let mut plugin = NordStage4Plugin::default();
+        let mut plugin = NdMatrix1Plugin::default();
         assert_eq!(plugin.sample_rate, 44100.0);
         plugin.sample_rate = 96000.0;
         plugin.reset();
@@ -392,10 +392,10 @@ mod tests {
 
     #[test]
     fn test_plugin_process_buffer_zero_alloc() {
-        let mut plugin = NordStage4Plugin::default();
+        let mut plugin = NdMatrix1Plugin::default();
         let mut init_ctx = MockInitContext;
         plugin.initialize(
-            &NordStage4Plugin::AUDIO_IO_LAYOUTS[0],
+            &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0],
             &BufferConfig {
                 sample_rate: 48000.0,
                 min_buffer_size: None,
