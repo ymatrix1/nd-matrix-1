@@ -16,12 +16,12 @@ D220 (#596) showed the B3 "too dark" gap was the replayed note set and added `em
 ## Acceptance Criteria
 - [x] Re-run B3 Chords n Solo and B3 Old Forest with confirmed, raw and merged streams; per-band deltas before and after
 - [x] Say whether the evidence supports flipping `B3Wheels` (no) with an owner-ready proposal and criterion
-- [x] Research note, D224, audio-remaining row 9, ROADMAP, data files
+- [x] Research note, D225, audio-remaining row 9, ROADMAP, data files
 - [x] No default flipped, no engine change; AGENTS.md checks pass
 
 ## Out of Scope
 Flipping `B3Wheels` (owner), Vox re-run, firmware Leslie install (D190), any Rust change, tool changes (the tool and its test come from #596).
 
 ## Summary of Changes
-- `docs/research/organ-presence-rerun.md`, data `emu_vs_hw_organ_presence_rerun{,_results}.json`, D224, audio-remaining row 9, ROADMAP.
+- `docs/research/organ-presence-rerun.md`, data `emu_vs_hw_organ_presence_rerun{,_results}.json`, D225, audio-remaining row 9, ROADMAP.
 - Result: merged stream B3 Chords Legacy 4.04 against `B3Wheels` 7.22 (presence -3.0 vs -10.9, brilliance +1.3 vs -9.0 dB); Old Forest merged favours `B3Wheels` 4.38 against 5.52; `B3Wheels` stays opt-in.
