@@ -49,10 +49,13 @@ mod tests {
             <NdMatrix1Plugin as Vst3Plugin>::PLATFORM_VST3_CLASS_ID,
             *b"NDMatrix1Emulato"
         );
+        // Windows COM GUID layout: nih-plug's `swap_vst3_uid_byte_order` reverses bytes 0..4 and
+        // swaps 4..6 and 6..8 (identical at nih-plug de42101 and 95034d5), so "NDMa" "tr" "ix"
+        // becomes "aMDN" "rt" "xi"; bytes 8..16 are unchanged.
         #[cfg(target_os = "windows")]
         assert_eq!(
-            <NdMatrix1Plugin as Vst3Plugin>::PLATFORM_VST3_CLASS_ID[..8],
-            [0x61, 0x4d, 0x44, 0x4e, 0x78, 0x69, 0x72, 0x74]
+            <NdMatrix1Plugin as Vst3Plugin>::PLATFORM_VST3_CLASS_ID,
+            *b"aMDNrtxi1Emulato"
         );
     }
 
