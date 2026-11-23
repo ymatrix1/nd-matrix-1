@@ -364,9 +364,7 @@ impl BackupLibraryState {
             )
             .show_animated(ctx, self.drawer_open, |ui| {
                 ui.horizontal(|ui| {
-                    ui.strong(
-                        RichText::new("Nord Stage 4 Backup & Sample Library").color(Color32::WHITE),
-                    );
+                    ui.strong(RichText::new(crate::branding::LIBRARY_TITLE).color(Color32::WHITE));
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui
                             .small_button("X")

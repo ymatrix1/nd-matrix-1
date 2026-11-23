@@ -137,7 +137,7 @@ impl Default for ProgramUi {
             browse: ProgLoc::parse("A:11").unwrap_or_default(),
             list_letter_held: false,
             list_cat_held: false,
-            title: "Nord Stage 4".to_string(),
+            title: crate::branding::DEFAULT_PROGRAM_TITLE.to_string(),
             last_prog_id: "A:11".to_string(),
             store: StoreFlow::default(),
             library: UserLibrary::default(),
