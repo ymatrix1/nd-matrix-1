@@ -2,7 +2,7 @@
 
 /// Row kinds.
 #[allow(dead_code)]
-pub(super) mod kind {
+pub(in crate::organ) mod kind {
     pub const INS: i32 = 0;
     pub const LOOP: i32 = 1;
     pub const SWAP: i32 = 2;
@@ -32,7 +32,7 @@ pub(super) mod kind {
 }
 
 /// ALU operations of an `ALU` row.
-pub(super) mod alu_op {
+pub(in crate::organ) mod alu_op {
     pub const PASS: i32 = 0;
     pub const FMUL: i32 = 1;
     pub const FADD: i32 = 2;

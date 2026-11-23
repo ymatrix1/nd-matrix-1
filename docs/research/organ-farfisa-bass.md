@@ -334,16 +334,15 @@ Not done (time box; the Farfisa part and the real time path are s16 / s17): draw
 
 ## 16. Farfisa processor `0x122B85` on the firmware machine (2026-11-15)
 
-Tools: `tools/organ_farfisa_fw.py` (`check`, `image`, `golden`, `chords`, `rust`), `tools/sharc_listing_vm.py` / `sharc_listing_ext.py` (jumps, AZ / AN flags), `tools/sharc_listing_rust.py` (jump rows). Rust: `organ/farfisa_fw/` (`prog_proc.rs` GENERATED rows, `fast_proc.rs` straight line code, s17), `organ/farfisa_keys.rs` (the stage). Data: [farfisa-fw-image.csv](data/farfisa-fw-image.csv) (model 2 install, 802 words of the ranges the routine touches, start registers), [farfisa-fw-golden.csv](data/farfisa-fw-golden.csv) (24 calls, chord 60 64 67: output words and the generator ring of each call), [farfisa-fw-golden-flag1.csv](data/farfisa-fw-golden-flag1.csv) (12 calls, second lattice table), [farfisa-chord-goldens.csv](data/farfisa-chord-goldens.csv) (the 12 strongest 8192 point Hann lines of four oracle chords).
+Tools: `tools/organ_farfisa_fw.py` (`check`, `image`, `golden`, `chords`; the `rust` command was removed, D128), `tools/sharc_listing_vm.py` / `sharc_listing_ext.py` (jumps, AZ / AN flags), `tools/sharc_listing_rust.py` (jump rows, the reference of `organ/farfisa_fw/rows.rs`). Rust: `organ/farfisa_fw/` (rows and DM image built at run time from the user's OS update file since 2026-11-23: `image.rs`, `rows.rs`, D128; the tracked `prog_proc.rs`, `farfisa-fw-image.csv` and the straight line `native_farfisa.rs` are gone), `organ/farfisa_keys.rs` (the stage). Data: [farfisa-fw-image.csv](data/farfisa-fw-image.csv) (model 2 install, 802 words of the ranges the routine touches, start registers), [farfisa-fw-golden.csv](data/farfisa-fw-golden.csv) (24 calls, chord 60 64 67: output words and the generator ring of each call), [farfisa-fw-golden-flag1.csv](data/farfisa-fw-golden-flag1.csv) (12 calls, second lattice table), [farfisa-chord-goldens.csv](data/farfisa-chord-goldens.csv) (the 12 strongest 8192 point Hann lines of four oracle chords).
 
 ```bash
 uv run --with unicorn --with capstone --with numpy python tools/organ_proc_oracle.py   # boot log (no sentinels) + 526 install words = m2.script
 python tools/organ_farfisa_fw.py check  target/PNO/core1_sram.bin f2_k3.script --calls 300 --exe target/release/sharc-chain
-python tools/organ_farfisa_fw.py image  target/PNO/core1_sram.bin m2.script docs/research/data/farfisa-fw-image.csv --exe ...
+python tools/organ_farfisa_fw.py image  target/PNO/core1_sram.bin m2.script docs/research/data/farfisa-fw-install-delta.csv --exe ...
 python tools/organ_farfisa_fw.py golden target/PNO/core1_sram.bin f2_k3.script docs/research/data/farfisa-fw-golden.csv --calls 24 --exe ...
 python tools/organ_farfisa_fw.py chords target/PNO/core1_sram.bin --image-out docs/research/data/farfisa-chord-goldens.csv \
     --chord k1:60:f2_k1.script --chord k3:60,64,67:f2_k3.script --chord k48:48,55,64:f2_k48.script --chord k72:72,76,79:f2_k72.script --exe ...
-python tools/organ_farfisa_fw.py rust   target/PNO/core1_sram.bin [--check]
 cargo test -p nord-core --lib farfisa
 ```
 

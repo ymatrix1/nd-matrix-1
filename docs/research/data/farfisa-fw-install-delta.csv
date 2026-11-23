@@ -1,0 +1,41 @@
+# Farfisa model 2 install words and start registers (D128): the DM words of the processor ranges
+# that differ from the PNO core 1 loader data, and the start registers, as captured from the ARM
+# install run (`python tools/organ_farfisa_fw.py image`, research s16). 46 words and 2 clears: our own
+# capture of what the ARM sends, no firmware image bytes. `M,addr,hex ...` / `R,name,hex`.
+R,r1,b8000
+R,r3,5b7a1
+R,i0,c00ea
+R,i1,b52c7
+R,m1,1
+R,m2,2
+R,m7,ffffffff
+R,m9,1
+R,m10,2
+R,m15,ffffffff
+M,c2c36,3f7f358c
+M,c2c38,3f7e6b18
+M,c2c3c,3ec6f978
+M,c2c40,3f6e0980
+M,c2c45,0
+M,c2c5c,3f7f45ca
+M,c2c5e,3f7e8b94
+M,c2c62,3e7de4c8
+M,c2c66,3f6e0980
+M,c2c8c,3f6e0980
+M,c2c91,0
+M,c2ca8,3f7f45ca
+M,c2caa,3f7e8b94
+M,c2cae,3e7de4c8
+M,c2cb2,3f6e0980
+M,c2cc6,3f7e0008 be7e0008 3e240000 3c800000
+M,c2cce,3f400000 3f400000 3f400000
+M,c2cee,3f7e0008 be7e0008 3d93ffe0 3c800000
+M,c2d3e,3f7e0008 be7e0008 3d93ffe0 3c800000
+M,c2d5a,3eaaaaa8 3eaaaaa8
+M,c2d76,3ea00000 3ea00000 3e5ff2e0 3e200d18
+M,c2d98,3ea00000 3ea00000 3e5ff2e0 3e200d18
+M,c2ddc,3ea00000 3ea00000 3e5ff2e0 3e200d18
+M,c2de6,4d0
+M,c2de8,4d0
+M,c2df3,a0e31f2
+M,c2df5,b8000

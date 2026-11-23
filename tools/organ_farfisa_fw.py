@@ -8,10 +8,15 @@ is **not** run here: its ring (frame 0 at `DM 0xC2B52`, frame 1 at `0xC2BB4`) is
 from the oracle per call (`golden`) or produced by `FarfisaWheels` at the DSP rate in the stage.
 
     python tools/organ_farfisa_fw.py check  IMAGE SCRIPT --calls 48 --exe target/release/sharc-chain
-    python tools/organ_farfisa_fw.py image  IMAGE SCRIPT OUT.csv      --exe ...   # DM image + regs
+    python tools/organ_farfisa_fw.py image  IMAGE SCRIPT OUT.csv      --exe ...   # install delta
     python tools/organ_farfisa_fw.py golden IMAGE SCRIPT OUT.csv --calls 24 --exe ...
     python tools/organ_farfisa_fw.py chords IMAGE --image-out OUT.csv --chord NAME:KEYS:SCRIPT ...
-    python tools/organ_farfisa_fw.py rust   IMAGE [--check]                       # row tables
+
+The DM image and the instruction rows are no longer tracked (D128): the Rust loader
+`crates/nord-core/src/organ/farfisa_fw/` builds them at run time from the user's OS update file
+(PNO core 1 loader data and the listing of `0x122B85`). `image` writes only what the loader cannot
+read from the image: `docs/research/data/farfisa-fw-install-delta.csv` (the DM words the ARM
+install changes against the loader data, and the start registers).
 """
 
 from __future__ import annotations
@@ -26,12 +31,8 @@ import organ_listing_check as olc
 import organ_replay as rp
 import sharc_listing_ext as ext
 
-ROOT = Path(__file__).resolve().parents[1]
-FW_DIR = ROOT / "crates" / "nord-core" / "src" / "organ" / "farfisa_fw"
 GEN_SPEC = "0x122A71:0x122B84:I0=0xc00ea,I1=0xb52c7,M0=0,M1=1,M2=2,M7=0xffffffff"
 PROC_SPEC = "0x122B85:0x122EF5:I0=0xc4000,I1=0xb474c,M0=0,M1=1,M2=2,M7=0xffffffff"
-PATHS = ("super::super::b3_bass_fw::Row", "crate::organ::b3_bass_fw::rows_valid")
-PROC = ("proc", 0x122B85, 0x122EF5, "FARFISA_ROWS")
 # VERIFIED (probe of the processor, s16): the DM ranges the routine reads or writes.
 KEEP = ((0x9_5FFC, 0x178), (0x9_65DC, 0x10), (0xB_472C, 8), (0xC_27E0, 0x640), (0xC_4000, 8))
 RATE = 43_402.6  # ASSUMED anchor of the DSP frame rate (s3)
@@ -51,6 +52,28 @@ def setup(a: argparse.Namespace) -> None:
 def kept(mem: dict[int, int]) -> list[tuple[int, int]]:
     """Non zero words of the kept ranges, sorted."""
     return sorted((k, v) for k, v in mem.items() if v and any(b <= k < b + n for b, n in KEEP))
+
+
+def static_words(sram: bytes) -> dict[int, int]:
+    """Non zero DM words of the kept ranges in a flat core 1 SRAM image (`4 * address`)."""
+    out = {}
+    for base, n in KEEP:
+        for a in range(base, base + n):
+            v = int.from_bytes(sram[4 * a : 4 * a + 4], "little")
+            if v:
+                out[a] = v
+    return out
+
+
+def install_delta(mem: dict[int, int], static: dict[int, int]) -> list[tuple[int, int]]:
+    """`(address, value)` of the kept words whose oracle value differs from the loader data.
+
+    A word the install clears appears with value 0.
+    """
+    now = dict(kept(mem))
+    return sorted(
+        (a, now.get(a, 0)) for a in set(now) | set(static) if now.get(a, 0) != static.get(a, 0)
+    )
 
 
 def start_machine(a: argparse.Namespace, mem: dict[int, int]) -> ext.GenVm:
@@ -84,12 +107,13 @@ def cmd_image(a: argparse.Namespace) -> int:  # pragma: no cover - runs the orac
     setup(a)
     mem = rp.memory(a, ())
     regs = rp.vm.parse_trace_line(rp.trace_rows(a, *rp.parse_step(a.gen)[:2], (a.gen,))[0])[1]
-    lines = ["# DM image and start registers of the Farfisa processor (research s16)"]
+    delta = install_delta(mem, static_words(Path(a.image).read_bytes()))
+    lines = ["# Farfisa model 2 install words and start registers (D128), research s16"]
     for file in "rsim":
         lines += [f"R,{file}{k},{v:x}" for k, v in enumerate(regs[file]) if v]
-    lines += gen.mem_runs(kept(mem))
+    lines += gen.mem_runs(delta)
     Path(a.out).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
-    print(f"{len(lines)} lines -> {a.out}")
+    print(f"{len(delta)} words, {len(lines)} lines -> {a.out}")
     return 0
 
 
@@ -137,23 +161,9 @@ def cmd_chords(a: argparse.Namespace) -> int:  # pragma: no cover - runs the ora
     return 0
 
 
-def cmd_rust(a: argparse.Namespace) -> int:
-    path = FW_DIR / "prog_proc.rs"
-    text = gen.rust_text(a.image, PROC, "organ_farfisa_fw.py", PATHS)
-    have = path.read_text(encoding="utf-8") if path.exists() else ""
-    if have.replace("\r\n", "\n") == text:
-        return 0
-    if a.check:
-        print("prog_proc.rs is stale")
-        return 1
-    path.write_text(text, encoding="utf-8", newline="\n")
-    print(f"wrote {path.name}")
-    return 0
-
-
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("cmd", choices=("check", "image", "golden", "rust", "chords"))
+    ap.add_argument("cmd", choices=("check", "image", "golden", "chords"))
     ap.add_argument("image")
     ap.add_argument("script", nargs="?")
     ap.add_argument("out", nargs="?")
@@ -161,11 +171,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--lines", type=int, default=12)
     ap.add_argument("--image-out", dest="image_out")
     ap.add_argument("--calls", type=int, default=24)
-    ap.add_argument("--check", action="store_true")
     ap.add_argument("--exe", default="sharc-chain")
     a = ap.parse_args(argv)
     a.base = None
-    cmds = {"check": cmd_check, "image": cmd_image, "golden": cmd_golden, "rust": cmd_rust}
+    cmds = {"check": cmd_check, "image": cmd_image, "golden": cmd_golden}
     return {**cmds, "chords": cmd_chords}[a.cmd](a)
 
 
