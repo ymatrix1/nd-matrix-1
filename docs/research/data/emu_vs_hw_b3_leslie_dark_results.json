@@ -1,5 +1,5 @@
 {
- "note": "B3 Leslie darkness bisect (docs/research/b3-leslie-dark.md), D219. organ_b3 clip (Part A _zksT69H30c at 238 s, 25 s), emulator minus hardware, dB re RMS. Streams: confirmed = video-confirmed notes (101); all = every detected note (285); transkun = 525 Transkun notes; merge0.3 = transkun with --merge-gap 0.3 (96 notes); z36/z60/z72 = detected notes cut to MIDI 36..59, 60..71, 72..108. Numbers only, no audio. Reproduce: see the note.",
+ "note": "B3 Leslie darkness bisect (docs/research/b3-leslie-dark.md), D220. organ_b3 clip (Part A _zksT69H30c at 238 s, 25 s), emulator minus hardware, dB re RMS. Streams: confirmed = video-confirmed notes (101); all = every detected note (285); transkun = 525 Transkun notes; merge0.3 = transkun with --merge-gap 0.3 (96 notes); z36/z60/z72 = detected notes cut to MIDI 36..59, 60..71, 72..108. Numbers only, no audio. Reproduce: see the note.",
  "streams": {
   "confirmed": {
    "video": "_zksT69H30c",

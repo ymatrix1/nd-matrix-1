@@ -31,7 +31,8 @@ import sys
 from pathlib import Path
 
 import ns4_dsp_raw as raw
-from sy_flash_census import LOAD_BASE, SERVICE_WORDS, SKIP_SPANS
+from arm_const_track import iter_states
+from sy_flash_census import LOAD_BASE, SERVICE_WORDS, SKIP_SPANS  # noqa: F401 (re-exported)
 
 # VERIFIED: pitch window of the SY audio ISR step 3 (`i5 = 0x9354A`), D141 / D176.
 PITCH_WINDOW = (0x93500, 0x935A0)
@@ -81,74 +82,16 @@ def dsp_writers(listing: str, addresses: set[int]) -> list[tuple[str, int]]:
     return hits
 
 
-def _ror(v: int, n: int) -> int:
-    n %= 32
-    return ((v >> n) | (v << (32 - n))) & 0xFFFF_FFFF if n else v
-
-
-def _imm16(w: int) -> int:
-    return ((w >> 4) & 0xF000) | (w & 0xFFF)
-
-
 def arm_const_hits(
     code: bytes, targets: dict[int, str], skip: tuple[tuple[int, int], ...] = SKIP_SPANS
 ) -> list[tuple[int, int, int, str]]:
     """Linear constant tracker over ARM code: `(address, register, value, name)` for every
-    instruction after which a register holds one of `targets`. Tracks literal loads
-    (`ldr rd, [pc, #x]`), `mov`, `mvn`, `movw`, `movt`, register copies and `add` / `sub` / `orr`
-    with an immediate. Resets at any branch (ASSUMED approximation: values built across basic
-    blocks are not seen)."""
-    words = struct.unpack_from(f"<{len(code) // 4}I", code)
-    regs: dict[int, int] = {}
+    instruction after which a register holds one of `targets` (tracker: `arm_const_track`, which
+    resets at any branch; ASSUMED approximation: values built across basic blocks are not seen)."""
     hits: list[tuple[int, int, int, str]] = []
-
-    def skipped(off: int) -> bool:
-        return any(lo - LOAD_BASE <= off < hi - LOAD_BASE for lo, hi in skip)
-
-    for i, w in enumerate(words):
-        off = 4 * i
-        if skipped(off) or (w >> 28) == 0xF:
-            regs.clear()
-            continue
-        pc = LOAD_BASE + off
-        kind = (w >> 25) & 7
-        rd = (w >> 12) & 0xF
-        rn = (w >> 16) & 0xF
-        value: int | None = None
-        if kind == 5 or (w & 0x0FFF_FFF0) == 0x012F_FF10 or (w & 0x0E50_0000) == 0x0810_0000:
-            regs.clear()  # b / bl, bx, ldm
-            continue
-        if (w & 0x0F7F_0000) == 0x051F_0000:  # ldr rd, [pc, #+-imm12]
-            lit = off + 8 + (w & 0xFFF if w & (1 << 23) else -(w & 0xFFF))
-            if 0 <= lit < len(code) - 3:
-                value = struct.unpack_from("<I", code, lit)[0]
-        elif (w & 0x0FF0_0000) == 0x0300_0000:  # movw
-            value = _imm16(w)
-        elif (w & 0x0FF0_0000) == 0x0340_0000:  # movt
-            if rd in regs:
-                value = (_imm16(w) << 16) | (regs[rd] & 0xFFFF)
-        elif kind == 1:  # data processing, immediate operand
-            op = (w >> 21) & 0xF
-            imm = _ror(w & 0xFF, 2 * ((w >> 8) & 0xF))
-            if op == 0xD:
-                value = imm
-            elif op == 0xF:
-                value = ~imm & 0xFFFF_FFFF
-            elif rn in regs and op in (0x4, 0x2, 0xC):
-                base = regs[rn]
-                value = {0x4: base + imm, 0x2: base - imm, 0xC: base | imm}[op] & 0xFFFF_FFFF
-        elif kind == 0 and ((w >> 21) & 0xF) == 0xD and (w & 0xFF0) == 0 and (w & 0xF) in regs:
-            value = regs[w & 0xF]  # mov rd, rm
-        elif (w & 0x0C10_0000) == 0x0410_0000 or (kind == 0 and (w & 0x0010_0000) == 0):
-            pass  # other load or register data processing: rd is overwritten (value stays None)
-        else:
-            continue
-        if value is None:
-            regs.pop(rd, None)
-            continue
-        regs[rd] = value
-        if value in targets:
-            hits.append((pc, rd, value, targets[value]))
+    for pc, _w, _regs, written in iter_states(code, skip):
+        if written is not None and written[1] in targets:
+            hits.append((pc, written[0], written[1], targets[written[1]]))
     return hits
 
 

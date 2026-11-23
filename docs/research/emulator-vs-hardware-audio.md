@@ -136,4 +136,4 @@ Update 4 (piano downstream level): the piano `+12 dB` (all notes, velocity 100) 
 
 The B3 clip sub excess and clipping are the layer zone, not the output stage: with the opt-in `--firmware-routing` (per-layer KB zones and section / layer enables, [engine-routing](engine-routing.md)) `b3wheels` gives sub -1.6 dB, crest 17.2 dB (hardware 18.6), 0 % at full scale and RMS +3.8 dB; presence stays -12.5 dB. The other five segments are unchanged.
 
-Update (2026-11-22, D219): `--events-from transkun --merge-gap 0.3` joins same-key re-triggers of the transcribed stream before the replay (the B3 clip: 525 notes to 96). A band number depends on the replayed note set: the B3 brilliance reads -12.8 dB with `--confirmed-only` and +1.3 dB on the merged stream ([b3-leslie-dark](b3-leslie-dark.md)).
+Update (2026-11-22, D220): `--events-from transkun --merge-gap 0.3` joins same-key re-triggers of the transcribed stream before the replay (the B3 clip: 525 notes to 96). A band number depends on the replayed note set: the B3 brilliance reads -12.8 dB with `--confirmed-only` and +1.3 dB on the merged stream ([b3-leslie-dark](b3-leslie-dark.md)).

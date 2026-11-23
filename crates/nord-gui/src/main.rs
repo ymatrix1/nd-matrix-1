@@ -142,7 +142,9 @@ impl Stage4App {
         }
         if let Some(path) = cli.initial_backup {
             match app.library.open_backup_path(&path) {
-                Ok(()) => app.library.drawer_open = true,
+                Ok(()) => app
+                    .debug_dialog
+                    .open_tab(nord_gui::debug_dialog::DebugTab::Library),
                 Err(e) => {
                     eprintln!("[GUI] Could not open backup '{}': {e}", path.display());
                     app.library.error_message = Some(e);
@@ -222,11 +224,8 @@ impl eframe::App for Stage4App {
                     .map(|s| s.to_ascii_lowercase());
                 match ext.as_deref() {
                     Some("ns4b") => {
-                        if let Err(err) = self.library.open_backup_path(path) {
-                            self.library.error_message = Some(err);
-                        } else {
-                            self.library.drawer_open = true;
-                        }
+                        self.library
+                            .open_backup_in_settings(path, &mut self.debug_dialog);
                     }
                     Some("npno") => {
                         self.library
