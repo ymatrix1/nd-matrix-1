@@ -319,7 +319,7 @@ pub struct FirmwareOptions {
     /// `--piano-slew-fw`: `PianoLayer::firmware_slew` (SMP voice-gain slew, opt-in; D22).
     pub piano_slew: bool,
     /// `--piano-keyup-fw`: `PianoLayer::firmware_key_up` (firmware key-up ratio and decay on the
-    /// engine envelope path, opt-in; D224).
+    /// engine envelope path, opt-in; D226).
     pub piano_key_up: bool,
     /// `--firmware-piano-pedal-voices`: `PianoLayer::firmware_pedal_voices` (notes struck with
     /// the damper pedal down take the firmware voice list, VERIFIED by the ARM run; opt-in, D22).

@@ -95,7 +95,7 @@ python tools/sy_fifo_probe.py run/SY0.script target/oracle/sy.bin target/release
 
 ## Follow-ups
 
-1. ~~Order 4 predictor row (release strokes)~~ done (D224, [piano-release-voice](piano-release-voice.md)): stroke 523 decodes with `(-1, 4, -6, 4)`, the voice 17 ring equals the reference; the release level in the tap is open.
+1. ~~Order 4 predictor row (release strokes)~~ done (D226, [piano-release-voice](piano-release-voice.md)): stroke 523 decodes with `(-1, 4, -6, 4)`, the voice 17 ring equals the reference; the release level in the tap is open.
 2. Second piano layer: bind `layer_b` on another core with a second flash image (`L` with an id) and check the tap with both layers.
 3. Dry native piano render (layer A, no chain) to turn the level table into a parity number; then the 155-program run of [smp-voice-pitch](smp-voice-pitch.md) follow-up 1.
 4. Rerun the SY census with `epchain+paced` (needs `--return-path`) and compare `sy_audio_peak` per program.

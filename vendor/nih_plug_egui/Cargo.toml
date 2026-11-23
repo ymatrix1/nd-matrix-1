@@ -8,12 +8,15 @@ license = "ISC"
 description = "An adapter to use egui GUIs with NIH-plug"
 
 [features]
-default = ["opengl", "default_fonts"]
+default = ["opengl", "default_fonts", "windows_keyboard_workaround"]
 # `nih_plug_egui` always uses OpenGL since egui's wgpu backend is still unstable
 # depending on the platform
 opengl = ["egui-baseview/opengl"]
 default_fonts = ["egui-baseview/default_fonts"]
 rayon = ["egui-baseview/rayon"]
+# NOTE (nd matrix 1): baseview never takes Win32 keyboard focus on click, so hosts (FL Studio)
+# keep the keys and TextEdit gets no typing. This refocuses the window while egui wants text.
+windows_keyboard_workaround = ["egui-baseview/windows_keyboard_workaround"]
 
 [dependencies]
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", default-features = false }

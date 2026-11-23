@@ -18,10 +18,10 @@ updated_at: 2026-11-22T00:00:00Z
 - [x] Key-up record trajectory (`F0`, `F15`) equals the Rust slew model within 1 LSB, golden test
 - [x] Native vs firmware key-up level and decay quantified on 5 programs
 - [x] Opt-in flag `--piano-keyup-fw` (`PianoLayer::firmware_key_up`), default unchanged, tests
-- [x] Research note, D224, spec, audio-remaining and OQ41 updated
+- [x] Research note, D226, spec, audio-remaining and OQ41 updated
 
 ## Out of Scope
 Default flip; the SMP tap level of the release voice (tap silent after about 3,800 frames in the harness); `layer_b`; the damper-down pedal key-up placement.
 
 ## Summary of Changes
-`tools/smp_voice_replay.py` order 4 row + test; `slew_voice.rs` `key_up_decay_tau_s` + oracle golden; `piano.rs` `firmware_key_up`; `render_opts.rs` `--piano-keyup-fw`; `docs/research/piano-release-voice.md`; D224; `specs/piano-engine.md` s6.1.
+`tools/smp_voice_replay.py` order 4 row + test; `slew_voice.rs` `key_up_decay_tau_s` + oracle golden; `piano.rs` `firmware_key_up`; `render_opts.rs` `--piano-keyup-fw`; `docs/research/piano-release-voice.md`; D226; `specs/piano-engine.md` s6.1.
