@@ -158,7 +158,7 @@ pub fn resize_target(pointer: Pos2, origin: Pos2, handle: f32) -> (u32, u32) {
 /// Drag handle in the bottom-right corner, in a foreground layer above the panel.
 fn resize_handle(ctx: &Context, egui_state: &EguiState, avail: Rect) {
     let handle = 18.0_f32;
-    Area::new(Id::new("nord-stage-4-resize"))
+    Area::new(Id::new("nd-matrix-1-resize"))
         .order(Order::Foreground)
         .fixed_pos(avail.max - Vec2::splat(handle))
         .constrain(false)

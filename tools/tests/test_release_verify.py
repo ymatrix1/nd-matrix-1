@@ -165,6 +165,6 @@ def test_main_reports_problems(tmp_path, capsys):
 
 
 def test_main_unreadable_archive(tmp_path, capsys):
-    bad = tmp_path / "nord-stage-4-emulator-v1-linux-x86_64.tar.gz"
+    bad = tmp_path / "nd-matrix-1-v1-linux-x86_64.tar.gz"
     bad.write_bytes(b"not gzip")
     assert rv.main([str(bad)]) == 1

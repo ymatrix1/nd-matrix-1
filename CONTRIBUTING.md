@@ -1,6 +1,6 @@
-# Contributing to Nord Stage 4 Emulator
+# Contributing to ND Matrix 1
 
-Thank you for your interest in contributing to **Nord Stage 4 Emulator** (`nord-stage-4-emulator`). This project is built for **interoperability, research, preservation, and compatibility** with the Clavia Nord Stage 4 (`product_id=46`).
+Thank you for your interest in contributing to **ND Matrix 1** (`nord-stage-4-emulator`). This project is built for **interoperability, research, preservation, and compatibility** with the Clavia Nord Stage 4 (`product_id=46`).
 
 ---
 
@@ -8,7 +8,7 @@ Thank you for your interest in contributing to **Nord Stage 4 Emulator** (`nord-
 
 - **DSP & Engine Accuracy:** Improve the Organ (`DSPO`), Piano (`DSPF`), Synth (`DSPS`), or Effects pipelines, or help close gaps in [docs/OPEN-QUESTIONS.md](docs/OPEN-QUESTIONS.md) and [docs/TECH_DEBT.md](docs/TECH_DEBT.md).
 - **Binary & Firmware Interoperability:** Expand lossless `CBIN` (`.ns4p`, `.ns4l`, `.ns4y`, `.ns4n`, `.ns4o`, `.ns4t`), `.ns4b`, and firmware container support.
-- **GUI, CLI & DAW Plugin:** Improve `nord-stage4`, `ns4`, or CLAP/VST3 host compatibility ([docs/HOST_COMPATIBILITY.md](docs/HOST_COMPATIBILITY.md)).
+- **GUI, CLI & DAW Plugin:** Improve `nd-matrix-1`, `ns4`, or CLAP/VST3 host compatibility ([docs/HOST_COMPATIBILITY.md](docs/HOST_COMPATIBILITY.md)).
 - **Tests & Documentation:** Add deterministic unit tests, verify hardware/firmware behaviour, or keep [docs/specs/](docs/specs/README.md) up to date.
 
 ---

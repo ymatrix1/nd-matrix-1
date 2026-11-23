@@ -1,4 +1,4 @@
-//! Repeatable screenshots of the panel: `nord-stage4 --screenshot out.png
+//! Repeatable screenshots of the panel: `nd-matrix-1 --screenshot out.png
 //! [--screenshot-scale N] [--screenshot-section organ|piano|program|synth|effects|master|keybed]`.
 //!
 //! The view is set to the section (the same focus mechanism as the Z key), the zoom is fixed at

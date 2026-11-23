@@ -1,4 +1,4 @@
-//! `nord-stage4 --audio-probe <secs>`: the real cpal output callback without a window.
+//! `nd-matrix-1 --audio-probe <secs>`: the real cpal output callback without a window.
 //!
 //! `ns4 bench --gui` times the render on a plain thread, so it cannot see what the driver and the
 //! scheduler do to the real callback thread. The probe opens the default output device exactly like
@@ -6,7 +6,7 @@
 //! program from `--backup` / `--program`, `--arp`, `--keys` held notes) for `<secs>` seconds and prints
 //! the meter: late blocks, worst callback, slow callback gaps and the thread priority. It makes sound.
 //!
-//! `nord-stage4 --audio-probe 20 --backup <.ns4b> --program "Horizon Whl" --arp up --firmware-fx
+//! `nd-matrix-1 --audio-probe 20 --backup <.ns4b> --program "Horizon Whl" --arp up --firmware-fx
 //! --keys 6 --audio-buffer 480 [--no-thread-boost]`
 
 use super::buffer::{buffer_frames_from_args, clamp_buffer, stream_config, with_buffer_fallback};

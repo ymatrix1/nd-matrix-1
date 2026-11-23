@@ -3,7 +3,7 @@
 
 Reuses the allowlisted build outputs from `tools/release_package.py` so no
 forbidden files (`.reference/`, firmware dumps, presets) can enter any installer.
-Each installer packages the standalone apps (`ns4`, `nord-stage4`,
+Each installer packages the standalone apps (`ns4`, `nd-matrix-1`,
 `nord-plugin-standalone`) and installs (or lets the user select) the CLAP and
 VST3 DAW plugins into the standard OS plugin folders.
 """
@@ -21,18 +21,18 @@ from pathlib import Path
 
 from release_package import PLATFORMS, PLUGIN_STEM, ROOT, Platform, collect, write_sha256
 
-APP_DISPLAY_NAME = "Nord Stage 4 Emulator"
-APP_BUNDLE_NAME = "Nord Stage 4.app"
-APP_BUNDLE_ID = "org.opennord.nord-stage-4"
+APP_DISPLAY_NAME = "ND Matrix 1"
+APP_BUNDLE_NAME = "ND Matrix 1.app"
+APP_BUNDLE_ID = "org.ndmatrix.nd-matrix-1"
 APP_URL = "https://github.com/ymatrix1/nord-stage-4-emulator"
-APP_PUBLISHER = "Nord Stage 4 Emulator Contributors"
+APP_PUBLISHER = "ND Matrix 1 Contributors"
 
 DESKTOP_ENTRY = """[Desktop Entry]
 Type=Application
-Name=Nord Stage 4 Emulator
-Comment=Source-available DSP sound engine and front-panel emulator for the Nord Stage 4
-Exec=nord-stage4
-Icon=nord-stage4
+Name=ND Matrix 1
+Comment=Source-available DSP sound engine and front-panel keyboard emulator
+Exec=nd-matrix-1
+Icon=nd-matrix-1
 Categories=AudioVideo;Audio;Music;Midi;
 Terminal=false
 """
@@ -42,7 +42,7 @@ APP_SVG_ICON = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <rect width="128" height="128" rx="16" fill="#b71c1c"/>
   <rect x="12" y="18" width="104" height="24" rx="4" fill="#1a1a1a"/>
   <text x="64" y="35" font-family="sans-serif" font-size="14" font-weight="bold"
-        fill="#f5f5f5" text-anchor="middle">STAGE 4</text>
+        fill="#f5f5f5" text-anchor="middle">MATRIX 1</text>
   <rect x="12" y="54" width="104" height="56" rx="4" fill="#f5f5f5"/>
   <rect x="24" y="54" width="10" height="34" fill="#1a1a1a"/>
   <rect x="42" y="54" width="10" height="34" fill="#1a1a1a"/>
@@ -80,7 +80,7 @@ esac
 if [ "$(basename "$0")" = "ns4" ]; then
   exec "$HERE/usr/bin/ns4" "$@"
 fi
-exec "$HERE/usr/bin/nord-stage4" "$@"
+exec "$HERE/usr/bin/nd-matrix-1" "$@"
 """
 
 
@@ -150,7 +150,7 @@ def render_inno_iss(
         f"InfoBeforeFile={src}\\README.txt",
         f"{license_line}OutputDir={out}",
         f"OutputBaseFilename={output_base_filename}",
-        "UninstallDisplayIcon={app}\\nord-stage4.exe",
+        "UninstallDisplayIcon={app}\\nd-matrix-1.exe",
         "",
         "[Types]",
         'Name: "full"; Description: "Full installation (GUI, CLI, VST3 & CLAP plugins)"',
@@ -160,7 +160,7 @@ def render_inno_iss(
         "",
         "[Components]",
         (
-            'Name: "app"; Description: "Standalone GUI (nord-stage4) & Plugin Host"; '
+            'Name: "app"; Description: "Standalone GUI (nd-matrix-1) & Plugin Host"; '
             "Types: full standalone custom"
         ),
         'Name: "cli"; Description: "Command-Line Tool (ns4)"; Types: full standalone custom',
@@ -179,7 +179,7 @@ def render_inno_iss(
         "",
         "[Files]",
         (
-            f'Source: "{src}\\nord-stage4.exe"; DestDir: "{{app}}"; '
+            f'Source: "{src}\\nd-matrix-1.exe"; DestDir: "{{app}}"; '
             "Components: app; Flags: ignoreversion"
         ),
         (
@@ -205,12 +205,12 @@ def render_inno_iss(
         "",
         "[Icons]",
         (
-            f'Name: "{{group}}\\{APP_DISPLAY_NAME}"; Filename: "{{app}}\\nord-stage4.exe"; '
+            f'Name: "{{group}}\\{APP_DISPLAY_NAME}"; Filename: "{{app}}\\nd-matrix-1.exe"; '
             "Components: app"
         ),
         f'Name: "{{group}}\\Uninstall {APP_DISPLAY_NAME}"; Filename: "{{uninstallexe}}"',
         (
-            f'Name: "{{autodesktop}}\\{APP_DISPLAY_NAME}"; Filename: "{{app}}\\nord-stage4.exe"; '
+            f'Name: "{{autodesktop}}\\{APP_DISPLAY_NAME}"; Filename: "{{app}}\\nd-matrix-1.exe"; '
             "Tasks: desktopicon"
         ),
         "",
@@ -252,7 +252,7 @@ def stage_windows_inno(
         shutil.rmtree(stage_dir)
     _copy_allowlisted(platform, root, target_dir, stage_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    base_name = f"nord-stage-4-emulator-{label}-{platform.name}-setup"
+    base_name = f"nd-matrix-1-{label}-{platform.name}-setup"
     iss_path = work_dir / f"{base_name}.iss"
     iss_path.write_text(
         render_inno_iss(label, stage_dir, out_dir, base_name),
@@ -295,7 +295,7 @@ def build_windows_installer(
 
 def render_deb_control(label: str) -> str:
     return (
-        "Package: nord-stage-4-emulator\n"
+        "Package: nd-matrix-1\n"
         f"Version: {debian_version(label)}\n"
         "Section: sound\n"
         "Priority: optional\n"
@@ -303,8 +303,8 @@ def render_deb_control(label: str) -> str:
         f"Maintainer: {APP_PUBLISHER} <noreply@github.com>\n"
         "Depends: libc6 (>= 2.38), libasound2t64 | libasound2, libgl1, libx11-6\n"
         f"Homepage: {APP_URL}\n"
-        "Description: Source-available DSP emulator, CLI, GUI & CLAP/VST3 plugin for Nord Stage 4\n"
-        " Includes the ns4 CLI, nord-stage4 standalone GUI, nord-plugin-standalone,\n"
+        "Description: Source-available keyboard emulator: DSP engine, CLI, GUI, CLAP/VST3\n"
+        " Includes the ns4 CLI, nd-matrix-1 standalone GUI, nord-plugin-standalone,\n"
         " and CLAP (/usr/lib/clap) + VST3 (/usr/lib/vst3) DAW plugins.\n"
     )
 
@@ -332,10 +332,10 @@ def stage_linux_deb(
     (pkg_root / "usr" / "lib" / "vst3").mkdir(parents=True)
     (pkg_root / "usr" / "share" / "applications").mkdir(parents=True)
     (pkg_root / "usr" / "share" / "icons" / "hicolor" / "scalable" / "apps").mkdir(parents=True)
-    doc_dir = pkg_root / "usr" / "share" / "doc" / "nord-stage-4-emulator"
+    doc_dir = pkg_root / "usr" / "share" / "doc" / "nd-matrix-1"
     doc_dir.mkdir(parents=True)
 
-    for b in ("ns4", "nord-stage4", "nord-plugin-standalone"):
+    for b in ("ns4", "nd-matrix-1", "nord-plugin-standalone"):
         dst = pkg_root / "usr" / "bin" / b
         shutil.copy2(raw_stage / b, dst)
         dst.chmod(0o755)
@@ -348,11 +348,11 @@ def stage_linux_deb(
     shutil.copytree(raw_stage / f"{PLUGIN_STEM}.vst3", vst3_dst)
     (vst3_dst / platform.vst3_binary).chmod(0o755)
 
-    (pkg_root / "usr" / "share" / "applications" / "nord-stage4.desktop").write_text(
+    (pkg_root / "usr" / "share" / "applications" / "nd-matrix-1.desktop").write_text(
         DESKTOP_ENTRY, encoding="utf-8", newline="\n"
     )
     (
-        pkg_root / "usr" / "share" / "icons" / "hicolor" / "scalable" / "apps" / "nord-stage4.svg"
+        pkg_root / "usr" / "share" / "icons" / "hicolor" / "scalable" / "apps" / "nd-matrix-1.svg"
     ).write_text(APP_SVG_ICON, encoding="utf-8", newline="\n")
 
     for doc in ("README.txt", "HOST_COMPATIBILITY.md"):
@@ -364,7 +364,7 @@ def stage_linux_deb(
     control.write_text(render_deb_control(label), encoding="utf-8", newline="\n")
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    deb_path = out_dir / f"nord-stage-4-emulator_{debian_version(label)}_amd64.deb"
+    deb_path = out_dir / f"nd-matrix-1_{debian_version(label)}_amd64.deb"
     return pkg_root, deb_path
 
 
@@ -398,16 +398,16 @@ def stage_linux_appdir(
         shutil.rmtree(raw_stage)
     _copy_allowlisted(platform, root, target_dir, raw_stage)
 
-    appdir = work_dir / "NordStage4.AppDir"
+    appdir = work_dir / "NdMatrix1.AppDir"
     if appdir.exists():
         shutil.rmtree(appdir)
     (appdir / "usr" / "bin").mkdir(parents=True)
     (appdir / "usr" / "lib" / "clap").mkdir(parents=True)
     (appdir / "usr" / "lib" / "vst3").mkdir(parents=True)
-    doc_dir = appdir / "usr" / "share" / "doc" / "nord-stage-4-emulator"
+    doc_dir = appdir / "usr" / "share" / "doc" / "nd-matrix-1"
     doc_dir.mkdir(parents=True)
 
-    for b in ("ns4", "nord-stage4", "nord-plugin-standalone"):
+    for b in ("ns4", "nd-matrix-1", "nord-plugin-standalone"):
         dst = appdir / "usr" / "bin" / b
         shutil.copy2(raw_stage / b, dst)
         dst.chmod(0o755)
@@ -425,14 +425,14 @@ def stage_linux_appdir(
     for lic in raw_stage.glob("LICENSE*"):
         shutil.copy2(lic, doc_dir / lic.name)
 
-    (appdir / "nord-stage4.desktop").write_text(DESKTOP_ENTRY, encoding="utf-8", newline="\n")
-    (appdir / "nord-stage4.svg").write_text(APP_SVG_ICON, encoding="utf-8", newline="\n")
+    (appdir / "nd-matrix-1.desktop").write_text(DESKTOP_ENTRY, encoding="utf-8", newline="\n")
+    (appdir / "nd-matrix-1.svg").write_text(APP_SVG_ICON, encoding="utf-8", newline="\n")
     apprun = appdir / "AppRun"
     apprun.write_text(APPRUN_SCRIPT, encoding="utf-8", newline="\n")
     apprun.chmod(0o755)
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    appimage_path = out_dir / f"nord-stage-4-emulator-{label}-{platform.name}.AppImage"
+    appimage_path = out_dir / f"nd-matrix-1-{label}-{platform.name}.AppImage"
     return appdir, appimage_path
 
 
@@ -461,21 +461,21 @@ def create_macos_app_bundle(
     gui_binary: Path,
     dest_app: Path,
 ) -> Path:
-    """Create `Nord Stage 4.app` wrapping `nord-stage4`."""
+    """Create `ND Matrix 1.app` wrapping `nd-matrix-1`."""
     if dest_app.exists():
         shutil.rmtree(dest_app)
     macos_dir = dest_app / "Contents" / "MacOS"
     macos_dir.mkdir(parents=True)
-    bin_dst = macos_dir / "nord-stage4"
+    bin_dst = macos_dir / "nd-matrix-1"
     shutil.copy2(gui_binary, bin_dst)
     bin_dst.chmod(0o755)
     plist = {
         "CFBundleDevelopmentRegion": "en",
         "CFBundleDisplayName": APP_DISPLAY_NAME,
-        "CFBundleExecutable": "nord-stage4",
+        "CFBundleExecutable": "nd-matrix-1",
         "CFBundleIdentifier": f"{APP_BUNDLE_ID}.app",
         "CFBundleInfoDictionaryVersion": "6.0",
-        "CFBundleName": "Nord Stage 4",
+        "CFBundleName": "ND Matrix 1",
         "CFBundlePackageType": "APPL",
         "CFBundleShortVersionString": _strip_v(label),
         "CFBundleVersion": numeric_version(label),
@@ -508,7 +508,7 @@ def stage_macos_dmg(
         shutil.rmtree(dmg_stage)
     dmg_stage.mkdir(parents=True)
 
-    create_macos_app_bundle(label, raw_stage / "nord-stage4", dmg_stage / APP_BUNDLE_NAME)
+    create_macos_app_bundle(label, raw_stage / "nd-matrix-1", dmg_stage / APP_BUNDLE_NAME)
     shutil.copytree(raw_stage / f"{PLUGIN_STEM}.vst3", dmg_stage / f"{PLUGIN_STEM}.vst3")
     shutil.copytree(raw_stage / f"{PLUGIN_STEM}.clap", dmg_stage / f"{PLUGIN_STEM}.clap")
     for b in ("ns4", "nord-plugin-standalone"):
@@ -526,7 +526,7 @@ def stage_macos_dmg(
         (dmg_stage / "CLAP Plug-Ins").symlink_to("/Library/Audio/Plug-Ins/CLAP")
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    dmg_path = out_dir / f"nord-stage-4-emulator-{label}-{platform.name}.dmg"
+    dmg_path = out_dir / f"nd-matrix-1-{label}-{platform.name}.dmg"
     return dmg_stage, dmg_path
 
 
@@ -544,8 +544,8 @@ def render_macos_distribution_xml(label: str) -> str:
         <line choice="choice-vst3"/>
         <line choice="choice-clap"/>
     </choices-outline>
-    <choice id="choice-app" title="Standalone GUI &amp; CLI (nord-stage4, ns4)"
-            description="Installs Nord Stage 4.app to /Applications and ns4 to /usr/local/bin.">
+    <choice id="choice-app" title="Standalone GUI &amp; CLI (nd-matrix-1, ns4)"
+            description="Installs ND Matrix 1.app to /Applications and ns4 to /usr/local/bin.">
         <pkg-ref id="{APP_BUNDLE_ID}.pkg.app"/>
     </choice>
     <choice id="choice-vst3" title="VST3 Plugin (/Library/Audio/Plug-Ins/VST3)"
@@ -584,10 +584,10 @@ def stage_macos_pkg_roots(
     app_root = pkg_work / "root-app"
     (app_root / "Applications").mkdir(parents=True)
     (app_root / "usr" / "local" / "bin").mkdir(parents=True)
-    doc_dir = app_root / "usr" / "local" / "share" / "doc" / "nord-stage-4-emulator"
+    doc_dir = app_root / "usr" / "local" / "share" / "doc" / "nd-matrix-1"
     doc_dir.mkdir(parents=True)
     create_macos_app_bundle(
-        label, raw_stage / "nord-stage4", app_root / "Applications" / APP_BUNDLE_NAME
+        label, raw_stage / "nd-matrix-1", app_root / "Applications" / APP_BUNDLE_NAME
     )
     for b in ("ns4", "nord-plugin-standalone"):
         dst = app_root / "usr" / "local" / "bin" / b
@@ -624,7 +624,7 @@ def stage_macos_pkg_roots(
     dist_xml.write_text(render_macos_distribution_xml(label), encoding="utf-8", newline="\n")
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    pkg_path = out_dir / f"nord-stage-4-emulator-{label}-{platform.name}.pkg"
+    pkg_path = out_dir / f"nd-matrix-1-{label}-{platform.name}.pkg"
     return {
         "pkg_work": pkg_work,
         "app_root": app_root,
@@ -649,7 +649,7 @@ def build_macos_dmg(
             "hdiutil",
             "create",
             "-volname",
-            f"Nord Stage 4 Emulator {_strip_v(label)}",
+            f"ND Matrix 1 {_strip_v(label)}",
             "-srcfolder",
             str(dmg_stage),
             "-ov",

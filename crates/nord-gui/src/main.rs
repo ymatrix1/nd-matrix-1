@@ -652,7 +652,7 @@ fn main() -> eframe::Result<()> {
     let firmware = match nord_core::render_opts::FirmwareOptions::from_args(&argv) {
         Ok(f) => f,
         Err(e) => {
-            eprintln!("nord-stage4: {e}");
+            eprintln!("nd-matrix-1: {e}");
             std::process::exit(2);
         }
     };
@@ -660,7 +660,7 @@ fn main() -> eframe::Result<()> {
         match nord_gui::audio::probe::run(&argv) {
             Ok(report) => println!("{report}"),
             Err(e) => {
-                eprintln!("nord-stage4 --audio-probe: {e}");
+                eprintln!("nd-matrix-1 --audio-probe: {e}");
                 std::process::exit(1);
             }
         }
@@ -679,7 +679,7 @@ wrote {}",
                     wav.display()
                 ),
                 Err(e) => {
-                    eprintln!("nord-stage4 self-test failed: {e}");
+                    eprintln!("nd-matrix-1 self-test failed: {e}");
                     std::process::exit(1);
                 }
             }
@@ -704,7 +704,7 @@ wrote {}",
             .with_min_inner_size([16.0, 16.0]);
         std::thread::spawn(|| {
             std::thread::sleep(std::time::Duration::from_secs(SCREENSHOT_TIMEOUT_S));
-            eprintln!("nord-stage4: screenshot timed out after {SCREENSHOT_TIMEOUT_S} s");
+            eprintln!("nd-matrix-1: screenshot timed out after {SCREENSHOT_TIMEOUT_S} s");
             std::process::exit(3);
         });
     }
@@ -760,7 +760,7 @@ mod tests {
     #[test]
     fn test_cli_program_argument_detection() {
         let parsed = parse_cli_args([
-            "nord-stage4".to_string(),
+            "nd-matrix-1".to_string(),
             "--program".to_string(),
             "bank_a/patch.ns4p".to_string(),
             "--backup".to_string(),
@@ -778,11 +778,11 @@ mod tests {
         assert_eq!(parsed.initial_piano, Some(PathBuf::from("grand.npno")));
         assert_eq!(parsed.initial_sample, Some(PathBuf::from("strings.nsmp4")));
 
-        let slot = parse_cli_args(["nord-stage4", "--program", "A:14"].map(String::from));
+        let slot = parse_cli_args(["nd-matrix-1", "--program", "A:14"].map(String::from));
         assert_eq!(slot.initial_slot.as_deref(), Some("A:14"));
         assert_eq!(slot.initial_program, None, "a location is not a file");
 
-        let positional = parse_cli_args(["nord-stage4".to_string(), "factory.ns4b".to_string()]);
+        let positional = parse_cli_args(["nd-matrix-1".to_string(), "factory.ns4b".to_string()]);
         assert_eq!(
             positional.initial_backup,
             Some(PathBuf::from("factory.ns4b"))
@@ -793,7 +793,7 @@ mod tests {
     fn test_cli_screenshot_flags() {
         let parsed = parse_cli_args(
             [
-                "nord-stage4",
+                "nd-matrix-1",
                 "--screenshot",
                 "o.png",
                 "--screenshot-scale",

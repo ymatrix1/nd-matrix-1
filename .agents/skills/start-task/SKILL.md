@@ -1,6 +1,6 @@
 ---
 name: start-task
-description: Start any Nord Stage 4 Emulator task. Finds or creates the bean, reads the relevant specs, and verifies the baseline test suite.
+description: Start any ND Matrix 1 task. Finds or creates the bean, reads the relevant specs, and verifies the baseline test suite.
 ---
 
 # Start a task

@@ -1,10 +1,10 @@
 # Product Requirements Document (PRD)
 
-**Status:** v1.0 specification · Synced with `main` · **Project:** Nord Stage 4 Emulator (`nord-stage-4-emulator`)
+**Status:** v1.0 specification · Synced with `main` · **Project:** ND Matrix 1 (`nord-stage-4-emulator`)
 
 ## 1. Mission & Purpose
 
-The **Nord Stage 4 Emulator** is an open-source software synthesizer, patch/backup interoperability toolkit, and high-level DSP emulator built for **interoperability, research, preservation, and compatibility** with the Clavia Nord Stage 4 hardware keyboard (`product_id=46`).
+The **ND Matrix 1** is an open-source software synthesizer, patch/backup interoperability toolkit, and high-level DSP emulator built for **interoperability, research, preservation, and compatibility** with the Clavia Nord Stage 4 hardware keyboard (`product_id=46`).
 
 Unlike generic virtual instruments that only mimic the visual front panel (such as freeware ROMplers), this project models the real internal architecture documented and verified from hardware/firmware analysis:
 1. **Bit-level format interoperability** with Clavia Binary (`CBIN`) preset files (`.ns4p`, `.ns4y`, `.ns4o`, `.ns4n`, `.ns4l`, `.ns4t`) and `.ns4b` backup archives so musicians can inspect, convert, back up, diff, and load real Nord Stage 4 programs.

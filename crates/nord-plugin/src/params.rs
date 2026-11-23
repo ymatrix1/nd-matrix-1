@@ -17,7 +17,7 @@ pub enum MidiRoutingMode {
     MultitimbralPerLayer,
 }
 
-/// Host-automatable parameter container for NordStage4Plugin.
+/// Host-automatable parameter container for NdMatrix1Plugin.
 #[derive(Params)]
 pub struct Stage4Params {
     /// MIDI Routing Mode: OmniSplit or MultitimbralPerLayer.

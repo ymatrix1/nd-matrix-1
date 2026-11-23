@@ -1,6 +1,6 @@
 # Running the GUI and testing firmware paths
 
-The standalone `nord-stage4` (crate `nord-gui`) plays through cpal and midir. Every opt-in firmware
+The standalone `nd-matrix-1` (crate `nord-gui`) plays through cpal and midir. Every opt-in firmware
 engine path of `ns4 render-patch` can be chosen live from dropdowns in the bar above the panel, or
 at start-up from the same CLI flags. Code: `crates/nord-gui/src/firmware_panel/`, shared option
 struct `nord_core::render_opts::FirmwareOptions`.
@@ -9,13 +9,13 @@ struct `nord_core::render_opts::FirmwareOptions`.
 
 ```bash
 # Build and run (release is needed for real-time audio)
-cargo run --release -p nord-gui --bin nord-stage4
+cargo run --release -p nord-gui --bin nd-matrix-1
 # Everything verified, on from the start
-cargo run --release -p nord-gui --bin nord-stage4 -- --firmware-all
+cargo run --release -p nord-gui --bin nd-matrix-1 -- --firmware-all
 # Pick paths one by one (same flags as `ns4 render-patch`)
-cargo run --release -p nord-gui --bin nord-stage4 -- --tone-source b3wheels --b3-tail off --synth-chain strip --filter-engine firmware --firmware-fx --firmware-piano-level --measured-laws
+cargo run --release -p nord-gui --bin nd-matrix-1 -- --tone-source b3wheels --b3-tail off --synth-chain strip --filter-engine firmware --firmware-fx --firmware-piano-level --measured-laws
 # Load a backup and a piano library (large files live in .reference/, git-ignored)
-cargo run --release -p nord-gui --bin nord-stage4 -- ".reference/Nord Stage 4 Factory Restore RevK v1.66.ns4b" .reference/piano.npno
+cargo run --release -p nord-gui --bin nd-matrix-1 -- ".reference/Nord Stage 4 Factory Restore RevK v1.66.ns4b" .reference/piano.npno
 ```
 
 Positional arguments are routed by extension (`.ns4b`, `.ns4p`, `.npno`, `.nsmp4`); `--backup`,
@@ -53,8 +53,8 @@ both. Switching the Leslie back to the engine rotary drops the processor.
 ## Headless check (no window, no audio device)
 
 ```bash
-nord-stage4 --firmware-all --self-test out.wav   # renders organ+piano+synth chord for 1 s
-nord-stage4 --measured-laws --dump-options       # prints the active set
+nd-matrix-1 --firmware-all --self-test out.wav   # renders organ+piano+synth chord for 1 s
+nd-matrix-1 --measured-laws --dump-options       # prints the active set
 ```
 
 The self-test prints peak, RMS and the RMS difference to the default engine (0 for defaults) and
@@ -73,7 +73,7 @@ The GUI plays from the PC keyboard (group "Computer keyboard" in the bar under t
 | `Space` | sustain pedal (CC 64 down while held) |
 | `Shift` + `P` / `Z` / `L` | panorama, focus zoom, library drawer while the keyboard is on (plain keys play) |
 
-Key down is a Note On, key up a Note Off; auto-repeat is ignored. Notes go through the keyboard path like the on-screen keybed (Local Control Off silences them, the MIDI-in thread is not used) and light the on-screen keys. Everything is released when the window loses focus, a text field (library search) has the keyboard, or the checkbox is cleared. Visual check: run `nord-stage4`, hold `A` and `G` (two lit keys at C4 and G4), press `X` then `A` (C5), tap `Space` with a piano program to hear the sustain, click the bar's Velocity slider to change the dynamics. Tests: `panel/computer_keys.rs` (map), `panel/computer_kb.rs` (state machine), `panel/computer_kb_tests.rs` (headless key events through the full panel, commands in the audio queue). Decision D80.
+Key down is a Note On, key up a Note Off; auto-repeat is ignored. Notes go through the keyboard path like the on-screen keybed (Local Control Off silences them, the MIDI-in thread is not used) and light the on-screen keys. Everything is released when the window loses focus, a text field (library search) has the keyboard, or the checkbox is cleared. Visual check: run `nd-matrix-1`, hold `A` and `G` (two lit keys at C4 and G4), press `X` then `A` (C5), tap `Space` with a piano program to hear the sustain, click the bar's Velocity slider to change the dynamics. Tests: `panel/computer_keys.rs` (map), `panel/computer_kb.rs` (state machine), `panel/computer_kb_tests.rs` (headless key events through the full panel, commands in the audio queue). Decision D80.
 
 MIDI input: the bar under the panel also has a "MIDI input" group (port combo box, Rescan button, status text). At start-up the first port is opened as before; pick another port or "Off", or plug a keyboard in and press Rescan (hot plug; a replaced or removed port sends All Notes Off and clears the lit keys). A MIDI keyboard plays with its own velocity (the Note On velocity is passed to the engine unchanged); only the mouse (88) and the computer keyboard (slider, default 88) use a fixed value. Code: `audio/midi_ports.rs` (list, choice, GUI side), `audio/io.rs` (MIDI thread); tests in both files.
 
@@ -83,7 +83,7 @@ MIDI input: the bar under the panel also has a "MIDI input" group (port combo bo
 # One PNG per section at 2x (builds once, writes target/shots/<section>.png)
 python tools/gui_shots.py [--out DIR] [--scale 2] [--sections organ,synth] [--no-build]
 # One shot by hand; sections: organ piano program synth effects master keybed (default: whole panel)
-nord-stage4 --screenshot out.png --screenshot-section synth --screenshot-scale 2
+nd-matrix-1 --screenshot out.png --screenshot-section synth --screenshot-scale 2
 ```
 
 `--screenshot-scale N` is physical px per logical panel px. The window opens off-screen without

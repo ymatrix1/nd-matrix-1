@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Evaluation harness binaries (golden render hash, program sweep, synth validation, oracle references) for the Nord Stage 4 Emulator. Not published."
+description = "Evaluation harness binaries (golden render hash, program sweep, synth validation, oracle references) for the ND Matrix 1. Not published."
 publish = false
 
 [dependencies]
