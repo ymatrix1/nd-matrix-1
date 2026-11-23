@@ -10,7 +10,7 @@ Archive layout (one top-level folder, so extraction never litters the cwd):
 
     nd-matrix-1-<tag>-<platform>/
         ns4[.exe]  nd-matrix-1[.exe]  nord-plugin-standalone[.exe]
-        nord-plugin.clap  nord-plugin.vst3/
+        nd-matrix-1.clap  nd-matrix-1.vst3/
         README.txt  HOST_COMPATIBILITY.md  [LICENSE*]
 
 Verify a built archive with `tools/release_verify.py`.
@@ -33,7 +33,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 PRODUCT = "nd-matrix-1"
 BINS = ("ns4", "nd-matrix-1", "nord-plugin-standalone")
-PLUGIN_STEM = "nord-plugin"
+# Must equal `[nord-plugin] name` in bundler.toml (xtask names the bundles after it).
+PLUGIN_STEM = "nd-matrix-1"
+# Bundle name shipped before the rename; installers delete it so no second copy remains.
+LEGACY_PLUGIN_STEM = "nord-plugin"
 README_SRC = Path("docs/RELEASE_README.txt")
 EXTRA_DOCS = (("docs/HOST_COMPATIBILITY.md", "HOST_COMPATIBILITY.md"),)
 TAG_RE = re.compile(r"^v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)$")

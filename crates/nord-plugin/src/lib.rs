@@ -133,8 +133,8 @@ impl NdMatrix1Plugin {
 impl Plugin for NdMatrix1Plugin {
     const NAME: &'static str = "ND Matrix 1";
     const VENDOR: &'static str = "ND Matrix Contributors";
-    const URL: &'static str = "https://github.com/ymatrix1/nord-stage-4-emulator";
-    const EMAIL: &'static str = "yuri@github.com";
+    const URL: &'static str = "https://github.com/ymatrix1/nd-matrix-1";
+    const EMAIL: &'static str = "";
 
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -380,6 +380,29 @@ mod tests {
         for text in shown {
             assert!(!text.to_lowercase().contains("clavia"), "{text}");
         }
+    }
+
+    /// Contact metadata carries no address on a domain the project does not own, and the
+    /// host-facing identifiers stay frozen so saved projects keep loading (D16).
+    #[test]
+    fn test_plugin_contact_metadata_and_stable_host_ids() {
+        assert_eq!(
+            NdMatrix1Plugin::URL,
+            "https://github.com/ymatrix1/nd-matrix-1"
+        );
+        assert_eq!(NdMatrix1Plugin::EMAIL, "");
+        assert_eq!(env!("CARGO_PKG_AUTHORS"), "ymatrix1");
+        assert!(!env!("CARGO_PKG_AUTHORS").contains('@'));
+        // VERIFIED: unchanged from the pre-rename release (D16), checked by this test.
+        assert_eq!(NdMatrix1Plugin::NAME, "ND Matrix 1");
+        assert_eq!(
+            <NdMatrix1Plugin as ClapPlugin>::CLAP_ID,
+            "org.ndmatrix.nd-matrix-1"
+        );
+        assert_eq!(
+            &<NdMatrix1Plugin as Vst3Plugin>::VST3_CLASS_ID,
+            b"NDMatrix1Emulato"
+        );
     }
 
     #[test]
