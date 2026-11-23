@@ -1,7 +1,7 @@
 <h1 align="center">ND Matrix 1</h1>
 
 <p align="center">
-  <strong>Source-available (non-commercial) DSP sound engine, binary preset toolkit (<code>CBIN</code> / <code>.ns4b</code> / <code>.ns4p</code>), and High-Level Emulator for the Clavia Nord Stage 4.</strong><br>
+  <strong>Source-available (non-commercial) DSP sound engine, binary preset toolkit (<code>CBIN</code> / <code>.ns4b</code> / <code>.ns4p</code>), and High-Level Emulator for the Nord Stage 4.</strong><br>
   <sub>Built for interoperability, research, preservation, and compatibility purposes.</sub>
 </p>
 
@@ -105,4 +105,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contribution guide. Before o
 
 This software is provided **"as is"**, without warranty or support of any kind.
 
-The developers of `nord-stage-4-emulator` are not affiliated, associated, endorsed by, or in any way officially connected with Nord Keyboards / Clavia DMI AB, or any of its subsidiaries or its affiliates. The official Nord Keyboards website can be found at https://www.nordkeyboards.com. The names Nord and Clavia as well as related names, marks, emblems and images are registered trademarks of their respective owners.
+The developers of this repo are not affiliated, associated, endorsed by, or in any way officially connected with Nord Keyboards / Clavia DMI AB, or any of its subsidiaries or its affiliates. The official Nord Keyboards website can be found at https://www.nordkeyboards.com. The names Nord and Clavia as well as related names, marks, emblems and images are registered trademarks of their respective owners.
