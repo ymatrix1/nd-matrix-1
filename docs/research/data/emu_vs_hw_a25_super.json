@@ -1,0 +1,91 @@
+{
+ "video": "_zksT69H30c",
+ "note": "A:25 SUPER LP24 type scale grid with the compressor first (docs/research/a25-brilliance-bisect.md s4)",
+ "segments": [
+  {
+   "id": "super_lp24_sidechain",
+   "entry": "Program/Bank A/Sidechain Whl II.ns4p",
+   "engine": "A:25",
+   "at_s": 594,
+   "duration_s": 28,
+   "variants": [
+    {
+     "label": "default"
+    },
+    {
+     "label": "cf_super-4.4",
+     "flags": [
+      "--fx-compressor-first"
+     ]
+    },
+    {
+     "label": "cf_super-1.0",
+     "flags": [
+      "--fx-compressor-first",
+      "--synth-super-lp24",
+      "1.0"
+     ]
+    },
+    {
+     "label": "cf_super-1.5",
+     "flags": [
+      "--fx-compressor-first",
+      "--synth-super-lp24",
+      "1.5"
+     ]
+    },
+    {
+     "label": "cf_super-2.0",
+     "flags": [
+      "--fx-compressor-first",
+      "--synth-super-lp24",
+      "2.0"
+     ]
+    },
+    {
+     "label": "cf_super-2.2",
+     "flags": [
+      "--fx-compressor-first",
+      "--synth-super-lp24",
+      "2.2"
+     ]
+    },
+    {
+     "label": "cf_super-3.0",
+     "flags": [
+      "--fx-compressor-first",
+      "--synth-super-lp24",
+      "3.0"
+     ]
+    },
+    {
+     "label": "cf_super-2.0_vel88",
+     "flags": [
+      "--fx-compressor-first",
+      "--synth-super-lp24",
+      "2.0"
+     ],
+     "velocity": 88
+    },
+    {
+     "label": "cf_super-2.0_vel64",
+     "flags": [
+      "--fx-compressor-first",
+      "--synth-super-lp24",
+      "2.0"
+     ],
+     "velocity": 64
+    },
+    {
+     "label": "cf_synth_lvl0",
+     "flags": [
+      "--fx-compressor-first"
+     ],
+     "edits": {
+      "synth.layer_a.level": 0.0
+     }
+    }
+   ]
+  }
+ ]
+}
