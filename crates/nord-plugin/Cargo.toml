@@ -3,6 +3,7 @@ name = "nord-plugin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish.workspace = true
 repository.workspace = true
 authors.workspace = true
 description = "CLAP and VST3 DAW Plugin and Standalone wrapper for the ND Matrix 1"

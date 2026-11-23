@@ -84,6 +84,17 @@ exec "$HERE/usr/bin/nd-matrix-1" "$@"
 """
 
 
+LICENSE_NOTICE = "Licensed under PolyForm Noncommercial 1.0.0: commercial use is not permitted."
+
+
+def write_macos_license(raw_stage: Path, resources: Path) -> None:
+    """Copy the staged LICENSE into the pkg resources, or write the notice if it is absent."""
+    if (raw_stage / "LICENSE").exists():
+        shutil.copy2(raw_stage / "LICENSE", resources / "LICENSE")
+    else:
+        (resources / "LICENSE").write_text(LICENSE_NOTICE + "\n", encoding="utf-8")
+
+
 def _copy_allowlisted(platform: Platform, root: Path, target_dir: Path | None, dest: Path) -> None:
     """Copy allowlisted release files into `dest` preserving relative layout."""
     for src, rel in collect(platform, root, target_dir):
@@ -615,10 +626,7 @@ def stage_macos_pkg_roots(
     resources = pkg_work / "resources"
     resources.mkdir(parents=True)
     shutil.copy2(raw_stage / "README.txt", resources / "README.txt")
-    if (raw_stage / "LICENSE").exists():
-        shutil.copy2(raw_stage / "LICENSE", resources / "LICENSE")
-    else:
-        (resources / "LICENSE").write_text("See repository for license.", encoding="utf-8")
+    write_macos_license(raw_stage, resources)
 
     dist_xml = pkg_work / "distribution.xml"
     dist_xml.write_text(render_macos_distribution_xml(label), encoding="utf-8", newline="\n")
