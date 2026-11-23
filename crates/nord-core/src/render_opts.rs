@@ -648,6 +648,11 @@ impl FirmwareOptions {
         }
         if let Some(v) = value("--farfisa-processor") {
             o.farfisa_processor = Some(parse_on_off("--farfisa-processor", v)?);
+            if o.farfisa_processor == Some(true) {
+                // a named but unusable OS update file is an error, as for the WAVE tables; an unset
+                // variable is not (the stage falls back to the non-firmware model, D22)
+                crate::organ::farfisa_firmware_status()?;
+            }
         }
         if let Some(v) = value("--b3-bass-processor") {
             o.b3_bass_processor = Some(parse_on_off("--b3-bass-processor", v)?);
@@ -1164,9 +1169,15 @@ impl FirmwareOptions {
             parts.push(format!("b3-tail={}", if b { "on" } else { "off" }));
         }
         if let Some(b) = self.farfisa_processor {
+            let fallback = b && !matches!(crate::organ::farfisa_firmware_status(), Ok(true));
             parts.push(format!(
-                "farfisa-processor={}",
-                if b { "on" } else { "off" }
+                "farfisa-processor={}{}",
+                if b { "on" } else { "off" },
+                if fallback {
+                    " (no OS update file: non-firmware Farfisa model)"
+                } else {
+                    ""
+                }
             ));
         }
         if let Some(b) = self.b3_bass_processor {
@@ -2138,6 +2149,15 @@ mod tests {
         let o = FirmwareOptions::from_args(&args(&["--farfisa-processor", "on"])).unwrap();
         assert_eq!(o.farfisa_processor, Some(true));
         assert!(o.summary().contains("farfisa-processor=on"));
+        // without an OS update file the summary says which model plays (D22, D128)
+        let loaded = matches!(crate::organ::farfisa_firmware_status(), Ok(true));
+        assert_eq!(o.summary().contains("non-firmware Farfisa model"), !loaded);
+        assert!(
+            !FirmwareOptions::from_args(&args(&["--farfisa-processor", "off"]))
+                .unwrap()
+                .summary()
+                .contains("non-firmware")
+        );
         let mut e = Stage4Engine::new(48_000.0);
         apply_farfisa_processor(&mut e, None);
         assert!(!e.organ_a.farfisa_processor);

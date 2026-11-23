@@ -33,7 +33,7 @@ def test_stage_windows_inno_layout_and_iss(tmp_path):
     assert 'Name: "cli"' in iss
     assert 'Name: "vst3"' in iss
     assert 'Name: "clap"' in iss
-    assert r"{commoncf64}\VST3\nord-plugin.vst3" in iss
+    assert r"{commoncf64}\VST3\nd-matrix-1.vst3" in iss
     assert r"{commoncf64}\CLAP" in iss
     assert "VersionInfoVersion=1.2.3" in iss
     assert "LicenseFile=" in iss
@@ -42,9 +42,9 @@ def test_stage_windows_inno_layout_and_iss(tmp_path):
     stage_dir = work_dir / "win-inno-stage"
     assert (stage_dir / "ns4.exe").exists()
     assert (stage_dir / "nd-matrix-1.exe").exists()
-    assert (stage_dir / "nord-plugin.clap").exists()
+    assert (stage_dir / "nd-matrix-1.clap").exists()
     assert (
-        stage_dir / "nord-plugin.vst3" / "Contents" / "x86_64-win" / "nord-plugin.vst3"
+        stage_dir / "nd-matrix-1.vst3" / "Contents" / "x86_64-win" / "nd-matrix-1.vst3"
     ).exists()
     assert not (stage_dir / "stray.ns4b").exists()
 
@@ -64,16 +64,16 @@ def test_stage_linux_deb_layout_and_control(tmp_path):
     assert (pkg_root / "usr" / "bin" / "ns4").exists()
     assert (pkg_root / "usr" / "bin" / "nd-matrix-1").exists()
     assert (pkg_root / "usr" / "bin" / "nord-plugin-standalone").exists()
-    assert (pkg_root / "usr" / "lib" / "clap" / "nord-plugin.clap").exists()
+    assert (pkg_root / "usr" / "lib" / "clap" / "nd-matrix-1.clap").exists()
     assert (
         pkg_root
         / "usr"
         / "lib"
         / "vst3"
-        / "nord-plugin.vst3"
+        / "nd-matrix-1.vst3"
         / "Contents"
         / "x86_64-linux"
-        / "nord-plugin.so"
+        / "nd-matrix-1.so"
     ).exists()
     assert (pkg_root / "usr" / "share" / "applications" / "nd-matrix-1.desktop").exists()
     assert (pkg_root / "usr" / "share" / "doc" / "nd-matrix-1" / "LICENSE-PLUGIN").exists()
@@ -90,16 +90,16 @@ def test_stage_linux_appdir(tmp_path):
     assert (appdir / "nd-matrix-1.desktop").exists()
     assert (appdir / "nd-matrix-1.svg").exists()
     assert (appdir / "usr" / "bin" / "nd-matrix-1").exists()
-    assert (appdir / "usr" / "lib" / "clap" / "nord-plugin.clap").exists()
+    assert (appdir / "usr" / "lib" / "clap" / "nd-matrix-1.clap").exists()
     assert (
         appdir
         / "usr"
         / "lib"
         / "vst3"
-        / "nord-plugin.vst3"
+        / "nd-matrix-1.vst3"
         / "Contents"
         / "x86_64-linux"
-        / "nord-plugin.so"
+        / "nd-matrix-1.so"
     ).exists()
 
 
@@ -120,8 +120,8 @@ def test_stage_macos_dmg_and_app_bundle(tmp_path):
     assert plist["CFBundleIdentifier"] == "org.ndmatrix.nd-matrix-1.app"
     assert plist["CFBundleExecutable"] == "nd-matrix-1"
     assert plist["CFBundleShortVersionString"] == "1.2.3"
-    assert (dmg_stage / "nord-plugin.vst3" / "Contents" / "MacOS" / "nord-plugin").exists()
-    assert (dmg_stage / "nord-plugin.clap" / "Contents" / "MacOS" / "nord-plugin").exists()
+    assert (dmg_stage / "nd-matrix-1.vst3" / "Contents" / "MacOS" / "nd-matrix-1").exists()
+    assert (dmg_stage / "nd-matrix-1.clap" / "Contents" / "MacOS" / "nd-matrix-1").exists()
     assert (dmg_stage / "ns4").exists()
     assert (dmg_stage / "LICENSE-PLUGIN").exists()
 
@@ -140,10 +140,10 @@ def test_stage_macos_pkg_roots_and_distribution_xml(tmp_path):
         / "Audio"
         / "Plug-Ins"
         / "VST3"
-        / "nord-plugin.vst3"
+        / "nd-matrix-1.vst3"
         / "Contents"
         / "MacOS"
-        / "nord-plugin"
+        / "nd-matrix-1"
     ).exists()
     assert (
         paths["clap_root"]
@@ -151,10 +151,10 @@ def test_stage_macos_pkg_roots_and_distribution_xml(tmp_path):
         / "Audio"
         / "Plug-Ins"
         / "CLAP"
-        / "nord-plugin.clap"
+        / "nd-matrix-1.clap"
         / "Contents"
         / "MacOS"
-        / "nord-plugin"
+        / "nd-matrix-1"
     ).exists()
     xml = paths["dist_xml"].read_text(encoding="utf-8")
     assert 'id="choice-app"' in xml
@@ -202,3 +202,98 @@ def test_desktop_entry_categories_are_registered():
     cats = [c for c in line.removeprefix("Categories=").split(";") if c]
     assert cats, "Categories must not be empty"
     assert set(cats) <= _REGISTERED_CATEGORIES, cats
+
+
+def test_inno_script_removes_legacy_plugin_bundles(tmp_path):
+    root = _make_tree_with_licenses(tmp_path, WIN)
+    iss_path, _ = ri.stage_windows_inno("v1.2.3", tmp_path / "dist", tmp_path / "work", root=root)
+    iss = iss_path.read_text(encoding="utf-8")
+    assert "[InstallDelete]" in iss
+    assert (
+        r'Type: filesandordirs; Name: "{commoncf64}\VST3\nord-plugin.vst3"; Components: vst3' in iss
+    )
+    assert r'Type: files; Name: "{commoncf64}\CLAP\nord-plugin.clap"; Components: clap' in iss
+    assert r"{commoncf64}\VST3\nd-matrix-1.vst3" in iss
+    assert r"{commoncf64}\CLAP" in iss
+    assert "nord-plugin.clap" not in iss.split("[Files]")[1].split("[InstallDelete]")[0]
+
+
+def test_appimage_install_plugins_removes_legacy_and_installs_new_names(tmp_path):
+    root = _make_tree_with_licenses(tmp_path, LIN)
+    appdir, _ = ri.stage_linux_appdir("v1.2.3", tmp_path / "dist", tmp_path / "work", root=root)
+    script = (appdir / "AppRun").read_text(encoding="utf-8")
+    assert "@NEW@" not in script and "@LEG@" not in script
+    assert 'rm -f "$HOME/.clap/nord-plugin.clap"' in script
+    assert 'rm -rf "$HOME/.vst3/nord-plugin.vst3"' in script
+    assert '"$HOME/.clap/nd-matrix-1.clap"' in script
+    assert 'cp -R "$HERE/usr/lib/vst3/nd-matrix-1.vst3" "$HOME/.vst3/nd-matrix-1.vst3"' in script
+    # The legacy files are removed before the new ones are copied in.
+    assert script.index("nord-plugin.clap") < script.index('cp -f "$HERE/usr/lib/clap')
+
+
+def test_apprun_install_plugins_replaces_legacy_files_on_disk(tmp_path):
+    """Run the real `--install-plugins` branch with a fake HOME holding legacy bundles."""
+    import subprocess
+
+    root = _make_tree_with_licenses(tmp_path, LIN)
+    appdir, _ = ri.stage_linux_appdir("v1.2.3", tmp_path / "dist", tmp_path / "work", root=root)
+    home = tmp_path / "home"
+    (home / ".clap").mkdir(parents=True)
+    (home / ".vst3" / "nord-plugin.vst3" / "Contents").mkdir(parents=True)
+    (home / ".clap" / "nord-plugin.clap").write_bytes(b"old")
+    done = subprocess.run(
+        ["sh", str(appdir / "AppRun"), "--install-plugins"],
+        env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert "nd-matrix-1.clap" in done.stdout
+    assert sorted(p.name for p in (home / ".clap").iterdir()) == ["nd-matrix-1.clap"]
+    assert sorted(p.name for p in (home / ".vst3").iterdir()) == ["nd-matrix-1.vst3"]
+
+
+def test_deb_ships_only_new_bundle_names(tmp_path):
+    root = _make_tree_with_licenses(tmp_path, LIN)
+    pkg_root, _ = ri.stage_linux_deb("v1.2.3", tmp_path / "dist", tmp_path / "work", root=root)
+    assert [p.name for p in (pkg_root / "usr" / "lib" / "clap").iterdir()] == ["nd-matrix-1.clap"]
+    assert [p.name for p in (pkg_root / "usr" / "lib" / "vst3").iterdir()] == ["nd-matrix-1.vst3"]
+
+
+def test_macos_pkg_component_preinstall_scripts_remove_legacy_bundles(tmp_path):
+    root = _make_tree_with_licenses(tmp_path, MAC)
+    paths = ri.stage_macos_pkg_roots("v1.2.3", tmp_path / "dist", tmp_path / "work", root=root)
+    vst3 = (paths["scripts_vst3"] / "preinstall").read_text(encoding="utf-8")
+    clap = (paths["scripts_clap"] / "preinstall").read_text(encoding="utf-8")
+    assert vst3.startswith("#!/bin/sh\n")
+    assert 'rm -rf "/Library/Audio/Plug-Ins/VST3/nord-plugin.vst3"' in vst3
+    assert 'rm -rf "/Library/Audio/Plug-Ins/CLAP/nord-plugin.clap"' in clap
+    assert (paths["scripts_vst3"] / "preinstall").stat().st_mode & 0o111
+    assert (paths["scripts_clap"] / "preinstall").stat().st_mode & 0o111
+    xml = paths["dist_xml"].read_text(encoding="utf-8")
+    assert "nd-matrix-1.vst3" in xml and "nd-matrix-1.clap" in xml
+    assert "nord-plugin" not in xml
+
+
+def test_build_macos_pkg_passes_scripts_to_plugin_components_only(tmp_path, monkeypatch):
+    root = _make_tree_with_licenses(tmp_path, MAC)
+    calls = []
+    monkeypatch.setattr(ri.subprocess, "run", lambda cmd, **kw: calls.append(cmd))
+    monkeypatch.setattr(ri, "write_sha256", lambda p: None)
+    ri.build_macos_pkg("v1.2.3", tmp_path / "dist", tmp_path / "work", root=root)
+    builds = {
+        c[c.index("--identifier") + 1].rsplit(".", 1)[1]: c for c in calls if c[0] == "pkgbuild"
+    }
+    assert "--scripts" not in builds["app"]
+    assert builds["vst3"][builds["vst3"].index("--scripts") + 1].endswith("scripts-vst3")
+    assert builds["clap"][builds["clap"].index("--scripts") + 1].endswith("scripts-clap")
+
+
+def test_dmg_stage_uses_new_bundle_names_only(tmp_path):
+    root = _make_tree_with_licenses(tmp_path, MAC)
+    dmg_stage, _ = ri.stage_macos_dmg(
+        "v1.2.3", tmp_path / "dist", tmp_path / "work", root=root, create_symlinks=False
+    )
+    names = {p.name for p in dmg_stage.iterdir()}
+    assert {"nd-matrix-1.vst3", "nd-matrix-1.clap"} <= names
+    assert not {n for n in names if n.startswith("nord-plugin.")}

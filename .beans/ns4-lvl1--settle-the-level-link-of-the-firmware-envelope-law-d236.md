@@ -1,6 +1,6 @@
 ---
 # ns4-lvl1
-title: 'Settle the level link of the firmware envelope law (D231)'
+title: 'Settle the level link of the firmware envelope law (D236)'
 status: completed
 type: task
 priority: normal
@@ -17,12 +17,12 @@ Flip defaults only when validated against the firmware and matching; find what s
 ## Acceptance Criteria
 - [x] Level link measured on the oracle (20 rows, VERIFIED tag with test)
 - [x] Three clips re-scored with the oracle unit and without
-- [x] Flip proposal: none (lead and pad worse, `UNIT_2F` ASSUMED), stated in D231
-- [x] Research note, D231, spec s4.7, ROADMAP, tests
+- [x] Flip proposal: none (lead and pad worse, `UNIT_2F` ASSUMED), stated in D236
+- [x] Research note, D236, spec s4.7, ROADMAP, tests
 - [x] All AGENTS.md checks
 
 ## Out of Scope
 Default flip, refitting the cutoff factors, oracle audio of the pad.
 
 ## Summary of Changes
-Tool `synth_env_level_link.py` + tests, Rust test and tags in `fw_cutoff_env.rs`, data CSVs, research note, D231. No behaviour change.
+Tool `synth_env_level_link.py` + tests, Rust test and tags in `fw_cutoff_env.rs`, data CSVs, research note, D236. No behaviour change.

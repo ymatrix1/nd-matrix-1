@@ -17,7 +17,7 @@
 //! Tags (`.agents/rules/provenance-in-code.md`): the law is VERIFIED against the SHARC oracle
 //! (`docs/research/data/synth-cutoff-env-oracle.csv`: 17 base knobs 0..=114 within 0.6 % in `R`,
 //! 8 amount x level points within 0.5 % in `R`, tests below); the stage rate `2F` is VERIFIED
-//! through `fc0` against the panel table (13.75 Hz is `A0 / 2`, 440 Hz at knob 60). D231 settles
+//! through `fc0` against the panel table (13.75 Hz is `A0 / 2`, 440 Hz at knob 60). D236 settles
 //! the level link: the engine `level` (filter chain times the velocity factor `F = G / 128`) is
 //! VERIFIED against the oracle peak for 2 programs x 5 key bytes x 2 velocity settings
 //! (`synth-env-level-link.csv`, test `level_link_rows_equal_the_oracle_peak`); key tracking adds

@@ -77,3 +77,18 @@ def test_hann_lines_find_the_strongest_peaks_in_hz() -> None:
 def test_kept_words_are_the_non_zero_words_of_the_machine_ranges() -> None:
     mem = {0x95FFC: 5, 0x95FFD: 0, 0x1234: 7, 0xC4001: 9}
     assert ff.kept(mem) == [(0x95FFC, 5), (0xC4001, 9)]
+
+
+def test_static_words_read_the_kept_ranges_of_a_flat_sram_image() -> None:
+    sram = bytearray(4 * 0xC4010)
+    sram[4 * 0x95FFC : 4 * 0x95FFC + 4] = (5).to_bytes(4, "little")
+    sram[4 * 0x1234 : 4 * 0x1234 + 4] = (7).to_bytes(4, "little")  # outside the kept ranges
+    sram[4 * 0xC4001 : 4 * 0xC4001 + 4] = (9).to_bytes(4, "little")
+    assert ff.static_words(bytes(sram)) == {0x95FFC: 5, 0xC4001: 9}
+
+
+def test_install_delta_lists_changed_new_and_cleared_words() -> None:
+    static = {0x95FFC: 5, 0xC27E0: 0x3F800000, 0xC27E1: 1}
+    oracle = {0x95FFC: 5, 0xC27E0: 0, 0xC27E1: 1, 0xC27E2: 8, 0xC4001: 0, 0x1234: 7}
+    # unchanged words and words outside the kept ranges are not in the delta; a clear is a 0
+    assert ff.install_delta(oracle, static) == [(0xC27E0, 0), (0xC27E2, 8)]

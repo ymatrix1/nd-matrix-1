@@ -3,6 +3,7 @@ name = "nord-gui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish.workspace = true
 repository.workspace = true
 authors.workspace = true
 description = "1:1 Hardware Front-Panel GUI and standalone application for the ND Matrix 1"

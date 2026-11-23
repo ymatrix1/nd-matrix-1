@@ -18,7 +18,7 @@
 //! Farfisa tab selection and the vibrato (no captured registers), an idle divider is frozen.
 
 use super::b3_bass_stage::cubic;
-use super::farfisa_fw::{FarfisaFw, RING_LEN};
+use super::farfisa_fw::{from_env, FarfisaFw, FarfisaImage, RING_LEN};
 use super::farfisa_wheels::{rows_of, FarfisaWheels, DSP_FRAME_RATE, OSCILLATORS, ROWS};
 use super::{OrganLayer, OrganModel, ToneWheelSource};
 
@@ -49,10 +49,11 @@ pub(super) struct FarfisaKeys {
 }
 
 impl FarfisaKeys {
-    /// All keys off (allocates the DM image; setup time only).
-    pub(super) fn new() -> Self {
+    /// All keys off on the image built from the user's OS update file (allocates the DM image;
+    /// setup time only).
+    pub(super) fn new(image: &FarfisaImage) -> Self {
         Self {
-            fw: FarfisaFw::new(),
+            fw: FarfisaFw::new(image),
             wheels: FarfisaWheels::new(),
             tuned: 0.0,
             keys: [-1; 128],
@@ -161,11 +162,32 @@ impl FarfisaKeys {
 
 impl OrganLayer {
     /// Switches the Farfisa processor stage (setup time: allocates the stage on first use).
+    ///
+    /// The routine and its DM image come from the user's own OS update file, named by
+    /// `NS4_WAVE_TABLES` or the saved app setting (D128, D129). Without a readable file the stage
+    /// is not built: `farfisa_processor` stays as requested, [`Self::farfisa_firmware_loaded`] is
+    /// `false` and the layer plays its non-firmware Farfisa model (D22).
     pub fn set_farfisa_processor(&mut self, on: bool) {
+        let image = if on && self.farfisa_keys.is_none() {
+            from_env().ok().flatten()
+        } else {
+            None
+        };
+        self.set_farfisa_processor_with(on, image.as_deref());
+    }
+
+    /// [`Self::set_farfisa_processor`] with an explicit image (`None`: no OS update file).
+    pub(super) fn set_farfisa_processor_with(&mut self, on: bool, image: Option<&FarfisaImage>) {
         self.farfisa_processor = on;
-        if on && self.farfisa_keys.is_none() {
-            self.farfisa_keys = Some(Box::new(FarfisaKeys::new()));
+        if let (true, None, Some(image)) = (on, &self.farfisa_keys, image) {
+            self.farfisa_keys = Some(Box::new(FarfisaKeys::new(image)));
         }
+    }
+
+    /// `true` when the firmware Farfisa stage exists (the OS update file was read); `false` when
+    /// it was switched on without one and the non-firmware model plays.
+    pub fn farfisa_firmware_loaded(&self) -> bool {
+        self.farfisa_keys.is_some()
     }
 
     /// `true` when the Farfisa processor stage replaces the drawbar sum of this layer.
@@ -214,7 +236,7 @@ mod tests {
 
     #[test]
     fn idle_stage_is_silent_and_a_key_makes_it_active_until_the_ring_down_ends() {
-        let mut s = FarfisaKeys::new();
+        let mut s = FarfisaKeys::new(&crate::organ::farfisa_fw::synthetic_image());
         assert!(!s.active());
         assert_eq!(s.process(48_000.0, 0.0), 0.0);
         s.note_on(60, 60, 1.0);
@@ -229,7 +251,7 @@ mod tests {
 
     #[test]
     fn fine_tune_retunes_the_divider_once() {
-        let mut s = FarfisaKeys::new();
+        let mut s = FarfisaKeys::new(&crate::organ::farfisa_fw::synthetic_image());
         s.note_on(60, 60, 1.0);
         s.process(48_000.0, 25.0);
         assert_eq!(s.tuned, 25.0);

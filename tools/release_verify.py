@@ -4,7 +4,7 @@
 Checks, with no third-party dependencies and no need for `dumpbin`/`nm`:
 
 1. Layout: one top-level folder holding exactly the expected files, including the
-   VST3 module at its platform path (Windows `Contents/x86_64-win/nord-plugin.vst3`).
+   VST3 module at its platform path (Windows `Contents/x86_64-win/nd-matrix-1.vst3`).
 2. Nothing forbidden: no `.reference/`, `target/`, firmware, preset, backup or
    sample files, and no manufacturer name in the shipped plugin/GUI binaries.
 3. Plugin entry points: `clap_entry` in the CLAP module and `GetPluginFactory`

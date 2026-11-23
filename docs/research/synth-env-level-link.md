@@ -1,4 +1,4 @@
-# Level link of the firmware envelope law (D231)
+# Level link of the firmware envelope law (D236)
 
 - **Checked:** 2026-11-23 (`main` @ `2b8560b7`)
 - **Sources (local, never committed):** ORG core 2 oracle `sharc-sys` with the captures of Smooth Lead and Crunch Synth (`target/synth_env_cap/`), `tools/synth_env_level_link.py`, the Part A clips and the factory backup (`tools/emu_vs_hw.py`). Committed data: [synth-env-level-link.csv](data/synth-env-level-link.csv), [synth-env-level-clips.csv](data/synth-env-level-clips.csv). Background: [synth-env-oracle-trace](synth-env-oracle-trace.md), [synth-velocity](synth-velocity.md), [default-flip-audit](default-flip-audit.md), D200, D207, D223.

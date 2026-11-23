@@ -19,7 +19,7 @@ rayon = ["egui-baseview/rayon"]
 windows_keyboard_workaround = ["egui-baseview/windows_keyboard_workaround"]
 
 [dependencies]
-nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", default-features = false }
+nih_plug = { git = "https://github.com/davemollen/nih-plug.git", rev = "95034d55de49b3d792289a0faf5df15b889e86d9", default-features = false }
 raw-window-handle = "0.5"
 baseview = { git = "https://github.com/RustAudio/baseview.git", rev = "9a0b42c09d712777b2edb4c5e0cb6baf21e988f0" }
 crossbeam = "0.8"

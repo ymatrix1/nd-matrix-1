@@ -6,11 +6,9 @@
 # class B
 crates/nord-core/src/organ/b3_bass_fw/prog_gen.rs
 crates/nord-core/src/organ/b3_bass_fw/prog_proc.rs
-crates/nord-core/src/organ/farfisa_fw/prog_proc.rs
 crates/nord-core/src/organ/firmware_bank.rs
 crates/nord-core/src/organ/vox_image.rs
 docs/research/data/bass-fw-image.csv
-docs/research/data/farfisa-fw-image.csv
 
 # class C
 crates/nord-core/src/engine/zone_table.rs
