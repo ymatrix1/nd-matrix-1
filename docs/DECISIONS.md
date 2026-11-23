@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D220](#d220-the-b3-leslie-too-dark-gap--128-db-at-38-khz-is-the-replayed-note-set-no-stage-changes-emuvshwpy---merge-gap-is-the-opt-in) | 2026-11-22 | The B3 "Leslie too dark" gap (-12.8 dB at 3..8 kHz) is the replayed note set; `emu_vs_hw.py --merge-gap` is the opt-in | proposed |
 | [D219](#d219-sy-pitch-entry-e-seventh-hunt-static-census-of-the-arm-call-sites-of-the-path-1-writers-no-sender-can-name-the-pitch-window-the-sy-has-no-constant-comm-site---sample-pitch-fw-stays-opt-in) | 2026-11-22 | SY pitch entry `e`, seventh hunt: 313 ARM call sites of the path 1 writers, none names the window or has a constant SY comm; `--sample-pitch fw` stays opt-in | proposed |
 | [D218](#d218-plugin-top-bar-loads-through-a-bounded-queue-to-the-audio-thread-a-loaded-program-is-held-per-group-until-the-host-moves-that-group) | 2026-11-22 | Plugin top bar loads through a bounded queue to the audio thread; a loaded program is held per group until the host moves that group | proposed |
 | [D215](#d215-the-common-treble-excess-is-gone-on-current-main-the-firmware-compressor-after-the-amp-leaves-a-broadband-floor-on-a25-opt-in---fx-compressor-first) | 2026-11-22 | The common treble excess is gone on current `main`; the firmware compressor after the amp leaves a broadband floor on A:25; opt-in `--fx-compressor-first` | proposed |
