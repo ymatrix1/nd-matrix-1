@@ -32,6 +32,7 @@ pub mod params;
 pub mod pedal_assign_params;
 pub mod piano_extra_params;
 pub mod piano_params;
+mod plugin_ids;
 pub mod program_hold;
 pub mod program_overrides;
 pub mod program_params;

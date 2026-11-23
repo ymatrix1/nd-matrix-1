@@ -51,6 +51,7 @@ A tag with a hyphen is published as a GitHub pre-release.
 - [ ] Version bumped in both files above, `Cargo.lock` updated, merged to `main` through a PR.
 - [ ] CI is green on that exact `main` commit (all three OS, Python job). The release workflow does not repeat the test suite; CI also runs on `v*` tags, so the tagged commit gets a second full result.
 - [ ] Checks from `AGENTS.md` pass locally if the bump touched anything besides the version.
+- [ ] `python tools/check_licenses.py` passes (CI job `licenses`): no copyleft crate in the shipped `nord-plugin` tree, so the binaries can be distributed under PolyForm Noncommercial 1.0.0. The VST3 wrapper uses the MIT or Apache-2.0 `vst3` crate; bundling needs no extra tool (`cargo xtask bundle` as before, no libclang or VST3 SDK).
 - [ ] Dry run is green (next section) and the artifacts were downloaded and inspected at least once for this release.
 - [ ] `docs/HOST_COMPATIBILITY.md` is current. If a DAW test result changed, update the README wording in `RELEASE_README.txt`.
 - [ ] No `.reference/`, firmware, backup or preset files are staged (`git status`, and `tools/release_verify.py` enforces it for archives), and embedded firmware data (`fw-data-inventory`, e.g. `bass-fw-image.csv`, `farfisa-fw-image.csv`) has been migrated to runtime loading before tagging a public release.
