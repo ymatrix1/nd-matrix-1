@@ -58,6 +58,7 @@ pub fn copy_engine(dst: &mut FirmwareOptions, src: &FirmwareOptions, engine: Eng
             dst.synth_stages = src.synth_stages;
             dst.synth_knob_laws = src.synth_knob_laws;
             dst.synth_velocity_fw = src.synth_velocity_fw;
+            dst.synth_fw_resonance = src.synth_fw_resonance;
             dst.synth_p = src.synth_p;
             dst.filter_engine = src.filter_engine;
             dst.measured_laws = src.measured_laws;
@@ -109,6 +110,8 @@ mod tests {
         let c = classic();
         assert!(!c.synth_velocity_fw && !c.piano_touch);
         assert!(!c.arp_firmware && !c.arp_firmware_gate && !c.firmware_morph);
+        // D223: the firmware resonance position is a default flip too.
+        assert!(!c.synth_fw_resonance && firmware().synth_fw_resonance);
         // D176: the rate-matched amp is on by default and in the Firmware preset, off in Classic.
         assert!(!c.fx_rate_match && firmware().fx_rate_match);
         assert!(FirmwareOptions::default().fx_rate_match);
