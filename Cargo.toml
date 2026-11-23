@@ -13,7 +13,8 @@ members = [
 [workspace.package]
 version = "0.1.2"
 edition = "2021"
-license = "MIT OR Apache-2.0"
+license = "PolyForm-Noncommercial-1.0.0"
+publish = false
 repository = "https://github.com/ymatrix1/nd-matrix-1"
 authors = ["ymatrix1"]
 

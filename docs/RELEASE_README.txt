@@ -6,6 +6,9 @@ binary-format toolkit for the Nord Stage 4 keyboard. Built for
 interoperability, research and preservation.
 Source: https://github.com/ymatrix1/nd-matrix-1
 
+Licensed under PolyForm Noncommercial 1.0.0: commercial use is not permitted.
+See the LICENSE file in this archive.
+
 Status: early release (AS IS, no warranty or support)
 ----------------------------------------------------
 
