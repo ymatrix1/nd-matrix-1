@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D219](#d219-env-to-pitch-holds-on-layers-b-and-c-and-the-key-velocity-factor-is-g--128-the-opt-in-uses-it-no-flip) | 2026-11-22 | Env To Pitch holds on layers B and C and the key velocity factor is `G / 128`; the opt-in uses it; no flip | accepted |
 | [D218](#d218-plugin-top-bar-loads-through-a-bounded-queue-to-the-audio-thread-a-loaded-program-is-held-per-group-until-the-host-moves-that-group) | 2026-11-22 | Plugin top bar loads through a bounded queue to the audio thread; a loaded program is held per group until the host moves that group | proposed |
 | [D215](#d215-the-common-treble-excess-is-gone-on-current-main-the-firmware-compressor-after-the-amp-leaves-a-broadband-floor-on-a25-opt-in---fx-compressor-first) | 2026-11-22 | The common treble excess is gone on current `main`; the firmware compressor after the amp leaves a broadband floor on A:25; opt-in `--fx-compressor-first` | proposed |
 | [D217](#d217-oq44-answered-env-to-pitch-plays-48-word-level-semitones-the-opt-in-synth-osc-env-morph-now-plays-it-and-the-osc-envelope-decay-stops-at-05-no-flip) | 2026-11-21 | OQ44 answered: Env To Pitch plays `48 * word * level` semitones; opt-in `--synth-osc-env-morph` plays it, osc envelope decay stops at 0.5; no flip | accepted (opt-in) |
@@ -2340,7 +2341,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** keep the linear +/-12 st (off by up to 4x, ignores the taper); a new flag (the existing flag already gates the morph of the same word).
 - **Impact:** opt-in only. 3 of 384 programs move the pitch by more than 2 st (Wooden Queen, Cinema Rise, Lyle Lead J3); 9 have a non-zero amount. Key velocity scaling is `ASSUMED`.
 - **Flip proposal (owner):** `--synth-osc-env-morph` could become the default after an audible A/B of those 3 programs. Nothing flipped.
-- **Open:** layers B / C, Cinema Rise and Circus Box traces (estimator limit), the velocity term.
+- **Open:** layers B / C, Cinema Rise and Circus Box traces (estimator limit), the velocity term (answered in D219).
 
 ### D218. Plugin top bar loads through a bounded queue to the audio thread; a loaded program is held per group until the host moves that group
 
@@ -2352,3 +2353,13 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Mutex around the engine (rejected: lock in `process()`). Push program values into the host parameters (rejected for now: host automation and undo entries; kept as TD-21 remediation). A whole-sync hold until any parameter moves (rejected: one nudged knob would drop the program). Blocking `rfd` on the GUI thread (rejected: freezes the host). Per-parameter dirty flags (rejected: nih-plug exposes none that separate "moved since load").
 - **Limits:** touching one parameter of a group collapses that whole group to host values; the loaded program is not stored in project state (a reloaded project has the host parameters only); `LoadPreset` is unmapped; the OS update file applies once per process; the FL Studio load is not verified by hand (headless test only: OPEN pill, `.ns4b`, program, `process()` is audible).
 - **Impact:** `crates/nord-plugin`: `loader.rs`, `program_hold.rs`, `core_sync.rs`, `wave_tables.rs`, `params.rs`, `lib.rs`, `editor/{mod,draw,sink,top_bar,index,readback,readback_menu}.rs`, tests `editor/dialog_tests.rs`, `tests/load_path.rs`; `crates/nord-gui`: `file_picker.rs`, `debug_dialog.rs`, `library/`, `os_update_panel.rs`, `Cargo.toml`; `specs/daw-plugin.md`, TD-21, `plugin-editor.md`.
+
+### D219. Env To Pitch holds on layers B and C and the key velocity factor is `G / 128`; the opt-in uses it; no flip
+
+- **Status:** accepted (opt-in only). **Decided by:** agent (research); default flip not decided.
+- **Context:** D217 verified `48 * word * level` on layer A of 8 programs; layers B / C, Circus Box, Cinema Rise and the velocity term were open, and the velocity scaling was `ASSUMED` linear in the note velocity.
+- **Decision:** (1) Layer `L` plays in slot `L`: strip `2 L`, common block `32 L`, chain `0xC118E + 62 (L >> 1) + (L & 1)`, record `0xC1F89 + 54 L`; the law is unchanged (held-level oracle on every sounding amount layer within 0.09 st; Cinema Rise A / B / C and Circus Box resolved). (2) With `kOscEnvVel` on the pitch scales by `G / 128` (`G` = key byte `g`, 128 at `g = 127`), VERIFIED on Wooden Queen with the bit patched (6 of 6 key bytes within 0.002 st); `SynthLayer::osc_env_fw_pitch` now uses `fw_velocity::filter_factor(key_byte(velocity))` instead of the linear velocity. (3) `tools/synth_osc_env_pitch.py` gets layer addressing and the subcommands `layers` and `velocity`; `trace` covers every layer.
+- **Why:** [synth-osc-env-pitch](research/synth-osc-env-pitch.md) s5: native opt-in within 0.12 st of the oracle at 12 of 12 times on Cinema Rise B and C; the velocity series equals `22.07 G / 128`.
+- **Alternatives:** keep the linear velocity (off by 3x at velocity 40: `G / 128` = 0.09 against 0.31).
+- **Impact:** opt-in only (`--synth-osc-env-morph`); default path unchanged. 13 layers in 9 programs have an amount (D217 said 14: miscount). Bounce Clav B and Lyle Lead J3 B are silent in the oracle voice record and stay unverified.
+- **Open:** whether Lyle Lead J3 B and Bounce Clav B sound on hardware; audible A/B; the flip.
