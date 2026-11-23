@@ -2366,6 +2366,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Resolve the comm of the 249 unknown sites interprocedurally first (value now low: the live stream, the messages that matter, has no window address); build the flash directory model (high cost, lead 1).
 - **Limits:** the SY chip was idle for all passes (`lane_peak` 0.0, no voice started), so a writer that fires only in a playing voice is not exercised; one program; the watch samples once per tick batch.
 - **Impact:** `tools/sy_script_window_census.py`, `tools/tests/test_sy_script_window_census.py`, [sy-fifo-bias-census-rerun](research/sy-fifo-bias-census-rerun.md), OQ22, [audio-remaining](research/audio-remaining.md) row 2, [synth-engine](specs/synth-engine.md), bean ns4-sy8h. No `nord-core` change, no default change.
+
 ### D220. The B3 "Leslie too dark" gap (-12.8 dB at 3..8 kHz) is the replayed note set; no stage changes, `emu_vs_hw.py --merge-gap` is the opt-in
 
 - **Status:** proposed 2026-11-22 (number chosen above D219 after fetching `origin/main`; renumber on merge if taken)
