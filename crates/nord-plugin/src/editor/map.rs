@@ -122,7 +122,12 @@ pub fn map_command(cmd: &AudioCommand, out: &mut Vec<W>) -> bool {
         C::Synth(e) => map_synth(e, out),
         C::Fx(e) => map_fx(e, out),
         C::Program(ProgramEdit::Settings(s)) => return map_settings(s, out),
+        // The on-screen wheel sends `Keyboard`, a hardware/host controller sends `Midi`; both move
+        // the host parameter, or the panel readback snaps the wheel back every frame.
         C::Midi(MidiEvent::ControlChange {
+            controller, value, ..
+        })
+        | C::Keyboard(MidiEvent::ControlChange {
             controller, value, ..
         }) if *controller == cc::MOD_WHEEL => {
             out.push(W::global("mod_wheel", f32::from(*value) / 127.0));
@@ -215,6 +220,16 @@ mod tests {
         assert_eq!(w.len(), 9);
         assert_eq!(w[0], W::global("drawbar_1_16", 8.0));
         assert_eq!(w[8], W::global("drawbar_9_1", 0.0));
+    }
+
+    #[test]
+    fn on_screen_wheel_keyboard_cc_maps_to_the_morph_param() {
+        let w = run(AudioCommand::Keyboard(MidiEvent::ControlChange {
+            channel: 0,
+            controller: cc::MOD_WHEEL,
+            value: 127,
+        }));
+        assert_eq!(w, vec![W::global("mod_wheel", 1.0)]);
     }
 
     #[test]
