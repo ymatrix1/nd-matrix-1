@@ -4,6 +4,7 @@
 
 pub mod audio;
 pub mod baked;
+pub mod branding;
 pub mod debug_dialog;
 pub mod file_picker;
 pub mod firmware_panel;

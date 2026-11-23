@@ -714,7 +714,7 @@ wrote {}",
     };
 
     eframe::run_native(
-        "Nord Stage 4",
+        nord_gui::branding::PRODUCT_NAME,
         native_options,
         Box::new(move |cc| Ok(Box::new(Stage4App::new(cc, cli)))),
     )
