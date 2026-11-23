@@ -101,6 +101,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contribution guide. Before o
 
 ---
 
+## License
+
+This project is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE). You may use, study, modify, and share it for any noncommercial purpose (personal use, research, hobby projects, and noncommercial organizations); commercial use needs separate permission from the licensor. The crates are not published to crates.io (`publish = false`).
+
+The licensing of the DAW plugin (`crates/nord-plugin`) is under review; until that is settled it is covered by the same license.
+
+---
+
 ## Disclaimer
 
 This software is provided **"as is"**, without warranty or support of any kind.
