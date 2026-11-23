@@ -1,6 +1,6 @@
 [project]
 name = "nord-stage-4-tools"
-version = "0.1.2"
+version = "0.1.3"
 description = "Reverse-engineering, CBIN/.ns4b inspection, and CI quality gate tools for the Nord Stage 4 Emulator."
 requires-python = ">=3.12"
 dependencies = [
