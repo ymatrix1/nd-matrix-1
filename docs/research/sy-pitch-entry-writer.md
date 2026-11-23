@@ -184,3 +184,7 @@ target/release/sharc-ref sy.bin tools/oracle_scenarios/sy_isr_stream.scn --out t
 ## 10. Fifth hunt: the flash bus and the ARM claimed flash service (2026-11-20, D176)
 
 [sy-flash-bus-hunt](sy-flash-bus-hunt.md): the offset table `DM(0xB2000..)` and the pitch window get no ARM message and no DSP store in any driven path (census of the 290 SY and 1,540 SMP boot messages, `--watch` with a positive control); AMI banks 1 to 3 are one flash behind a latch, written by the ARM through the DSP; the audio ISR service loop (`DM(0x93DF6)`) holds a flash read mailbox (cannot reach the window) and a checksum mailbox whose DMA destination `DM(0xB650F)` is an ARM word and reaches the window when set there (run), never driven; the SMP is separate. Still no writer. Next: a flash model behind the ARM device object. `--sample-pitch fw` stays opt-in.
+
+## 11. Seventh hunt: static census of the ARM senders (2026-11-22, D219)
+
+[sy-pitch-writer-static-census](sy-pitch-writer-static-census.md): 313 ARM call sites of the path 1 writers; none has the SY comm as a constant, none names `DM(0x93500..0x935A0)`; the SY table senders reach at most about `0x92E70`; the SMP directory is written by computed address, the SY offset table and the window have no such writer. Still no writer; `--sample-pitch fw` stays opt-in.
