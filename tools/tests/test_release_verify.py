@@ -38,13 +38,13 @@ def build(tmp_path, platform, *, clap=None, vst3=None, readme=README_OK, extra=N
     (root / "docs" / "RELEASE_README.txt").write_text(readme)
     bundled = root / "target" / "bundled"
     if platform.os == "macos":
-        clap_path = bundled / "nord-plugin.clap" / "Contents" / "MacOS" / "nord-plugin"
-        for plist in ("nord-plugin.clap", "nord-plugin.vst3"):
+        clap_path = bundled / "nd-matrix-1.clap" / "Contents" / "MacOS" / "nd-matrix-1"
+        for plist in ("nd-matrix-1.clap", "nd-matrix-1.vst3"):
             (bundled / plist / "Contents" / "Info.plist").write_text("<plist/>")
     else:
-        clap_path = bundled / "nord-plugin.clap"
+        clap_path = bundled / "nd-matrix-1.clap"
     clap_path.write_bytes(clap if clap is not None else b"\0clap_entry\0")
-    (bundled / "nord-plugin.vst3" / platform.vst3_binary).write_bytes(
+    (bundled / "nd-matrix-1.vst3" / platform.vst3_binary).write_bytes(
         vst3 if vst3 is not None else b"\0GetPluginFactory\0"
     )
     if extra:
@@ -103,9 +103,9 @@ def test_non_pe_windows_module_reported(tmp_path):
 def test_missing_vst3_binary_detected(tmp_path):
     archive = build(tmp_path, WIN, clap=fake_pe(["clap_entry"]), vst3=fake_pe(["GetPluginFactory"]))
     files = rv.read_archive(archive)
-    paths = [p for p in files if not p.endswith("x86_64-win/nord-plugin.vst3")]
+    paths = [p for p in files if not p.endswith("x86_64-win/nd-matrix-1.vst3")]
     problems = rv.check_layout(paths, WIN)
-    assert problems == ["missing nord-plugin.vst3/Contents/x86_64-win/nord-plugin.vst3"]
+    assert problems == ["missing nd-matrix-1.vst3/Contents/x86_64-win/nd-matrix-1.vst3"]
 
 
 def test_forbidden_paths_and_types_detected():
