@@ -75,3 +75,15 @@ def test_match_counter_accepts_a_ring_one_sample_ahead_of_the_counter() -> None:
     assert sv.match_counter(ahead, 387, decoded) == 388  # the counter word lags by one
     assert sv.match_counter(ahead, 388, decoded) == 388
     assert sv.match_counter(ahead, 300, decoded) is None
+
+
+def test_order_four_row_is_the_flac_fixed_polynomial_of_the_release_strokes() -> None:
+    left, right = [3, -2, 5, 1, -4, 2], [0] * 6
+    page = pack_page(left, right, 4, 4)
+    got = sv.decode_page(page, [0, 2, 4, 4], 6)
+    hist, want = [0, 2, 4, 4], []
+    for r in left:
+        y = -hist[0] + 4 * hist[1] - 6 * hist[2] + 4 * hist[3] + r
+        want.append(y)
+        hist = [*hist[1:], y]
+    assert got == want and sv.LPC[4] == (-1, 4, -6, 4)

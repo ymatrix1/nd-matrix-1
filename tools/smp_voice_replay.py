@@ -26,7 +26,13 @@ VOICE0 = 0x93928  # VERIFIED (run): `I3` of voice 0 (ring pointer `rec[-26]` = 0
 VOICE_STRIDE = 0x36
 HIST_STRIDE = 16
 COUNTER = -30  # `rec[-30]`: residual number of the next call
-LPC = {0: (0, 0, 0, 0), 1: (0, 0, 0, 1), 2: (0, 0, -1, 2), 3: (0, 1, -3, 3)}  # row = 4 * order
+LPC = {
+    0: (0, 0, 0, 0),
+    1: (0, 0, 0, 1),
+    2: (0, 0, -1, 2),
+    3: (0, 1, -3, 3),
+    4: (-1, 4, -6, 4),  # VERIFIED: stroke 523 voice 17 (piano-release-voice.md)
+}  # row = 4 * order
 
 
 def page_residual(words: list[int], n: int, width: int, stride: int, base: int = 0) -> int:

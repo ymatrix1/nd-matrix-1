@@ -122,3 +122,48 @@ def test_tap_fundamental_finds_the_pitch_of_a_harmonic_tone_and_none_for_silence
     assert got is not None and abs(got - cycles) < 2e-5
     assert sf.tap_fundamental(f32([0.0] * 20000)) is None
     assert sf.tap_fundamental(f32([0.1] * 100)) is None
+
+
+def _frames(values: list[float]) -> bytes:
+    return f32([v for x in values for v in (x, x)])
+
+
+def test_tap_fundamental_keeps_the_octave_of_a_weak_fundamental() -> None:
+    """D230: a harpsichord-like tap (strong even harmonics) read twice its pitch with the harmonic
+    sum; the first autocorrelation maximum is the real period."""
+    cycles = 0.006
+    amps = {1: 0.7, 2: 1.0, 3: 0.2, 4: 0.9, 6: 0.5}
+    tone = [
+        sum(a * math.sin(2 * math.pi * cycles * h * k + h) for h, a in amps.items())
+        for k in range(6000)
+    ]
+    got = sf.tap_fundamental(_frames(tone))
+    assert got is not None and abs(got - cycles) < 1e-4
+
+
+def test_tap_fundamental_ignores_slow_drift_and_a_late_onset() -> None:
+    """D230: a decaying tone after a silent lead-in with a slow drift gave the lowest candidate
+    (0.0003) before; the window now starts at the onset and the lag range has a floor."""
+    cycles = 0.012
+    tone = [0.0] * 1500
+    for k in range(4500):
+        tone.append(
+            0.5 * math.exp(-k / 3000) * math.sin(2 * math.pi * cycles * k)
+            + 0.05 * math.sin(2 * math.pi * 0.0004 * k)
+        )
+    got = sf.tap_fundamental(_frames(tone))
+    assert got is not None and abs(got - cycles) < 2e-4
+
+
+def test_tap_fundamental_follows_the_octave_of_the_tone() -> None:
+    """One octave up and down gives 2x and 0.5x (the layer octave of the program, D230)."""
+    out = []
+    for cycles in (0.003, 0.006, 0.012):
+        tone = [
+            math.sin(2 * math.pi * cycles * k) + 0.4 * math.sin(4 * math.pi * cycles * k)
+            for k in range(6000)
+        ]
+        got = sf.tap_fundamental(_frames(tone))
+        assert got is not None
+        out.append(got)
+    assert abs(out[1] / out[0] - 2) < 0.03 and abs(out[2] / out[1] - 2) < 0.03
