@@ -349,3 +349,17 @@ To achieve 1:1 visual parity with the approved `nd matrix 1` HTML/CSS reference 
   - No photo texture ships: the former embedded `panel_texture.jpg` (a vendor photo) is removed (D16); all panel pixels come from the baked plate and sprite atlas, and chrome colours from `style.rs` tokens. `tools/check_no_vendor_photos.py` enforces it in CI.
   - `render_baked_panel` renders the tiled plate, interactive `pitch_stick`, `mod_wheel`, rotated knobs, buttons, faders, 9 drawbars, live LEDs, live `main` and `synth` OLEDs, and the 88-key keybed wired to `AudioHandle::send_keyboard_midi`.
   - Controlled by `Stage4PanelState::use_baked_plate` (enabled in the standalone `nd-matrix-1` binary; `false` by default in `Stage4PanelState::default()` so existing procedural layout and legibility tests remain valid).
+
+## 10. Naming and trademark rule for user-facing text (D16 follow-up)
+
+Our product name is **ND Matrix 1**. "Nord", "Nord Stage 4" and "Clavia" appear in user-facing text only descriptively ("backup files for the Nord Stage 4", "Nord OS update"), never as the name of our window, panel, library, installer or plugin.
+
+| Surface | Text | Status |
+|---|---|---|
+| Window class (`eframe::run_native`) and default program title | `ND Matrix 1` (`nord-gui` `branding::PRODUCT_NAME`) | rule |
+| Procedural chassis wordmark | `nd matrix 1` (`branding::CHASSIS_WORDMARK`) | rule |
+| Library drawer heading | `Backup & Sample Library (Nord Stage 4 files)` | descriptive |
+| File dialog filter (backups, sounds) | `Backup and sound files for Nord Stage 4` | descriptive |
+| Plugin name, installers, bundle names, `.desktop` | `ND Matrix 1` | already compliant |
+
+Unchanged on purpose: crate and binary names (`nord-*`), host parameter IDs and CLAP/VST3 ids (saved DAW projects), data matches such as `prog.name == "Nord Stage 4 Program"` (written by the hardware), hardware text mirrored on the OLED (`Nord Sample Library 4`), pedal model names, and official download links. Pinned by tests in `crates/nord-gui/src/branding.rs` and `file_picker.rs`.
