@@ -404,6 +404,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 - **Why:** Original art removes the trademark and copyright risk at no cost in quality. Functional-or-stub keeps the panel honest about what works. Host parameter IDs are a stable contract for saved DAW projects, so only additions are safe.
 - **Alternatives:** Photo-derived art (rejected: rights); full menus before release (delays the visual goal); renaming per-layer IDs (breaks saved projects); all keybed variants up front (more layout work for no early benefit).
 - **Impact:** Unblocks B7 art direction, B8d/B9d scope, B8g layout and B9a-c parameter work. The remaining Phase 6b unknown is OQ13 (hardware behaviour).
+- **Follow-up 2026-11-23 (ns4-r7qd):** the shipped bundle files are now `nd-matrix-1.clap` / `nd-matrix-1.vst3` (set by `bundler.toml`); `CLAP_ID`, `VST3_CLASS_ID`, plugin `NAME` and all host parameter IDs are unchanged, so saved projects keep loading. Installers delete the legacy `nord-plugin.*` bundles.
 
 ### D17. Chip identity: FX, PNO and ORG run on ADSP-2157x (SHARC+), SY1SY2 and SMP on ADSP-2148x
 

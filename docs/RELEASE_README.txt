@@ -4,7 +4,7 @@ ND Matrix 1 - release archive
 Source-available (non-commercial) software emulator, DSP engine and
 binary-format toolkit for the Nord Stage 4 keyboard. Built for
 interoperability, research and preservation.
-Source: https://github.com/ymatrix1/nord-stage-4-emulator
+Source: https://github.com/ymatrix1/nd-matrix-1
 
 Status: early release (AS IS, no warranty or support)
 ----------------------------------------------------
@@ -28,8 +28,8 @@ Contents
   ns4                       command-line tool (inspect presets, offline render)
   nd-matrix-1               standalone GUI (audio + MIDI)
   nord-plugin-standalone    standalone host of the plugin build
-  nord-plugin.clap          CLAP plugin
-  nord-plugin.vst3          VST3 plugin (a folder bundle; copy the whole folder)
+  nd-matrix-1.clap          CLAP plugin
+  nd-matrix-1.vst3          VST3 plugin (a folder bundle; copy the whole folder)
   HOST_COMPATIBILITY.md     what has and has not been tested
   README.txt                this file
 
@@ -54,33 +54,39 @@ Install the plugin
 Copy the plugin into one of these folders, then rescan plugins in your DAW.
 
 Windows (x86_64)
-  CLAP, all users:   C:\Program Files\Common Files\CLAP\nord-plugin.clap
-  CLAP, this user:   %LOCALAPPDATA%\Programs\Common\CLAP\nord-plugin.clap
-  VST3, all users:   C:\Program Files\Common Files\VST3\nord-plugin.vst3\
-  VST3, this user:   %LOCALAPPDATA%\Programs\Common\VST3\nord-plugin.vst3\
+  CLAP, all users:   C:\Program Files\Common Files\CLAP\nd-matrix-1.clap
+  CLAP, this user:   %LOCALAPPDATA%\Programs\Common\CLAP\nd-matrix-1.clap
+  VST3, all users:   C:\Program Files\Common Files\VST3\nd-matrix-1.vst3\
+  VST3, this user:   %LOCALAPPDATA%\Programs\Common\VST3\nd-matrix-1.vst3\
   The VST3 folder must keep its layout:
-  nord-plugin.vst3\Contents\x86_64-win\nord-plugin.vst3
+  nd-matrix-1.vst3\Contents\x86_64-win\nd-matrix-1.vst3
 
 macOS (Apple silicon, arm64)
-  CLAP, all users:   /Library/Audio/Plug-Ins/CLAP/nord-plugin.clap
-  CLAP, this user:   ~/Library/Audio/Plug-Ins/CLAP/nord-plugin.clap
-  VST3, all users:   /Library/Audio/Plug-Ins/VST3/nord-plugin.vst3
-  VST3, this user:   ~/Library/Audio/Plug-Ins/VST3/nord-plugin.vst3
+  CLAP, all users:   /Library/Audio/Plug-Ins/CLAP/nd-matrix-1.clap
+  CLAP, this user:   ~/Library/Audio/Plug-Ins/CLAP/nd-matrix-1.clap
+  VST3, all users:   /Library/Audio/Plug-Ins/VST3/nd-matrix-1.vst3
+  VST3, this user:   ~/Library/Audio/Plug-Ins/VST3/nd-matrix-1.vst3
   The builds are not signed or notarized. If macOS refuses to open them, clear
   the quarantine flag on the files you installed, for example:
-    xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/nord-plugin.vst3
-    xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/CLAP/nord-plugin.clap
+    xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/nd-matrix-1.vst3
+    xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/CLAP/nd-matrix-1.clap
   Do the same for ns4, nd-matrix-1 and nord-plugin-standalone before running them.
 
 Linux (x86_64)
-  CLAP, this user:   ~/.clap/nord-plugin.clap
-  CLAP, all users:   /usr/lib/clap/nord-plugin.clap
-  VST3, this user:   ~/.vst3/nord-plugin.vst3/
-  VST3, all users:   /usr/lib/vst3/nord-plugin.vst3/
+  CLAP, this user:   ~/.clap/nd-matrix-1.clap
+  CLAP, all users:   /usr/lib/clap/nd-matrix-1.clap
+  VST3, this user:   ~/.vst3/nd-matrix-1.vst3/
+  VST3, all users:   /usr/lib/vst3/nd-matrix-1.vst3/
   The VST3 folder must keep its layout:
-  nord-plugin.vst3/Contents/x86_64-linux/nord-plugin.so
+  nd-matrix-1.vst3/Contents/x86_64-linux/nd-matrix-1.so
   The GUI needs ALSA and X11/OpenGL libraries; the plugin needs a host that
   provides its own window.
+
+Upgrading from an older release: earlier builds installed the plugin as
+nord-plugin.clap and nord-plugin.vst3. The installers and the AppImage
+--install-plugins option remove them. If you copy files by hand, delete the old
+nord-plugin.clap and nord-plugin.vst3 so your DAW does not list two copies.
+Saved projects keep loading: the plugin identity did not change.
 
 Run the standalone programs
 ---------------------------

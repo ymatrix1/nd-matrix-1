@@ -19,12 +19,20 @@ import subprocess
 import sys
 from pathlib import Path
 
-from release_package import PLATFORMS, PLUGIN_STEM, ROOT, Platform, collect, write_sha256
+from release_package import (
+    LEGACY_PLUGIN_STEM,
+    PLATFORMS,
+    PLUGIN_STEM,
+    ROOT,
+    Platform,
+    collect,
+    write_sha256,
+)
 
 APP_DISPLAY_NAME = "ND Matrix 1"
 APP_BUNDLE_NAME = "ND Matrix 1.app"
 APP_BUNDLE_ID = "org.ndmatrix.nd-matrix-1"
-APP_URL = "https://github.com/ymatrix1/nord-stage-4-emulator"
+APP_URL = "https://github.com/ymatrix1/nd-matrix-1"
 APP_PUBLISHER = "ND Matrix 1 Contributors"
 
 DESKTOP_ENTRY = """[Desktop Entry]
@@ -68,11 +76,14 @@ case "${1:-}" in
     ;;
   --install-plugins)
     mkdir -p "$HOME/.clap" "$HOME/.vst3"
-    cp -f "$HERE/usr/lib/clap/nord-plugin.clap" "$HOME/.clap/nord-plugin.clap"
-    rm -rf "$HOME/.vst3/nord-plugin.vst3"
-    cp -R "$HERE/usr/lib/vst3/nord-plugin.vst3" "$HOME/.vst3/nord-plugin.vst3"
-    echo "Installed CLAP to $HOME/.clap/nord-plugin.clap"
-    echo "Installed VST3 to $HOME/.vst3/nord-plugin.vst3"
+    # Remove the pre-rename bundles so hosts do not list two copies.
+    rm -f "$HOME/.clap/@LEG@.clap"
+    rm -rf "$HOME/.vst3/@LEG@.vst3"
+    cp -f "$HERE/usr/lib/clap/@NEW@.clap" "$HOME/.clap/@NEW@.clap"
+    rm -rf "$HOME/.vst3/@NEW@.vst3"
+    cp -R "$HERE/usr/lib/vst3/@NEW@.vst3" "$HOME/.vst3/@NEW@.vst3"
+    echo "Installed CLAP to $HOME/.clap/@NEW@.clap"
+    echo "Installed VST3 to $HOME/.vst3/@NEW@.vst3"
     exit 0
     ;;
 esac
@@ -82,6 +93,21 @@ if [ "$(basename "$0")" = "ns4" ]; then
 fi
 exec "$HERE/usr/bin/nd-matrix-1" "$@"
 """
+
+
+def render_apprun() -> str:
+    """AppRun script with the current and legacy plugin bundle names filled in."""
+    return APPRUN_SCRIPT.replace("@NEW@", PLUGIN_STEM).replace("@LEG@", LEGACY_PLUGIN_STEM)
+
+
+def render_macos_preinstall(kind: str, install_dir: str) -> str:
+    """`pkgbuild --scripts` preinstall that deletes the legacy `kind` (`clap`/`vst3`) bundle."""
+    return (
+        "#!/bin/sh\n"
+        "# Remove the pre-rename bundle so hosts do not list two copies.\n"
+        f'rm -rf "{install_dir}/{LEGACY_PLUGIN_STEM}.{kind}"\n'
+        "exit 0\n"
+    )
 
 
 def _copy_allowlisted(platform: Platform, root: Path, target_dir: Path | None, dest: Path) -> None:
@@ -202,6 +228,13 @@ def render_inno_iss(
             f'Source: "{src}\\{PLUGIN_STEM}.clap"; DestDir: "{{commoncf64}}\\CLAP"; '
             "Components: clap; Flags: ignoreversion"
         ),
+        "",
+        "[InstallDelete]",
+        (
+            f'Type: filesandordirs; Name: "{{commoncf64}}\\VST3\\{LEGACY_PLUGIN_STEM}.vst3"; '
+            "Components: vst3"
+        ),
+        (f'Type: files; Name: "{{commoncf64}}\\CLAP\\{LEGACY_PLUGIN_STEM}.clap"; Components: clap'),
         "",
         "[Icons]",
         (
@@ -428,7 +461,7 @@ def stage_linux_appdir(
     (appdir / "nd-matrix-1.desktop").write_text(DESKTOP_ENTRY, encoding="utf-8", newline="\n")
     (appdir / "nd-matrix-1.svg").write_text(APP_SVG_ICON, encoding="utf-8", newline="\n")
     apprun = appdir / "AppRun"
-    apprun.write_text(APPRUN_SCRIPT, encoding="utf-8", newline="\n")
+    apprun.write_text(render_apprun(), encoding="utf-8", newline="\n")
     apprun.chmod(0o755)
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -549,11 +582,11 @@ def render_macos_distribution_xml(label: str) -> str:
         <pkg-ref id="{APP_BUNDLE_ID}.pkg.app"/>
     </choice>
     <choice id="choice-vst3" title="VST3 Plugin (/Library/Audio/Plug-Ins/VST3)"
-            description="Installs nord-plugin.vst3 for DAWs such as Ableton Live, Reaper, Cubase.">
+            description="Installs nd-matrix-1.vst3 for DAWs such as Ableton Live, Reaper, Cubase.">
         <pkg-ref id="{APP_BUNDLE_ID}.pkg.vst3"/>
     </choice>
     <choice id="choice-clap" title="CLAP Plugin (/Library/Audio/Plug-Ins/CLAP)"
-            description="Installs nord-plugin.clap for DAWs such as Bitwig Studio and Reaper.">
+            description="Installs nd-matrix-1.clap for DAWs such as Bitwig Studio and Reaper.">
         <pkg-ref id="{APP_BUNDLE_ID}.pkg.clap"/>
     </choice>
     <pkg-ref id="{APP_BUNDLE_ID}.pkg.app" version="{ver}" onConclusion="none">app.pkg</pkg-ref>
@@ -612,6 +645,16 @@ def stage_macos_pkg_roots(
         clap_root / "Library" / "Audio" / "Plug-Ins" / "CLAP" / f"{PLUGIN_STEM}.clap",
     )
 
+    for kind, key, folder in (("vst3", "vst3_root", "VST3"), ("clap", "clap_root", "CLAP")):
+        script = pkg_work / f"scripts-{kind}" / "preinstall"
+        script.parent.mkdir(parents=True)
+        script.write_text(
+            render_macos_preinstall(kind, f"/Library/Audio/Plug-Ins/{folder}"),
+            encoding="utf-8",
+            newline="\n",
+        )
+        script.chmod(0o755)
+
     resources = pkg_work / "resources"
     resources.mkdir(parents=True)
     shutil.copy2(raw_stage / "README.txt", resources / "README.txt")
@@ -630,6 +673,8 @@ def stage_macos_pkg_roots(
         "app_root": app_root,
         "vst3_root": vst3_root,
         "clap_root": clap_root,
+        "scripts_vst3": pkg_work / "scripts-vst3",
+        "scripts_clap": pkg_work / "scripts-clap",
         "resources": resources,
         "dist_xml": dist_xml,
         "pkg_path": pkg_path,
@@ -673,16 +718,18 @@ def build_macos_pkg(
     paths = stage_macos_pkg_roots(label, out_dir, work_dir, root, target_dir)
     ver = numeric_version(label)
     pkg_work = paths["pkg_work"]
-    for name, root_key, id_suffix in (
-        ("app.pkg", "app_root", "app"),
-        ("vst3.pkg", "vst3_root", "vst3"),
-        ("clap.pkg", "clap_root", "clap"),
+    for name, root_key, id_suffix, scripts_key in (
+        ("app.pkg", "app_root", "app", None),
+        ("vst3.pkg", "vst3_root", "vst3", "scripts_vst3"),
+        ("clap.pkg", "clap_root", "clap", "scripts_clap"),
     ):
+        scripts_args = ["--scripts", str(paths[scripts_key])] if scripts_key else []
         subprocess.run(
             [
                 "pkgbuild",
                 "--root",
                 str(paths[root_key]),
+                *scripts_args,
                 "--identifier",
                 f"{APP_BUNDLE_ID}.pkg.{id_suffix}",
                 "--version",
