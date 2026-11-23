@@ -199,7 +199,7 @@ mod tests {
         u.dial(3, false);
         u.soft_down(1);
         assert_eq!(u.message.as_ref().unwrap().0, "Nothing to import");
-        assert_eq!(u.title, "Nord Stage 4");
+        assert_eq!(u.title, crate::branding::DEFAULT_PROGRAM_TITLE);
     }
 
     #[test]

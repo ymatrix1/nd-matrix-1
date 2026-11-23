@@ -157,7 +157,7 @@ impl Default for Stage4PanelState {
             loaded_piano_name: None,
 
             prog_id: "A:11".to_string(),
-            prog_title: "Nord Stage 4".to_string(),
+            prog_title: crate::branding::DEFAULT_PROGRAM_TITLE.to_string(),
             morph_wheel_active: false,
             morph_at_active: false,
             morph_ctrl_active: false,
