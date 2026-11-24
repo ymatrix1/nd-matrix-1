@@ -7,12 +7,13 @@ priority: normal
 created_at: 2026-11-23T21:40:00Z
 updated_at: 2026-11-23T21:40:00Z
 parent: ns4-lle1
-blocked_by:
-    - ns4-lle3
 ---
 
 ## Context
 Currently each DSP chip's audio is captured individually (`--tap` / `--wav` hand-over in `sharc-sys`, `sharc-live`, `sharc-fxlive`). `SPORT` / DAI audio DMA are unmodelled (`docs/specs/sharc-core.md` §6–§8), `FX Core2` falls off its poll loop after 1 pass (`docs/research/pno-jit-arm-profile.md`), and external SDRAM (`0x20xxxxxx`) delay/reverb mapping is still open.
+
+## Gate 1 outcome (2026-11-24)
+`ns4-lle3` measured NO-GO for real-time pure-LLE SHARC (slowest core x7.0 to x8.0 over budget; `docs/research/sharc-lle-realtime.md`). This task therefore targets **correct, slower-than-real-time multi-chip LLE** (offline render, null tests against HLE, oracle for Exact mode) and is the base of a **hybrid** (LLE only for cores that fit, Rust HLE for the rest). It must not assume real-time execution.
 
 ## Higher Goal
 Audio flows live from the tone-generating SHARC chips (`ORG`, `PNO`, `SY1SY2`, `SMP`) through `FX Core1/Core2` (including delay and reverb in external SDRAM) to the final stereo DAC output buffer without WAV hand-overs.

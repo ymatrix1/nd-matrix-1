@@ -22,6 +22,9 @@ Run the complete Nord Stage 4 hardware architecture (ARM0 + all 5 SHARC DSP imag
 
 Two precision modes share one lowered code path (compile-time switch, not two implementations): **Exact** (emulated 40-bit extended-precision float; bit-exact; the oracle and the default for offline renders, tests and CI comparisons) and **Fast** (native `f32`; real-time play; audibly equivalent within a stated error bound, for example max dB error over a reference render, measured and recorded per release). The user picks the mode in the UI (Settings and plugin parameter), as other emulators expose accuracy modes; Fast is never used for oracle comparison.
 
+## Gate 1 outcome (2026-11-24)
+SHARC whole-pass AOT prototype: bit-exact, NO-GO for real time (slowest core x7.0 to x8.0 over the 46.08 us budget; `docs/research/sharc-lle-realtime.md`). ARM0 Rust runtime: mean 0.20 to 0.34 ms per 1 ms tick, tail unproven (`docs/research/arm0-rust-runtime.md`). Gates 2 and 3 continue as slower-than-real-time LLE (oracle, offline render, null tests) plus a hybrid that runs LLE only for cores that fit; real-time pure LLE stays open until a redesign shows x2 or better.
+
 ## Acceptance Criteria
 Gate 1 — Real-time feasibility & speed:
 - [ ] `ns4-lle2` Rust in-process ARM0 emulator with idle-skipping (replaces Python/Unicorn harness; hits < 1 ms per 1 ms tick)
