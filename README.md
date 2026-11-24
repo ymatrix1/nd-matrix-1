@@ -5,10 +5,6 @@
   <sub>Built for interoperability, research, preservation, and compatibility purposes.</sub>
 </p>
 
-<p align="center">
-  <a href="https://github.com/sponsors/ymatrix1"><img alt="Sponsor on GitHub" src="https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white"></a>
-</p>
-
 ---
 
 The **Nord Stage 4** (`product_id=46`) is built around a **three-engine, 7-layer multitimbral DSP architecture** running across an **`ARM0`** host controller and parallel Analog Devices SHARC floating-point DSPs (**`DSPO`** Organ, **`DSPS`** Synth, **`DSPF`** Effects & Piano Resonance).

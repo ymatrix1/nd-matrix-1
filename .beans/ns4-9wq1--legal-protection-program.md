@@ -33,7 +33,7 @@ Done:
 
 Open — Tier 1 ($0 quick wins):
 - [ ] ns4-b9rn Rename `nord-plugin-standalone` and remove vendor prefix from shipped binaries
-- [ ] ns4-s3pn Remove in-GUI sponsorship button to keep strictly non-commercial posture
+- [x] ns4-s3pn Remove in-GUI sponsorship button to keep strictly non-commercial posture
 - [ ] ns4-vt4r Verify GitHub Releases for moved tags and request GitHub Support purge of old PR refs (Owner action)
 - [ ] ns4-6fbu Repository settings: required checks and description (Owner action)
 - [ ] ns4-d7mg Check macOS `.dmg` updater and `nordkeyboards.com` terms (free check)

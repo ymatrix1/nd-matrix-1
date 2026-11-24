@@ -471,7 +471,7 @@ The ticks below mean the model exists and is tested. Which parts match the firmw
 - [x] Keep DCO (no CLA) under $0 legal budget; `ADDITIONAL-PERMISSIONS.md` updated to cover contributors (`ns4-9ngp`)
 - [x] AppImage runtime license notices and LGPL corresponding source (`ns4-sgro`, D242)
 - [ ] Rename `nord-plugin-standalone` and remove `nord-` prefix from shipped binaries (`ns4-b9rn`)
-- [x] Remove in-GUI sponsorship button to keep strictly non-commercial posture (`ns4-s3pn`; README badge and `.github/FUNDING.yml` await an owner decision)
+- [x] Remove in-GUI sponsorship button to keep strictly non-commercial posture (`ns4-s3pn`; README badge and `.github/FUNDING.yml` removed too)
 - [ ] GitHub Support purge of old PR refs and release tag verification (`ns4-vt4r`, owner)
 - [ ] Required status checks and source-available repo description (`ns4-6fbu`, owner)
 - [ ] Free check of macOS `.dmg` updater and `nordkeyboards.com` terms (`ns4-d7mg`)
