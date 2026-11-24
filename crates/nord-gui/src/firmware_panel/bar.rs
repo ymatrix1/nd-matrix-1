@@ -150,12 +150,12 @@ pub fn show(ui: &mut egui::Ui, o: &mut FirmwareOptions) {
             let style = ui.style_mut();
             for id in [egui::TextStyle::Body, egui::TextStyle::Button] {
                 if let Some(f) = style.text_styles.get_mut(&id) {
-                    f.size = 12.5;
+                    f.size = crate::text_scale::px(12.5);
                 }
             }
-            style.spacing.item_spacing.y = 4.0;
-            style.spacing.interact_size.y = 21.0;
-            style.spacing.button_padding = egui::vec2(7.0, 2.0);
+            style.spacing.item_spacing.y = crate::text_scale::px(4.0);
+            style.spacing.interact_size.y = crate::text_scale::px(21.0);
+            style.spacing.button_padding = egui::vec2(7.0, 2.0) * crate::text_scale::factor();
             ui.horizontal(|ui| presets_and_status(ui, o));
             organ_row(ui, o);
             piano_row(ui, o);

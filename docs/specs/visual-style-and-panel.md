@@ -196,6 +196,54 @@ To keep every label legible on standard 1080p/1440p/4K monitors and inside DAW p
 
    The strip (56 logical px high, panel aspect) sits under the detailed view and draws section outlines only. State is `ViewState::panorama: Option<Rect>` in logical panel px; the default view is unchanged. Not persisted: the app persists no view settings (no eframe storage), so a new session starts in the overview with the drawer closed. The library drawer slides in and out (`SidePanel::show_animated`), `L` toggles it; library logic is unchanged.
 3. **Docked `.ns4b` Archive Browser & Knob Recall Mode:** The `.ns4b` library drawer docks as a resizable left `SidePanel` before the front-panel `CentralPanel` (never overlapping hardware controls), with an `Auto-close` toggle (enabled by default) that dismisses the browser upon selecting a Program, Piano, or Sample so the full top panel remains unobstructed. Several `.ns4b` banks can be open at once ([D239](../DECISIONS.md)): the first is the primary (Organize, Export, Live import), later ones merge into the Programs / Pianos / Samples lists; exact duplicates (same name, CRC-32, size) are skipped and different bytes under a taken name are listed as `<name> [<bank>]`. `Sync Knobs on Preset` defaults to `false` to match authentic non-motorized Nord Stage 4 hardware behavior (where OLEDs, `A:11..H:88` location, LED button rings, `fx_focus`, and layer/drawbar LED meters update while potentiometer caps keep their physical angle).
+4. **No monetization UI (`ns4-s3pn`):** neither the standalone bar nor the plugin bar carries a sponsor, donate or purchase control, and the app opens no funding URL. The project stays strictly non-commercial under PolyForm Noncommercial 1.0.0 ([LEGAL.md](../LEGAL.md)).
+
+## 5a. Double-stacked layout (design, issue #592)
+
+**Status:** designed, not built. Bean `ns4-ojc9` implements it. Reporter and owner: issue #592 ("Gui Text") asks for larger panel text; the owner announced "a config option for a double stacked version, dividing controls in two sections horizontally". The text size option (5b) ships first and makes the print bigger by showing less of the plate; this layout makes the print bigger by showing more of it at the same size.
+
+**Why.** The baked plate is 2632 x 650 px (4.05 : 1). In a 1920 px window it is drawn at 0.73x, so a 7.5 px label prints at 5.5 px. Stacking the controls in two rows halves the width the window must cover, so the same window draws everything about 1.4x to 2x bigger and nothing needs panning.
+
+**Layout (plate px of `crates/nord-gui/assets/baked/panel_layout.json`).**
+
+| Part | Source rectangle (x, y, w, h) | Content | Drawn |
+|---|---|---|---|
+| Row A (top) | 0, 0, 1323, 420 | wheels, `bay-master` (169), `bay-organ` (251), `bay-piano` (747), `bay-program` (995..1321) | 1.0x |
+| Row B (middle) | 1323, 0, 1309, 420 | `bay-synth` (1325), `bay-fx` (1987..2569), right end cap | 1.0x, left-aligned under row A, 14 px of chassis fill on the right |
+| Keybed (bottom) | 0, 420, 2632, 230 | 88 keys (`keys` y 425..643, white key 49 px) | uniform 0.503x (1323 / 2632): 1323 x 116, white key 24.6 px |
+
+The split is at x = 1323, the 4 px gap between `bay-program` (ends 1321) and `bay-synth` (starts 1325): no control crosses it (measured 2026-11-24 on `panel_layout.json`: 0 control rectangles cross x = 1323 and all end at y <= 419; the test below keeps it true after the `ns4-80xe` rebake). Canvas 1323 x 956 (aspect 1.38 : 1). Gain over the wide plate for a window `W` x `H` (bar excluded): `min(W/1323, H/956) / min(W/2632, H/650)`; 1920 x 1000 gives 1.43x, 1760 x 1300 gives 1.99x. Order is reading order: Master, Organ, Piano, Program, then Synth, Effects, then the keys. ASSUMED: the Piano / Program row and the Synth / Effects row balance in width (1323 vs 1309 px); the split could instead follow the instrument's Layer A / B, which would move Program.
+
+**How (least invasive).** The plate stays one picture and the overlays keep their normalized plate coordinates. A `PlateMap` replaces the single `plate_rect` that `baked_view.rs` and `baked_buttons.rs` derive every control rectangle from (`BakedRect::in_rect(plate_rect)`): it holds the three source rectangles above and their destination rectangles, paints the plate in three clipped pieces (`Painter::image` with a UV sub-rectangle each) and maps a normalized point to the piece that contains it. Wide mode is the identity `PlateMap` (one piece), so the default is byte-identical to today. Per piece, widgets already take their rectangle, so no widget changes.
+
+| Part | Change |
+|---|---|
+| Setting | `layout` = `wide` (default) or `stacked` in `ns4/config.json` (`user_config.rs`), a bar pill `1x2` and `Ctrl L`, shared by the standalone and the plugin editor |
+| Zoom (`baked_zoom.rs`) | the aspect becomes the canvas aspect; bay jumps use the bay's destination rectangle; `base` (5b) multiplies on top |
+| Plugin window | `size_for_width` uses the stacked aspect (1.38 : 1) when the layout is stacked; the host window grows taller |
+| Hover, section keys `1`-`5` | unchanged (bays resolve through the map) |
+| Keybed hits and key lighting | `keys` rectangles map through the keybed piece |
+
+Tests to ship with it: the split line crosses no control or bay rectangle (every `px` rect of `panel_layout.json` lies in exactly one source rectangle); wide mode produces the same rectangles as today for every control; stacked rectangles lie inside the canvas and do not overlap; headless frame at 100 and 150 percent text size shows no clipped label (the same check as `text_scale_tests.rs`); the plugin window aspect follows the layout; the config round-trips. Out of scope: a third arrangement (rack of bays in a column), rebaking art for the stacked layout.
+
+## 5b. Text size option (issue #592)
+
+`crates/nord-gui/src/text_scale.rs`, one setting for the standalone and the plugin editor: 100 to 200 percent in steps of 25 (ASSUMED, see the module doc).
+
+| What | How |
+|---|---|
+| Choice | `TextScale` (percent, snapped); saved as `text_scale_percent` in `<config dir>/ns4/config.json` (`nord_core::user_config`), loaded once when a window opens, saved on every change, kept when the Nord OS update path is set or cleared (`firmware_setting::set` / `clear`) |
+| Keys, bar | `Ctrl +` / `Ctrl =` larger, `Ctrl -` smaller, `Ctrl 0` 100 %; bar pills `A-` `NNN%` `A+` after the zoom pills (standalone bar and plugin bar) |
+| Egui text | `scale_style`: every `TextStyle` size and the spacing fields (item spacing, button padding, interact size, icon sizes, indent, combo height, slider and text edit width) are the egui defaults times the factor, derived from the defaults each time so changes never compound; explicit font sizes of the chrome go through `px(base)` (thread-local factor, set by `apply` at the start of each frame) |
+| Chrome geometry | bar height `bar_height()` (22 pt x factor), minimum standalone window `max(960, bar + window buttons)` wide and never wider than the monitor (`min_window_width`, `MinInnerSize`), minimum plugin editor width `max(640, bar + 40)` (`editor_min_width`), a size change or a saved size asks the host for the matching window (`size_window_for_text`, `EguiState::set_requested_size`; the host may refuse), Studio Settings viewport `880 x 520 x factor` (capped 1600 x 1000), dialog field widths via `px` |
+| Plate | `BakedZoom::base` = factor: `Fit` (key `0`, pill `FIT`) shows the plate at `factor` times the fitted size, top-left first, and the usual pan / zoom / `1`-`5` keys move around. The zoom pills still read zoom against the whole plate (`150%`) |
+| Plugin window | `size_for_width` adds the scaled bar height and the scaled minimum width, so the aspect lock keeps the plate fitted below a taller bar |
+| Not used | egui's zoom factor: `egui_baseview` lays out with the native pixels-per-point, so a zoom factor mis-sizes the surface there (`editor/draw.rs` header); egui's own `Ctrl +/-` is switched off so it never doubles the scale |
+| Screenshots | `--screenshot` ignores the saved size (always the plain 100 % panel) |
+
+What it does not change: the printed legends are part of the baked plate picture; making them bigger means showing less of the plate (the magnified `Fit`), or the stacked layout (5a). Text drawn by egui over the plate (OLED text, tooltips of controls) follows the factor through the style.
+
+Checks (headless, no window): `editor/text_scale_tests.rs` renders the real editor frame at 100 / 125 / 150 / 175 / 200 %: every bar label lies inside the window and its clip rectangle and no two overlap; the `DEBUG` pill text is 10 / 16 / 21 pt high at 100 / 150 / 200 % (EMPIRICAL text-row measurement, not a bitmap); the Studio Settings dialog (all five tabs) fits inside the editor window and its title grows with the size at 100 / 150 / 200 %; an 800 point wide host is asked for a window the bar fits in at 150 and 200 %; Ctrl + / - is ignored while a text field has the keyboard (`text_scale.rs`); the Studio Settings theme spacing follows the size (`debug_dialog.rs`); a malformed `text_scale_percent` reads as absent and keeps the other saved settings (`user_config.rs`); every check is on painted text rectangles, there is no golden bitmap (the headless context has no GPU); `Ctrl +` / `-` / `0` change and save the size; the plate is magnified by the factor and starts at the left; `size_for_width` keeps the aspect under the taller bar. `panel/baked_zoom_base_tests.rs` checks `BakedZoom::base`. Not verified here: a real display and a DAW host.
 
 ---
 

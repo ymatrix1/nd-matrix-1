@@ -13,6 +13,14 @@ pub use super::pattern_presets::{
 /// ASSUMED: 50 % duty (4/8); the manual only says the level is gated at the Rate setting.
 const PLAIN_GATE_EIGHTHS: u8 = 4;
 
+/// Time constant of the firmware gate smoother, seconds; ENV does not change it.
+/// VERIFIED: the SHARC pass preamble runs `g += 0.005 (G - g)` once per pass (2 SY frames at
+/// 43,402.34 Hz), so `tau = 2 / 43402.34 / -ln(1 - 0.005) = 9.19 ms`; fit of the replayed ORG core 2
+/// layer-mix multiplier on both edges by `tools/gate_edge_probe.py` (PR 641,
+/// `docs/research/gate-float-consumer.md`), 0.005 per pass for rise and fall. The pass length is
+/// ASSUMED (D121).
+const GATE_FIRMWARE_TAU_S: f32 = 2.0 / 43_402.344 / 0.005_012_542;
+
 /// Master Clock subdivision selected by the Rate knob when synced (manual p.37, "1/2 .. 1/32,
 /// T = triplet").
 ///
@@ -296,10 +304,14 @@ impl SynthLayer {
         // Arp / Poly gate (`arp_firmware_gate`); the legacy gate keeps `eighths / 8`.
         let open = phase < self.arp_gate_fraction(self.perf.cur_len);
         let target = if open { 1.0 } else { 0.0 };
-        // ASSUMED: tau = 25 % of a step at ENV 0 down to 0.5 ms at ENV 1; the manual only says
-        // "very soft" to "very hard". Confirm by scoping the gate edge on hardware.
-        let env = self.perf.gate_env.clamp(0.0, 1.0);
-        let tau = step_sec * 0.25 * (1.0 - env) + 0.0005;
+        let tau = if self.arp_firmware_gate {
+            GATE_FIRMWARE_TAU_S
+        } else {
+            // ASSUMED (legacy gate): tau = 25 % of a step at ENV 0 down to 0.5 ms at ENV 1; the
+            // manual only says "very soft" to "very hard".
+            let env = self.perf.gate_env.clamp(0.0, 1.0);
+            step_sec * 0.25 * (1.0 - env) + 0.0005
+        };
         let coeff = 1.0 - (-inv_fs / tau).exp();
         self.perf.gate_level += (target - self.perf.gate_level) * coeff;
     }

@@ -8,3 +8,6 @@ Copy of `nih_plug_egui` from https://github.com/robbert-vdh/nih-plug (rev de4210
    HiDPI hosts. It now multiplies by the native pixels-per-point.
 2. `editor.rs`: the resize request stays set while `request_resize()` runs; upstream cleared it first, so the host was asked for the OLD size.
 3. `EguiState::set_requested_size` is `pub`.
+
+4. `editor.rs`: on Windows, `EguiEditorHandle::drop` destroys the window synchronously (`DestroyWindow`) instead of only posting baseview's async close message. Hosts unload the DLL right after `removed()`, and the still-queued message called a window proc in unmapped code (access violation on closing the VST3, issue #629).
+5. `lib.rs`: `EguiState::requested_size` getter (read-only), so tests can see a resize the editor asked for.

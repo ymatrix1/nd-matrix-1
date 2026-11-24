@@ -12,7 +12,6 @@
 //! Real-time safety: construction allocates the DM image; `step` does not allocate, lock or do I/O.
 
 mod image;
-mod rows;
 
 use super::b3_bass_fw::Machine;
 

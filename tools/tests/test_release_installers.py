@@ -74,7 +74,7 @@ def test_stage_linux_deb_layout_and_control(tmp_path):
 
     assert (pkg_root / "usr" / "bin" / "ns4").exists()
     assert (pkg_root / "usr" / "bin" / "nd-matrix-1").exists()
-    assert (pkg_root / "usr" / "bin" / "nord-plugin-standalone").exists()
+    assert (pkg_root / "usr" / "bin" / "nd-matrix-1-standalone").exists()
     assert (pkg_root / "usr" / "lib" / "clap" / "nd-matrix-1.clap").exists()
     assert (
         pkg_root

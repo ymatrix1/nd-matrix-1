@@ -2,16 +2,16 @@
 //! remember it, report whether the WAVE tables load. Reads the file on demand; stores only its path.
 
 use crate::render_opts_wave::WAVE_TABLES_ENV;
-use crate::user_config::{self, UserConfig};
+use crate::user_config;
+#[cfg(test)]
+use crate::user_config::UserConfig;
 use std::path::{Path, PathBuf};
 
-/// Official download links of the current OS (v1.66). VERIFIED: both answered `302` to a HEAD
-/// request on 2026-11-12, `tools/nord_os_urls.py` (the document id is only valid with this name).
-pub const DOWNLOAD_WINDOWS: &str =
-    "https://www.nordkeyboards.com/wt/documents/1042/Update%20Nord%20Stage%204%20OS%20v1.66.zip";
-/// Mac disk image of the same release (see [`DOWNLOAD_WINDOWS`]).
-pub const DOWNLOAD_MAC: &str =
-    "https://www.nordkeyboards.com/wt/documents/1041/Update%20Nord%20Stage%204%20OS%20v1.66.dmg";
+/// The vendor's Nord Stage 4 Downloads page, where the user picks the OS update for their platform
+/// (Windows `.zip`, Mac `.dmg`). We link the page, not a file, so the user downloads from the
+/// vendor themselves (`docs/LEGAL.md` section 2). VERIFIED: the page loaded and listed the v1.66
+/// Windows and Mac updates on 2026-11-24, checked by hand in a browser (no download).
+pub const DOWNLOADS_PAGE: &str = "https://www.nordkeyboards.com/products/nord-stage-4/downloads";
 /// Shown when no update file is set.
 pub const PLACEHOLDER_NOTE: &str =
     "No Nord OS update file set: the built-in placeholder wavetable is used for WAVE sounds.";
@@ -69,18 +69,18 @@ pub fn set(path: &Path, config: &Path) -> Result<usize, String> {
     let abs = std::fs::canonicalize(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let shown = abs.to_string_lossy();
     let shown = shown.strip_prefix(r"\\?\").unwrap_or(&shown).to_string();
-    user_config::save(
-        config,
-        &UserConfig {
-            os_update_path: Some(shown),
-        },
-    )?;
+    // Keep the other saved settings (text size): only the path changes.
+    let mut saved = user_config::load(config).unwrap_or_default();
+    saved.os_update_path = Some(shown);
+    user_config::save(config, &saved)?;
     Ok(n)
 }
 
 /// Forgets the saved path.
 pub fn clear(config: &Path) -> Result<(), String> {
-    user_config::save(config, &UserConfig::default())
+    let mut saved = user_config::load(config).unwrap_or_default();
+    saved.os_update_path = None;
+    user_config::save(config, &saved)
 }
 
 /// Plain-language text of a [`Status`] for the CLI and the GUI.
@@ -93,7 +93,7 @@ pub fn describe(s: &Status) -> String {
             )
         });
         return format!(
-            "{broken}{PLACEHOLDER_NOTE}\nGet the official update: {DOWNLOAD_WINDOWS}\n(Mac: {DOWNLOAD_MAC})\nThen run: ns4 firmware set \"<downloaded file>\""
+            "{broken}{PLACEHOLDER_NOTE}\nGet the official update (Windows .zip or Mac .dmg) from the Nord Stage 4 Downloads page: {DOWNLOADS_PAGE}\nThen run: ns4 firmware set \"<downloaded file>\""
         );
     };
     let from = match src {
@@ -169,7 +169,22 @@ mod tests {
         );
         let t = describe(&s);
         assert!(t.contains("placeholder"), "{t}");
-        assert!(t.contains("nordkeyboards.com/wt/documents/1042"), "{t}");
+        assert!(t.contains(DOWNLOADS_PAGE), "{t}");
+        assert!(!t.contains("/wt/documents/"), "{t}");
+    }
+
+    #[test]
+    fn the_download_link_is_the_downloads_page_not_a_file() {
+        assert_eq!(
+            DOWNLOADS_PAGE,
+            "https://www.nordkeyboards.com/products/nord-stage-4/downloads"
+        );
+        for deep in ["/wt/documents/", ".zip", ".dmg", ".exe"] {
+            assert!(
+                !DOWNLOADS_PAGE.contains(deep),
+                "{DOWNLOADS_PAGE} has {deep}"
+            );
+        }
     }
 
     #[test]
@@ -192,6 +207,7 @@ mod tests {
             &c,
             &UserConfig {
                 os_update_path: Some("/saved".into()),
+                ..Default::default()
             },
         )
         .unwrap();
@@ -215,6 +231,29 @@ mod tests {
         assert_eq!(s.path.as_ref().unwrap().1, Source::Saved);
         assert_eq!(s.tables, Some(Ok(46)));
         assert!(describe(&s).contains("OK: 46 WAVE tables"));
+    }
+
+    #[test]
+    fn set_keeps_the_saved_text_size() {
+        let c = cfg("keep-text-size");
+        user_config::save(
+            &c,
+            &UserConfig {
+                text_scale_percent: Some(175),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let img = std::env::temp_dir().join(format!("ns4-fwset-keep-{}.bin", std::process::id()));
+        std::fs::write(&img, crate::synth::fw_wave_tables::tests::image()).unwrap();
+        set(&img, &c).unwrap();
+        let saved = user_config::load(&c).unwrap();
+        assert_eq!(saved.text_scale_percent, Some(175));
+        assert!(saved.os_update_path.is_some());
+        clear(&c).unwrap();
+        let cleared = user_config::load(&c).unwrap();
+        assert_eq!(cleared.text_scale_percent, Some(175));
+        assert_eq!(cleared.os_update_path, None);
     }
 
     #[test]
@@ -245,6 +284,7 @@ mod tests {
             &c,
             &UserConfig {
                 os_update_path: Some("/x".into()),
+                ..Default::default()
             },
         )
         .unwrap();

@@ -18,16 +18,16 @@ Repository holds only our own work; firmware data is read from the user OS updat
 
 **Acceptance Criteria**
 - [x] Loader for core DSP images via FirmwareContainer::extract_segment (`crates/nord-core/src/dsp_image/`: chain finder and loader stream reader; `bank0_code` uses `extract_segment`)
-- [ ] Default render without an image has a documented fallback (done for Farfisa: the opt-in stage is not built without the file and the layer renders the stage-off model, `docs/specs/organ-engine.md` 3.1.8; open for the other migrations)
+- [ ] Default render without an image has a documented fallback (done for Farfisa and B3 Bass: the opt-in stages are not built without the file, `b3_bass_firmware_loaded()` is false, the layer keeps its tail; `docs/specs/organ-engine.md` 3.1.8 and the Bass firmware image paragraph; open for the other migrations)
 - [ ] Each path below is migrated to runtime loading with a synthetic-fixture test, then deleted and removed from `tools/fw-derived-baseline.txt` (the ratchet in `tools/check_fw_derived.py` only allows the list to shrink). Verification needs the owner's OS update file, which is not available in the agent environment.
-- [ ] `crates/nord-core/src/organ/b3_bass_fw/prog_gen.rs`
-- [ ] `crates/nord-core/src/organ/b3_bass_fw/prog_proc.rs`
-- [ ] `crates/nord-core/src/organ/b3_bass_fw/native_bass_gen.rs` (now tracked on `tools/fw-derived-baseline.txt`)
-- [ ] `crates/nord-core/src/organ/b3_bass_fw/native_bass_proc.rs` (now tracked on `tools/fw-derived-baseline.txt`)
+- [x] `crates/nord-core/src/organ/b3_bass_fw/prog_gen.rs` (migrated 2026-11-24: 555 of 555 rows equal on the v1.66 file)
+- [x] `crates/nord-core/src/organ/b3_bass_fw/prog_proc.rs` (migrated 2026-11-24: 898 of 898 rows equal)
+- [x] `crates/nord-core/src/organ/b3_bass_fw/native_bass_gen.rs` (deleted 2026-11-24 with the straight line generator `native_gen.rs`; output hash unchanged)
+- [x] `crates/nord-core/src/organ/b3_bass_fw/native_bass_proc.rs` (deleted 2026-11-24)
 - [x] `crates/nord-core/src/organ/farfisa_fw/prog_proc.rs` (migrated 2026-11-23: rows decoded at setup time from the update file; 957 of 957 rows equal; the generated `b3_bass_fw/native_farfisa.rs` is removed with it)
 - [ ] `crates/nord-core/src/organ/firmware_bank.rs`
 - [ ] `crates/nord-core/src/organ/vox_image.rs`
-- [ ] `docs/research/data/bass-fw-image.csv`
+- [x] `docs/research/data/bass-fw-image.csv` (migrated 2026-11-24: 6,881 of 6,881 DM words and 12 of 12 registers equal; 4,732 words are the install delta `bass-fw-install-delta.csv`, 2,834 of them as `A` offsets into the user's file, 1,898 inline: class D, owner review wanted)
 - [x] `docs/research/data/farfisa-fw-image.csv` (migrated 2026-11-23: 802 of 802 DM words equal; 48 install words stay as `farfisa-fw-install-delta.csv`, class D, owner review wanted)
 - [ ] `crates/nord-core/src/engine/zone_table.rs`
 - [ ] `crates/nord-core/src/fx/fw_coeffs.rs`
@@ -66,3 +66,4 @@ History rewrite (owner decision). The ratchet itself (bean `ns4-r4tq`, done).
 
 **Summary of Changes**
 - 2026-11-23, first migration (Farfisa processor): new `crates/nord-core/src/dsp_image/` (five-image chain finder, loader stream reader), `organ/farfisa_fw/image.rs` and `rows.rs` (rows decoded with the `nord-sharc` VISA decoder), 48 word install delta `farfisa-fw-install-delta.csv`; removed `farfisa-fw-image.csv`, `farfisa_fw/prog_proc.rs`, `b3_bass_fw/native_farfisa.rs`; D128 update, inventory, organ spec 3.1.8. Remaining: Bass, Vox / tonewheel bank, Synth, FX and ARM tables.
+- 2026-11-24, second migration (B3 Bass chain): `organ/b3_bass_fw/image.rs` builds the generator `0x121BBE` and processor `0x122296` rows and the DM image from the user's OS update file (shared `organ/sharc_rows/`, `dsp_image/dm_text.rs`, `dsp_image/cache.rs`); the straight line code is deleted, so the compiled in place program runs (0.78 s of CPU per second of audio, was 0.38 to 0.52 s; audio hash unchanged); without the file the stage is not built (`b3_bass_firmware_loaded()`), `--b3-bass-processor on` prints the fallback. Removed `prog_gen.rs`, `prog_proc.rs`, `native_bass_gen.rs`, `native_bass_proc.rs`, `native_gen.rs`, `bass-fw-image.csv`; baseline shrunk by 5 class B paths plus `native_gen.rs`. Only OS v1.66 (`.exe`, `.dmg`) passes the guard. Remaining class B: `vox_image.rs`, `firmware_bank.rs`; then class C.

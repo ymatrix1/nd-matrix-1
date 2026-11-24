@@ -139,10 +139,10 @@ mod tests {
         s.layer_button(0, Gesture::Tap, true, true);
         assert!(s.sustped);
         s.layer_button(1, Gesture::Tap, true, true);
-        assert!(s.pstick);
+        assert!(!s.pstick, "starts On, the first Shift+B turns it Off");
         assert_eq!(
             s.take_edits(),
-            vec![SynthEdit::Sustped(true), SynthEdit::Pstick(true)]
+            vec![SynthEdit::Sustped(true), SynthEdit::Pstick(false)]
         );
         s.layer_button(0, Gesture::Tap, true, true);
         assert_eq!(s.take_edits(), vec![SynthEdit::Sustped(false)]);

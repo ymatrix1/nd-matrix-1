@@ -9,6 +9,8 @@
 //!
 //! Nothing here is stored: callers read the user's file at setup time and drop the bytes (D22).
 
+pub mod cache;
+pub mod dm_text;
 pub mod ldr;
 
 use crate::firmware::FirmwareContainer;

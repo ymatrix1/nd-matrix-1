@@ -178,7 +178,7 @@ jobs:
           set -euo pipefail
           cargo build --release --locked --target "${{ matrix.target }}" -p nord-core --bin ns4
           cargo build --release --locked --target "${{ matrix.target }}" -p nord-gui --bin nd-matrix-1
-          cargo build --release --locked --target "${{ matrix.target }}" -p nord-plugin --bin nord-plugin-standalone
+          cargo build --release --locked --target "${{ matrix.target }}" -p nord-plugin --bin nd-matrix-1-standalone
           cargo xtask bundle nord-plugin --release --locked --target "${{ matrix.target }}"
 
       - name: Smoke test the CLI

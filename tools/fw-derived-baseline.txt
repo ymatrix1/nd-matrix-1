@@ -4,13 +4,8 @@
 # Source of the classes: docs/research/firmware-derived-data-inventory.md
 
 # class B
-crates/nord-core/src/organ/b3_bass_fw/native_bass_gen.rs
-crates/nord-core/src/organ/b3_bass_fw/native_bass_proc.rs
-crates/nord-core/src/organ/b3_bass_fw/prog_gen.rs
-crates/nord-core/src/organ/b3_bass_fw/prog_proc.rs
 crates/nord-core/src/organ/firmware_bank.rs
 crates/nord-core/src/organ/vox_image.rs
-docs/research/data/bass-fw-image.csv
 
 # class C
 crates/nord-core/src/engine/zone_table.rs
@@ -46,8 +41,6 @@ docs/research/data/synth-velocity-law.csv
 docs/research/data/synth-wave-types.csv
 
 # class D (reviewed false positives of the name heuristics; they stay tracked)
-# generator tool for native_bass_*.rs; holds no firmware instruction rows itself
-crates/nord-core/src/organ/b3_bass_fw/native_gen.rs
 # runtime loader code (D22, D127), reads the user's image; holds no table words
 crates/nord-core/src/synth/fw_wave_tables.rs
 # capture of our own ARM harness run (inventory class D)

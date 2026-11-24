@@ -19,7 +19,11 @@ fn text(p: &Painter, pos: Pos2, s: &str, size: f32, al: Align2, col: Color32) {
 
 /// Waveform icon as `(x, y)` in `0..=1` (`y` up), `n` samples over one or two periods.
 pub fn wave_points(icon: Icon, n: usize) -> Vec<(f32, f32)> {
-    let periods = 2.0;
+    wave_points_n(icon, n, 2.0)
+}
+
+/// [`wave_points`] over `periods` periods.
+pub fn wave_points_n(icon: Icon, n: usize, periods: f32) -> Vec<(f32, f32)> {
     (0..n)
         .map(|i| {
             let x = i as f32 / (n - 1).max(1) as f32;

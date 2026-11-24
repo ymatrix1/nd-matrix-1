@@ -197,7 +197,102 @@ unsafe impl Send for EguiEditorHandle {}
 impl Drop for EguiEditorHandle {
     fn drop(&mut self) {
         self.egui_state.open.store(false, Ordering::Release);
+
+        // NOTE (nd matrix 1): `WindowHandle::close()` only POSTS a close message, so on Windows the
+        // window (and its `wnd_proc`, which lives in this DLL) was destroyed later by the host's
+        // message pump. Hosts such as VSTHost unload the plugin right after `removed()`, so the next
+        // message called a window proc in unmapped code (0xC0000005 on closing the VST3, issue #629).
+        // Destroy it synchronously here: `removed()` runs on the thread that created the window.
+        #[cfg(windows)]
+        if self.window.is_open() {
+            if let RawWindowHandle::Win32(handle) = self.window.raw_window_handle() {
+                if win32::destroy_window_now(handle.hwnd) {
+                    return;
+                }
+            }
+        }
+
         // XXX: This should automatically happen when the handle gets dropped, but apparently not
         self.window.close();
+    }
+}
+
+#[cfg(windows)]
+mod win32 {
+    use std::ffi::c_void;
+
+    #[link(name = "user32")]
+    extern "system" {
+        fn DestroyWindow(hwnd: *mut c_void) -> i32;
+        #[cfg(test)]
+        pub fn IsWindow(hwnd: *mut c_void) -> i32;
+    }
+
+    /// Destroy `hwnd` before returning (baseview's own close is asynchronous). Returns whether the
+    /// window was destroyed; `WM_NCDESTROY` frees the baseview window state inside this call.
+    pub fn destroy_window_now(hwnd: *mut c_void) -> bool {
+        if hwnd.is_null() {
+            return false;
+        }
+        // SAFETY: `hwnd` came from a live baseview window created on this thread.
+        unsafe { DestroyWindow(hwnd) != 0 }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[link(name = "user32")]
+        extern "system" {
+            fn CreateWindowExW(
+                ex: u32,
+                class: *const u16,
+                name: *const u16,
+                style: u32,
+                x: i32,
+                y: i32,
+                w: i32,
+                h: i32,
+                parent: *mut c_void,
+                menu: *mut c_void,
+                inst: *mut c_void,
+                param: *mut c_void,
+            ) -> *mut c_void;
+        }
+
+        fn wide(s: &str) -> Vec<u16> {
+            s.encode_utf16().chain(std::iter::once(0)).collect()
+        }
+
+        /// The window is gone when the call returns (a posted close message would leave it alive).
+        #[test]
+        fn destroy_window_now_destroys_synchronously() {
+            let class = wide("STATIC");
+            let hwnd = unsafe {
+                CreateWindowExW(
+                    0,
+                    class.as_ptr(),
+                    class.as_ptr(),
+                    0,
+                    0,
+                    0,
+                    10,
+                    10,
+                    std::ptr::null_mut(),
+                    std::ptr::null_mut(),
+                    std::ptr::null_mut(),
+                    std::ptr::null_mut(),
+                )
+            };
+            assert!(!hwnd.is_null(), "test window not created");
+            assert_eq!(unsafe { IsWindow(hwnd) }, 1);
+            assert!(destroy_window_now(hwnd));
+            assert_eq!(unsafe { IsWindow(hwnd) }, 0, "window outlived the call");
+        }
+
+        #[test]
+        fn destroy_window_now_rejects_null() {
+            assert!(!destroy_window_now(std::ptr::null_mut()));
+        }
     }
 }

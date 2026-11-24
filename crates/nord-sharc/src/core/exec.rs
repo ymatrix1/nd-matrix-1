@@ -118,14 +118,25 @@ impl Core {
                         .collect::<Vec<_>>()
                         .join(" ")
                 };
-                self.trace_log.push(format!(
+                let mut line = format!(
                     "pc {:x} R {} S {} I {} M {}",
                     self.pc,
                     hex(&self.r),
                     hex(&self.s),
                     hex(&self.i),
                     hex(&self.m)
-                ));
+                );
+                let (base, count) = self.trace_dm;
+                if count > 0 {
+                    let words: Vec<String> = (0..count)
+                        .map(|k| {
+                            self.dm_peek(base.wrapping_add(k))
+                                .map_or_else(|| "-".to_string(), |w| format!("{w:x}"))
+                        })
+                        .collect();
+                    line.push_str(&format!(" DM {base:x} {}", words.join(" ")));
+                }
+                self.trace_log.push(line);
             }
         }
     }
@@ -341,6 +352,34 @@ mod tests {
         .unwrap();
         assert_eq!((c.astat(0) >> 6) & 1, 0);
         assert_eq!((c.astat(1) >> 6) & 1, 1);
+    }
+
+    #[test]
+    fn trace_dm_appends_data_words_read_without_side_effects() {
+        let mut c = core_with(&[0x0001]);
+        c.dm_write(0xB_135C, 0x3F00_0000).unwrap();
+        c.dm_write(0xB_135D, 0x1).unwrap();
+        let start = c.pc;
+        c.trace = Some((start, start, 10));
+        c.trace_dm = (0xB_135C, 3);
+        c.rwatch = 0xB_135C;
+        c.rwatch_on = true;
+        c.step().unwrap();
+        assert!(
+            c.trace_log[0].ends_with(" DM b135c 3f000000 1 0"),
+            "{}",
+            c.trace_log[0]
+        );
+        assert!(c.rwatch_hits.is_empty(), "the peek is not a load");
+        c.trace_dm = (0x4000_0000, 1);
+        c.trace_log.clear();
+        c.pc = start;
+        c.step().unwrap();
+        assert!(
+            c.trace_log[0].ends_with(" DM 40000000 -"),
+            "{}",
+            c.trace_log[0]
+        );
     }
 
     #[test]

@@ -22,7 +22,7 @@ wheels = [
 
 [[package]]
 name = "nord-stage-4-tools"
-version = "0.1.4"
+version = "0.1.5"
 source = { virtual = "." }
 dependencies = [
     { name = "numpy" },

@@ -9,7 +9,7 @@ forward-slash zip entries, and an allowlist so nothing outside the expected file
 Archive layout (one top-level folder, so extraction never litters the cwd):
 
     nd-matrix-1-<tag>-<platform>/
-        ns4[.exe]  nd-matrix-1[.exe]  nord-plugin-standalone[.exe]
+        ns4[.exe]  nd-matrix-1[.exe]  nd-matrix-1-standalone[.exe]
         nd-matrix-1.clap  nd-matrix-1.vst3/
         README.txt  HOST_COMPATIBILITY.md  THIRD_PARTY_LICENSES.html
         ADDITIONAL-PERMISSIONS.md  TRADEMARKS.md  [LICENSE*]
@@ -34,7 +34,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 PRODUCT = "nd-matrix-1"
-BINS = ("ns4", "nd-matrix-1", "nord-plugin-standalone")
+# Plugin build hosted by nih-plug's standalone wrapper (needs an audio device). Distinct from
+# the `nd-matrix-1` egui GUI, so it ships too; named after the product, never `nord-` (ns4-b9rn).
+STANDALONE_BIN = "nd-matrix-1-standalone"
+BINS = ("ns4", "nd-matrix-1", STANDALONE_BIN)
+# Binary name shipped before the rename; Windows installs delete it so no stale copy remains.
+LEGACY_STANDALONE_BIN = "nord-plugin-standalone"
 # Must equal `[nord-plugin] name` in bundler.toml (xtask names the bundles after it).
 PLUGIN_STEM = "nd-matrix-1"
 # Bundle name shipped before the rename; installers delete it so no second copy remains.

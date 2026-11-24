@@ -1,4 +1,4 @@
-"""Tests for sharc_listing_rust.py, organ_bass_fw_gen.py and organ_bass_voice.py."""
+"""Tests for sharc_listing_rust.py, organ_bass_fw_gen.py (mem_runs) and organ_bass_voice.py."""
 
 from __future__ import annotations
 
@@ -51,16 +51,6 @@ def test_alu_forms_and_conditional_execution_are_decoded() -> None:
     assert fext[3:7] == [14, 0x19, 0x7, 1]  # source, pos, length, sign extend
     assert any(x[0] == slr.MRF_SET for x in r)
     assert not any(x[0] == slr.LOAD and x[1] > 96 for x in r)  # nothing after the rts
-
-
-def test_rust_text_lists_rows_three_per_line(monkeypatch) -> None:  # noqa: ANN001
-    monkeypatch.setattr(gen.olc, "disassemble", lambda *_a: vm.parse_listing(LISTING))
-    text = gen.rust_text("image", gen.PROC)
-    n = len(rows())
-    assert f"static PROC_ROWS: [Row; {n}] = [" in text
-    body = [x for x in text.splitlines() if x.startswith("    [")]
-    assert len(body) == -(-n // 3) and body[0].startswith("    [0,1,0,0,0,0,0,0], [4,34,4,1,-32")
-    assert "];\n\n#[cfg(test)]\nmod tests {" in text and text.endswith("}\n")
 
 
 def test_memory_runs_merge_consecutive_words() -> None:

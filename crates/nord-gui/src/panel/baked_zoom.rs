@@ -61,6 +61,9 @@ pub struct BakedZoom {
     pub request: Option<ZoomRequest>,
     /// Bay under the pointer on empty plate (not over a control), for the hover highlight.
     pub hover: Option<Section>,
+    /// Zoom of the "fit" view: 1 shows the whole plate, the text size option (`text_scale.rs`)
+    /// makes it 1.25 to 2 so the printed legends grow; `Fit` returns to it, panning stays free.
+    pub base: f32,
 }
 
 impl Default for BakedZoom {
@@ -71,6 +74,7 @@ impl Default for BakedZoom {
             section: None,
             request: None,
             hover: None,
+            base: MIN_ZOOM,
         }
     }
 }
@@ -139,7 +143,21 @@ impl BakedZoom {
 
     /// Fit the whole plate.
     pub fn fit(&mut self) {
-        *self = Self::default();
+        *self = Self {
+            zoom: self.base,
+            base: self.base,
+            ..Self::default()
+        };
+    }
+
+    /// Set the zoom of the fit view; a view that was at the old fit view follows it.
+    pub fn set_base(&mut self, base: f32) {
+        let at_fit = self.zoom <= self.base + 1e-3;
+        self.base = base.clamp(MIN_ZOOM, MAX_ZOOM);
+        // A view smaller than the new fit view would show less print than the setting promises.
+        if at_fit || self.zoom < self.base {
+            self.request = Some(ZoomRequest::Fit);
+        }
     }
 
     /// Zoom so the normalized `rect` fills `view` (with a small margin), centred on it.
@@ -189,7 +207,14 @@ impl BakedZoom {
         bays: &BTreeMap<String, BakedRect>,
     ) {
         match req {
-            ZoomRequest::Fit => self.fit(),
+            ZoomRequest::Fit => {
+                self.fit();
+                if self.base > MIN_ZOOM {
+                    // A magnified fit view starts at the top left, where the reading starts.
+                    self.center = Vec2::ZERO;
+                    self.normalize(view, aspect);
+                }
+            }
             ZoomRequest::In => self.zoom_about(STEP, view.center(), view, aspect),
             ZoomRequest::Out => self.zoom_about(1.0 / STEP, view.center(), view, aspect),
             ZoomRequest::Section(s) => {
@@ -219,7 +244,7 @@ impl BakedZoom {
         let req = self
             .request
             .take()
-            .or_else(|| key_request(ui.ctx(), self.zoom));
+            .or_else(|| key_request(ui.ctx(), self.zoom / self.base));
         if let Some(req) = req {
             self.apply(req, view, aspect, bays);
         }
@@ -357,7 +382,7 @@ pub fn key_request(ctx: &egui::Context, zoom: f32) -> Option<ZoomRequest> {
     })
 }
 
-fn pill(ui: &mut Ui, label: &str, active: bool, tip: &str) -> egui::Response {
+pub(crate) fn pill(ui: &mut Ui, label: &str, active: bool, tip: &str) -> egui::Response {
     let fill = if active {
         Color32::from_rgb(184, 37, 42)
     } else {
@@ -366,7 +391,7 @@ fn pill(ui: &mut Ui, label: &str, active: bool, tip: &str) -> egui::Response {
     ui.add(
         egui::Button::new(
             RichText::new(label)
-                .size(9.0)
+                .size(crate::text_scale::px(9.0))
                 .strong()
                 .color(Color32::from_rgb(236, 240, 244)),
         )
@@ -389,7 +414,7 @@ pub fn bar_controls(ui: &mut Ui, zoom: &mut BakedZoom) {
     }
     ui.label(
         RichText::new(format!("{}%", zoom.percent()))
-            .size(9.0)
+            .size(crate::text_scale::px(9.0))
             .strong()
             .color(Color32::from_rgb(236, 240, 244)),
     );
@@ -406,7 +431,7 @@ pub fn bar_controls(ui: &mut Ui, zoom: &mut BakedZoom) {
     if pill(
         ui,
         "FIT",
-        zoom.zoom <= MIN_ZOOM + 1e-3,
+        zoom.zoom <= zoom.base + 1e-3,
         "Whole panel (0 or Esc)",
     )
     .clicked()

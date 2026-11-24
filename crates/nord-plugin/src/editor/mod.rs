@@ -41,6 +41,8 @@ pub mod readback_menu;
 #[cfg(test)]
 mod section_edit_tests;
 pub mod sink;
+#[cfg(test)]
+mod text_scale_tests;
 pub mod top_bar;
 pub mod write;
 

@@ -38,7 +38,7 @@ impl BackupLibraryState {
             ui.add_enabled_ui(self.backup_path.is_some(), |ui| {
                 ui.add(
                     egui::TextEdit::singleline(&mut self.export_path)
-                        .desired_width(170.0)
+                        .desired_width(crate::text_scale::px(170.0))
                         .hint_text("Export path (.ns4b)"),
                 );
                 if ui
@@ -127,7 +127,8 @@ impl BackupLibraryState {
     ) {
         ui.horizontal(|ui| {
             ui.label("Backup (.ns4b):");
-            let input_w = (ui.available_width() - 156.0).max(160.0);
+            let input_w = (ui.available_width() - crate::text_scale::px(156.0))
+                .max(crate::text_scale::px(160.0));
             let field_h = ui.spacing().interact_size.y;
             let edit = ui.add(
                 egui::TextEdit::singleline(&mut self.path_input)
@@ -293,8 +294,8 @@ impl BackupLibraryState {
             let field_h = ui.spacing().interact_size.y;
             ui.add(
                 egui::TextEdit::singleline(&mut self.filter)
-                    .desired_width(280.0)
-                    .min_size(egui::vec2(280.0, field_h))
+                    .desired_width(crate::text_scale::px(280.0))
+                    .min_size(egui::vec2(crate::text_scale::px(280.0), field_h))
                     .margin(egui::Margin::symmetric(8, 5))
                     .vertical_align(egui::Align::Center)
                     .hint_text("Search preset, piano, or sample..."),

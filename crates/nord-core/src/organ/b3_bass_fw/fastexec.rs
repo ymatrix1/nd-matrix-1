@@ -62,8 +62,7 @@ impl Machine {
         }
     }
 
-    /// One item row of a compiled program (not a control op). With a literal `row` (generated
-    /// straight line code, `native_*.rs`) every match below folds away.
+    /// One item row of a compiled program (not a control op).
     #[inline(always)]
     pub(super) fn run_item(&mut self, row: &Row) {
         match row[0] {
@@ -347,30 +346,28 @@ impl Machine {
 #[cfg(test)]
 mod tests {
     use super::super::compile::compile;
-    use super::super::{GEN_PRESET, GEN_ROWS, PROC_PRESET, PROC_ROWS};
+    use super::super::image::BassImage;
+    use super::super::{real_image, synthetic_image, GEN_PRESET, PROC_PRESET};
     use super::*;
 
-    fn chord_machine() -> Machine {
+    fn chord_machine(image: &BassImage) -> Machine {
         let mut m = Machine::new();
-        m.load_image(include_str!(
-            "../../../../../docs/research/data/bass-fw-image.csv"
-        ));
+        m.load_image(&image.csv);
         m.load_image(include_str!(
             "../../../../../docs/research/data/bass-fw-chord-delta.csv"
         ));
+        m.set_programs(Some(&image.gen), &image.proc);
         m
     }
 
-    #[test]
-    fn compiled_chain_equals_the_reference_machine_state_for_state() {
-        // 600 generator + processor calls of the oracle chord: after every call the whole machine
-        // (registers, index registers, flags, accumulators, DM) of both executors is equal.
-        let (gen, proc_) = (compile(&GEN_ROWS), compile(&PROC_ROWS));
-        let (mut a, mut b) = (chord_machine(), chord_machine());
-        b.set_programs(Some(&GEN_ROWS), &PROC_ROWS);
-        for call in 0..600 {
-            a.call(&GEN_ROWS, GEN_PRESET);
-            a.call(&PROC_ROWS, PROC_PRESET);
+    /// `calls` generator + processor calls on the reference and the compiled executor: after
+    /// every call the whole machine (registers, index registers, flags, accumulators, DM) is equal.
+    fn assert_executors_agree(image: &BassImage, calls: usize) {
+        let (gen, proc_) = (compile(&image.gen), compile(&image.proc));
+        let (mut a, mut b) = (chord_machine(image), chord_machine(image));
+        for call in 0..calls {
+            a.call(&image.gen, GEN_PRESET);
+            a.call(&image.proc, PROC_PRESET);
             b.call_compiled(&gen, GEN_PRESET);
             b.call_compiled(&proc_, PROC_PRESET);
             assert_eq!(a.d, b.d, "d, call {call}");
@@ -386,5 +383,18 @@ mod tests {
             );
             assert!(a.mem == b.mem, "DM, call {call}");
         }
+    }
+
+    #[test]
+    fn compiled_chain_equals_the_reference_machine_state_for_state() {
+        // 600 calls of the oracle chord; needs the user's OS update file (`NS4_WAVE_TABLES`),
+        // skipped with a note without it
+        let Some(image) = real_image() else { return };
+        assert_executors_agree(&image, 600);
+    }
+
+    #[test]
+    fn compiled_synthetic_routines_equal_the_reference_machine() {
+        assert_executors_agree(&synthetic_image(), 3);
     }
 }

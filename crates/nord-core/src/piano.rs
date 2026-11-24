@@ -32,6 +32,7 @@ mod extra_voice;
 mod interp_switch;
 mod pedal_voices;
 mod slew_voice;
+mod tail_fade;
 mod timbre_gain_tables;
 mod touch_layer;
 
@@ -1401,6 +1402,7 @@ impl PianoLayer {
         step: f64,
         interp: SampleInterp,
         kernel: &SmpKernel,
+        fade_tail: bool,
     ) -> Option<(f32, f32)> {
         let p = *pos;
         let at = |pcm: &[f32]| match interp {
@@ -1412,6 +1414,11 @@ impl PianoLayer {
         let l = at(&stroke.pcm)?;
         let r = stroke.pcm_right.as_deref().and_then(at).unwrap_or(l);
         *pos = p + step;
+        if fade_tail {
+            // Issue #640: end a held note smoothly instead of cutting it at the last frame.
+            let g = tail_fade::tail_gain(p, stroke.pcm.len(), stroke.sample_rate);
+            return Some((l * g, r * g));
+        }
         Some((l, r))
     }
 
@@ -1529,6 +1536,7 @@ impl PianoLayer {
                         v.sample_step * bend,
                         self.sample_interp,
                         self.kernel,
+                        !v.is_release_sample,
                     ) {
                         if unison_on && !v.is_release_sample {
                             let (dl, dr) = Self::sample_stroke_stereo_at(
@@ -1537,6 +1545,7 @@ impl PianoLayer {
                                 v.sample_step_detune * bend,
                                 self.sample_interp,
                                 self.kernel,
+                                true,
                             )
                             .unwrap_or((ml, mr));
                             (0.75 * ml + 0.25 * dl, 0.25 * mr + 0.75 * dr)
@@ -1795,6 +1804,33 @@ mod tests {
         let medium = VelocityTouch::Medium.map_velocity(64);
         let heavy = VelocityTouch::Heavy.map_velocity(64);
         assert!(heavy < medium && medium < light);
+    }
+
+    /// Issue #640: a held note that outlasts its sample must fade out, not stop at full level.
+    #[test]
+    fn held_note_fades_out_at_sample_end() {
+        let sfz = "<region> sample=a.wav lokey=0 hikey=127 pitch_keycenter=60\n";
+        let wav = build_test_wav_i16(48_000, 261.63, 4096);
+        let sound = Arc::new(
+            NpnoSound::from_sfz_str("Tail", sfz, |_| Ok(wav.clone())).expect("SFZ parses"),
+        );
+        let mut piano = PianoLayer::new(48_000.0);
+        piano.set_sound(Some(sound));
+        piano.note_on(60, 110);
+        let out: Vec<f32> = (0..6000).map(|_| piano.render_frame()[0].abs()).collect();
+        let peak = |a: usize, b: usize| out[a..b].iter().cloned().fold(0.0f32, f32::max);
+        let body = peak(1000, 1200);
+        assert!(body > 1e-3, "note must sound: {body}");
+        // The last 64 frames before the sample ends sit at the bottom of the fade.
+        assert!(
+            peak(4096 - 64, 4096) < 0.05 * body,
+            "tail not faded: {} vs {body}",
+            peak(4096 - 64, 4096)
+        );
+        assert!(
+            piano.voices.iter().all(|v| !v.active),
+            "voice freed after the sample"
+        );
     }
 
     #[test]

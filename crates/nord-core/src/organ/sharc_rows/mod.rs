@@ -9,11 +9,13 @@
 //!   always, 2 = `if ne`, 3 = `if eq` and `target` the absolute row index it continues at;
 //! * `LOOP count n` repeats the next `n` rows (`lcntr` / `do ... until lce`).
 //!
-//! Item parsing is in [`item`]. Only the forms the Farfisa processor uses are decoded (float add, subtract, multiply, pass,
-//! integer add, register moves and swaps, DM / PM loads and stores, immediates, `modify`, loops,
-//! jumps). Any other form is an error, so an unfamiliar OS version falls back instead of running
-//! a wrong routine.
+//! Item parsing is in [`item`] (moves, loads, stores) and [`alu`] (compute: float and integer
+//! arithmetic, `float .. by`, `abs`, shifts, field extract and deposit, `clip`, `and`, fixed point
+//! multiplies with `mrf` / `mrb`). Only the forms of the Farfisa processor and the B3 Bass
+//! routines are decoded; any other form is an error, so an unfamiliar OS version falls back
+//! instead of running a wrong routine. Users: `farfisa_fw::image`, `b3_bass_fw::image`.
 
+mod alu;
 mod item;
 
 use crate::dsp_image::ldr::SRAM_BYTES;
@@ -130,10 +132,28 @@ fn decode(prog: &[Line], base: i64) -> Result<Vec<Row>, String> {
     Ok(rows)
 }
 
+/// `decode_text` marks a pre-modify register access as `dm(i2, m3) [pre-mod]`; ADI writes the
+/// modifier first, `dm(m3, i2)` (the form `addr_fields` reads).
+fn pre_modify_order(text: &str) -> String {
+    let mut out = text.to_string();
+    while let Some(at) = out.find(" [pre-mod]") {
+        let open = out[..at].rfind('(');
+        let swapped = open.and_then(|o| {
+            let (a, b) = out[o + 1..at - 1].split_once(", ")?;
+            Some((o, format!("({b}, {a})")))
+        });
+        match swapped {
+            Some((o, args)) => out.replace_range(o..at + " [pre-mod]".len(), &args),
+            None => out.replace_range(at..at + " [pre-mod]".len(), ""),
+        }
+    }
+    out
+}
+
 /// Lower case listing text of one instruction; `decode_text` leaves out the `(LW)` flag of a long
-/// word move, which the rows need, so it is appended here (single move forms only).
+/// word move, which the rows need, so it is appended here (single memory move forms only).
 fn listing_text(insn: &Insn) -> Result<String, String> {
-    let mut text = decode_text(insn).to_ascii_lowercase();
+    let mut text = pre_modify_order(&decode_text(insn).to_ascii_lowercase());
     let moves = match insn.kind {
         Kind::T1a | Kind::T1b => 2,
         Kind::T3a | Kind::T3b | Kind::T4a | Kind::T4b | Kind::T5a => 1,
@@ -147,10 +167,14 @@ fn listing_text(insn: &Insn) -> Result<String, String> {
         text = [compute, mv].concat().join(", ");
     }
     if lw_flag(insn.kind, word48(insn.words())) {
-        if split_items(&text).len() != 1 {
-            return Err(format!("unsupported long word form {text:?}"));
+        // the flag belongs to the memory move, which is the last item (single move forms, with
+        // or without a compute)
+        let mut items = split_items(&text);
+        match items.last_mut() {
+            Some(mv) if mv.contains("dm(") || mv.contains("pm(") => mv.push_str(" (lw)"),
+            _ => return Err(format!("unsupported long word form {text:?}")),
         }
-        text.push_str(" (lw)");
+        text = items.join(", ");
     }
     Ok(text)
 }
@@ -225,6 +249,20 @@ mod tests {
             ins(0, 0, 1, 8),
             "jump to the rts, one past the last row"
         );
+    }
+
+    #[test]
+    fn a_pre_modify_register_access_is_written_modifier_first() {
+        assert_eq!(
+            pre_modify_order("r8 = dm(i2, m3) [pre-mod]"),
+            "r8 = dm(m3, i2)"
+        );
+        assert_eq!(
+            pre_modify_order("r1 = pm(i10, m9) [pre-mod], r2 = r3"),
+            "r1 = pm(m9, i10), r2 = r3"
+        );
+        assert_eq!(pre_modify_order("r8 = dm(i2, m3)"), "r8 = dm(i2, m3)");
+        assert_eq!(pre_modify_order("junk [pre-mod]"), "junk");
     }
 
     #[test]

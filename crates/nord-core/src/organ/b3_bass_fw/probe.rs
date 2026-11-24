@@ -1,8 +1,7 @@
 //! Test-only probes of the compiled Bass generator (research s20, D199): which work could be
 //! skipped or vectorised without changing one state bit?
 //!
-//! `run_probed` runs a compiled routine item by item (the same `run_item` as the straight line
-//! routines) and, for every pass of every hardware loop, compares the machine before and after.
+//! `run_probed` runs a compiled routine item by item (the same `run_item` as the compiled programs) and, for every pass of every hardware loop, compares the machine before and after.
 //! The tests below record the two facts that closed the "unroll the loops" and "skip the voices
 //! that are not held" ideas of D198:
 //!
@@ -14,8 +13,9 @@
 //!   zero branch does not save the work of a SIMD add), while the multiplies often do.
 
 use super::compile::{compile, ctl, Program, ALUK};
+use super::image::BassImage;
 use super::tables::alu_op as A;
-use super::{Machine, GEN_PRESET, GEN_ROWS, PROC_PRESET, PROC_ROWS};
+use super::{real_image, Machine, GEN_PRESET, PROC_PRESET};
 
 /// What the probe counted over the calls it ran.
 #[derive(Default, Debug)]
@@ -85,27 +85,25 @@ fn run_probed(
     }
 }
 
-fn machine(keys: bool) -> Machine {
+fn machine(image: &BassImage, keys: bool) -> Machine {
     let mut m = Machine::new();
-    m.load_image(include_str!(
-        "../../../../../docs/research/data/bass-fw-image.csv"
-    ));
+    m.load_image(&image.csv);
     if keys {
         m.load_image(include_str!(
             "../../../../../docs/research/data/bass-fw-chord-delta.csv"
         ));
     }
-    m.set_programs(Some(&GEN_ROWS), &PROC_ROWS);
+    m.set_programs(Some(&image.gen), &image.proc);
     m
 }
 
 /// Generator census over `calls` calls after a warm-up.
-fn census(keys: bool, calls: usize) -> Census {
-    let mut m = machine(keys);
+fn census(image: &BassImage, keys: bool, calls: usize) -> Census {
+    let mut m = machine(image, keys);
     for _ in 0..500 {
         m.step();
     }
-    let prog = compile(&GEN_ROWS);
+    let prog = compile(&image.gen);
     let mut c = Census::default();
     for _ in 0..calls {
         (m.i[0], m.i[1]) = GEN_PRESET;
@@ -119,8 +117,10 @@ fn census(keys: bool, calls: usize) -> Census {
 fn no_pass_of_the_long_generator_loops_is_an_identity_with_keys_or_without() {
     // VERIFIED (run, 40 calls each): a skipped pass would have to reproduce its register, flag
     // and DM effect, and every pass of the 22 and 10 pass loops changes one of them.
+    // needs the user's OS update file (`NS4_WAVE_TABLES`); skipped with a note without it
+    let Some(image) = real_image() else { return };
     for keys in [true, false] {
-        let c = census(keys, 40);
+        let c = census(&image, keys, 40);
         assert!(
             c.identity_passes.is_empty(),
             "keys {keys}: identity passes {:?}",
@@ -131,7 +131,8 @@ fn no_pass_of_the_long_generator_loops_is_an_identity_with_keys_or_without() {
 
 #[test]
 fn float_adds_of_the_generator_rarely_have_a_zero_operand_but_multiplies_often_do() {
-    let c = census(true, 40);
+    let Some(image) = real_image() else { return };
+    let c = census(&image, true, 40);
     let n = |t: [u32; 3]| f64::from(t.iter().sum::<u32>());
     // index 0: both lanes have a zero operand, 1: one lane, 2: none
     assert!(f64::from(c.addsub[2]) > 0.75 * n(c.addsub), "{c:?}");

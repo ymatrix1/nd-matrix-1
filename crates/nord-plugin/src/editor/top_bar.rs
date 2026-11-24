@@ -3,7 +3,8 @@
 
 use nih_plug_egui::egui::{self, Button, Color32, CursorIcon, RichText, Stroke, Ui};
 
-/// Height of the bar in logical points (the standalone bar is 22 px).
+/// Height of the bar in logical points at 100 % text size (the standalone bar is 22 px); the
+/// bar draws `nord_gui::text_scale::bar_height()`.
 pub const BAR_HEIGHT: f32 = 22.0;
 
 /// Which pill was clicked.
@@ -23,7 +24,7 @@ pub const PILLS: [(BarClick, &str); 3] = [
 
 fn pill(ui: &mut Ui, label: &str) -> egui::Response {
     let text = RichText::new(label)
-        .size(9.0)
+        .size(nord_gui::text_scale::px(9.0))
         .strong()
         .color(Color32::from_rgb(236, 240, 244));
     ui.add(
@@ -51,6 +52,7 @@ pub fn show(
     ui: &mut Ui,
     debug_open: bool,
     zoom: &mut nord_gui::panel::baked_zoom::BakedZoom,
+    scale: &mut nord_gui::text_scale::TextScale,
 ) -> Option<BarClick> {
     let mut clicked = None;
     ui.spacing_mut().item_spacing.x = 5.0;
@@ -63,6 +65,7 @@ pub fn show(
             }
         }
         nord_gui::panel::baked_zoom::bar_controls(ui, zoom);
+        nord_gui::text_scale::bar_controls(ui, scale);
     });
     clicked
 }
@@ -90,8 +93,9 @@ mod tests {
         let ctx = egui::Context::default();
         let mut got = Some(BarClick::Help);
         let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default()
-                .show(ctx, |ui| got = show(ui, false, &mut Default::default()));
+            egui::CentralPanel::default().show(ctx, |ui| {
+                got = show(ui, false, &mut Default::default(), &mut Default::default())
+            });
         });
         assert_eq!(got, None);
     }

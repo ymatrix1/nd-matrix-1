@@ -30,7 +30,7 @@ Contents
 
   ns4                       command-line tool (inspect presets, offline render)
   nd-matrix-1               standalone GUI (audio + MIDI)
-  nord-plugin-standalone    standalone host of the plugin build
+  nd-matrix-1-standalone    standalone host of the plugin build
   nd-matrix-1.clap          CLAP plugin
   nd-matrix-1.vst3          VST3 plugin (a folder bundle; copy the whole folder)
   HOST_COMPATIBILITY.md     what has and has not been tested
@@ -73,7 +73,7 @@ macOS (Apple silicon, arm64)
   the quarantine flag on the files you installed, for example:
     xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/nd-matrix-1.vst3
     xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/CLAP/nd-matrix-1.clap
-  Do the same for ns4, nd-matrix-1 and nord-plugin-standalone before running them.
+  Do the same for ns4, nd-matrix-1 and nd-matrix-1-standalone before running them.
 
 Linux (x86_64)
   CLAP, this user:   ~/.clap/nd-matrix-1.clap

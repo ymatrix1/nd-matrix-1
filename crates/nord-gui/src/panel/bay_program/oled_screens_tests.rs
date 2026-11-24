@@ -14,6 +14,20 @@ fn sum() -> Summary {
 }
 
 #[test]
+fn the_name_view_lists_the_sounds_of_the_sections_that_are_on() {
+    // The real home screen shows them under the rule next to the large name.
+    let mut s = sum();
+    s.organ_bars = Some([8, 8, 8, 8, 0, 0, 0, 0, 0]);
+    let t = compose(&ProgramUi::default(), &s);
+    assert_eq!(t.rows.len(), 3);
+    assert!(t.rows[0].contains("B3"), "{:?}", t.rows);
+    assert_eq!(t.bars, s.organ_bars);
+    s.layers_on = [false; 7];
+    let t = compose(&ProgramUi::default(), &s);
+    assert!(t.rows.is_empty() && t.bars.is_none());
+}
+
+#[test]
 fn four_prog_views_and_preset_name() {
     let mut u = ProgramUi::default();
     u.title = "Sweet".into();

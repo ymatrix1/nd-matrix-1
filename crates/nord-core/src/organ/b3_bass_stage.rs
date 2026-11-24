@@ -5,7 +5,8 @@
 //! model in Bass mode and without a processor tail (the stage is the tail of this model).
 //!
 //! The stage runs the decoded firmware routines (`b3_bass_fw`: scanner, lattice sections, delay
-//! taps, biquads, DC blocker, 40 bit float) on a DM image of the installed model 5 and feeds them
+//! taps, biquads, DC blocker, 40 bit float) on a DM image of the installed model 5, both built at
+//! setup time from the user's own OS update file (D128, no file: no stage), and feeds them
 //! the key-down state the ARM would write: the weight windows and `G`
 //! ([`super::b3_bass_state`]), the generator weights ([`super::b3_bass_gen`]) and the voice records
 //! ([`super::b3_bass_voice`]). Two output samples per call at the DSP frame rate
@@ -15,7 +16,7 @@
 //! recorded states); voice record jitter, the slot reuse, `DM 0xB44CB`, the drawbar and percussion
 //! settings (the tables are the `888888888` key-down) and the `G` resync after a key-up ASSUMED.
 
-use super::b3_bass_fw::{Machine, GEN_ROWS, PROC_ROWS};
+use super::b3_bass_fw::{from_env, BassImage, Machine};
 use super::b3_bass_gen::GenWeights;
 use super::b3_bass_state::BassState;
 use super::b3_bass_voice::{word_addr, VoiceTable, SLOTS};
@@ -34,8 +35,6 @@ const G_ADDR: u32 = 0xB_44C9;
 const GEN_NOTES: std::ops::RangeInclusive<usize> = 36..=114;
 /// ASSUMED: calls to keep running after the last key-up (about 0.46 s) before the stage idles.
 const RING_DOWN_CALLS: u32 = 10_000;
-/// Image of the installed model 5 (`tools/organ_bass_fw_gen.py image`).
-const IMAGE: &str = include_str!("../../../../docs/research/data/bass-fw-image.csv");
 
 /// Catmull-Rom interpolation between `h[1]` and `h[2]` at `mu` in `[0, 1)`.
 pub(super) fn cubic(h: &[f32; 4], mu: f32) -> f32 {
@@ -71,12 +70,12 @@ pub(super) struct B3BassStage {
 }
 
 impl B3BassStage {
-    /// Builds the machine from the derived image (setup time only: allocates).
-    pub(super) fn new() -> Self {
+    /// Builds the machine from the image of the user's OS update file (setup time only:
+    /// allocates and compiles the rows).
+    pub(super) fn new(image: &BassImage) -> Self {
         let mut machine = Machine::new();
-        machine.load_image(IMAGE);
-        machine.set_programs(Some(&GEN_ROWS), &PROC_ROWS);
-        machine.use_native_bass();
+        machine.load_image(&image.csv);
+        machine.set_programs(Some(&image.gen), &image.proc);
         Self {
             machine,
             state: BassState::new(),
@@ -191,16 +190,40 @@ impl B3BassStage {
 }
 
 impl OrganLayer {
-    /// Switches the Bass processor stage (setup time: allocates the stage). Turning it on selects
-    /// the plain wheel tables (no B3 tail): the stage replaces the tail for this model.
+    /// Switches the Bass processor stage (setup time: allocates the stage on first use). Turning
+    /// it on selects the plain wheel tables (no B3 tail): the stage replaces the tail for this
+    /// model.
+    ///
+    /// The routines and their DM image come from the user's own OS update file, named by
+    /// `NS4_WAVE_TABLES` or the saved app setting (D128, D129). Without a readable file the stage
+    /// is not built: `b3_bass_processor` stays as requested, [`Self::b3_bass_firmware_loaded`] is
+    /// `false`, the tail is left alone and the layer plays the stage-off model (D22).
     pub fn set_b3_bass_processor(&mut self, on: bool) {
+        let image = if on && self.b3_bass.is_none() {
+            from_env().ok().flatten()
+        } else {
+            None
+        };
+        self.set_b3_bass_processor_with(on, image.as_deref());
+    }
+
+    /// [`Self::set_b3_bass_processor`] with an explicit image (`None`: no OS update file).
+    pub(super) fn set_b3_bass_processor_with(&mut self, on: bool, image: Option<&BassImage>) {
         self.b3_bass_processor = on;
         if on {
-            self.set_b3_tail(false);
-            if self.b3_bass.is_none() {
-                self.b3_bass = Some(Box::new(B3BassStage::new()));
+            if let (None, Some(image)) = (&self.b3_bass, image) {
+                self.b3_bass = Some(Box::new(B3BassStage::new(image)));
+            }
+            if self.b3_bass.is_some() {
+                self.set_b3_tail(false);
             }
         }
+    }
+
+    /// `true` when the firmware Bass stage exists (the OS update file was read); `false` when it
+    /// was switched on without one and the stage-off model plays.
+    pub fn b3_bass_firmware_loaded(&self) -> bool {
+        self.b3_bass.is_some()
     }
 
     /// Whether the Bass processor stage is switched on (`--b3-bass-processor on`).
@@ -257,7 +280,7 @@ mod tests {
 
     #[test]
     fn voice_slots_cycle_over_five_presses() {
-        let mut s = B3BassStage::new();
+        let mut s = B3BassStage::new(&super::super::b3_bass_fw::synthetic_image());
         for (n, k) in [
             (60usize, 60i32),
             (64, 64),

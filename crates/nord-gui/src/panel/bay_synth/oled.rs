@@ -55,6 +55,10 @@ pub(crate) fn paint_oled_in_rect(
     p.rect_filled(disp, 2.0, OLED_BG);
     let p = p.with_clip_rect(disp);
     let v = view_of(sui, sample);
+    // With the firmware fonts loaded the waveform page is laid out on the real 128 x 64 grid.
+    if super::oled_fw::paint(&p, disp, &v, hint.unwrap_or(v.title)) {
+        return;
+    }
     let font_px = (disp.height() * 0.14).clamp(5.5, 8.5);
     let tab_font_px = (font_px * 0.92).max(5.0);
     let header_h = font_px + 2.5;

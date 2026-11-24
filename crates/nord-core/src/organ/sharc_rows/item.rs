@@ -2,7 +2,8 @@
 //!
 //! Port of `item_row`, `alu_row` and `addr_fields` of `tools/sharc_listing_rust.py`.
 
-use crate::organ::b3_bass_fw::tables::{alu_op, kind};
+use super::alu::{alu_row, mult_parts};
+use crate::organ::b3_bass_fw::tables::kind;
 use crate::organ::b3_bass_fw::Row;
 
 /// Register number of `name`: data registers `r` 0..15, `s` 16..31, then `i`, `m`, `l`, `b`,
@@ -23,7 +24,7 @@ fn reg_id(name: &str) -> Result<i32, String> {
     })
 }
 
-fn number(s: &str) -> Result<i32, String> {
+pub(super) fn number(s: &str) -> Result<i32, String> {
     s.parse().map_err(|_| format!("bad number {s:?}"))
 }
 
@@ -39,7 +40,7 @@ pub(super) fn sx(s: &str) -> Result<i32, String> {
     Ok((if neg { -v } else { v }) as u32 as i32)
 }
 
-fn is_data(name: &str) -> bool {
+pub(super) fn is_data(name: &str) -> bool {
     matches!(name.as_bytes().first(), Some(b'r' | b's' | b'f'))
         && name.len() > 1
         && name[1..].bytes().all(|b| b.is_ascii_digit())
@@ -113,55 +114,6 @@ fn mem_operand(s: &str) -> Option<(&str, &str)> {
     Some((&rest[..close], rest[close + 1..].trim()))
 }
 
-fn float_reg(s: &str) -> Option<i32> {
-    s.strip_prefix('f')?.parse().ok()
-}
-
-fn int_reg(s: &str) -> Option<i32> {
-    s.strip_prefix('r')?.parse().ok()
-}
-
-/// `[ALU, dst, op, x, y, p, q, 0]` of a compute expression, or `None`.
-fn alu_row(dst: i32, src: &str) -> Option<Row> {
-    let e = src.trim();
-    let alu = |op, x, y| Some([kind::ALU, dst, op, x, y, 0, 0, 0]);
-    if let Some(x) = e.strip_prefix("pass ").and_then(|r| float_reg(r.trim())) {
-        return alu(alu_op::PASS, x, 0);
-    }
-    if let Some(x) = e.strip_prefix("abs ").and_then(|r| float_reg(r.trim())) {
-        return alu(alu_op::ABS, x, 0);
-    }
-    let c: String = e.split_whitespace().collect();
-    let at = c.find(['*', '+', '-'])?;
-    let (l, r) = (&c[..at], &c[at + 1..]);
-    let op = c.as_bytes()[at];
-    if let (Some(x), Some(y)) = (float_reg(l), float_reg(r)) {
-        let o = match op {
-            b'*' => alu_op::FMUL,
-            b'+' => alu_op::FADD,
-            _ => alu_op::FSUB,
-        };
-        return alu(o, x, y);
-    }
-    let x = int_reg(l)?;
-    if op == b'*' {
-        return None;
-    }
-    if let Some(y) = int_reg(r) {
-        return alu(
-            if op == b'+' {
-                alu_op::IADD
-            } else {
-                alu_op::ISUB
-            },
-            x,
-            y,
-        );
-    }
-    let y: i32 = r.parse().ok()?;
-    alu(alu_op::ADDI, x, if op == b'+' { y } else { -y })
-}
-
 /// The row of one instruction item (lower case text).
 pub(super) fn item_row(item: &str) -> Result<Row, String> {
     if let Some((a, b)) = item.split_once("<->") {
@@ -171,7 +123,19 @@ pub(super) fn item_row(item: &str) -> Result<Row, String> {
         }
         return Ok([kind::SWAP, reg_id(a)?, reg_id(b)?, 0, 0, 0, 0, 0]);
     }
+    if let Some(args) = item.strip_prefix("comp(").and_then(|a| a.strip_suffix(')')) {
+        let reg = |r: &str| r.trim().strip_prefix('r')?.parse::<i32>().ok();
+        if let Some((Some(x), Some(y))) = args.split_once(',').map(|(x, y)| (reg(x), reg(y))) {
+            return Ok([kind::COMP, x, y, 0, 0, 0, 0, 0]);
+        }
+    }
     let (lhs, rhs) = split_assign(item).ok_or_else(|| format!("cannot parse {item:?}"))?;
+    if matches!(lhs, "mrf" | "mrb") {
+        return match mult_parts(rhs) {
+            Some((0, x, y, mode)) => Ok([kind::MRF_SET, x, y, mode, 0, 0, 0, 0]),
+            _ => Err(format!("unsupported multiplier register write {item:?}")),
+        };
+    }
     if let Some((spec, tail)) = mem_operand(lhs) {
         if !tail.is_empty() {
             return Err(format!("cannot parse {item:?}"));
@@ -256,6 +220,7 @@ pub(super) fn item_row(item: &str) -> Result<Row, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::organ::b3_bass_fw::tables::alu_op;
 
     #[test]
     fn items_split_at_top_level_commas_only() {
@@ -334,7 +299,20 @@ mod tests {
             item_row("i4 = modify(i4, 5)").unwrap(),
             [kind::MODIFY, 36, 4, 0, 5, 0, 0, 0]
         );
-        assert!(item_row("r1 = mrf + r2 * r3 (ssf)").is_err());
+        assert_eq!(
+            item_row("r1 = mrf + r2 * r3 (ssfr)").unwrap(),
+            [kind::ALU, 1, alu_op::MULT, 2, 3, 1, 0b1111, 0]
+        );
+        assert_eq!(
+            item_row("mrf = r2 * r3 (ssf)").unwrap(),
+            [kind::MRF_SET, 2, 3, 0b111, 0, 0, 0, 0]
+        );
+        assert_eq!(
+            item_row("comp(r3, r4)").unwrap(),
+            [kind::COMP, 3, 4, 0, 0, 0, 0, 0]
+        );
+        assert!(item_row("mrf = mrf + r2 * r3 (ssf)").is_err());
+        assert!(item_row("comp(r3, f4)").is_err());
         assert!(item_row("bit set flags 0x2").is_err());
     }
 }

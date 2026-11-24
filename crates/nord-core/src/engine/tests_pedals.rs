@@ -144,6 +144,25 @@ fn half_pedal_band_slows_piano_release() {
 }
 
 #[test]
+fn pstick_defaults_follow_the_firmware() {
+    let mut e = Stage4Engine::new(48_000.0);
+    assert_eq!(
+        e.pedals.pstick,
+        [false, false, false, false, true, true, true]
+    );
+    e.handle_midi(MidiEvent::PitchBend {
+        channel: 0,
+        value: 16383,
+    });
+    assert!(
+        (e.synth_a.bend_cents - 200.0).abs() < 0.1,
+        "stick bends a fresh synth"
+    );
+    assert_eq!(e.organ_a.bend_cents(), 0.0);
+    assert_eq!(e.piano_a.bend_cents(), 0.0);
+}
+
+#[test]
 fn pitch_stick_bends_synth_by_range_and_aux_always() {
     let mut e = Stage4Engine::new(48_000.0);
     let bend = |e: &mut Stage4Engine, ch: u8, v: u16| {
@@ -152,6 +171,7 @@ fn pitch_stick_bends_synth_by_range_and_aux_always() {
             value: v,
         })
     };
+    e.pedals.pstick[LayerId::SynthA as usize] = false;
     bend(&mut e, 0, 16383);
     assert_eq!(e.synth_a.bend_cents, 0.0, "PSTICK off");
     e.pedals.pstick[LayerId::SynthA as usize] = true;

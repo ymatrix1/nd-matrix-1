@@ -95,6 +95,11 @@ struct Stage4App {
     firmware: FirmwarePanelState,
     os_update: nord_gui::os_update_panel::OsUpdatePanel,
     debug_dialog: nord_gui::debug_dialog::DebugDialogState,
+    /// Text size option (issue #592): shown size, and where it is saved.
+    text_scale: nord_gui::text_scale::TextScale,
+    config_path: Option<PathBuf>,
+    /// Window width the bar needs at the size in force, last sent as the minimum window size.
+    min_width_sent: f32,
 }
 
 impl Stage4App {
@@ -104,6 +109,13 @@ impl Stage4App {
         let active_keys = Arc::new(std::array::from_fn(|_| AtomicBool::new(false)));
         let audio_handle = start_audio_and_midi(Arc::clone(&active_keys));
 
+        let config_path = nord_core::user_config::default_config_path();
+        // A screenshot run always shows the plain 100 % panel, whatever the user saved.
+        let text_scale = if cli.screenshot_target.is_some() {
+            Default::default()
+        } else {
+            nord_gui::text_scale::load(config_path.as_deref())
+        };
         let state = Stage4PanelState {
             use_baked_plate: true,
             ..Default::default()
@@ -127,7 +139,11 @@ impl Stage4App {
                 std::env::var("NS4_WAVE_TABLES").ok().as_deref(),
             ),
             debug_dialog: nord_gui::debug_dialog::DebugDialogState::default(),
+            text_scale,
+            config_path,
+            min_width_sent: 0.0,
         };
+        nord_gui::text_scale::apply(&cc.egui_ctx, text_scale, &mut app.state.baked_zoom);
         app.firmware.push(&app.audio_handle);
         if let Some(plan) = &app.shot {
             app.state.view = plan.view();
@@ -160,6 +176,33 @@ impl Stage4App {
         }
 
         app
+    }
+
+    /// Keys, then make the context show the chosen text size (and keep the window wide enough for
+    /// the bar at that size).
+    fn update_text_scale(&mut self, ctx: &egui::Context) {
+        if self.shot.is_some() {
+            return;
+        }
+        if nord_gui::text_scale::handle_keys(ctx, &mut self.text_scale) {
+            self.save_text_scale();
+        }
+        nord_gui::text_scale::apply(ctx, self.text_scale, &mut self.state.baked_zoom);
+        let monitor = ctx.input(|i| i.viewport().monitor_size);
+        let min_w = nord_gui::text_scale::min_window_width(monitor.map(|m| m.x));
+        let min_h = nord_gui::text_scale::min_window_height(monitor.map(|m| m.y));
+        if (min_w - self.min_width_sent).abs() > 0.5 {
+            self.min_width_sent = min_w;
+            ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(egui::vec2(
+                min_w, min_h,
+            )));
+        }
+    }
+
+    fn save_text_scale(&self) {
+        if let Err(e) = nord_gui::text_scale::save(self.config_path.as_deref(), self.text_scale) {
+            eprintln!("[GUI] Could not save the text size: {e}");
+        }
     }
 
     fn load_program_from_bytes(&mut self, bytes: &[u8], title_override: Option<&str>) -> bool {
@@ -206,6 +249,7 @@ impl eframe::App for Stage4App {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.frame_count += 1;
+        self.update_text_scale(ctx);
         self.library
             .poll_results(&mut self.state, &self.audio_handle);
         if self
@@ -286,7 +330,7 @@ impl eframe::App for Stage4App {
             let bar_w = plate_rect.width().min(screen.width() - left_pad).max(200.0);
 
             egui::TopBottomPanel::top("ns4_floating_bar")
-                .exact_height(22.0)
+                .exact_height(nord_gui::text_scale::bar_height())
                 .show_separator_line(false)
                 .frame(egui::Frame::NONE.fill(egui::Color32::TRANSPARENT))
                 .show(ctx, |ui| {
@@ -295,13 +339,14 @@ impl eframe::App for Stage4App {
                         if left_pad > 0.0 {
                             ui.add_space(left_pad);
                         }
-                        ui.allocate_ui(egui::vec2(bar_w, 18.0), |ui| {
+                        ui.allocate_ui(egui::vec2(bar_w, nord_gui::text_scale::px(18.0)), |ui| {
                             ui.spacing_mut().item_spacing.x = 5.0;
-                            ui.spacing_mut().button_padding = egui::vec2(7.0, 1.5);
+                            ui.spacing_mut().button_padding =
+                                egui::vec2(7.0, 1.5) * nord_gui::text_scale::factor();
                             ui.horizontal(|ui| {
                                 let hw_pill = |ui: &mut egui::Ui, label: &str| {
                                     let rt = egui::RichText::new(label)
-                                        .size(9.0)
+                                        .size(nord_gui::text_scale::px(9.0))
                                         .strong()
                                         .color(egui::Color32::from_rgb(236, 240, 244));
                                     ui.add(
@@ -340,20 +385,22 @@ impl eframe::App for Stage4App {
                                     self.debug_dialog
                                         .open_tab(nord_gui::debug_dialog::DebugTab::Guide);
                                 }
-                                if hw_pill(ui, nord_gui::sponsor::SPONSOR_LABEL).clicked() {
-                                    ctx.open_url(egui::OpenUrl::new_tab(
-                                        nord_gui::sponsor::SPONSOR_URL,
-                                    ));
-                                }
                                 nord_gui::panel::baked_zoom::bar_controls(
                                     ui,
                                     &mut self.state.baked_zoom,
                                 );
+                                if self.shot.is_none()
+                                    && nord_gui::text_scale::bar_controls(ui, &mut self.text_scale)
+                                {
+                                    self.save_text_scale();
+                                }
 
                                 // Draggable empty space between left pills and right window icons
-                                let drag_w = (ui.available_width() - 52.0).max(12.0);
+                                let drag_w = (ui.available_width()
+                                    - nord_gui::text_scale::px(52.0))
+                                .max(12.0);
                                 let (_, drag_resp) = ui.allocate_exact_size(
-                                    egui::vec2(drag_w, 16.0),
+                                    egui::vec2(drag_w, nord_gui::text_scale::px(16.0)),
                                     egui::Sense::click_and_drag(),
                                 );
                                 if drag_resp.hovered() {
@@ -365,7 +412,10 @@ impl eframe::App for Stage4App {
 
                                 // Vector Minimize button
                                 let (min_rect, min_resp) = ui.allocate_exact_size(
-                                    egui::vec2(22.0, 16.0),
+                                    egui::vec2(
+                                        nord_gui::text_scale::px(22.0),
+                                        nord_gui::text_scale::px(16.0),
+                                    ),
                                     egui::Sense::click(),
                                 );
                                 let min_resp =
@@ -407,7 +457,10 @@ impl eframe::App for Stage4App {
 
                                 // Vector Close button
                                 let (cls_rect, cls_resp) = ui.allocate_exact_size(
-                                    egui::vec2(22.0, 16.0),
+                                    egui::vec2(
+                                        nord_gui::text_scale::px(22.0),
+                                        nord_gui::text_scale::px(16.0),
+                                    ),
                                     egui::Sense::click(),
                                 );
                                 let cls_resp =
@@ -659,6 +712,10 @@ fn main() -> eframe::Result<()> {
     let argv: Vec<String> = std::env::args().collect();
     // the saved Nord OS update file fills NS4_WAVE_TABLES (env and flags still win), before any thread
     nord_core::user_config::apply_saved_default();
+    // the OLED fonts come from the same file; without one the built-in painter stays (D128)
+    if let Err(e) = nord_core::oled_font::install_from_env() {
+        eprintln!("nd-matrix-1: OLED fonts not loaded ({e}); using the built-in OLED text");
+    }
     let firmware = match nord_core::render_opts::FirmwareOptions::from_args(&argv) {
         Ok(f) => f,
         Err(e) => {

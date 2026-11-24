@@ -301,9 +301,43 @@ def cmd_boot(code: Path, sram: Path, out: Path, eeprom: Path | None = None) -> i
     return 0 if pc else 1
 
 
-def cmd_press(code: Path, sram: Path, state: Path, keys: list[str], out: Path, hold: int) -> int:
+# EMPIRICAL (research s16.7): `[widget + 0x20]` is the visible flag of a text widget. The harness
+# has no sound loaded, so the firmware hides the `B3`, `Pure Saw` and drawbar bar widgets; forcing
+# the flag to 1 as the text is set makes the firmware draw them itself (its positions, its glyphs).
+WIDGET_VISIBLE = 0x20
+
+
+def show_all_widgets(session: Session) -> None:
+    """Set the visible flag of the first widget of every text while its text is set."""
+
+    first: set[int] = set()
+
+    def force(_uc, _address, _size, _user) -> None:  # noqa: ANN001
+        # The row widgets come in pairs; the second of a text is a shadow that must stay hidden
+        # (the visible piano row is the first of its pair), so only the first one is forced.
+        e = session.emu
+        text = e.read_bytes(e.read32(e.reg(4) + WIDGET_TEXT), TEXT_BYTES)
+        key = zlib.crc32(text)
+        if key not in first:
+            first.add(key)
+            e.write32(e.reg(4) + WIDGET_VISIBLE, 1)
+
+    session.emu.uc.hook_add(
+        session.emu._u.UC_HOOK_CODE,
+        force,
+        begin=TEXT_SET_DONE,
+        end=TEXT_SET_DONE,  # noqa: SLF001
+    )
+
+
+def cmd_press(
+    code: Path, sram: Path, state: Path, keys: list[str], out: Path, hold: int,
+    show_all: bool = False,
+) -> int:  # fmt: skip
     session = Session(code, sram)
     session.load_state(state.read_bytes())
+    if show_all:
+        show_all_widgets(session)
     cap = session.press([parse_key(k) for k in keys], hold=hold)
     save_capture(cap, out, "press")
     print("strings:", cap.strings())
@@ -352,11 +386,14 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs the 
             p.add_argument("--eeprom", type=Path, help="initial 256 KB EEPROM image (arm_store.py)")
         if name == "press":
             p.add_argument("--key", action="append", required=True, help="strobe,port,bit")
+            p.add_argument(
+                "--show-all", action="store_true", help="force every text widget visible"
+            )
     ns = ap_.parse_args(argv)
     if ns.cmd == "boot":
         return cmd_boot(ns.image, ns.sram, ns.out, ns.eeprom)
     if ns.cmd == "press":
-        return cmd_press(ns.image, ns.sram, ns.state, ns.key, ns.out, ns.hold)
+        return cmd_press(ns.image, ns.sram, ns.state, ns.key, ns.out, ns.hold, ns.show_all)
     return cmd_sweep(ns.image, ns.sram, ns.state, ns.out, ns.hold, ns.shift)
 
 

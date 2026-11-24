@@ -18,6 +18,7 @@
 //! --watch LO:LEN[:LIMIT]  list the store sites (pc, count, address span) inside the window
 //! --rwatch LO:LEN[:LIMIT]  list the load sites (pc, count, address span) inside the window
 //! --trace LO:HI[:LIMIT]  log R/S/I/M before every step with pc in LO..=HI (per pass)
+//! --trace-dm ADDR:COUNT  append COUNT SRAM data words from ADDR (hex, `-` outside SRAM) to every trace line
 //! --boot-stores      with --watch, also list the store sites of the boot phase
 //! --coverage         list the program-counter ranges each pass executed
 //! --dump ADDR:COUNT   print data words after the last pass
@@ -89,6 +90,7 @@ fn run(args: &[String]) -> Result<String, String> {
     let mut channels: Vec<Vec<f32>> = vec![Vec::new(); o.bufs.len()];
     let mut csv = String::from("pass,channel,index,address,raw,value\n");
     core.trace = o.trace;
+    core.trace_dm = o.trace_dm;
     for p in 0..o.passes {
         core.trace_log.clear();
         for &(_, a, v) in o.pokes.iter().filter(|q| q.0 == p) {

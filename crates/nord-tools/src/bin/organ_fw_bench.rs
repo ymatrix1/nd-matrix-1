@@ -20,6 +20,15 @@ fn layer(bass: bool) -> OrganLayer {
         o.tonewheel_source = ToneWheelSource::FarfisaWheels;
         o.set_farfisa_processor(true);
     }
+    let loaded = if bass {
+        o.b3_bass_firmware_loaded()
+    } else {
+        o.farfisa_firmware_loaded()
+    };
+    if !loaded {
+        // D128: the stages are built from the user's OS update file (`NS4_WAVE_TABLES`)
+        eprintln!("no OS update file: the firmware stage is off, the figure below is not its cost");
+    }
     for k in [60, 64, 67] {
         o.note_on(k);
     }

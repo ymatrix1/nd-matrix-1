@@ -52,6 +52,9 @@ pub struct OledText {
     pub sel: Option<usize>,
     /// Graphic at the right edge of the popup (beat boxes, octave slider).
     pub graphic: Option<super::oled_popup::Graphic>,
+    /// Home screen with the organ row: the B3 drawbar positions, drawn as mini bars above the rule
+    /// when the firmware bar font is loaded (otherwise the row prints them as digits).
+    pub bars: Option<[u8; 9]>,
 }
 
 impl OledText {
@@ -112,12 +115,20 @@ fn home(ui: &ProgramUi, sum: &Summary) -> OledText {
             } else {
                 name_line(ui)
             },
+            // The real home screen lists the sounds of the sections that are on under the rule.
+            rows: section_rows(sum),
+            bars: (sum.layers_on[0] || sum.layers_on[1])
+                .then_some(sum.organ_bars)
+                .flatten(),
             ..Default::default()
         },
         ProgView::Layers => OledText {
             big: format!("{label} {}", name_line(ui)).trim_end().to_string(),
             sub: String::new(),
             rows: section_rows(sum),
+            bars: (sum.layers_on[0] || sum.layers_on[1])
+                .then_some(sum.organ_bars)
+                .flatten(),
             ..Default::default()
         },
         ProgView::Full => {

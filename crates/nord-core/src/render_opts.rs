@@ -662,6 +662,11 @@ impl FirmwareOptions {
         }
         if let Some(v) = value("--b3-bass-processor") {
             o.b3_bass_processor = Some(parse_on_off("--b3-bass-processor", v)?);
+            if o.b3_bass_processor == Some(true) {
+                // a named but unusable OS update file is an error, as for the WAVE tables; an unset
+                // variable is not (the stage is not built and the layer plays the stage-off model)
+                crate::organ::b3_bass_firmware_status()?;
+            }
         }
         if has("--firmware-fx") {
             o.fx = FirmwareFx::ALL;
@@ -1021,7 +1026,9 @@ impl FirmwareOptions {
         crate::render_opts_fx_rate::apply_fx_idle_skip(engine, self.fx_idle_skip);
         self.set_rotary(engine);
         let bass = self.b3_bass_processor == Some(true);
-        apply_b3_tail(engine, Some(!bass && self.b3_tail.unwrap_or(true)));
+        // without an OS update file the stage is not built and nothing replaces the tail (D128)
+        let bass_stage = bass && matches!(crate::organ::b3_bass_firmware_status(), Ok(true));
+        apply_b3_tail(engine, Some(!bass_stage && self.b3_tail.unwrap_or(true)));
         for organ in [&mut engine.organ_a, &mut engine.organ_b] {
             if organ.b3_bass_processor_on() != bass {
                 organ.set_b3_bass_processor(bass);
@@ -1191,9 +1198,15 @@ impl FirmwareOptions {
             ));
         }
         if let Some(b) = self.b3_bass_processor {
+            let fallback = b && !matches!(crate::organ::b3_bass_firmware_status(), Ok(true));
             parts.push(format!(
-                "b3-bass-processor={}",
-                if b { "on" } else { "off" }
+                "b3-bass-processor={}{}",
+                if b { "on" } else { "off" },
+                if fallback {
+                    " (no OS update file: stage off)"
+                } else {
+                    ""
+                }
             ));
         }
         let ports = self.fx.ports_on();
@@ -2164,7 +2177,16 @@ mod tests {
         };
         let (off, on) = (render(None), render(Some(true)));
         assert!(on.iter().all(|v| v.is_finite()) && on.iter().any(|v| v.abs() > 1e-5));
-        assert_ne!(off, on);
+        // without an OS update file the stage is not built and the layer plays the stage-off model
+        let loaded = matches!(crate::organ::b3_bass_firmware_status(), Ok(true));
+        assert_eq!(off != on, loaded);
+        assert_eq!(o.summary().contains("stage off"), !loaded);
+        assert!(
+            !FirmwareOptions::from_args(&args(&["--b3-bass-processor", "off"]))
+                .unwrap()
+                .summary()
+                .contains("stage off")
+        );
         assert!(parse_on_off("--b3-bass-processor", "x").is_err());
     }
 

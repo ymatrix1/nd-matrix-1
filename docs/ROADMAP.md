@@ -185,6 +185,8 @@ The ticks below mean the model exists and is tested. Which parts match the firmw
 - [x] **B13a** Plugin audio ports: second stereo aux output (outputs 3-4) next to main 1-2, stereo-only fallback layout; main pair bit-identical, zero allocations, ids unchanged; host behaviour (layout choice, aux track routing) unverified without a DAW (`ns4-ux21`, [daw-plugin](specs/daw-plugin.md))
 - [x] **B13b** Play the GUI with the computer keyboard (`panel/computer_keys.rs`, `computer_kb.rs`, D80): physical-key DAW layout A S D F G H J K L ; ' / W E T Y U O P, Z / X octave, C / V velocity (default 88), Space sustain; keybed path (Local Control honoured), auto-repeat ignored, release on focus loss / text focus / disable, pressed keys lit on the keybed; P / Z / L view shortcuts need Shift while it is on
 - [x] **B13c** MIDI input port selector in the GUI bar: port list, Off, Rescan (hot plug), status text (`audio/midi_ports.rs`, `audio/io.rs`, D80); first port still opened at start-up, velocity passed through unchanged; not verified with real hardware in this session
+- [x] **B13d** Text size option for low vision (`ns4-2v7q`, issue #592, D244): 100 to 200 % in steps of 25 (`crates/nord-gui/src/text_scale.rs`), `Ctrl +` / `-` / `0` and bar pills `A-` `NNN%` `A+` in the standalone and the plugin editor, saved as `text_scale_percent` in `ns4/config.json`; scales the egui text and spacing and magnifies the baked plate (`BakedZoom::base`). Headless text-rectangle checks (no golden bitmap) at 100 / 125 / 150 / 175 / 200 % (`nord-plugin/src/editor/text_scale_tests.rs`): no clipped or overlapping bar label, dialog tabs fit the editor; not checked on a real display or in a DAW
+- [ ] **B13e** Double-stacked panel layout (`ns4-ojc9`, issue #592): controls in two rows, keybed below, 1.4x to 2x bigger print in the same window; designed in [visual style](specs/visual-style-and-panel.md) section 5a, not built (after `ns4-80xe`)
 
 ---
 
@@ -470,12 +472,12 @@ The ticks below mean the model exists and is tested. Which parts match the firmw
 - [x] History rewrite purging vendor files (2026-11-23, LEGAL.md section 8; `v0.1.0`–`v0.1.2` tags moved)
 - [x] Keep DCO (no CLA) under $0 legal budget; `ADDITIONAL-PERMISSIONS.md` updated to cover contributors (`ns4-9ngp`)
 - [x] AppImage runtime license notices and LGPL corresponding source (`ns4-sgro`, D242)
-- [ ] Rename `nord-plugin-standalone` and remove `nord-` prefix from shipped binaries (`ns4-b9rn`)
-- [ ] Remove in-GUI sponsorship button to keep strictly non-commercial posture (`ns4-s3pn`)
+- [x] Rename `nord-plugin-standalone` to `nd-matrix-1-standalone` and fail releases that ship any `nord-` name (`ns4-b9rn`)
+- [x] Remove in-GUI sponsorship button to keep strictly non-commercial posture (`ns4-s3pn`; README badge and `.github/FUNDING.yml` removed too)
 - [ ] GitHub Support purge of old PR refs and release tag verification (`ns4-vt4r`, owner)
 - [ ] Required status checks and source-available repo description (`ns4-6fbu`, owner)
-- [ ] Free check of macOS `.dmg` updater and `nordkeyboards.com` terms (`ns4-d7mg`)
-- [ ] Firmware-derived files moved to runtime loading — **Class B first**, then Class C (`ns4-u8o2`), followed by second history rewrite (`ns4-eh57`)
+- [x] Free check of macOS `.dmg` updater and `nordkeyboards.com` terms (`ns4-d7mg`)
+- [ ] Firmware-derived files moved to runtime loading — **Class B first**, then Class C (`ns4-u8o2`), followed by second history rewrite (`ns4-eh57`); done: Farfisa processor (2026-11-23), B3 Bass chain (2026-11-24); open: `vox_image.rs`, `firmware_bank.rs`, class C
 - [ ] Proactive trade dress mitigation: neutral non-red default panel theme (`ns4-80xe`)
 - [ ] VST3 host checks in real DAWs (`ns4-pvb3`)
 - [ ] *(Deferred / optional)* Additional permission counsel review (`ns4-4qmh`; shipped in D241), trademark registration (`ns4-0s8y`; policy shipped in D241), and paid counsel review of LEGAL.md (`ns4-ns2j`)

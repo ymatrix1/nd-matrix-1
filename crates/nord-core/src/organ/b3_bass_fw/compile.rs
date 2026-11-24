@@ -110,7 +110,7 @@ fn emit(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::organ::b3_bass_fw::{GEN_ROWS, PROC_ROWS};
+    use crate::organ::b3_bass_fw::real_image;
 
     fn ins(items: &[Row]) -> Vec<Row> {
         let mut v = vec![[K::INS, items.len() as i32, 0, 0, 0, 0, 0, 0]];
@@ -140,7 +140,9 @@ mod tests {
 
     #[test]
     fn nearly_every_instruction_of_the_routines_is_reordered_not_referenced() {
-        for rows in [&GEN_ROWS[..], &PROC_ROWS[..]] {
+        // needs the user's OS update file (`NS4_WAVE_TABLES`); skipped with a note without it
+        let Some(image) = real_image() else { return };
+        for rows in [&image.gen[..], &image.proc[..]] {
             let p = compile(rows);
             let slow = p.ops.iter().filter(|o| o[0] == ctl::REF).count();
             assert!(

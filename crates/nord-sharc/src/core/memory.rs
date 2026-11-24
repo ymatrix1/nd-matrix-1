@@ -18,6 +18,18 @@ fn sram_offset(addr: u32) -> Option<usize> {
 }
 
 impl Core {
+    /// Internal SRAM word at `addr` without any side effect (no watch hit, no device count);
+    /// `None` outside the modelled SRAM. Used by the trace to show data mid-pass.
+    pub fn dm_peek(&self, addr: u32) -> Option<u32> {
+        let o = sram_offset(addr)?;
+        Some(u32::from_le_bytes([
+            self.sram[o],
+            self.sram[o + 1],
+            self.sram[o + 2],
+            self.sram[o + 3],
+        ]))
+    }
+
     /// Reads a 32-bit data word at a normal-word address.
     ///
     /// Internal SRAM and the IOP window are modelled; every other address reads from a sparse

@@ -39,11 +39,41 @@ for o in -a -el; do strings $o "$F" | grep -iE "license agreement|reverse engine
 
 The only match is the Microsoft C runtime line "Copyright (c) by P.J. Plauger, licensed by Dinkumware, Ltd. ALL RIGHTS RESERVED." It is not a Nord term.
 
+### Updater terms check: macOS `.dmg` (v1.66)
+
+On 2026-11-23 the local, git-ignored `Update Nord Stage 4 OS v1.66.dmg` (13,330,920 bytes, sha256 prefix `16dd08b9f47ad2ea`) was inspected. It was extracted with 7-Zip into a new empty scratch directory outside the repository; nothing in it was executed or committed.
+
+| Check | Result |
+|---|---|
+| DMG metadata (`koly` trailer, XML plist at offset 13,318,816) | Resource keys `blkx` and `plst` only. No licence-agreement resource (`sla `, `LPic`, `STR#`, `TEXT`, `RTF`) |
+| Volume contents (HFS+) | `.app` bundle, `bg-updater.tiff`, `.DS_Store`, `.fseventsd`. No licence, readme or terms file |
+| `Contents/Info.plist`, `_CodeSignature/CodeResources` | No licence or terms entry. Bundle id `com.nordkeyboards.NordOSUpdate` |
+| `strings -a` and `strings -el` on `Contents/MacOS/Nord OS Update` (22,076,656 bytes) | No match for `licen[sc]e`, `eula`, `agreement`, `reverse engineer`, `decompil`, `disassembl`, `all rights reserved`. Only third-party copyright lines (zlib, libjpeg, libpng) and a code-signing certificate line about "standard terms and conditions of use" |
+| `strings -a` on `Contents/Resources/os.cab` (4,037,080 bytes, the same size as the Windows update container) | 0 matches for `reverse engineer`, `decompil`, `eula`, `license agreement` |
+
+Result: the macOS updater, like the Windows `.exe`, shows no EULA text and no reverse-engineering or decompilation restriction in any file or string of the `.dmg`.
+
+### Vendor website check (nordkeyboards.com)
+
+On 2026-11-24 the following pages were read in a browser without logging in, accepting cookies or terms, or downloading any file:
+
+| Page | Finding |
+|---|---|
+| `https://www.nordkeyboards.com/downloads/` | Product picker only. No licence or terms text |
+| `https://www.nordkeyboards.com/products/nord-stage-4/downloads` | Lists "Update Nord Stage 4 OS v1.66.dmg" (macOS) and ".zip" (Windows), both dated 2026-08-25, with links to the update instructions PDF, manuals, factory restore files and the USB driver. No licence, terms or reverse-engineering text on the page |
+| `https://www.nordkeyboards.com/support/` | Warranty goes through distributors. No terms of use |
+| `https://www.nordkeyboards.com/support/privacy-policy/` | Privacy policy only. No match for terms of use, licence, reverse engineering, decompilation or copyright |
+| `/about-us/`, `/support/feedback/`, `/software/`, `/` | No match for the same terms |
+| Footer (every page) | Links: Products, Sounds, Downloads, Software, Artists, About Us, Distributors, Support, News, social links, "Cookie settings". Line: "Copyright © 2026 Clavia DMI AB. All rights reserved." There is no "Terms of use" or "Legal" link |
+| `/terms/`, `/terms-of-use/`, `/terms-and-conditions/`, `/legal/`, `/support/terms/`, `/support/terms-of-use/`, `/support/legal/`, `/support/license/` | HTTP 404 |
+
+The project now links the Stage 4 Downloads page ([guide](guides/nord-os-update.md), `firmware_setting::DOWNLOADS_PAGE`) instead of direct `.zip` and `.dmg` file links, so the user downloads from the vendor's own page. This is a factual record, not a legal conclusion.
+
 Limits:
 
-- Only the v1.66 `.exe` was checked. The `.dmg` and other OS versions were not.
-- The vendor website's terms of use and the download page were not checked.
-- A string search cannot prove the absence of terms shown at runtime (for example in an installer dialog built from resources `strings` does not decode) or on the web.
+- Only the v1.66 `.exe` and `.dmg` were checked. Older OS versions were not.
+- A string search cannot prove the absence of terms shown at runtime (for example in an installer dialog built from resources `strings` does not decode) or behind a download dialog. The updaters were not run.
+- The website was read on one day and may change. Only the pages above were read. Terms shown only to logged-in users or in a cookie or download dialog were not seen.
 
 ## 3. No circumvention
 
@@ -83,7 +113,7 @@ Evidence: the runtime source at tag `20251108` (`LICENSE` names musl, libfuse, s
 
 **LGPL-2.1 obligation (resolved by option A, pending counsel confirmation).** libfuse is statically linked into the runtime, so the runtime executable is a combined work under LGPL-2.1 section 6. Whoever distributes the `.AppImage` must (a) carry a notice that libfuse is used and a copy of the LGPL, (b) let the recipient modify the combined work and relink it, and (c) deliver the corresponding source with the work, give a written offer, or, when distributing from a place, offer the same access to the source from the same place (6a, 6c, 6d). The owner chose to ship the source: every release carries the asset `nd-matrix-1-<tag>-appimage-runtime-sources.tar.gz` next to the `.AppImage` (same release page, so 6d is met in place), built by `tools/release_runtime_sources.py` in `release.yml`. It holds libfuse 3.15.0 (sha256 `70589cfd...ea2ca0`), squashfuse 0.5.2 (sha256 `db0238c5...9f443d3`), the type2-runtime source at commit `dd6cebed...e43868` (`git archive`; it holds the build scripts and `BUILD.md`) and the libfuse patch, plus `SOURCES.txt` with the relink steps (rebuild the runtime from that source with a modified libfuse, repack with `appimagetool --runtime-file`). The script fails the release when a download's sha256 or the runtime tag's commit differs from the pin. The libfuse hash was computed here from the downloaded file; the squashfuse hash is the one the runtime's own `install-dependencies.sh` checks, and its download was blocked from the machine that wrote this, so the first release run is its first end-to-end check. `tools/release_verify.py` fails a Linux release without the asset, with a missing member or without its `.sha256`. The notice and the license text ship in the AppImage and the archive (`licenses/appimage-runtime/README.md`). The application inside the SquashFS image is data and is not linked with libfuse, so its license should be unaffected. Whether this meets section 6 is for counsel to confirm (bean `ns4-ns2j`). Alternatives the owner did not choose: a runtime that loads libfuse dynamically (no such upstream build known to us, unverified), a different or self-built runtime, dropping the `.AppImage`. Tracked in bean `ns4-sgro`.
 
-Not yet fully true, stated plainly: the inventory still tracks class B (code images and generated translations such as `bass-fw-image.csv`, `organ/b3_bass_fw/prog_*.rs`, `organ/b3_bass_fw/native_bass_*.rs`, `vox_image.rs`, `firmware_bank.rs`) and class C (numeric table dumps without a closed form such as `synth-p-words.csv`, `synth-fm-tables.csv`, `fx/fw_*_tables.rs`). D128 decides that these move to runtime loading from the user's own OS update file in follow-up PRs, prioritizing class B first. Until each migration lands the files remain in the tree and in history. See [firmware-derived-data-inventory](research/firmware-derived-data-inventory.md) for the current list and order. Whether such tables are protectable at all, and in which jurisdiction, is an open question in section 8.
+Not yet fully true, stated plainly: the inventory still tracks class B (code images and generated translations such as `vox_image.rs` and `firmware_bank.rs`; the Farfisa and B3 Bass images and rows are built at run time since 2026-11-23 and 2026-11-24) and class C (numeric table dumps without a closed form such as `synth-p-words.csv`, `synth-fm-tables.csv`, `fx/fw_*_tables.rs`). D128 decides that these move to runtime loading from the user's own OS update file in follow-up PRs, prioritizing class B first. Until each migration lands the files remain in the tree and in history. See [firmware-derived-data-inventory](research/firmware-derived-data-inventory.md) for the current list and order. Whether such tables are protectable at all, and in which jurisdiction, is an open question in section 8.
 
 ## 5. Trademarks
 
@@ -112,7 +142,7 @@ We respond promptly (target: acknowledge within 48 hours). A module, table, rele
 
 These are questions, not conclusions.
 
-1. Does the vendor's OS updater licence (EULA) contain terms on reverse engineering, decompilation or use of the update file, and if so, how do they interact with the interoperability and research purposes above? Finding so far: a string search of the v1.66 `.exe` found no EULA and no such restriction (section 2); the vendor website's terms of use, the download page, the `.dmg` and other versions were not checked.
+1. Does the vendor's OS updater licence (EULA) contain terms on reverse engineering, decompilation or use of the update file, and if so, how do they interact with the interoperability and research purposes above? Findings so far (section 2): a string search of the v1.66 `.exe` (2026-11-23) and an inspection of the v1.66 `.dmg` (2026-11-23: no licence resource, no EULA or reverse-engineering strings) found no EULA and no such restriction; the vendor's Downloads pages and site (2026-11-24) show no terms of use and no licence text, only a footer copyright line. Other OS versions and runtime-only dialogs were not checked.
 2. In the US, does 17 USC 1201(f) (reverse engineering for interoperability) cover this work, given that no technical protection measure is circumvented (section 3), and what does it say about publishing derived tables?
 3. In the EU, does Art. 6 of the Software Directive 2009/24/EC (decompilation for interoperability) apply, and what limits does it put on publishing what is learned?
 4. Which jurisdiction's rules apply to a project whose contributors and users are in several countries?
@@ -132,7 +162,7 @@ Every new constant, table or art asset has to fit sections 2 to 4. Contributions
 
 ## Follow-ups ($0 legal budget posture)
 
-- **Tier 1 (quick wins):** Rename `nord-plugin-standalone` (`ns4-b9rn`), remove in-GUI sponsorship button (`ns4-s3pn`), GitHub Support purge of old PR refs (`ns4-vt4r`), required checks (`ns4-6fbu`), and free `.dmg`/website terms check (`ns4-d7mg`). (`ns4-sgro` AppImage runtime notices and LGPL source asset shipped in D242.)
+- **Tier 1 (quick wins):** Remove in-GUI sponsorship button (`ns4-s3pn`), GitHub Support purge of old PR refs (`ns4-vt4r`), required checks (`ns4-6fbu`), and free `.dmg`/website terms check (`ns4-d7mg`). (`ns4-sgro` AppImage runtime notices and LGPL source asset shipped in D242; `ns4-b9rn` renamed the standalone binary to `nd-matrix-1-standalone` and `release_verify.py` now rejects any shipped `nord-` name.)
 - **Tier 2 (high-impact engineering):** Finish class B (first) and class C migrations (`ns4-u8o2`, D128), run the second history rewrite (`ns4-eh57`), and ship a neutral non-red default panel theme (`ns4-80xe`).
 - **Decision recorded:** Keep DCO without a CLA (`ns4-9ngp`); `ADDITIONAL-PERMISSIONS.md` covers `ymatrix1 and each contributor to ND Matrix 1`.
 - **Deferred / optional:** Paid counsel review of section 8 (`ns4-ns2j`) and paid trademark registration (`ns4-0s8y`) are deferred unless the project ever commercializes or receives a formal legal notice.

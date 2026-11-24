@@ -237,7 +237,8 @@ mod tests {
         PianoEdit::Pstick(true).apply(&mut e);
         assert_eq!(&e.pedals.sustped[2..4], &[false, false]);
         assert_eq!(&e.pedals.pstick[2..4], &[true, true]);
-        assert!(!e.pedals.pstick[0] && !e.pedals.pstick[4]);
+        assert!(!e.pedals.pstick[0], "organ untouched");
+        assert!(e.pedals.pstick[4], "synth keeps its own default (on)");
     }
 
     #[test]

@@ -110,6 +110,8 @@ fn sustain_and_bend_forward_only_with_the_layer_flags() {
         controller: cc::SUSTAIN_PEDAL,
         value: 127,
     });
+    e.pedals.pstick[LayerId::SynthA as usize] = false;
+    e.refresh_pedal_routing();
     e.handle_midi(MidiEvent::PitchBend {
         channel: 0,
         value: 16383,

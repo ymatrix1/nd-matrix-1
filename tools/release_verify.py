@@ -17,6 +17,8 @@ Checks, with no third-party dependencies and no need for `dumpbin`/`nm`:
    `.AppImage`, including the LGPL-2.1 text; D242).
 8. Linux archives have the `-appimage-runtime-sources.tar.gz` asset beside them (corresponding
    source of the LGPL-2.1 libfuse in the runtime), complete and with a matching `.sha256`.
+9. No shipped name starts with the vendor trademark `nord-`: the archive, its top folder, and
+   every file, folder or bundle inside (ns4-9wq1, ns4-b9rn).
 
 Usage: python tools/release_verify.py <archive> [--target <rust triple>]
 Exit status 0 when clean, 1 with one problem per line on stderr otherwise.
@@ -60,6 +62,8 @@ FORBIDDEN_SUFFIXES = (
     ".ns4b", ".ns4p", ".ns4y", ".ns4o", ".ns4n", ".ns4l", ".ns4t",  # Clavia Binary files
     ".nsmp4", ".npno", ".pdf", ".bin", ".fw", ".ldr", ".dxe", ".hex", ".asm", ".pyc", ".pdb",
 )  # fmt: skip
+# Vendor trademark prefix: no archive, binary, bundle or folder we ship may start with it.
+VENDOR_PREFIX = "nord-"
 # Manufacturer name must not be compiled into anything a user sees.
 FORBIDDEN_BYTES = (b"Clavia", b"CLAVIA")
 # The real file is ~300 KB with ~160 license texts; anything under 1 KB is a stub or truncated.
@@ -115,6 +119,20 @@ def expected_files(platform: Platform) -> list[str]:
     if platform.os == "linux":
         base += [f"{APPIMAGE_RUNTIME_DIR}/{name}" for name in APPIMAGE_RUNTIME_FILES]
     return base + [f"{PLUGIN_STEM}.clap", vst3]
+
+
+def check_vendor_names(archive_name: str, paths: list[str]) -> list[str]:
+    """Problems for any shipped name (archive, folder, file, bundle) that starts with `nord-`."""
+    problems = []
+    if archive_name.lower().startswith(VENDOR_PREFIX):
+        problems.append(f"archive name {archive_name!r} starts with {VENDOR_PREFIX!r}")
+    seen: set[str] = set()
+    for path in paths:
+        for part in path.split("/"):
+            if part.lower().startswith(VENDOR_PREFIX) and part not in seen:
+                seen.add(part)
+                problems.append(f"shipped name {part!r} starts with {VENDOR_PREFIX!r} ({path})")
+    return problems
 
 
 def check_layout(paths: list[str], platform: Platform) -> list[str]:
@@ -303,6 +321,7 @@ def verify(archive: Path, triple: str | None = None) -> list[str]:
     platform = detect_platform(archive, triple)
     files = read_archive(archive)
     problems = check_layout(list(files), platform)
+    problems += check_vendor_names(archive.name, list(files))
     problems += check_content(files, platform)
     problems += check_sha256(archive)
     if platform.os == "linux":

@@ -2752,7 +2752,7 @@ dependencies = [
 
 [[package]]
 name = "nord-core"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "miniz_oxide 0.8.9",
  "nord-sharc",
@@ -2762,7 +2762,7 @@ dependencies = [
 
 [[package]]
 name = "nord-gui"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "cpal",
  "crossbeam-channel",
@@ -2781,11 +2781,11 @@ dependencies = [
 
 [[package]]
 name = "nord-panel"
-version = "0.1.4"
+version = "0.1.5"
 
 [[package]]
 name = "nord-plugin"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "crossbeam-channel",
  "nih_plug",
@@ -2799,7 +2799,7 @@ dependencies = [
 
 [[package]]
 name = "nord-sharc"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "cranelift-codegen",
  "cranelift-frontend",
@@ -2810,7 +2810,7 @@ dependencies = [
 
 [[package]]
 name = "nord-tools"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "nord-core",
  "serde_json",
@@ -5297,7 +5297,7 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 
 [[package]]
 name = "xtask"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "nih_plug_xtask",
 ]

@@ -37,6 +37,7 @@ mod rotor_arm;
 mod rotor_choices;
 mod rotor_stop;
 mod scanner;
+mod sharc_rows;
 #[cfg(test)]
 mod stereo_lanes;
 mod tonewheel;
@@ -77,6 +78,7 @@ mod vox_golden;
 #[cfg(test)]
 mod weight_tests;
 
+pub use b3_bass_fw::firmware_status as b3_bass_firmware_status;
 pub use b3_keys::{A_CAPTURED_WHEELS as B3_A_CAPTURED_WHEELS, WHEEL_GAIN as B3_WHEEL_GAIN};
 pub use b3_wheels::{
     base_step as b3_base_step, firmware_note_hz as b3_firmware_note_hz, note_hz as b3_note_hz,

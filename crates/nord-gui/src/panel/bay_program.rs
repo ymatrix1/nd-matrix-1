@@ -41,6 +41,7 @@ pub mod oled_lists;
 pub mod oled_paint;
 pub mod oled_popup;
 pub mod oled_store;
+pub mod oled_text;
 pub mod organize;
 pub mod organize_presets;
 pub mod popups;

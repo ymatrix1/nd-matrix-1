@@ -84,6 +84,10 @@ pub struct PedalState {
     /// Per-layer SUSTPED. Defaults keep the prior behaviour: only the pianos follow the pedal.
     pub sustped: [bool; 7],
     /// Per-layer PSTICK (pitch stick). Honoured by every layer (Extern layers forward it).
+    /// Defaults: Organ and Piano off, Synth on.
+    /// VERIFIED: defaults match `Edt_OrgCom_kOrgPStickEnable` 0, `Edt_Pno_kPStickEnable` 0,
+    /// `Edt_Syn_kPStickEnable` 1 in `docs/research/arm-edit-params.csv` (rows 211, 262, 305);
+    /// checked by `pstick_defaults_follow_the_firmware`.
     pub pstick: [bool; 7],
     /// Per-layer bend range in semitones (default 2, PSTICK/RNG list, p.28). Only Synth layers
     /// honour it; set through `Stage4Engine::set_pstick_range` (clamped 1-12).
@@ -112,7 +116,7 @@ impl Default for PedalState {
             swell_gain: 1.0,
             control_gain: 1.0,
             sustped: [false, false, true, true, false, false, false],
-            pstick: [false; 7],
+            pstick: [false, false, false, false, true, true, true],
             pstick_range: [2; 7],
             triple: super::pedal_assign::TripleState::default(),
             swell: 1.0,

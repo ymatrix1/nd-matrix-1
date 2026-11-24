@@ -32,6 +32,7 @@ impl Core {
             watch_limit: WATCH_LIMIT,
             rwatch: u32::MAX,
             trace: None,
+            trace_dm: (0, 0),
             trace_log: Vec::new(),
             rwatch_len: 1,
             rwatch_hits: Vec::new(),

@@ -4,7 +4,7 @@
 Reuses the allowlisted build outputs from `tools/release_package.py` so no
 forbidden files (`.reference/`, firmware dumps, presets) can enter any installer.
 Each installer packages the standalone apps (`ns4`, `nd-matrix-1`,
-`nord-plugin-standalone`) and installs (or lets the user select) the CLAP and
+`nd-matrix-1-standalone`) and installs (or lets the user select) the CLAP and
 VST3 DAW plugins into the standard OS plugin folders.
 """
 
@@ -22,12 +22,15 @@ from pathlib import Path
 from release_package import (
     APPIMAGE_RUNTIME_DIR,
     APPIMAGE_RUNTIME_SHA256,
+    BINS,
     DOC_FILES,
     LEGACY_PLUGIN_STEM,
+    LEGACY_STANDALONE_BIN,
     LEGAL_NOTICES,
     PLATFORMS,
     PLUGIN_STEM,
     ROOT,
+    STANDALONE_BIN,
     THIRD_PARTY_NOTICES,
     Platform,
     collect,
@@ -78,7 +81,7 @@ case "${1:-}" in
     ;;
   --standalone-plugin)
     shift
-    exec "$HERE/usr/bin/nord-plugin-standalone" "$@"
+    exec "$HERE/usr/bin/@STANDALONE@" "$@"
     ;;
   --install-plugins)
     mkdir -p "$HOME/.clap" "$HOME/.vst3"
@@ -114,7 +117,11 @@ def write_macos_license(raw_stage: Path, resources: Path) -> None:
 
 def render_apprun() -> str:
     """AppRun script with the current and legacy plugin bundle names filled in."""
-    return APPRUN_SCRIPT.replace("@NEW@", PLUGIN_STEM).replace("@LEG@", LEGACY_PLUGIN_STEM)
+    return (
+        APPRUN_SCRIPT.replace("@NEW@", PLUGIN_STEM)
+        .replace("@LEG@", LEGACY_PLUGIN_STEM)
+        .replace("@STANDALONE@", STANDALONE_BIN)
+    )
 
 
 def render_macos_preinstall(kind: str, install_dir: str) -> str:
@@ -226,7 +233,7 @@ def render_inno_iss(
             "Components: app; Flags: ignoreversion"
         ),
         (
-            f'Source: "{src}\\nord-plugin-standalone.exe"; DestDir: "{{app}}"; '
+            f'Source: "{src}\\{STANDALONE_BIN}.exe"; DestDir: "{{app}}"; '
             "Components: app; Flags: ignoreversion"
         ),
         f'Source: "{src}\\ns4.exe"; DestDir: "{{app}}"; Components: cli; Flags: ignoreversion',
@@ -257,6 +264,7 @@ def render_inno_iss(
             "Components: vst3"
         ),
         (f'Type: files; Name: "{{commoncf64}}\\CLAP\\{LEGACY_PLUGIN_STEM}.clap"; Components: clap'),
+        f'Type: files; Name: "{{app}}\\{LEGACY_STANDALONE_BIN}.exe"; Components: app',
         "",
         "[Icons]",
         (
@@ -359,7 +367,7 @@ def render_deb_control(label: str) -> str:
         "Depends: libc6 (>= 2.38), libasound2t64 | libasound2, libgl1, libx11-6\n"
         f"Homepage: {APP_URL}\n"
         "Description: Source-available keyboard emulator: DSP engine, CLI, GUI, CLAP/VST3\n"
-        " Includes the ns4 CLI, nd-matrix-1 standalone GUI, nord-plugin-standalone,\n"
+        f" Includes the ns4 CLI, nd-matrix-1 standalone GUI, {STANDALONE_BIN},\n"
         " and CLAP (/usr/lib/clap) + VST3 (/usr/lib/vst3) DAW plugins.\n"
     )
 
@@ -390,7 +398,7 @@ def stage_linux_deb(
     doc_dir = pkg_root / "usr" / "share" / "doc" / "nd-matrix-1"
     doc_dir.mkdir(parents=True)
 
-    for b in ("ns4", "nd-matrix-1", "nord-plugin-standalone"):
+    for b in BINS:
         dst = pkg_root / "usr" / "bin" / b
         shutil.copy2(raw_stage / b, dst)
         dst.chmod(0o755)
@@ -462,7 +470,7 @@ def stage_linux_appdir(
     doc_dir = appdir / "usr" / "share" / "doc" / "nd-matrix-1"
     doc_dir.mkdir(parents=True)
 
-    for b in ("ns4", "nd-matrix-1", "nord-plugin-standalone"):
+    for b in BINS:
         dst = appdir / "usr" / "bin" / b
         shutil.copy2(raw_stage / b, dst)
         dst.chmod(0o755)
@@ -587,7 +595,7 @@ def stage_macos_dmg(
     create_macos_app_bundle(label, raw_stage / "nd-matrix-1", dmg_stage / APP_BUNDLE_NAME)
     shutil.copytree(raw_stage / f"{PLUGIN_STEM}.vst3", dmg_stage / f"{PLUGIN_STEM}.vst3")
     shutil.copytree(raw_stage / f"{PLUGIN_STEM}.clap", dmg_stage / f"{PLUGIN_STEM}.clap")
-    for b in ("ns4", "nord-plugin-standalone"):
+    for b in ("ns4", STANDALONE_BIN):
         dst = dmg_stage / b
         shutil.copy2(raw_stage / b, dst)
         dst.chmod(0o755)
@@ -665,7 +673,7 @@ def stage_macos_pkg_roots(
     create_macos_app_bundle(
         label, raw_stage / "nd-matrix-1", app_root / "Applications" / APP_BUNDLE_NAME
     )
-    for b in ("ns4", "nord-plugin-standalone"):
+    for b in ("ns4", STANDALONE_BIN):
         dst = app_root / "usr" / "local" / "bin" / b
         shutil.copy2(raw_stage / b, dst)
         dst.chmod(0o755)

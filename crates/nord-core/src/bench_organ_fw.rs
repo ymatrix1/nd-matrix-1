@@ -52,9 +52,14 @@ mod tests {
     fn the_stage_runs_and_changes_the_output_of_the_typical_workload() {
         let typical = run_engine(cfg(), typical_engine(48_000.0));
         for bass in [true, false] {
-            if !bass && !matches!(crate::organ::farfisa_firmware_status(), Ok(true)) {
-                // the Farfisa stage needs the user's OS update file (`NS4_WAVE_TABLES`, D128)
-                eprintln!("no OS update file: skipping the Farfisa stage workload");
+            let status = if bass {
+                crate::organ::b3_bass_firmware_status()
+            } else {
+                crate::organ::farfisa_firmware_status()
+            };
+            if !matches!(status, Ok(true)) {
+                // the stages need the user's OS update file (`NS4_WAVE_TABLES`, D128)
+                eprintln!("no OS update file: skipping the firmware stage workload (bass {bass})");
                 continue;
             }
             let r = run_engine(cfg(), organ_fw_engine(48_000.0, bass));

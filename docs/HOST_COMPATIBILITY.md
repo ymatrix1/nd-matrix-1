@@ -13,7 +13,7 @@ The **Nord Stage 4 DAW Plugin** (`nord-plugin`) brings the 3-engine, 7-layer Nor
 | **CLAP** | `.clap` | Linux, Windows, macOS | Bitwig Studio, Reaper, FL Studio |
 | **VST3** | `.vst3` | Windows, macOS, Linux | Ableton Live, Cubase, Studio One, Reaper, FL Studio |
 | **Audio Unit (AUv2)** | `.component` | macOS (Intel / Apple Silicon) | Logic Pro, MainStage, GarageBand |
-| **Standalone** | binary (`nord-plugin-standalone`) | Windows, Linux, macOS | Live gigging, latency calibration |
+| **Standalone** | binary (`nd-matrix-1-standalone`) | Windows, Linux, macOS | Live gigging, latency calibration |
 
 ---
 
@@ -74,7 +74,7 @@ All major front-panel controls are exposed as host-automatable parameters with s
 - **System / Sound / Output menu (`sys_*`):** `sys_{transpose,fine_tune,piano_noise_db,piano_res_db,tonewheel,click_high,rotary_balance,rotor_speed,rotor_acc,horn_speed,horn_acc,mono}` (manual p.57-59). `sys_transpose` -6..6 semitones added to `prog_transpose`; `sys_fine_tune` -50..50 cents for Organ, Piano and Synth; `sys_piano_noise_db` and `sys_piano_res_db` +/-6 dB; `sys_tonewheel` 0 Clean, 1 Vintage 1, 2 Vintage 2; `sys_click_high` Normal/High; `sys_rotary_balance` 0-4 = 70/30 ... 30/70; speed and acceleration 0 Low, 1 Normal, 2 High; `sys_mono` mixes both channels to `(L+R)/2`. Defaults equal the previous engine behaviour, so an untouched host renders bit-identically; the non-default gains and speed factors are `ASSUMED` (not measured). Program Levels stays `prog_level_db`. The MIDI, Extern, Output, trigger point and SW B settings are in the three entries below (`midix_*`, `outx_*`, `menx_*`).
 - **MIDI and Extern menus (`midix_*`, additive, `midi_menu_params.rs`):** `midix_{sect_organ,sect_piano,sect_synth}` (Sect On, default Off), `midix_nrpn` (Type: On = CC & NRPN, default), `midix_{ctrl,dev,pc,pc_ext}` (0 Off, 1 Send, 2 Receive, 3 Send & Receive, default 3), `midix_transpose_at` (0 In, 1 Out), `midix_echo` (Echo Global To Extern Ch, default On) and per Extern layer A/B/C (`_1`/`_2`/`_3`) `midix_vel_{n}` (0 Soft, 1 Mid, 2 Hard) and `midix_{mod,aft,ctl,swl,vol}_{n}` (Device MIDI, default On). Defaults equal the engine, so an untouched host renders bit-identically. Receive halves filter the Global channel; send halves and Local Control act on the engine's keyboard entry `handle_keyboard_midi` (the plugin's on-screen keys use it when Local Control is Off). Local Control is **not** a host parameter (the manual reverts it to On at start). Ctrl defaults to Send & Receive and Echo to On (hardware Off), `ASSUMED`, to keep existing behaviour.
 - **Output menu (`outx_*`, additive, `output_params.rs`):** `outx_mode` (0 Global, 1 Per Program), `outx_busout_{1..4}` (Main, Sub I-III output: 0 `1-2`, 1 `3-4`, 2 `1`, 3 `2`, 4 `3`, 5 `4`, 6 `12+34`; defaults 0, 1, 4, 5), per source `outx_global_{1..7}` (same list plus 7 = arrow / Auto) and `outx_bus_{1..7}` (0 Main .. 3 Sub III, 4 = arrow / Auto) in the order Organ, Rotary, Piano A, Piano B, Synth A, B, C, and `outx_trim_{1..4}` (+/-12 dB on outputs 1-4). The plugin has a stereo main port (outputs 1-2) and a stereo aux output port `Aux 3-4` (outputs 3-4), see the audio ports in [daw-plugin.md](specs/daw-plugin.md); a source routed to 3-4 leaves the main port, as on the hardware. A host that offers only one bus gets the stereo-only layout (main 1-2 only). Defaults send everything to 1-2, bit-identical to before.
-- **Organ trigger point and Foot Switch SW B (`menx_*`, additive, `menu_extra_params.rs`):** `menx_trigger` (0 High default, 1 Low: Organ note-ons wait 8 ms, `ASSUMED`), `menx_fsb_func` (the ten Pedal-menu choices, 0 User Assigned .. 9 Rotor Toggle) and the momentary `menx_fsb`. PSTICK (`ped_pstick_{n}`) now also bends Organ and Piano layers; it defaults Off, so renders are unchanged.
+- **Organ trigger point and Foot Switch SW B (`menx_*`, additive, `menu_extra_params.rs`):** `menx_trigger` (0 High default, 1 Low: Organ note-ons wait 8 ms, `ASSUMED`), `menx_fsb_func` (the ten Pedal-menu choices, 0 User Assigned .. 9 Rotor Toggle) and the momentary `menx_fsb`. PSTICK (`ped_pstick_{n}`) now also bends Organ and Piano layers; the host parameter defaults Off on every layer (frozen in `param-ids.snapshot`; the standalone engine defaults Synth On like the firmware, `arm-edit-params.csv`), so renders are unchanged.
 - **Layer FX extras (layers 1-7 = Organ A, Organ B, Piano A, Piano B, Synth A, B, C):** `fxx_{mod1_amount,mod2_amount,eq_mid_freq,filter_res,amp_variation,delay_analog,delay_fx_variation}_{1..7}`.
 - **Appended Mod types:** `fxsel_mod1_type_*` now also offers `Auto Wah` and `Pump` (steps 4 to 6) and `fxsel_mod2_type_*` offers `Spin` and `Ensemble` (steps 4 to 6), appended after the earlier values so saved host automation keeps its meaning; ids are unchanged. `fxsel_mod1_rate_*` is SENS for Auto Wah; `fxy_mod1_var_*` / `fxy_mod2_var_*` select the variation models; `fxy_mod1_ped_*` + `fxy_mod1_ped_pos_*` trigger a Pump duck on a rising edge through 0.5. Mod 1 Master Clock sync is engine-only for now.
 - **Layer FX variations, sharing and clock division (same layer order):** `fxy_{mod1_var,mod2_var,mod1_ped,mod1_ped_pos,delay_beats,glob_delay,glob_comp,glob_rev,group}_{1..7}`. `delay_beats` 0 keeps `fxsel_delay_div`, 1-17 select the hardware Master Clock fractions (used with `fxsel_delay_sync`). `glob_*` flag the layer whose Delay / Compressor / Reverb applies to all layers (lowest flagged layer wins; Reverb GLOBAL moves one shared reverb after the rotary and the level faders). `group` on layers 3-4 (Piano) or 5-7 (Synth) shares that layer's whole chain with its section. `TO ROTARY` is `fxsel_cabinet_*` = To Rotary (Piano / Synth layers only).
@@ -101,7 +101,7 @@ cargo build --release -p nord-plugin
 
 - Linux CLAP: `target/release/libnord_plugin.so` (copy to `~/.clap/nord-stage-4.clap`)
 - Linux VST3: `target/release/libnord_plugin.so` (packaged into `~/.vst3/ND Matrix 1.vst3/Contents/x86_64-linux/ND Matrix 1.so`)
-- Standalone Binary: `target/release/nord-plugin-standalone`
+- Standalone Binary: `target/release/nd-matrix-1-standalone`
 
 ### macOS Audio Unit (AUv2) Packaging
 
@@ -227,7 +227,7 @@ Drives the `Plugin` trait the way nih-plug's wrappers do (initialize, process pe
 |---|---|
 | Any DAW (Reaper, Bitwig, Live, Cubase, Studio One, Logic) | No host available; section 3 stays "not host-tested". FL Studio: only the top bar and program load, see 7.9 |
 | VST3 | Validated headlessly with the Steinberg `validator` (7.10). Not loaded in any VST3 host |
-| Standalone wrapper (`nord-plugin-standalone`) | Needs an audio device; not run |
+| Standalone wrapper (`nd-matrix-1-standalone`) | Needs an audio device; not run |
 | AUv2 | Needs macOS and `clap-wrapper` |
 | Automation lanes, project save/load, editor open/close, HiDPI, window resize in a host | Need a host |
 | Multitimbral routing across 7 tracks, transport sync with a moving playhead | Need a host (the tempo is read from the transport in `process`; unit test only) |

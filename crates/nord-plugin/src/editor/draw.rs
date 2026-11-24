@@ -12,7 +12,9 @@ use super::index::ParamIndex;
 use super::notes::NoteSender;
 use super::readback::sync_panel_from_params;
 use super::sink::{pump, ParamSink};
-use super::top_bar::{self, BarClick, BAR_HEIGHT};
+#[cfg(test)]
+use super::top_bar::BAR_HEIGHT;
+use super::top_bar::{self, BarClick};
 use super::write::ParamWriter;
 use crate::loader::LoadSender;
 use crossbeam_channel::Receiver;
@@ -63,6 +65,12 @@ pub struct EditorState {
     pub os_update: Option<OsUpdatePanel>,
     /// The Studio Settings dialog (DEBUG / HELP / OPEN .NS4B), an embedded window in the editor.
     pub debug_dialog: DebugDialogState,
+    /// Text size option (issue #592), loaded once when the editor opens; saved on every change.
+    pub text_scale: nord_gui::text_scale::TextScale,
+    /// Where the text size is saved (`None`: no config directory, or a test).
+    pub config_path: Option<std::path::PathBuf>,
+    /// Text size the window was last sized for (`None`: not yet, so the first frame sizes it).
+    pub sized_for: Option<nord_gui::text_scale::TextScale>,
 }
 
 impl EditorState {
@@ -76,6 +84,10 @@ impl EditorState {
         // The plugin's engine publishes into this cell: the panel LEDs and lit keys read it.
         handle.telemetry = TelemetryHandle::from_cell(telemetry);
         let coverage = super::coverage::classify(&index);
+        // Tests never read the developer's saved settings.
+        let config_path = (!cfg!(test))
+            .then(nord_core::user_config::default_config_path)
+            .flatten();
         Self {
             panel: Stage4PanelState {
                 use_baked_plate: true,
@@ -93,6 +105,16 @@ impl EditorState {
             firmware: FirmwarePanelState::new(Default::default()),
             os_update: None,
             debug_dialog: DebugDialogState::default(),
+            text_scale: nord_gui::text_scale::load(config_path.as_deref()),
+            config_path,
+            sized_for: None,
+        }
+    }
+
+    /// Remember the text size for the next time an editor opens.
+    pub fn save_text_scale(&self) {
+        if let Err(e) = nord_gui::text_scale::save(self.config_path.as_deref(), self.text_scale) {
+            nih_plug::nih_log!("Could not save the text size: {e}");
         }
     }
 
@@ -151,10 +173,10 @@ fn show_dialogs(ctx: &Context, st: &mut EditorState) {
 
 /// Window size for a plate `width` wide: the plate aspect plus the top bar.
 pub fn size_for_width(width: f32) -> (u32, u32) {
-    let w = width.max(MIN_WIDTH);
+    let w = width.max(nord_gui::text_scale::editor_min_width(MIN_WIDTH));
     (
         w.round() as u32,
-        (w * PLATE_H / PLATE_W + BAR_HEIGHT).round() as u32,
+        (w * PLATE_H / PLATE_W + nord_gui::text_scale::bar_height()).round() as u32,
     )
 }
 
@@ -191,6 +213,21 @@ pub(super) fn light_held_keys(handle: &AudioHandle, panel: &mut Stage4PanelState
     }
 }
 
+/// The bar height and the smallest width follow the text size, so a new size (or the first frame
+/// at a saved size) asks the host for the matching window: same width, aspect and bar height of
+/// the new size, never narrower than the bar needs. The host may refuse.
+fn size_window_for_text(egui_state: &EguiState, st: &mut EditorState) {
+    if st.sized_for == Some(st.text_scale) {
+        return;
+    }
+    st.sized_for = Some(st.text_scale);
+    let (w, h) = egui_state.size();
+    let target = size_for_width(w as f32);
+    if target != (w, h) {
+        egui_state.set_requested_size(target);
+    }
+}
+
 /// Draw one frame of the editor and forward the panel's edits to `writer`.
 pub fn draw_editor<W: ParamWriter>(
     ctx: &Context,
@@ -200,6 +237,11 @@ pub fn draw_editor<W: ParamWriter>(
 ) {
     sync_panel_from_params(&st.index, &mut st.panel);
     light_held_keys(&st.handle, &mut st.panel);
+    if nord_gui::text_scale::handle_keys(ctx, &mut st.text_scale) {
+        st.save_text_scale();
+    }
+    nord_gui::text_scale::apply(ctx, st.text_scale, &mut st.panel.baked_zoom);
+    size_window_for_text(egui_state, st);
 
     // The shared panel would otherwise drive egui's zoom itself; the editor shows the whole plate.
     st.panel.view.host_scaled = true;
@@ -211,12 +253,22 @@ pub fn draw_editor<W: ParamWriter>(
 
     let bar_frame = egui::Frame::NONE.fill(CHASSIS_DARK);
     TopBottomPanel::top("nd_matrix_bar")
-        .exact_height(BAR_HEIGHT)
+        .exact_height(nord_gui::text_scale::bar_height())
         .show_separator_line(false)
         .frame(bar_frame)
         .show(ctx, |ui| {
-            if let Some(click) = top_bar::show(ui, st.debug_dialog.open, &mut st.panel.baked_zoom) {
+            let before = st.text_scale;
+            let click = top_bar::show(
+                ui,
+                st.debug_dialog.open,
+                &mut st.panel.baked_zoom,
+                &mut st.text_scale,
+            );
+            if let Some(click) = click {
                 st.open_for(click);
+            }
+            if st.text_scale != before {
+                st.save_text_scale();
             }
         });
 

@@ -8,6 +8,8 @@ mod baked_audit_tests;
 mod baked_buttons;
 pub mod baked_view;
 pub mod baked_zoom;
+#[cfg(test)]
+mod baked_zoom_base_tests;
 mod bay_effects;
 mod bay_master;
 mod bay_organ;
@@ -42,6 +44,8 @@ mod legibility_leds;
 mod legibility_rules;
 #[cfg(test)]
 mod legibility_tests;
+#[cfg(test)]
+mod oled_arm_check;
 mod organ_drawbars;
 mod organ_layer;
 mod organ_logic;

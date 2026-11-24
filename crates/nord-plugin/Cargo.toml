@@ -12,7 +12,7 @@ description = "CLAP and VST3 DAW Plugin and Standalone wrapper for the ND Matrix
 crate-type = ["cdylib", "lib"]
 
 [[bin]]
-name = "nord-plugin-standalone"
+name = "nd-matrix-1-standalone"
 path = "src/main.rs"
 
 [dependencies]

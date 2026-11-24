@@ -35,21 +35,30 @@ fn section_card(
             ui.set_min_width(ui.available_width());
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    ui.label(RichText::new(title).size(13.0).strong().color(TEXT_PRIMARY));
-                    ui.label(RichText::new(subtitle).size(11.0).color(TEXT_MUTED));
+                    ui.label(
+                        RichText::new(title)
+                            .size(crate::text_scale::px(13.0))
+                            .strong()
+                            .color(TEXT_PRIMARY),
+                    );
+                    ui.label(
+                        RichText::new(subtitle)
+                            .size(crate::text_scale::px(11.0))
+                            .color(TEXT_MUTED),
+                    );
                 });
                 if let Some(eng) = engine {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         ui.spacing_mut().item_spacing.x = 6.0;
                         if ui
-                            .button(RichText::new("Firmware").size(11.0))
+                            .button(RichText::new("Firmware").size(crate::text_scale::px(11.0)))
                             .on_hover_text("Apply verified firmware paths for this engine")
                             .clicked()
                         {
                             presets::apply_engine(o, eng, true);
                         }
                         if ui
-                            .button(RichText::new("Classic").size(11.0))
+                            .button(RichText::new("Classic").size(crate::text_scale::px(11.0)))
                             .on_hover_text("Apply classic pre-firmware paths for this engine")
                             .clicked()
                         {
@@ -69,8 +78,12 @@ fn grid_dropdown<T: PartialEq + Copy>(
     value: &mut T,
     choices: &[Choice<T>],
 ) {
-    ui.label(RichText::new(sw.label).size(12.0).color(TEXT_MUTED))
-        .on_hover_text(sw.tooltip());
+    ui.label(
+        RichText::new(sw.label)
+            .size(crate::text_scale::px(12.0))
+            .color(TEXT_MUTED),
+    )
+    .on_hover_text(sw.tooltip());
     let shown = choices
         .iter()
         .find(|(v, ..)| v == value)
@@ -106,10 +119,15 @@ fn preset_button(ui: &mut Ui, label: &str, active: bool, tip: &str) -> bool {
         Stroke::new(1.0_f32, BORDER)
     };
     ui.add(
-        egui::Button::new(RichText::new(label).size(11.5).strong().color(TEXT_PRIMARY))
-            .fill(fill)
-            .stroke(stroke)
-            .corner_radius(CornerRadius::same(6)),
+        egui::Button::new(
+            RichText::new(label)
+                .size(crate::text_scale::px(11.5))
+                .strong()
+                .color(TEXT_PRIMARY),
+        )
+        .fill(fill)
+        .stroke(stroke)
+        .corner_radius(CornerRadius::same(6)),
     )
     .on_hover_text(tip)
     .clicked()
@@ -157,7 +175,7 @@ fn presets_card(ui: &mut Ui, o: &mut FirmwareOptions) {
             ui.add_space(6.0);
             ui.label(
                 RichText::new(format!("Active profile: {}", o.summary()))
-                    .size(11.0)
+                    .size(crate::text_scale::px(11.0))
                     .monospace()
                     .color(TEXT_MUTED),
             );
@@ -209,7 +227,7 @@ fn organ_card(ui: &mut Ui, o: &mut FirmwareOptions) {
                 ui.add_enabled_ui(o.leslie_firmware, |ui| {
                     ui.label(
                         RichText::new(info::LESLIE_GAIN.label)
-                            .size(12.0)
+                            .size(crate::text_scale::px(12.0))
                             .color(TEXT_MUTED),
                     )
                     .on_hover_text(info::LESLIE_GAIN.tooltip());
@@ -273,7 +291,7 @@ fn synth_card(ui: &mut Ui, o: &mut FirmwareOptions) {
                     grid_dropdown(ui, &info::SAMPLE_PITCH, &mut o.sample_pitch_fw, &PITCHES);
                     ui.label(
                         RichText::new(info::SHAPE.label)
-                            .size(12.0)
+                            .size(crate::text_scale::px(12.0))
                             .color(TEXT_MUTED),
                     )
                     .on_hover_text(info::SHAPE.tooltip());
@@ -287,7 +305,11 @@ fn synth_card(ui: &mut Ui, o: &mut FirmwareOptions) {
                             o.synth_shape_milli = Some((x * 1000.0).round() as u16);
                         } else {
                             o.synth_shape_milli = None;
-                            ui.label(RichText::new("Off").size(11.5).color(TEXT_MUTED));
+                            ui.label(
+                                RichText::new("Off")
+                                    .size(crate::text_scale::px(11.5))
+                                    .color(TEXT_MUTED),
+                            );
                         }
                     });
                     ui.end_row();

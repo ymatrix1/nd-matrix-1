@@ -119,7 +119,7 @@ impl SynthUi {
             solo: false,
             kb_hold: false,
             sustped: false,
-            pstick: false,
+            pstick: true,
             pstick_range: nord_core::engine::PSTICK_DEFAULT_RANGE,
             range_acc: 0.0,
             section_edit: false,

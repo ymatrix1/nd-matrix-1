@@ -1,20 +1,22 @@
-#!/usr/bin/env python3
-# ruff: noqa: E501
-"""Generates the Rust tables of the B3 Bass firmware machine from the ADI listings.
+"""Install delta and oracle streams of the B3 Bass firmware machine (D128).
 
-`docs/research/organ-farfisa-bass.md` s15. The listings of the generator `0x121BBE` and the
-processor `0x122296` are decoded (`tools/sharc_listing_rust.py`: the same regular expression rules as
-the Python interpreter that matches the oracle bit for bit) into integer rows:
+`docs/research/organ-farfisa-bass.md` s15. The instruction rows of the generator `0x121BBE` and the
+processor `0x122296` and the DM image are no longer tracked: the Rust loader
+`crates/nord-core/src/organ/b3_bass_fw/` builds them at run time from the user's OS update file.
+What the loader cannot read from the DSP image is the DM state the ARM adds (boot transfers and the
+model 5 install): `image` writes it as `docs/research/data/bass-fw-install-delta.csv`.
 
-    python tools/organ_bass_fw_gen.py rust  target/PNO/core1_sram.bin           # rewrite the tables
-    python tools/organ_bass_fw_gen.py rust  target/PNO/core1_sram.bin --check   # exit 1 when stale
     python tools/organ_bass_fw_gen.py image target/PNO/core1_sram.bin SCRIPT OUT.csv \
-        --exe target/release/sharc-chain                # DM image + start registers after SCRIPT
+        --code target/fw_unpacked/bank0_CODE.bin --exe target/release/sharc-chain
     python tools/organ_bass_fw_gen.py golden target/PNO/core1_sram.bin SCRIPT OUT.csv --calls 64 \
-        --exe target/release/sharc-chain                # oracle output words of the chain
+        --exe target/release/sharc-chain
 
-The image and the golden stream come from `sharc-chain` (the oracle); the Python VM replay
-(`organ_replay.py`) is the reference for the golden stream and is itself checked against it.
+`golden` writes the oracle output words of the chain.
+
+Delta lines: `R,name,hex` start registers, `M,addr,hex ...` inline words (a `0` clears a loader
+word) and `A,addr,count,offset` (hex): `count` words the ARM sends from its constants, which the
+user's `bank0_CODE` holds at byte `offset`. The golden stream comes from `sharc-chain` (the oracle);
+the Python VM replay (`organ_replay.py`) is the reference for it and is itself checked against it.
 """
 
 from __future__ import annotations
@@ -23,73 +25,99 @@ import argparse
 import sys
 from pathlib import Path
 
-import organ_listing_check as olc
 import organ_replay as rp
-import sharc_listing_rust as slr
 
-ROOT = Path(__file__).resolve().parents[1]
-FW_DIR = ROOT / "crates" / "nord-core" / "src" / "organ" / "b3_bass_fw"
-GEN = ("gen", 0x121BBE, 0x121E28, "GEN_ROWS")
-PROC = ("proc", 0x122296, 0x12261D, "PROC_ROWS")
-
-
-def rust_text(
-    image: str,
-    spec: tuple[str, int, int, str],
-    tool: str = "organ_bass_fw_gen.py",
-    paths: tuple[str, str] = ("super::Row", "super::super::rows_valid"),
-) -> str:
-    name, entry, end, const = spec
-    rows = slr.decode(olc.disassemble(image, entry, end), entry)
-    out = [
-        f"//! Decoded rows of the routine `{entry:#x}` ({name}), GENERATED.",
-        "//!",
-        f"//! `python tools/{tool} rust target/PNO/core1_sram.bin` (`--check` fails when",
-        "//! stale). Rows are `[kind, a, b, c, d, e, f, g]` (`tools/sharc_listing_rust.py`): decoded",
-        "//! operations of the listing, not firmware bytes; research s15. VERIFIED: the same rules run",
-        "//! bit exact against `sharc-chain` in `tools/organ_replay.py` (s14).",
-        "",
-        f"use {paths[0]};",
-        "",
-        "#[rustfmt::skip]",
-        f"pub(in crate::organ) static {const}: [Row; {len(rows)}] = [",
-    ]
-    fmt = [f"[{','.join(map(str, r))}]," for r in rows]
-    out += ["    " + " ".join(fmt[k : k + 3]) for k in range(0, len(fmt), 3)]
-    out += [
-        "];",
-        "",
-        "#[cfg(test)]",
-        "mod tests {",
-        f"    use super::{const};",
-        "",
-        "    #[test]",
-        "    fn rows_are_structurally_valid() {",
-        f"        assert!({paths[1]}(&{const}));",
-        "    }",
-        "}",
-        "",
-    ]
-    return "\n".join(out)
+# VERIFIED: DM clusters the machine touches (words of the oracle image merged within 0x40), as
+# `KEEP` of `crates/nord-core/src/organ/b3_bass_fw/image.rs` (`ranges()` regenerates the table).
+GEN = ("gen", 0x121BBE, 0x121E28)
+PROC = ("proc", 0x122296, 0x12261D)
+CLUSTER_GAP = 0x40
+# Shortest run worth an `A` line (shorter runs stay inline).
+MIN_A = 8
 
 
-def rust_files(image: str) -> dict[Path, str]:
-    return {FW_DIR / f"prog_{s[0]}.rs": rust_text(image, s) for s in (GEN, PROC)}
+def ranges(words: dict[int, int], gap: int = CLUSTER_GAP) -> list[tuple[int, int]]:
+    """`(base, count)` clusters of the addresses of `words` (a gap above `gap` starts a new one)."""
+    addrs = sorted(words)
+    out: list[tuple[int, int]] = []
+    start = prev = addrs[0]
+    for a in addrs[1:]:
+        if a - prev > gap:
+            out.append((start, prev - start + 1))
+            start = a
+        prev = a
+    out.append((start, prev - start + 1))
+    return out
 
 
-def cmd_rust(a: argparse.Namespace) -> int:
-    stale = 0
-    for path, text in rust_files(a.image).items():
-        have = path.read_text(encoding="utf-8") if path.exists() else ""
-        if have.replace("\r\n", "\n") != text:
-            stale += 1
-            if not a.check:
-                path.write_text(text, encoding="utf-8", newline="\n")
-                print(f"wrote {path.name}")
-    if a.check and stale:
-        print(f"{stale} generated file(s) are stale")
-        return 1
-    return 0
+def static_words(sram: bytes, keep: list[tuple[int, int]]) -> dict[int, int]:
+    """Non zero DM words of the `keep` ranges in a flat core 1 SRAM image (`4 * address`)."""
+    out = {}
+    for base, n in keep:
+        for a in range(base, base + n):
+            v = int.from_bytes(sram[4 * a : 4 * a + 4], "little")
+            if v:
+                out[a] = v
+    return out
+
+
+def install_delta(now: dict[int, int], static: dict[int, int]) -> list[tuple[int, int]]:
+    """`(address, value)` of the words whose oracle value differs from the loader data.
+
+    A word the install clears appears with value 0.
+    """
+    return sorted(
+        (a, now.get(a, 0)) for a in set(now) | set(static) if now.get(a, 0) != static.get(a, 0)
+    )
+
+
+def _pack(words: list[int]) -> bytes:
+    return b"".join(w.to_bytes(4, "little") for w in words)
+
+
+def _match(code: bytes, words: list[int]) -> tuple[int, int]:
+    """`(offset, length)` of the longest prefix of `words` that `code` holds (length 0: none)."""
+    best = (0, 0)
+    probe = _pack(words[:MIN_A])
+    at = code.find(probe)
+    while at >= 0:
+        n = MIN_A
+        while n < len(words) and code[at + 4 * n : at + 4 * n + 4] == _pack(words[n : n + 1]):
+            n += 1
+        if n > best[1]:
+            best = (at, n)
+        at = code.find(probe, at + 1)
+    return best
+
+
+def delta_lines(delta: list[tuple[int, int]], code: bytes) -> list[str]:
+    """`A` and `M` lines of the delta words: runs the user's `bank0_CODE` holds become `A` lines."""
+    lines: list[str] = []
+    inline: list[tuple[int, int]] = []
+
+    def flush() -> None:
+        lines.extend(mem_runs(inline))
+        inline.clear()
+
+    k = 0
+    while k < len(delta):
+        end = k + 1
+        while end < len(delta) and delta[end][0] == delta[end - 1][0] + 1:
+            end += 1
+        run = delta[k:end]
+        p = 0
+        while p < len(run):
+            off, n = _match(code, [v for _a, v in run[p:]]) if len(run) - p >= MIN_A else (0, 0)
+            if n >= MIN_A and all(v for _a, v in run[p : p + n]):
+                flush()
+                lines.append(f"A,{run[p][0]:x},{n:x},{off:x}")
+                p += n
+            else:
+                inline.append(run[p])
+                p += 1
+        k = end
+    flush()
+    return lines
 
 
 def chain_args(a: argparse.Namespace) -> argparse.Namespace:
@@ -98,20 +126,55 @@ def chain_args(a: argparse.Namespace) -> argparse.Namespace:
     return a
 
 
+def parse_image_csv(text: str) -> tuple[list[str], dict[int, int]]:
+    """`(R lines, words)` of a full DM image text (`R,name,hex` / `M,addr,hex hex ...`)."""
+    regs: list[str] = []
+    words: dict[int, int] = {}
+    for line in text.splitlines():
+        f = line.split(",")
+        if f[0] == "R":
+            regs.append(line)
+        elif f[0] == "M":
+            base = int(f[1], 16)
+            words.update({base + k: int(w, 16) for k, w in enumerate(f[2].split(" "))})
+    return regs, words
+
+
+def build_delta(
+    regs: list[str], now: dict[int, int], sram: bytes, code: bytes
+) -> tuple[list[str], list[tuple[int, int]], int]:
+    """`(delta lines, keep ranges, delta words)` of a full DM image against the loader data."""
+    now = {k: v for k, v in now.items() if v}
+    keep = ranges(now)
+    delta = install_delta(now, static_words(sram, keep))
+    lines = ["# B3 Bass start registers and install words (D128), research s15", *regs]
+    return lines + delta_lines(delta, code), keep, len(delta)
+
+
+def write_delta(lines: list[str], keep: list[tuple[int, int]], words: int, out: str) -> None:
+    Path(out).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    print(f"{words} delta words, {len(lines)} lines -> {out}")
+    print("KEEP =", ", ".join(f"(0x{b:X}, 0x{n:X})" for b, n in keep))
+
+
 def cmd_image(a: argparse.Namespace) -> int:  # pragma: no cover - runs the oracle
     chain_args(a)
     mem = rp.memory(a, ())
     row0 = rp.trace_rows(a, 0x121BBE, 0x121E28, (a.gen,))[0]
     _pc, regs = rp.vm.parse_trace_line(row0)
-    lines = [
-        "# DM image and start registers of the B3 Bass chain (research s15); `R,name,hex` / `M,addr,words`"
-    ]
-    for file, vals in (("r", regs["r"]), ("s", regs["s"]), ("i", regs["i"]), ("m", regs["m"])):
-        lines += [f"R,{file}{k},{v:x}" for k, v in enumerate(vals) if v]
-    words = sorted((k, v) for k, v in mem.items() if v)
-    lines += mem_runs(words)
-    Path(a.out).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
-    print(f"{len(words)} words, {len(lines)} lines -> {a.out}")
+    reg_lines = [f"R,{file}{k},{v:x}" for file in "rsim" for k, v in enumerate(regs[file]) if v]
+    lines, keep, n = build_delta(
+        reg_lines, mem, Path(a.image).read_bytes(), Path(a.code).read_bytes()
+    )
+    write_delta(lines, keep, n, a.out)
+    return 0
+
+
+def cmd_convert(a: argparse.Namespace) -> int:
+    """Delta of a full DM image text (the former `bass-fw-image.csv`, from git history)."""
+    regs, words = parse_image_csv(Path(a.script).read_text(encoding="utf-8"))
+    lines, keep, n = build_delta(regs, words, Path(a.image).read_bytes(), Path(a.code).read_bytes())
+    write_delta(lines, keep, n, a.out)
     return 0
 
 
@@ -158,18 +221,17 @@ def cmd_golden(a: argparse.Namespace) -> int:  # pragma: no cover - runs the ora
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("cmd", choices=("rust", "image", "golden", "delta"))
+    ap.add_argument("cmd", choices=("image", "convert", "golden", "delta"))
     ap.add_argument("image")
     ap.add_argument("script", nargs="?")
     ap.add_argument("out", nargs="?")
     ap.add_argument("--script2")
-    ap.add_argument("--check", action="store_true")
+    ap.add_argument("--code", default="target/fw_unpacked/bank0_CODE.bin")
     ap.add_argument("--calls", type=int, default=64)
     ap.add_argument("--exe", default="sharc-chain")
     a = ap.parse_args(argv)
-    return {"rust": cmd_rust, "image": cmd_image, "golden": cmd_golden, "delta": cmd_delta}[a.cmd](
-        a
-    )
+    cmds = {"image": cmd_image, "convert": cmd_convert, "golden": cmd_golden, "delta": cmd_delta}
+    return cmds[a.cmd](a)
 
 
 if __name__ == "__main__":

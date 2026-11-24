@@ -41,6 +41,17 @@ pub const COMMANDS: &[Command] = &[
         "Same as the keys, with the click",
     ),
     c(
+        "Text size",
+        "Ctrl + / Ctrl -",
+        "Larger / smaller text, 100 to 200 % in steps of 25 (saved)",
+    ),
+    c("Text size", "Ctrl 0", "Back to 100 %"),
+    c(
+        "Text size",
+        "Bar: A- 100% A+",
+        "Same as the keys, with the click",
+    ),
+    c(
         "Play",
         "A S D F G H J K L ; '",
         "White keys from the base octave (C4 = MIDI 60)",
@@ -90,17 +101,21 @@ pub fn show(ui: &mut Ui, key_color: Color32, text_color: Color32) {
                 group = cmd.group;
                 ui.label(
                     RichText::new(if first { cmd.group } else { "" })
-                        .size(11.0)
+                        .size(crate::text_scale::px(11.0))
                         .strong()
                         .color(text_color),
                 );
                 ui.label(
                     RichText::new(cmd.keys)
-                        .size(11.0)
+                        .size(crate::text_scale::px(11.0))
                         .monospace()
                         .color(key_color),
                 );
-                ui.label(RichText::new(cmd.effect).size(11.0).color(text_color));
+                ui.label(
+                    RichText::new(cmd.effect)
+                        .size(crate::text_scale::px(11.0))
+                        .color(text_color),
+                );
                 ui.end_row();
             }
         });

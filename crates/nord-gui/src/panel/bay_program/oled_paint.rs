@@ -5,16 +5,19 @@ use super::oled::OledText;
 use super::oled_grid::{bar, grid, Line};
 use super::oled_home::EDITED;
 use super::oled_icons::{self, is_icon};
+use super::oled_text;
 use crate::panel::prelude::*;
-use egui::{FontId, Pos2};
+use egui::Pos2;
 
 /// Draw the boxed `E` of an edited program with its top-left at `at`; returns the right edge.
-fn boxed_e(painter: &Painter, at: Pos2, font: &FontId, color: Color32) -> f32 {
-    let glyph = painter.text(
+fn boxed_e(painter: &Painter, at: Pos2, size: f32, cell: f32, color: Color32) -> f32 {
+    let glyph = oled_text::draw(
+        painter,
         at + vec2(1.0, 0.0),
         Align2::LEFT_TOP,
         "E",
-        font.clone(),
+        size,
+        cell,
         color,
     );
     let frame = glyph.expand2(vec2(1.0, 0.0));
@@ -32,6 +35,8 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
     painter.rect_filled(rect.expand(1.5), 2.0, Color32::from_rgb(10, 11, 13));
     painter.rect_filled(rect, 1.5, OLED_BG);
     let h = rect.height();
+    // Screen pixels per display pixel (the display is 128 x 64).
+    let cell = rect.width() / 128.0;
     // The name line is the same 13 px font as the title on the real unit (not a smaller one).
     let (f_big, f_sub, f_row) = (
         (h * 0.19).max(5.0),
@@ -45,7 +50,6 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
             Some(rest) => (rest, fg.gamma_multiply(0.45)),
             None => (s, fg),
         };
-        let font = FontId::monospace(size.max(MIN_FONT_PX));
         // A two-part value (`440.8Hz<TAB>+3 cent`) puts its second part at the right edge.
         let (s, right) = match s.split_once('\t') {
             Some((l, r)) => (l, Some(r)),
@@ -53,9 +57,10 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
         };
         if let Some(r) = right {
             let at = pos2(rect.right() - 2.0, y);
-            painter.text(at, Align2::RIGHT_TOP, r, font.clone(), color);
+            oled_text::draw(painter, at, Align2::RIGHT_TOP, r, size, cell, color);
         }
-        let mut x = rect.left() + 2.0;
+        // VERIFIED (ARM frame pixel check): text boxes start at display x = 1.
+        let mut x = rect.left() + cell;
         // A section row starts with an icon in the 8 px column; its text begins at x = 12.
         let (icon, s) = match s.chars().next() {
             Some(c) if is_icon(c) => (Some(c), &s[c.len_utf8()..]),
@@ -63,20 +68,34 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
         };
         if let Some(c) = icon {
             let side = h * 8.0 / 64.0;
-            let cell = Rect::from_min_size(pos2(rect.left() + 0.5, y + 0.5), vec2(side, side));
+            let cell = Rect::from_min_size(pos2(rect.left(), y), vec2(side, side));
             oled_icons::paint(painter, cell, c, color);
             x = rect.left() + rect.width() * oled_icons::TEXT_X;
         }
         let mut segments = s.split(EDITED);
         let first = segments.next().unwrap_or_default();
-        x = painter
-            .text(pos2(x, y), Align2::LEFT_TOP, first, font.clone(), color)
-            .right();
+        x = oled_text::draw(
+            painter,
+            pos2(x, y),
+            Align2::LEFT_TOP,
+            first,
+            size,
+            cell,
+            color,
+        )
+        .right();
         for rest in segments {
-            x = boxed_e(painter, pos2(x + 1.0, y), &font, color);
-            x = painter
-                .text(pos2(x, y), Align2::LEFT_TOP, rest, font.clone(), color)
-                .right();
+            x = boxed_e(painter, pos2(x + 1.0, y), size, cell, color);
+            x = oled_text::draw(
+                painter,
+                pos2(x, y),
+                Align2::LEFT_TOP,
+                rest,
+                size,
+                cell,
+                color,
+            )
+            .right();
         }
     };
     let top = rect.top();
@@ -84,7 +103,6 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
         // Title bar: lit rows 0 to 10, unlit title, right-aligned counter.
         let strip = Rect::from_min_size(rect.min, vec2(rect.width(), b.bar_h));
         painter.rect_filled(strip, 1.5, fg);
-        let font = FontId::monospace(f_row.max(MIN_FONT_PX));
         // A list bar starts with the list icon in the 8 px column; the title begins at x = 12.
         let (icon, title) = match text.big.chars().next() {
             Some(c) if is_icon(c) => (Some(c), &text.big[c.len_utf8()..]),
@@ -97,19 +115,26 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
             oled_icons::paint(painter, cell, c, OLED_BG);
             title_x = rect.left() + rect.width() * oled_icons::TEXT_X;
         }
-        painter.text(
-            pos2(title_x, top + 1.0),
+        // VERIFIED (research note s9): the bar text is 8 px, unlit, at y = 2.
+        let ty = top + 2.0 * cell;
+        let args = (f_row, cell, OLED_BG);
+        oled_text::draw(
+            painter,
+            pos2(title_x, ty),
             Align2::LEFT_TOP,
             title,
-            font.clone(),
-            OLED_BG,
+            args.0,
+            args.1,
+            args.2,
         );
-        painter.text(
-            pos2(rect.right() - 2.0, top + 1.0),
+        oled_text::draw(
+            painter,
+            pos2(rect.right() - 2.0, ty),
             Align2::RIGHT_TOP,
             counter,
-            font,
-            OLED_BG,
+            args.0,
+            args.1,
+            args.2,
         );
         let k = h / 64.0;
         for l in &text.lines {
@@ -121,7 +146,6 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
         }
         if let Some(sel) = text.sel {
             // Program list: rows at y = 13 + 10 i, the selected one a lit block with unlit text.
-            let font = FontId::monospace(f_row.max(MIN_FONT_PX));
             for (i, r) in text.rows.iter().enumerate() {
                 let y = top + b.list_y + i as f32 * g.row_pitch;
                 let color = if i == sel {
@@ -134,11 +158,13 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
                 } else {
                     fg
                 };
-                painter.text(
+                oled_text::draw(
+                    painter,
                     pos2(rect.left() + 2.0, y),
                     Align2::LEFT_TOP,
                     r,
-                    font.clone(),
+                    f_row,
+                    cell,
                     color,
                 );
             }
@@ -169,6 +195,25 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
             ],
             Stroke::new(0.5_f32, fg),
         );
+        // B3 drawbars as mini bars (firmware bar font), hanging from the rule. VERIFIED by the ARM
+        // pixel check (`oled_arm_check`, 0 differing pixels): the firmware draws the nine bars
+        // from x = 64, y = 34 (rule + 1). The unit photo suggested a right edge at x = 121 with
+        // more bars; that is not what the firmware draws for a nine-digit string.
+        if let (Some(bars), Some(face)) = (
+            text.bars,
+            nord_core::oled_font::font(nord_core::oled_font::BAR_FONT_INDEX),
+        ) {
+            oled_text::draw_with(
+                painter,
+                Some(&face),
+                pos2(rect.left() + 64.0 * cell, top + g.rule_y + cell),
+                Align2::LEFT_TOP,
+                &super::oled_home::bar_chars(&bars),
+                f_row,
+                cell,
+                fg,
+            );
+        }
         let soft_top = top + b.soft_y;
         if let Some((label, value)) = &text.popup {
             line(top + b.popup_y[0], label, f_row);
@@ -197,14 +242,18 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
 /// VERIFIED (ARM frame of `STORE PROGRAM AS`, research note s16.3): the cursor block is 9 px wide
 /// and 16 px tall, from 2 px above to 13 px below the top of the glyph ink.
 fn free_line(painter: &Painter, rect: Rect, l: &Line, k: f32, size: f32, fg: Color32) {
-    let font = FontId::monospace(size.max(MIN_FONT_PX));
+    let cell = rect.width() / 128.0;
+    let face = oled_text::font_for(size, cell);
     let at = pos2(
         rect.left() + 0.5 + f32::from(l.x) * rect.width() / 128.0,
         rect.top() + f32::from(l.y) * k,
     );
-    painter.text(at, Align2::LEFT_TOP, &l.text, font.clone(), fg);
+    let draw = |at, anchor, s: &str, color| {
+        oled_text::draw_with(painter, face.as_ref(), at, anchor, s, size, cell, color)
+    };
+    draw(at, Align2::LEFT_TOP, &l.text, fg);
     let Some(c) = l.cursor else { return };
-    let width = |s: String| painter.layout_no_wrap(s, font.clone(), fg).size().x;
+    let width = |s: String| oled_text::width(painter, face.as_ref(), &s, size, cell);
     let prefix: String = l.text.chars().take(c).collect();
     let glyph: String = l.text.chars().nth(c).unwrap_or(' ').to_string();
     let x = at.x + width(prefix);
@@ -213,7 +262,7 @@ fn free_line(painter: &Painter, rect: Rect, l: &Line, k: f32, size: f32, fg: Col
         vec2(width(glyph.clone()) + 1.0 * k, 16.0 * k),
     );
     painter.rect_filled(cell, 0.0, fg);
-    painter.text(pos2(x, at.y), Align2::LEFT_TOP, glyph, font, OLED_BG);
+    draw(pos2(x, at.y), Align2::LEFT_TOP, &glyph, OLED_BG);
 }
 
 /// Outlined soft-button boxes in rows 53 to 63; the active one is lit with unlit text.
@@ -236,11 +285,13 @@ fn soft_buttons(painter: &Painter, rect: Rect, text: &OledText, fg: Color32, siz
             painter.rect_filled(r, 1.5, fg);
         }
         painter.rect_stroke(r, 1.5, Stroke::new(0.7_f32, fg), StrokeKind::Inside);
-        painter.text(
+        oled_text::draw(
+            painter,
             r.center(),
             Align2::CENTER_CENTER,
-            *l,
-            FontId::monospace(size.max(MIN_FONT_PX)),
+            l,
+            size,
+            rect.width() / 128.0,
             if on { OLED_BG } else { fg },
         );
     }

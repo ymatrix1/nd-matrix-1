@@ -9,11 +9,11 @@ Each platform ships a portable archive plus native OS installers (all with `.sha
 
 | Platform | Runner | Target triple | Artifacts |
 |---|---|---|---|
-| Linux x86_64 | `ubuntu-24.04` | `x86_64-unknown-linux-gnu` | `nord-stage-4-emulator-vX.Y.Z-linux-x86_64.tar.gz`, `.AppImage`, `nord-stage-4-emulator_X.Y.Z_amd64.deb` |
-| Windows x86_64 | `windows-latest` | `x86_64-pc-windows-msvc` | `nord-stage-4-emulator-vX.Y.Z-windows-x86_64.zip`, `-setup.exe` (Inno Setup) |
-| macOS Apple silicon | `macos-latest` | `aarch64-apple-darwin` | `nord-stage-4-emulator-vX.Y.Z-macos-arm64.tar.gz`, `.dmg`, `.pkg` |
+| Linux x86_64 | `ubuntu-24.04` | `x86_64-unknown-linux-gnu` | `nd-matrix-1-vX.Y.Z-linux-x86_64.tar.gz`, `.AppImage`, `nd-matrix-1_X.Y.Z_amd64.deb` |
+| Windows x86_64 | `windows-latest` | `x86_64-pc-windows-msvc` | `nd-matrix-1-vX.Y.Z-windows-x86_64.zip`, `-setup.exe` (Inno Setup) |
+| macOS Apple silicon | `macos-latest` | `aarch64-apple-darwin` | `nd-matrix-1-vX.Y.Z-macos-arm64.tar.gz`, `.dmg`, `.pkg` |
 
-Every portable archive and native installer packages `ns4`, `nd-matrix-1`, `nord-plugin-standalone`,
+Every portable archive and native installer packages `ns4`, `nd-matrix-1`, `nd-matrix-1-standalone`,
 `nd-matrix-1.clap`, `nd-matrix-1.vst3`, `README.txt` (install paths per OS, source:
 [RELEASE_README.txt](RELEASE_README.txt)), `HOST_COMPATIBILITY.md`, `ADDITIONAL-PERMISSIONS.md` and `TRADEMARKS.md` ([D241](DECISIONS.md#d241-licensor-additional-permission-for-musicians-and-a-trademark-policy-ship-as-separate-files); a release without them fails), `THIRD_PARTY_LICENSES.html` (copyright and license texts of every third-party crate, [D238](DECISIONS.md#d237-releases-ship-third-party-license-notices-generated-by-cargo-about)), and any `LICENSE*` files in the repo root.
 The notices sit next to `LICENSE`: archive root, Inno `{app}`, `.deb` and AppImage `usr/share/doc/nd-matrix-1/`, `.dmg` root, `.pkg` `/usr/local/share/doc/nd-matrix-1/` and the installer resources.
@@ -45,6 +45,10 @@ Releases before this rename shipped `nord-plugin.clap` / `nord-plugin.vst3`. Upg
 | Linux AppImage | `AppRun --install-plugins` deletes the legacy files in `~/.clap` and `~/.vst3` before copying |
 | `.dmg`, portable archives | manual copy; `RELEASE_README.txt` tells users to delete the old `nord-plugin.*` |
 
+The standalone plugin host binary was `nord-plugin-standalone` and is now `nd-matrix-1-standalone` (`ns4-b9rn`; the Cargo `[[bin]]` name in `crates/nord-plugin/Cargo.toml`, `STANDALONE_BIN` in `tools/release_package.py`). The Windows installer deletes the old `{app}
+ord-plugin-standalone.exe`; `.deb` upgrades drop it through dpkg; the macOS `.pkg` and portable archives leave a stale copy in place that users delete by hand.
+`tools/release_verify.py` fails any archive whose name, top folder, or any shipped file, folder or bundle starts with the vendor trademark `nord-` (`ns4-9wq1`).
+
 Builds are unsigned (no Authenticode, no Apple notarization). The macOS README explains `xattr -dr com.apple.quarantine`.
 The plugin is not verified in any DAW; every archive README and the release body say so. Remove that wording only
 after [HOST_COMPATIBILITY.md](HOST_COMPATIBILITY.md) records real host tests.
@@ -71,7 +75,7 @@ A tag with a hyphen is published as a GitHub pre-release.
 - [ ] `python tools/check_licenses.py` passes (CI job `licenses`): no copyleft crate in the shipped `nord-plugin` tree, so the binaries can be distributed under PolyForm Noncommercial 1.0.0. The VST3 wrapper uses the MIT or Apache-2.0 `vst3` crate; bundling needs no extra tool (`cargo xtask bundle` as before, no libclang or VST3 SDK).
 - [ ] Dry run is green (next section) and the artifacts were downloaded and inspected at least once for this release.
 - [ ] `docs/HOST_COMPATIBILITY.md` is current. If a DAW test result changed, update the README wording in `RELEASE_README.txt`.
-- [ ] No `.reference/`, firmware, backup or preset files are staged (`git status`, and `tools/release_verify.py` enforces it for archives), and embedded firmware data (`fw-data-inventory`, e.g. `bass-fw-image.csv`, `farfisa-fw-image.csv`) has been migrated to runtime loading before tagging a public release.
+- [ ] No `.reference/`, firmware, backup or preset files are staged (`git status`, and `tools/release_verify.py` enforces it for archives), and embedded firmware data (`fw-data-inventory`, e.g. `vox_image.rs`, `synth-p-words.csv`) has been migrated to runtime loading before tagging a public release.
 - [ ] CI job `third-party-notices` is green: every crate license is in `about.toml` `accepted`. A new license needs a review of its terms first (add it to `accepted` in the PR that adds the dependency).
 - [ ] `ADDITIONAL-PERMISSIONS.md` and `TRADEMARKS.md` exist in the repo root (`python tools/license_check.py` tests pin their key phrases).
 - [ ] `LICENSE` file(s) exist in the repo root; `tools/release_package.py` includes any `LICENSE*` it finds.
@@ -103,11 +107,11 @@ Locally (any OS, after the build steps in the workflow):
 T=x86_64-pc-windows-msvc   # your host triple from the table above
 cargo build --release --locked --target $T -p nord-core --bin ns4
 cargo build --release --locked --target $T -p nord-gui --bin nd-matrix-1
-cargo build --release --locked --target $T -p nord-plugin --bin nord-plugin-standalone
+cargo build --release --locked --target $T -p nord-plugin --bin nd-matrix-1-standalone
 cargo xtask bundle nord-plugin --release --locked --target $T
 cargo about generate --locked --fail --workspace --all-features -c about.toml about.hbs -o THIRD_PARTY_LICENSES.html
 python tools/release_package.py --target $T
-python tools/release_verify.py dist/nord-stage-4-emulator-*.zip --target $T
+python tools/release_verify.py dist/nd-matrix-1-*.zip --target $T
 ```
 
 `cargo xtask bundle` locates the workspace root as the outermost ancestor directory containing a `Cargo.toml`.
@@ -138,8 +142,8 @@ Never move a published tag.
 Put the archive and its `.sha256` file in one folder, then:
 
 ```bash
-sha256sum -c nord-stage-4-emulator-vX.Y.Z-linux-x86_64.tar.gz.sha256     # Linux
-shasum -a 256 -c nord-stage-4-emulator-vX.Y.Z-macos-arm64.tar.gz.sha256  # macOS
+sha256sum -c nd-matrix-1-vX.Y.Z-linux-x86_64.tar.gz.sha256     # Linux
+shasum -a 256 -c nd-matrix-1-vX.Y.Z-macos-arm64.tar.gz.sha256  # macOS
 # Windows PowerShell: compare the printed hash with the line in the .sha256 file
 (Get-FileHash .
 ord-stage-4-emulator-vX.Y.Z-windows-x86_64.zip -Algorithm SHA256).Hash

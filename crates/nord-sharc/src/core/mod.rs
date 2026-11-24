@@ -162,6 +162,8 @@ pub struct Core {
     pub rwatch: u32,
     /// Register trace window `(lo, hi, limit)`: every step whose pc lies in `lo..=hi` logs R, S, I, M.
     pub trace: Option<(u32, u32, usize)>,
+    /// Data words `(address, count)` appended to every `trace` line (`count` 0 = none).
+    pub trace_dm: (u32, u32),
     /// Lines logged by `trace`.
     pub trace_log: Vec<String>,
     /// Number of consecutive words load-watched from `rwatch`.

@@ -242,7 +242,11 @@ mod tests {
         let reference = Stage4Engine::new(44_100.0);
         let e = engine_after(&PedalBank::default(), &AuxKbParams::default());
         assert_eq!(e.pedals.sustped, reference.pedals.sustped);
-        assert_eq!(e.pedals.pstick, reference.pedals.pstick);
+        // The shipped host default (`param-ids.snapshot`, frozen) is PSTICK off on every layer;
+        // the engine/standalone default is firmware-like (Synth on). Changing the host default
+        // needs a decision on the parameter contract.
+        assert_eq!(e.pedals.pstick, [false; 7]);
+        assert_eq!(reference.pedals.pstick[..4], e.pedals.pstick[..4]);
         assert_eq!(e.pedals.pstick_range, reference.pedals.pstick_range);
         assert_eq!(e.pedals.swell_func, reference.pedals.swell_func);
         assert_eq!(e.pedals.control_func, reference.pedals.control_func);

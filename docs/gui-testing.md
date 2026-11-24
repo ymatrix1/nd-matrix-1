@@ -261,3 +261,17 @@ The test drives the GUI command path (`panel.apply_program` + `apply_audio_comma
 `LoadProgram`, `LoadPianoSound`, `Keyboard`) and measures the organ energy as the RMS difference to
 the same render with both organ faders at zero. It also asserts that program Y after program X
 renders exactly like a fresh Y, and that the Organ ladders are unlit while the section is off.
+
+## Text size checks (issue #592, D244)
+
+`Ctrl +` / `Ctrl -` / `Ctrl 0` or the bar pills `A-` `NNN%` `A+` set the text size, 100 to 200 % in steps of 25, saved as `text_scale_percent` in `ns4/config.json` (`--screenshot` always draws 100 %). Headless checks, no window and no audio device (`cargo test -p nord-plugin --lib text_scale`, code `crates/nord-plugin/src/editor/text_scale_tests.rs`, `crates/nord-gui/src/text_scale.rs`, `panel/baked_zoom_base_tests.rs`):
+
+| Check | At sizes |
+|---|---|
+| Every bar label lies inside the window and its clip rectangle; no two overlap; none taller than the bar | 100, 125, 150, 175, 200 % |
+| The `DEBUG` pill text is 10 / 16 / 21 pt high (EMPIRICAL, egui 0.31.1 bundled fonts) | 100, 150, 200 % |
+| The Studio Settings dialog (all five tabs) fits inside the editor window and its title grows with the size | 100, 150, 200 % |
+| The plate is magnified by the factor and starts at its left edge; `size_for_width` keeps the aspect under the taller bar | 100, 150, 200 % |
+| `Ctrl +` / `-` / `0` change and save the size, plain `+` does not | 100 to 150 % |
+
+A golden bitmap is not used: the headless context has no GPU, and the painted text rectangles carry the same information (position, size, clip). Look at it for real with `nd-matrix-1`, press `Ctrl +` twice, open `DEBUG`.

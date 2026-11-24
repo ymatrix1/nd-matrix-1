@@ -6,7 +6,7 @@ Without the file everything still works; WAVE sounds use a built-in placeholder 
 
 ## 1. Download
 
-Visit the official Nord Keyboards Downloads page (<https://www.nordkeyboards.com/> → Downloads → Nord Stage 4 → Operating System) and download the official "Update Nord Stage 4 OS" file for your platform:
+Visit the official Nord Stage 4 Downloads page (<https://www.nordkeyboards.com/products/nord-stage-4/downloads>, also reachable from <https://www.nordkeyboards.com/> → Downloads → Nord Stage 4 → OS Update) and download the official "Update Nord Stage 4 OS" file for your platform:
 
 | Your computer | File |
 |---|---|

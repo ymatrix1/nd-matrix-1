@@ -5,7 +5,7 @@
 //!
 //! | Part | Source |
 //! |---|---|
-//! | instruction rows of `0x122B85..0x122EF5` | the core 1 listing, [`super::rows`] |
+//! | instruction rows of `0x122B85..0x122EF5` | the core 1 listing, [`crate::organ::sharc_rows`] |
 //! | DM words of the five probed ranges | core 1 loader data at byte `4 * address`, [`crate::dsp_image`] |
 //! | model 2 install words, start registers | [`DELTA`], our own capture of the ARM install (48 words) |
 //!
@@ -17,13 +17,12 @@
 //! 0 differing words, 0 differing rows. The fingerprints of that content are pinned in
 //! `the_real_update_file_builds_the_verified_image_and_rows` (run it with `NS4_WAVE_TABLES` set).
 
-use super::rows::routine_rows;
-use crate::dsp_image::{self, ldr};
+use crate::dsp_image::{self, cache::ImageCache, dm_text::dm_image_text, ldr};
 use crate::organ::b3_bass_fw::Row;
+use crate::organ::sharc_rows::routine_rows;
 use crate::render_opts_wave::WAVE_TABLES_ENV;
-use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::path::Path;
+use std::sync::Arc;
 
 /// Routine `0x122B85..0x122EF5` of PNO core 1 (short word addresses).
 ///
@@ -65,59 +64,6 @@ pub(in crate::organ) struct FarfisaImage {
     pub(in crate::organ) rows: Vec<Row>,
 }
 
-/// DM image lines of `sram` plus the install `delta`: registers first, then runs of non zero
-/// words (consecutive addresses merged), the format of `tools/organ_bass_fw_gen.py mem_runs`.
-fn image_text(sram: &[u8], delta: &str) -> Result<(String, usize), String> {
-    let mut words: BTreeMap<u32, u32> = BTreeMap::new();
-    for (base, n) in KEEP {
-        for a in base..base + n {
-            words.insert(a, ldr::dm_word(sram, a));
-        }
-    }
-    let mut lines: Vec<String> = Vec::new();
-    for line in delta
-        .lines()
-        .filter(|l| !l.starts_with('#') && !l.is_empty())
-    {
-        let f: Vec<&str> = line.split(',').collect();
-        match f.as_slice() {
-            ["R", ..] => lines.push(line.to_string()),
-            ["M", addr, vals] => {
-                let a = u32::from_str_radix(addr, 16).map_err(|_| format!("bad delta {line:?}"))?;
-                for (k, v) in vals.split(' ').enumerate() {
-                    let v =
-                        u32::from_str_radix(v, 16).map_err(|_| format!("bad delta {line:?}"))?;
-                    words.insert(a + k as u32, v);
-                }
-            }
-            _ => return Err(format!("bad delta line {line:?}")),
-        }
-    }
-    let nonzero: Vec<(u32, u32)> = words.into_iter().filter(|&(_, v)| v != 0).collect();
-    let count = nonzero.len();
-    let mut run: Vec<u32> = Vec::new();
-    let mut start = 0u32;
-    for (a, v) in nonzero {
-        if !run.is_empty() && a != start + run.len() as u32 {
-            lines.push(run_line(start, &run));
-            run.clear();
-        }
-        if run.is_empty() {
-            start = a;
-        }
-        run.push(v);
-    }
-    if !run.is_empty() {
-        lines.push(run_line(start, &run));
-    }
-    Ok((lines.join("\n") + "\n", count))
-}
-
-fn run_line(start: u32, run: &[u32]) -> String {
-    let words: Vec<String> = run.iter().map(|w| format!("{w:x}")).collect();
-    format!("M,{start:x},{}", words.join(" "))
-}
-
 impl FarfisaImage {
     /// The image of a flat core 1 SRAM image and the install `delta`; `guard` applies the layout
     /// check of the v1.66 routine (tests with synthetic images switch it off).
@@ -126,7 +72,7 @@ impl FarfisaImage {
         if !crate::organ::b3_bass_fw::rows_valid(&rows) {
             return Err("the Farfisa routine does not decode into valid rows".into());
         }
-        let (csv, words) = image_text(sram, delta)?;
+        let (csv, words) = dm_image_text(sram, &[], &KEEP, delta)?;
         if guard && (rows.len() != ROWS || words != WORDS) {
             return Err(format!(
                 "unsupported Nord OS version: the Farfisa routine has {} rows and {} DM words, \
@@ -148,8 +94,7 @@ impl FarfisaImage {
     }
 }
 
-type Cached = Option<(PathBuf, Result<Arc<FarfisaImage>, String>)>;
-static CACHE: Mutex<Cached> = Mutex::new(None);
+static CACHE: ImageCache<FarfisaImage> = ImageCache::new();
 
 /// The image named by `NS4_WAVE_TABLES` (the OS update file, also filled from the saved app
 /// setting at start-up, D127 / D129): `Ok(None)` when it is unset, an error when it cannot be read.
@@ -160,21 +105,7 @@ pub(in crate::organ) fn from_env() -> Result<Option<Arc<FarfisaImage>>, String> 
 
 /// [`from_env`] for an explicit value of the variable (`None` or blank: no file named).
 fn from_setting(value: Option<&str>) -> Result<Option<Arc<FarfisaImage>>, String> {
-    let Some(path) = value.map(str::trim).filter(|v| !v.is_empty()) else {
-        return Ok(None);
-    };
-    let path = PathBuf::from(path);
-    let mut cache = CACHE
-        .lock()
-        .map_err(|_| "image cache poisoned".to_string())?;
-    if let Some((p, r)) = cache.as_ref() {
-        if *p == path {
-            return r.clone().map(Some);
-        }
-    }
-    let r = FarfisaImage::from_file(&path).map(Arc::new);
-    *cache = Some((path, r.clone()));
-    r.map(Some)
+    CACHE.get(value, FarfisaImage::from_file)
 }
 
 /// Whether the Farfisa firmware stage can be built: `Ok(true)` when `NS4_WAVE_TABLES` names an OS
@@ -241,29 +172,6 @@ pub(super) mod tests {
             ]
         );
         assert_eq!(img.csv, "R,i0,c00ea\nM,95ffc,5\nM,c27e0,3f800000\n");
-    }
-
-    #[test]
-    fn the_dm_text_merges_runs_applies_the_delta_and_drops_zero_words() {
-        let sram = synthetic_sram();
-        let delta = "# c\nR,i0,c00ea\nM,c27e1,4 5\nM,9,0\n";
-        // the zero word at 0x9 is outside the kept ranges but still a (zero) word: dropped
-        let (text, words) = image_text(&sram, delta).unwrap();
-        assert_eq!(words, 4);
-        assert_eq!(text, "R,i0,c00ea\nM,95ffc,5\nM,c27e0,3f800000 4 5\n");
-    }
-
-    #[test]
-    fn a_delta_zero_clears_a_loader_word() {
-        let (text, _) = image_text(&synthetic_sram(), "M,c27e0,0\n").unwrap();
-        assert_eq!(text, "M,95ffc,5\n");
-    }
-
-    #[test]
-    fn a_malformed_delta_is_an_error() {
-        assert!(image_text(&synthetic_sram(), "X,1,2\n").is_err());
-        assert!(image_text(&synthetic_sram(), "M,zz,1\n").is_err());
-        assert!(image_text(&synthetic_sram(), "M,10,gg\n").is_err());
     }
 
     #[test]

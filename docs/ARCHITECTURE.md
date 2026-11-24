@@ -78,7 +78,7 @@ nord-stage-4-emulator/
 │   │       ├── synth/, synth_*.rs # Wave 2 PolyBLEP VA, ZDF Ladder, ADR, arpeggiator, firmware saw, gain de-zipper
 │   │       ├── sinc/, sinc.rs  # 12-tap x 256-phase Kaiser sinc kernels (SY1SY2 resampler parity)
 │   │       ├── fx/             # Per-layer 5-slot FX pipeline, Master Compressor & Clock, `fw_*` firmware routine ports
-│   │       ├── dsp_image/      # Runtime reader of the five SHARC DSP images in the user's OS update file (D128); `organ/farfisa_fw/` builds its rows with `nord-sharc`'s VISA decoder (nord-core depends on nord-sharc)
+│   │       ├── dsp_image/      # Runtime reader of the five SHARC DSP images in the user's OS update file (D128); `organ/sharc_rows/` decodes the routines of `organ/farfisa_fw/` and `organ/b3_bass_fw/` with `nord-sharc`'s VISA decoder (nord-core depends on nord-sharc)
 │   │       ├── midi.rs         # Nord Stage 4 MIDI CC map & message router
 │   │       ├── engine/         # 7-layer multitimbral Stage4Engine coordinator
 │   │       ├── render.rs       # Offline MIDI-timeline renderer + 32-bit float WAV writer (A/B benchmark loop)

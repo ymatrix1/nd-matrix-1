@@ -116,4 +116,9 @@ impl EguiState {
     pub fn set_requested_size(&self, new_size: (u32, u32)) {
         self.requested_size.store(Some(new_size));
     }
+
+    /// The size asked for and not yet applied by the editor loop, if any (read-only; for tests).
+    pub fn requested_size(&self) -> Option<(u32, u32)> {
+        self.requested_size.load()
+    }
 }

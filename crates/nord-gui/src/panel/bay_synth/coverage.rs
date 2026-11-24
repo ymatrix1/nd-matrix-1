@@ -230,15 +230,17 @@ fn shift_clicking_layer_a_and_b_toggles_sustped_and_pstick_in_the_engine() {
     click(&ctx, &mut state, &audio, "synth.layer.b", shift());
     let edits = synth_edits(&rx);
     assert!(edits.contains(&SynthEdit::Sustped(true)));
-    assert!(edits.contains(&SynthEdit::Pstick(true)));
+    // PSTICK starts On for Synth (firmware default), so the first Shift+B turns it Off.
+    assert!(edits.contains(&SynthEdit::Pstick(false)));
     let mut engine = Stage4Engine::new(48_000.0);
+    assert_eq!(engine.pedals.pstick[4..7], [true; 3]);
     let mut vol = 0.8;
     for e in edits {
         apply_audio_command(AudioCommand::Synth(e), &mut engine, &mut vol);
     }
     assert_eq!(engine.pedals.sustped[4..7], [true; 3]);
-    assert_eq!(engine.pedals.pstick[4..7], [true; 3]);
-    assert!(state.synth_ui.sustped && state.synth_ui.pstick);
+    assert_eq!(engine.pedals.pstick[4..7], [false; 3]);
+    assert!(state.synth_ui.sustped && !state.synth_ui.pstick);
 }
 
 /// Scroll `ticks` clicks over dial `id` (the dial turns one click per 24 scroll points).

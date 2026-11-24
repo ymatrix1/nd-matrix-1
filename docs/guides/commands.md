@@ -10,6 +10,22 @@ The front panel is one wide picture (about 4:1). Fitted to a 1760 px window it s
 size, so small text is hard to read. Zoom into one section, then fit again. Nothing changes in the
 sound; zoom only moves the view.
 
+## Text size (issue #592)
+
+If the printed text is too small even when zoomed, make everything bigger: press `Ctrl +` (or
+`Ctrl =`) or click `A+` in the top bar, and repeat up to 200 %. `Ctrl -` or `A-` go back one step;
+`Ctrl 0`, or a click on the percentage between `A-` and `A+`, restores 100 %. The choice is saved per
+user (`ns4/config.json`, key `text_scale_percent`) and used by the standalone and by the plugin
+editor the next time they open.
+
+It scales the top bar, menus, combo boxes, tooltips and the Studio Settings window, and magnifies the
+picture of the panel by the same factor. `FIT` (and `0`) then shows the panel at 150 %, say, starting
+at its left edge; move with a drag or the section keys `1`-`5`. The zoom pills show `150%` there,
+because zoom is measured against the whole panel; `+` still zooms further. A layout that stacks the
+controls in two rows, so the same window shows bigger print without panning, is designed in the
+[visual style spec](../specs/visual-style-and-panel.md#5a-double-stacked-layout-design-issue-592)
+and is not built yet.
+
 ## Step by step
 
 1. **Start.** Run `nd-matrix-1`, or open the plugin editor. The whole panel is fitted (`100%`).
@@ -35,6 +51,9 @@ part of the panel.
 | Zoom | `Ctrl + scroll or pinch` | Zoom at the pointer |
 | Zoom | `Drag empty plate` | Pan while zoomed |
 | Zoom | `Bar: - 100% + FIT ORG PNO PRG SYN FX` | Same as the keys, with the click |
+| Text size | `Ctrl + / Ctrl -` | Larger / smaller text, 100 to 200 % in steps of 25 (saved) |
+| Text size | `Ctrl 0` | Back to 100 % |
+| Text size | `Bar: A- 100% A+` | Same as the keys, with the click |
 | Play | `A S D F G H J K L ; '` | White keys from the base octave (C4 = MIDI 60) |
 | Play | `W E T Y U O P` | Black keys |
 | Play | `Z / X` | Base octave down / up |

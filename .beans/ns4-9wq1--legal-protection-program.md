@@ -28,15 +28,16 @@ Done:
 - [x] ns4-q7vn Updater terms and patent question
 - [x] ns4-tpn7 Third-party notices (D238)
 - [x] ns4-9ngp Keep DCO (no CLA) under the $0 legal budget; `ADDITIONAL-PERMISSIONS.md` updated to cover contributors
+- [x] ns4-b9rn Standalone binary renamed to `nd-matrix-1-standalone`; `release_verify.py` rejects `nord-` names
 - [x] ns4-sgro Licenses of the AppImage runtime shipped in Linux releases (D242, PR #638)
 - [x] History rewrite of 2026-11-23 (docs/LEGAL.md section 8 question 5; `v0.1.0`–`v0.1.2` tags moved)
 
 Open — Tier 1 ($0 quick wins):
-- [ ] ns4-b9rn Rename `nord-plugin-standalone` and remove vendor prefix from shipped binaries
-- [ ] ns4-s3pn Remove in-GUI sponsorship button to keep strictly non-commercial posture
+- [x] ns4-b9rn Rename `nord-plugin-standalone` and remove vendor prefix from shipped binaries
+- [x] ns4-s3pn Remove in-GUI sponsorship button to keep strictly non-commercial posture (README badge and FUNDING.yml: owner decision open)
 - [ ] ns4-vt4r Verify GitHub Releases for moved tags and request GitHub Support purge of old PR refs (Owner action)
 - [ ] ns4-6fbu Repository settings: required checks and description (Owner action)
-- [ ] ns4-d7mg Check macOS `.dmg` updater and `nordkeyboards.com` terms (free check)
+- [x] ns4-d7mg Check macOS `.dmg` updater and `nordkeyboards.com` terms (free check)
 
 Open — Tier 2 ($0 high-impact engineering):
 - [ ] ns4-u8o2 Move firmware-derived files to runtime loading (**Class B code images & `native_bass_*.rs` first**, then Class C tables)

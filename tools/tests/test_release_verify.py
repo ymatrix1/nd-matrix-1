@@ -302,3 +302,58 @@ def test_sources_name_for_archive():
         == "nd-matrix-1-v1.2.3-appimage-runtime-sources.tar.gz"
     )
     assert rrs.sources_name_for_archive("nd-matrix-1-v1.2.3-windows-x86_64.zip") is None
+
+
+@pytest.mark.parametrize("platform", [WIN, LIN, MAC])
+def test_shipped_binaries_and_bundles_have_no_vendor_prefix(tmp_path, platform):
+    """ns4-b9rn: a clean archive passes, and none of the shipped names starts with `nord-`."""
+    archive = build(tmp_path, platform)
+    names = [p for p in rv.read_archive(archive)]
+    assert rv.check_vendor_names(archive.name, names) == []
+    assert not any(part.lower().startswith("nord-") for n in names for part in n.split("/"))
+    assert not any(b.lower().startswith("nord-") for b in rp.BINS)
+
+
+def test_vendor_prefixed_binary_fails_release(tmp_path, monkeypatch):
+    """The pre-rename `nord-plugin-standalone` is rejected even when it is the expected binary."""
+    old = ("ns4", "nd-matrix-1", "nord-plugin-standalone")
+    monkeypatch.setattr(rp, "BINS", old)
+    monkeypatch.setattr(rv, "BINS", old)  # layout check now expects it, so only the new check fires
+    archive = build(tmp_path, WIN)
+    problems = rv.verify(archive, WIN.triple)
+    assert problems and all("nord-plugin-standalone.exe" in p and "'nord-'" in p for p in problems)
+
+
+def test_vendor_prefixed_bundle_fails_release(tmp_path):
+    """A `nord-plugin.vst3` bundle folder is rejected, whatever is inside."""
+    import io
+    import tarfile
+
+    archive = build(tmp_path, LIN)
+    files = rv.read_archive(archive)
+    top = next(iter(files)).split("/", 1)[0]
+    files[f"{top}/nord-plugin.vst3/Contents/x86_64-linux/nord-plugin.so"] = b"x"
+    with tarfile.open(archive, "w:gz") as tf:
+        for name, data in files.items():
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tf.addfile(info, io.BytesIO(data))
+    rp.write_sha256(archive)
+    problems = rv.verify(archive, LIN.triple)
+    assert any("'nord-plugin.vst3'" in p for p in problems)
+    assert any("'nord-plugin.so'" in p for p in problems)
+
+
+def test_vendor_prefixed_archive_name_fails_release():
+    problems = rv.check_vendor_names("Nord-Stage-4-v1.zip", ["Nord-Stage-4-v1/ns4.exe"])
+    assert any("archive name" in p for p in problems)
+    assert not any("'ns4.exe'" in p for p in problems)
+    assert any("'Nord-Stage-4-v1'" in p for p in problems)
+
+
+def test_check_vendor_names_clean_and_deduplicates():
+    assert (
+        rv.check_vendor_names("nd-matrix-1-v1-linux.tar.gz", ["top/ns4", "top/nd-matrix-1"]) == []
+    )
+    paths = ["top/nord-x/a", "top/nord-x/b"]
+    assert len(rv.check_vendor_names("ok.zip", paths)) == 1

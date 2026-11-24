@@ -6,7 +6,7 @@
 //! The firmware bitmaps are not copied: these are simple stand-ins (ASSUMED shapes).
 
 use crate::panel::prelude::*;
-use egui::{epaint::Shape, Pos2};
+use egui::epaint::Shape;
 
 /// Organ row icon (in-band marker, like [`super::oled_home::EDITED`]).
 pub const ICON_ORGAN: char = '\u{E0E2}';
@@ -32,38 +32,73 @@ pub fn is_icon(c: char) -> bool {
 /// width (12 of 128 px).
 pub const TEXT_X: f32 = 12.0 / 128.0;
 
+/// Organ row icon, 8 x 8 px, one byte per row, bit 7 = left.
+///
+/// EMPIRICAL: our transcription of the 8 x 8 icon the ARM frame shows at the start of the organ
+/// row (`tools/arm_screens.py press ... --key 0x01,0,3`, rows 36 to 42 of display 0, read from the
+/// ASCII dump); not a copy of firmware bytes. Fit: pixel for pixel on that frame.
+const ORGAN: [u8; 8] = [
+    0b1101_1011,
+    0b1101_0001,
+    0b1101_0001,
+    0b1101_1111,
+    0b1000_1111,
+    0b1000_1111,
+    0b1111_1111,
+    0,
+];
+/// Piano row icon (VERIFIED by the ARM pixel check: rows 46 to 52, five key rows, two solid).
+const PIANO: [u8; 8] = [
+    0b1010_1101,
+    0b1010_1101,
+    0b1010_1101,
+    0b1010_1101,
+    0b1010_1101,
+    0b1111_1111,
+    0b1111_1111,
+    0,
+];
+/// Synth row icon (same source; rows 56 to 62, a ramp in a box).
+const SYNTH: [u8; 8] = [
+    0b1111_1111,
+    0b1001_1111,
+    0b1010_1111,
+    0b1011_0111,
+    0b1011_1011,
+    0b1011_1101,
+    0b1111_1111,
+    0,
+];
+
 /// Draw `icon` in the square `cell` (side = 8 px of the real grid).
 pub fn paint(painter: &Painter, cell: Rect, icon: char, color: Color32) {
     let stroke = Stroke::new(0.7_f32, color);
     let (l, t, w, h) = (cell.left(), cell.top(), cell.width(), cell.height());
     let at = |x: f32, y: f32| pos2(l + x * w, t + y * h);
     match icon {
-        ICON_ORGAN => {
-            // Three drawbars of different length.
-            for (i, len) in [0.9_f32, 0.6, 0.3].into_iter().enumerate() {
-                let x = 0.15 + 0.35 * i as f32;
-                painter.line_segment([at(x, 0.05), at(x, 0.05 + len)], stroke);
+        ICON_ORGAN | ICON_PIANO | ICON_SYNTH => {
+            let rows = match icon {
+                ICON_ORGAN => &ORGAN,
+                ICON_PIANO => &PIANO,
+                _ => &SYNTH,
+            };
+            // One filled square per lit pixel; edges rounded so neighbours leave no seam.
+            let px = w / 8.0;
+            let edge = |o: f32, i: usize| (o + i as f32 * px).round();
+            for (y, row) in rows.iter().enumerate() {
+                for x in 0..8 {
+                    if (row >> (7 - x)) & 1 == 1 {
+                        painter.rect_filled(
+                            Rect::from_min_max(
+                                pos2(edge(l, x), edge(t, y)),
+                                pos2(edge(l, x + 1), edge(t, y + 1)),
+                            ),
+                            0.0,
+                            color,
+                        );
+                    }
+                }
             }
-        }
-        ICON_PIANO => {
-            painter.rect_stroke(
-                Rect::from_two_pos(at(0.0, 0.15), at(1.0, 0.95)),
-                0.0,
-                stroke,
-                StrokeKind::Inside,
-            );
-            for x in [0.33_f32, 0.66] {
-                painter.line_segment([at(x, 0.15), at(x, 0.95)], stroke);
-            }
-        }
-        ICON_SYNTH => {
-            let pts: Vec<Pos2> = (0..=8)
-                .map(|i| {
-                    let u = i as f32 / 8.0;
-                    at(u, 0.5 - 0.4 * (u * std::f32::consts::TAU).sin())
-                })
-                .collect();
-            painter.add(Shape::line(pts, stroke));
         }
         ICON_WARN => {
             painter.add(Shape::closed_line(
@@ -114,6 +149,14 @@ mod tests {
             );
         });
         assert_eq!(none, base);
+    }
+
+    #[test]
+    fn the_row_icons_have_the_lit_pixels_of_the_arm_frame() {
+        let lit = |rows: &[u8; 8]| rows.iter().map(|r| r.count_ones()).sum::<u32>();
+        // counted on the ASCII dump of the real frame: 39, 41 and 46 lit pixels
+        assert_eq!((lit(&ORGAN), lit(&PIANO), lit(&SYNTH)), (39, 41, 46));
+        assert_eq!(ORGAN[7] | PIANO[7] | SYNTH[7], 0, "unused rows stay dark");
     }
 
     #[test]

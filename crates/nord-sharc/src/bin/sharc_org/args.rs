@@ -51,6 +51,7 @@ pub struct Options {
     pub watch: Option<(u32, u32, usize)>,
     pub rwatch: Option<(u32, u32, usize)>,
     pub trace: Option<(u32, u32, usize)>,
+    pub trace_dm: (u32, u32),
     pub boot_stores: bool,
     pub coverage: bool,
     pub flags: Vec<(u8, bool)>,
@@ -169,6 +170,16 @@ pub fn parse_args(args: &[String]) -> Result<Options, String> {
                     .map_or(Ok(10_000), |l| num(l.into(), "--trace limit"))?;
                 o.trace = Some((lo, hi, limit as usize));
             }
+            "--trace-dm" => {
+                // ADDR:COUNT data words appended to every --trace line
+                let s = need(&mut it, a)?;
+                let (x, n) = s.split_once(':').ok_or("--trace-dm needs ADDR:COUNT")?;
+                let (x, n) = (
+                    num(x.into(), "--trace-dm addr")?,
+                    num(n.into(), "--trace-dm count")?,
+                );
+                o.trace_dm = (x, n);
+            }
             "--dump" => {
                 let s = need(&mut it, a)?;
                 let (addr, n) = s.split_once(':').ok_or("--dump needs ADDR:COUNT")?;
@@ -242,10 +253,13 @@ mod tests {
             "0xC0DC0:16",
             "--trace",
             "0x10:0x20:5",
+            "--trace-dm",
+            "0xB135C:4",
         ]))
         .unwrap();
         assert_eq!(o.rwatch, Some((0xC_0DC0, 16, 100_000)));
         assert_eq!(o.trace, Some((0x10, 0x20, 5)));
+        assert_eq!(o.trace_dm, (0xB_135C, 4));
         // a bare --diff covers everything and does not eat the next option
         let o = parse_args(&args(&["img", "--diff", "--lenient"])).unwrap();
         assert_eq!((o.diff, o.lenient), (Some((0, u32::MAX)), true));
@@ -259,6 +273,7 @@ mod tests {
             &["img", "--watch", "5"],
             &["img", "--rwatch", "5"],
             &["img", "--trace", "5"],
+            &["img", "--trace-dm", "5"],
             &["img", "--diff", "5"],
             &["img", "--bogus"],
             &[],
