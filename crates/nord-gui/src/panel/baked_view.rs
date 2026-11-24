@@ -615,11 +615,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             sorted.sort_by(|a, b| b.center().y.total_cmp(&a.center().y));
             for (seg_idx, sr) in sorted.into_iter().enumerate() {
                 let on = seg_idx < lit_segs && val > 0.01;
-                let col = if on {
-                    LED_GREEN
-                } else {
-                    LED_OFF_WELL
-                };
+                let col = if on { LED_GREEN } else { LED_OFF_WELL };
                 p.rect_filled(sr, 0.8, col);
             }
         }
@@ -681,11 +677,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             sorted.sort_by(|a, b| a.center().y.total_cmp(&b.center().y));
             for (seg_idx, sr) in sorted.into_iter().enumerate() {
                 let on = (seg_idx as u8) < step_u8;
-                let col = if on {
-                    LED_ACCENT
-                } else {
-                    LED_OFF_WELL
-                };
+                let col = if on { LED_ACCENT } else { LED_OFF_WELL };
                 p.rect_filled(sr, 0.8, col);
             }
         }
@@ -728,11 +720,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             "up" => vec![r.center_top(), r.left_bottom(), r.right_bottom()],
             _ => vec![r.center_bottom(), r.left_top(), r.right_top()],
         };
-        let fill = if on {
-            LED_ACCENT
-        } else {
-            LED_OFF_WELL
-        };
+        let fill = if on { LED_ACCENT } else { LED_OFF_WELL };
         let stroke = if on {
             egui::Stroke::new(1.0_f32, LED_ACCENT.gamma_multiply(0.5))
         } else {

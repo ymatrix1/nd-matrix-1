@@ -67,7 +67,7 @@ def test_cli_help_exits_cleanly() -> None:
 
 def _red_dominant(px: tuple[int, ...]) -> bool:
     r, g, b = px[0], px[1], px[2]
-    return r > 90 and r > 1.35 * max(g, b)
+    return r > 90 and r > 1.8 * max(g, b)
 
 
 def test_prototype_css_has_no_legacy_red_chassis_tokens() -> None:

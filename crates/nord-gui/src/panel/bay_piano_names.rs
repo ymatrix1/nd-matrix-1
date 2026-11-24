@@ -36,7 +36,15 @@ pub(super) fn type_grid(p: &Painter, rect: Rect, lit: usize) {
         for (col, &ty) in pair.iter().enumerate() {
             let sign = if col == 0 { -1.0 } else { 1.0 };
             let x = c.x + sign * COL_HALF;
-            w::mini_led(p, pos2(x, y), ty == lit, LED_ACCENT, LED_ACCENT_DIM, 2.2, false);
+            w::mini_led(
+                p,
+                pos2(x, y),
+                ty == lit,
+                LED_ACCENT,
+                LED_ACCENT_DIM,
+                2.2,
+                false,
+            );
             label(
                 p,
                 pos2(x + sign * 6.5, y),

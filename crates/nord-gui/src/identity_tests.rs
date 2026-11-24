@@ -8,9 +8,10 @@ use crate::baked::{BAKED_PLATE_2X_PNG, BAKED_SPRITES_2X_PNG};
 use crate::style::*;
 use egui::Color32;
 
-/// A colour is "red dominant" when its red channel clearly leads both others.
+/// A colour is "red dominant" when its red channel leads both others by 1.8x (the old chassis
+/// red is 4.6x; the amber header accent is 1.4x and does not count).
 fn red_dominant(r: u8, g: u8, b: u8) -> bool {
-    r > 90 && f32::from(r) > 1.35 * f32::from(g.max(b))
+    r > 90 && f32::from(r) > 1.8 * f32::from(g.max(b))
 }
 
 fn token_red_dominant(c: Color32) -> bool {
@@ -59,9 +60,18 @@ fn surface_tokens_are_not_red() {
 #[test]
 fn chassis_is_a_dark_cool_surface() {
     // Blue leads red on the chassis family, so the panel reads navy/graphite, not warm.
-    for c in [CHASSIS_BASE, CHASSIS_DARK, MODULE_SLATE, MODULE_SLATE_DARK, HEADER_DARK] {
+    for c in [
+        CHASSIS_BASE,
+        CHASSIS_DARK,
+        MODULE_SLATE,
+        MODULE_SLATE_DARK,
+        HEADER_DARK,
+    ] {
         assert!(c.b() > c.r(), "{c:?} is not cool");
-        assert!(contrast_ratio(c, Color32::WHITE) > 10.0, "{c:?} is not dark");
+        assert!(
+            contrast_ratio(c, Color32::WHITE) > 10.0,
+            "{c:?} is not dark"
+        );
     }
 }
 

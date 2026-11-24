@@ -166,8 +166,7 @@ shrink a text to the room it has (never below 7.5 px), `ctl::tag_fit` stacks a t
 `ctl::shift_legend` puts its LED after the measured text, `bay_effects::ctx::CAPTION_DROP` /
 `CAPTION_LINE` keep captions clear of knobs and bezels. Per-control nudges for tight neighbours
 live in `panel/layout_tweaks.rs`, never in the `ASSUMED` photo tables (one exception: the
-`rotary.speed_leds` rectangle was widened so the row holds its two names). Before/after:
-`docs/img/gui/`.
+`rotary.speed_leds` rectangle was widened so the row holds its two names). Current look: `docs/img/gui/overview.png` (D246).
 
 | State | Labels >= 7.5 px | Collisions |
 |---|---|---|
@@ -188,7 +187,7 @@ live in `panel/layout_tweaks.rs`, never in the `ASSUMED` photo tables (one excep
 
 ## Header tab checks (Organ, Layer Effects)
 
-The raised header tab (graphite since 2026-11-19, `style::HEADER_DARK`) carries the title, FX FOCUS, ON and SOLO on Organ, Piano and Synth, and the title, LAYER FX and its ON button on Layer Effects. Rules kept by tests: the plate outline is painted before the tab so no line runs through the title or the ON button (`widgets/plate.rs`, `tab_is_painted_over_the_body_outline`); the ON LED sits left of its button, inside the tab, never above it on the red panel (`Face::led_left`, `bay_effects/focus.rs`, `organ_strip.rs` `on_button_led_stays_inside_the_header_tab`); every label and LED printed in the four tabs lies fully inside its tab, measured on the painted text, and Organ, Piano and Synth print an `ON` caption (`panel/header_tab_tests.rs`); the `organ.on` / `organ.solo` nudge in `layout_tweaks.rs` keeps SOLO inside the Organ tab. Look at it with `python tools/gui_shots.py --sections organ,piano,synth,effects` (top 90 px of each PNG); reference renders: `docs/img/gui/headers-organ.png`, `headers-piano.png`, `headers-synth.png`, `headers-effects.png`.
+The raised header tab (graphite since 2026-11-19, `style::HEADER_DARK`) carries the title, FX FOCUS, ON and SOLO on Organ, Piano and Synth, and the title, LAYER FX and its ON button on Layer Effects. Rules kept by tests: the plate outline is painted before the tab so no line runs through the title or the ON button (`widgets/plate.rs`, `tab_is_painted_over_the_body_outline`); the ON LED sits left of its button, inside the tab, never above it (`Face::led_left`, `bay_effects/focus.rs`, `organ_strip.rs` `on_button_led_stays_inside_the_header_tab`); every label and LED printed in the four tabs lies fully inside its tab, measured on the painted text, and Organ, Piano and Synth print an `ON` caption (`panel/header_tab_tests.rs`); the `organ.on` / `organ.solo` nudge in `layout_tweaks.rs` keeps SOLO inside the Organ tab. Look at it with `python tools/gui_shots.py --sections organ,piano,synth,effects` (top 90 px of each PNG). The default baked plate has its own dark headers with accent underlines (D246); the reference render of the whole panel is `docs/img/gui/overview.png` (`nd-matrix-1 --screenshot overview.png --screenshot-scale 1`, trailing empty strip trimmed).
 
 Mod 1 / Mod 2 controls send only the edit they own (`bay_effects/mod_touch.rs`): ON and the type selector the type, Shift + selector the variation or PED, RATE the rate (or PED position / MST CLK division), AMOUNT the amount. A full unit set resent a stale view and, for Mod 2, cleared the firmware raw words (`mod_amount_knob_sends_only_the_amount_and_keeps_a_loaded_mod2`, `every_mod_control_sends_only_its_own_edits`). Known unfixed panel bugs: TD-19 (Organ / Synth SOLO), TD-20 (Mod 2 variation not mirrored after a program load).
 

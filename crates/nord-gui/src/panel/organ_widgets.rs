@@ -112,7 +112,14 @@ pub(super) fn drawbar_ladder(ui: &Ui, rect: Rect, id: &str, lit: u8) {
     let r = (rect.width() * 0.5).min(pitch * 0.5) - 2.8;
     for i in 0..8 {
         let c = pos2(rect.center().x, rect.top() + (i as f32 + 0.5) * pitch);
-        led_small(p, c, (i as u8) < lit, LED_ACCENT, LED_ACCENT_DIM, r.max(1.2));
+        led_small(
+            p,
+            c,
+            (i as u8) < lit,
+            LED_ACCENT,
+            LED_ACCENT_DIM,
+            r.max(1.2),
+        );
     }
     mark(ui, id);
 }

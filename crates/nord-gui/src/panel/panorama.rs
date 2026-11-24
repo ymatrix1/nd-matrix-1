@@ -7,7 +7,7 @@
 //! egui code so it is unit-tested without a context.
 
 use super::view::{section_px, ViewState, FOCUSABLE, PANEL_SIZE};
-use crate::style::{CHASSIS_DARK, CHASSIS_BASE, LED_AMBER, MODULE_SLATE};
+use crate::style::{CHASSIS_BASE, CHASSIS_DARK, LED_AMBER, MODULE_SLATE};
 use egui::{pos2, vec2, Context, Key, Pos2, Rect, Sense, Stroke, StrokeKind, Ui, Vec2};
 
 /// Logical height of the strip (it scales with the zoom like the rest of the view).
