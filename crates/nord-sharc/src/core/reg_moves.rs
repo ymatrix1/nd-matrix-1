@@ -119,6 +119,20 @@ impl Core {
         }
     }
 
+    /// [`Core::swap_each_pe`] with both conditions true (unconditional `Rr <-> Ss`).
+    pub(super) fn swap_regs(&mut self, r: usize, s: usize) {
+        let (er, es) = (self.ext_slot(r as u8), self.ext_slot(0x50 | s as u8));
+        let (rv, sv) = (self.r[r], self.s[s]);
+        self.r[r] = sv;
+        if let (Some(es), Some(_)) = (es, er) {
+            self.put_ext_slot(r as u8, es);
+        }
+        self.s[s] = rv;
+        if let (Some(er), Some(_)) = (er, es) {
+            self.put_ext_slot(0x50 | s as u8, er);
+        }
+    }
+
     /// `Rx <-> Sy` under the instruction's condition. Both halves read the old values; the write
     /// to `Rx` follows PEx's condition and the write to `Sy` follows PEy's (in scalar mode only
     /// PEx's exists, so the swap is whole or skipped). There is no PEy-side duplicate swap.

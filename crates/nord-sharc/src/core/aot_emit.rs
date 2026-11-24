@@ -2,8 +2,12 @@
 //! code snapshot per lowered block, plus the `blocks()` table `aot_hot.rs` includes at build time
 //! (`NORD_SHARC_AOT_HOT=<file>`). Generated text is derived from firmware and never committed.
 use super::aot_lower::{AotTier, Item, Lowered, LoweredOp, MIN_BATCH};
+use super::aot_mem::MemXfer;
+use super::aot_pe::pe_supports;
+use super::aot_whole::Chk;
 use super::decode_cache::ComputeOp;
 use super::Core;
+use std::collections::BTreeMap;
 use std::fmt::Write;
 
 fn kern_name(tier: AotTier) -> &'static str {
@@ -51,10 +55,35 @@ pub(super) fn emit_module(blocks: &[Lowered], tier: AotTier) -> String {
         "crate::core::aot_hot::AotBlock",
         "crate::core::aot_native::Kern",
         "crate::core::aot_pe::Pe",
+        "crate::core::aot_glue::AotSig",
+        "crate::core::aot_mem::{Addr, Data, MemXfer}",
         "crate::core::decode_cache::ComputeOp",
+        "crate::visa::Kind",
         "crate::core::{Core, Fault}",
     ] {
         let _ = writeln!(out, "use {i};");
+    }
+    // one out-of-line Pe kernel per distinct supported compute op used by a lowered transfer
+    let mut kernels: BTreeMap<String, usize> = BTreeMap::new();
+    for b in blocks {
+        for item in &b.items {
+            if let Item::Step(e) = item {
+                if let Some(MemXfer {
+                    compute: Some(c), ..
+                }) = &e.xfer
+                {
+                    if pe_supports(*c) && !kernels.contains_key(&format!("{c:?}")) {
+                        let id = kernels.len();
+                        let _ = writeln!(
+                            out,
+                            "#[inline(never)]
+fn k{id}(core: &mut Core) {{ core.aot_pe_both(ComputeOp::{c:?}, Kern::{kern}); }}"
+                        );
+                        kernels.insert(format!("{c:?}"), id);
+                    }
+                }
+            }
+        }
     }
     for (bi, b) in blocks.iter().enumerate() {
         let code: Vec<String> = b
@@ -69,8 +98,9 @@ pub(super) fn emit_module(blocks: &[Lowered], tier: AotTier) -> String {
             code.len(),
             code.join(", ")
         );
-        let mut body = String::new();
+        let mut stmts: Vec<String> = Vec::new();
         for (ii, item) in b.items.iter().enumerate() {
+            let mut body = String::new();
             match item {
                 Item::Batch(ops) => {
                     let _ = writeln!(
@@ -89,18 +119,97 @@ pub(super) fn emit_module(blocks: &[Lowered], tier: AotTier) -> String {
                     );
                     let _ = writeln!(body, "    core.steps += {};", ops.len());
                 }
+                Item::Step(e) => {
+                    match &e.xfer {
+                        Some(x) => {
+                            let fast = match x.compute {
+                                Some(c) if pe_supports(c) => {
+                                    format!("Some(k{})", kernels[&format!("{c:?}")])
+                                }
+                                _ => "None".to_string(),
+                            };
+                            let _ = writeln!(
+                                body,
+                                "    core.pc = 0x{:x}; core.aot_xfer(&{}, 0x{:x}, {})?; core.aot_tail(0x{:x}, Kind::{:?}, 0x{:x});",
+                                e.pc, x.to_rust(), e.pc, fast, e.pc, e.kind, e.next
+                            );
+                        }
+                        None => {
+                            let _ = writeln!(body, "    core.aot_step(0x{:x})?;", e.pc);
+                        }
+                    }
+                    if e.last {
+                        let _ = writeln!(body, "    return Ok(true);");
+                    } else {
+                        match e.chk {
+                            Chk::None => {}
+                            Chk::Pc => {
+                                let _ = writeln!(
+                                    body,
+                                    "    if core.pc != 0x{:x} {{ return Ok(true); }}",
+                                    e.next
+                                );
+                            }
+                            Chk::Sig => {
+                                let _ = writeln!(
+                                    body,
+                                    "    if core.pc != 0x{:x} || core.aot_sig_changed(&sig) {{ return Ok(true); }}",
+                                    e.next
+                                );
+                            }
+                        }
+                    }
+                }
                 Item::Interp { pc, next } => {
                     let _ = writeln!(
                         body,
-                        "    if core.aot_item(0x{pc:x}, &sig, 0x{next:x})? {{ return Ok(()); }}"
+                        "    if core.aot_item(0x{pc:x}, &sig, 0x{next:x})? {{ return Ok(true); }}"
                     );
                 }
             }
+            stmts.push(body);
         }
+        // chunks of CHUNK items, each its own out-of-line function: LLVM time grows faster than
+        // linearly with function size, and a 1 800 instruction block as one function took >10 min
+        const CHUNK: usize = 24;
+        let n_chunks = stmts.len().div_ceil(CHUNK).max(1);
+        for (ci, chunk) in stmts.chunks(CHUNK).enumerate() {
+            let _ = writeln!(
+                out,
+                "#[inline(never)]
+#[allow(unused_variables, unreachable_code)]
+fn c{bi}_{ci}(core: &mut Core, sig: &AotSig) -> Result<bool, Fault> {{
+    let simd = core.simd();
+{}    Ok(false)
+}}",
+                chunk.concat()
+            );
+        }
+        let calls: String = (0..n_chunks)
+            .filter(|&ci| ci * CHUNK < stmts.len())
+            .map(|ci| {
+                format!(
+                    "    if c{bi}_{ci}(core, &sig)? {{ return Ok(()); }}
+"
+                )
+            })
+            .collect();
         let _ = writeln!(
             out,
-            "#[allow(unused_variables)]\nfn run_{bi}(core: &mut Core) -> Result<(), Fault> {{\n    let sig = core.aot_sig();\n    let simd = core.simd();\n{body}    core.pc = 0x{:x};\n    Ok(())\n}}",
-            b.exit
+            "#[allow(unused_variables, unreachable_code)]
+fn run_{bi}(core: &mut Core) -> Result<(), Fault> {{
+    let sig = core.aot_sig();
+{calls}{}    Ok(())
+}}",
+            if b.dynamic_exit {
+                String::new()
+            } else {
+                format!(
+                    "    core.pc = 0x{:x};
+",
+                    b.exit
+                )
+            }
         );
     }
     let _ = writeln!(out, "static BLOCKS: [AotBlock; {}] = [", blocks.len());
@@ -110,7 +219,7 @@ pub(super) fn emit_module(blocks: &[Lowered], tier: AotTier) -> String {
             .iter()
             .map(|i| match i {
                 Item::Batch(o) => o.len() as u32,
-                Item::Interp { .. } => 0,
+                Item::Interp { .. } | Item::Step(_) => 0,
             })
             .sum();
         let _ = writeln!(

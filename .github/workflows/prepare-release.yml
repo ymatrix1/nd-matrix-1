@@ -1,0 +1,63 @@
+# Step 1 of docs/RELEASING.md: bump the version and open the release PR.
+#   Actions -> Prepare release -> Run workflow, version e.g. 0.1.6
+# Merging the PR and pushing the tag stay manual (the tag push is what publishes).
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'New version without a leading v (e.g. 0.1.6 or 0.2.0-rc.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: astral-sh/setup-uv@v6
+      - name: Bump version and refresh lock files
+        env:
+          VERSION: ${{ inputs.version }}
+        run: uv run python tools/bump_version.py "$VERSION"
+      - name: Commit, push and open the PR
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          branch="chore/release-$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add Cargo.toml Cargo.lock pyproject.toml uv.lock
+          git commit -s -m "chore(release): bump version to $VERSION"
+          git push -u origin "$branch"
+          cat > body.md <<BODY
+          ## Context
+          Release $VERSION. Version bump per docs/RELEASING.md, made by the Prepare release workflow.
+
+          ## Higher Goal
+          Cut \`v$VERSION\` through the tag-triggered release pipeline.
+
+          ## Acceptance Criteria
+          - [x] Cargo.toml, pyproject.toml, Cargo.lock, uv.lock at $VERSION
+          - [ ] CI green on all OSes
+          - [ ] Release dry run green (Actions, Release, Run workflow on this branch, tag empty)
+          - [ ] After merge: \`git tag -a v$VERSION -m v$VERSION\` on the merge commit, \`git push origin v$VERSION\`
+
+          ## Out of Scope
+          Code changes.
+
+          ## Summary of Changes
+          Version bump only.
+          BODY
+          gh pr create --base main --head "$branch" \
+            --title "chore(release): bump version to $VERSION" --body-file body.md

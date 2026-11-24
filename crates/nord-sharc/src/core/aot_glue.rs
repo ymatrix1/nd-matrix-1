@@ -84,6 +84,46 @@ impl Core {
         }
     }
 
+    /// True when guarded state differs from `sig` (see [`AotSig`]), e.g. after an instruction of
+    /// a whole-pass block wrote the interrupt controller or the mode bits.
+    #[inline(always)]
+    pub(super) fn aot_sig_changed(&self, sig: &AotSig) -> bool {
+        self.aot_sig() != *sig
+    }
+
+    /// One interpreter step at `pc`, out of line (whole-pass blocks: instruction kinds without a
+    /// native lowering).
+    #[inline(never)]
+    pub(super) fn aot_step(&mut self, pc: u32) -> Result<(), Fault> {
+        use super::aot_prof::{aot_prof_on, aot_prof_step, tsc, GENERIC};
+        self.pc = pc;
+        if aot_prof_on() {
+            let t = tsc();
+            let r = self.step();
+            aot_prof_step(pc, GENERIC, tsc() - t);
+            return r;
+        }
+        self.step()
+    }
+
+    /// The tail of [`Core::step`] after a natively executed instruction: the pc (through the loop
+    /// and delay-slot logic when one is active), the step count and the per-instruction latches.
+    #[inline(always)]
+    pub(super) fn aot_tail(&mut self, pc: u32, kind: crate::visa::Kind, next: u32) {
+        self.pc = if self.loops.is_empty() && self.pending.is_none() {
+            next
+        } else {
+            self.finish_step(pc, kind, next)
+        };
+        self.steps += 1;
+        if self.cb_wrap.get() != 0 {
+            self.latch_cb_overflow();
+        }
+        if self.irq.window_len != 0 {
+            self.close_window_if_left();
+        }
+    }
+
     /// Runs the interpreter item at `pc` (one [`Core::step`], kept out of line so a block of
     /// thousands of items stays small) and returns true when the block must stop after it (see
     /// [`Core::aot_bail`]).

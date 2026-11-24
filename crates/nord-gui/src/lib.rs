@@ -6,6 +6,7 @@ pub mod audio;
 pub mod baked;
 pub mod branding;
 pub mod debug_dialog;
+pub mod engine_panel;
 pub mod file_picker;
 pub mod firmware_panel;
 pub mod headless_load;

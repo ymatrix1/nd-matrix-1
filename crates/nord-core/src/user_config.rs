@@ -19,6 +19,13 @@ pub struct UserConfig {
     /// Path of the user's Nord OS update file (`.exe`, `.dmg`, `.zip` or extracted container).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub os_update_path: Option<String>,
+    /// Engine to start with: `hle` or `lle` (opt-in, see `engine_select`). Kept as text so an
+    /// unknown value from a newer version never makes the whole file unreadable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub engine: Option<String>,
+    /// SHARC float precision of the LLE engine: `exact` (default) or `fast` (see `precision`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub precision: Option<String>,
     /// Text size of the front ends in percent (100 to 200), `nord_gui::text_scale` (issue #592).
     /// Absent means 100. The front ends clamp and snap it; this file only stores it.
     #[serde(
@@ -89,6 +96,14 @@ pub fn save(path: &Path, cfg: &UserConfig) -> Result<(), String> {
     }
     let text = serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?;
     std::fs::write(path, text + "\n").map_err(|e| format!("{}: {e}", path.display()))
+}
+
+/// Loads `path`, applies `f` and writes it back, so one setting never erases the others. An
+/// unreadable existing file is an error (never overwritten silently).
+pub fn update(path: &Path, f: impl FnOnce(&mut UserConfig)) -> Result<(), String> {
+    let mut cfg = load(path)?;
+    f(&mut cfg);
+    save(path, &cfg)
 }
 
 /// The saved update-file path that applies now: `Ok(None)` when `env` (the value of
@@ -210,6 +225,19 @@ mod tests {
         assert_eq!(load(&path).unwrap(), cfg);
         std::fs::write(&path, "{ not json").unwrap();
         assert!(load(&path).unwrap_err().contains("config.json"));
+    }
+
+    #[test]
+    fn update_keeps_the_other_settings_and_refuses_a_corrupt_file() {
+        let path = tmp("update");
+        update(&path, |c| c.engine = Some("lle".into())).unwrap();
+        update(&path, |c| c.os_update_path = Some("/os.exe".into())).unwrap();
+        let cfg = load(&path).unwrap();
+        assert_eq!(cfg.engine.as_deref(), Some("lle"));
+        assert_eq!(cfg.os_update_path.as_deref(), Some("/os.exe"));
+        std::fs::write(&path, "{ not json").unwrap();
+        assert!(update(&path, |c| c.engine = None).is_err());
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "{ not json");
     }
 
     #[test]

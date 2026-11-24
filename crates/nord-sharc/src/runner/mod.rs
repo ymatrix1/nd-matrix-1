@@ -23,6 +23,7 @@ mod live_sy_tests;
 mod live_tests;
 pub mod msg;
 pub mod pass;
+pub mod pass_sched;
 pub mod periph_run;
 pub mod ring_trace;
 pub mod system;

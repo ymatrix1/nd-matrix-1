@@ -3,8 +3,6 @@
 
 use crate::render_opts_wave::WAVE_TABLES_ENV;
 use crate::user_config;
-#[cfg(test)]
-use crate::user_config::UserConfig;
 use std::path::{Path, PathBuf};
 
 /// The vendor's Nord Stage 4 Downloads page, where the user picks the OS update for their platform
@@ -69,18 +67,13 @@ pub fn set(path: &Path, config: &Path) -> Result<usize, String> {
     let abs = std::fs::canonicalize(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let shown = abs.to_string_lossy();
     let shown = shown.strip_prefix(r"\\?\").unwrap_or(&shown).to_string();
-    // Keep the other saved settings (text size): only the path changes.
-    let mut saved = user_config::load(config).unwrap_or_default();
-    saved.os_update_path = Some(shown);
-    user_config::save(config, &saved)?;
+    user_config::update(config, |c| c.os_update_path = Some(shown))?;
     Ok(n)
 }
 
 /// Forgets the saved path.
 pub fn clear(config: &Path) -> Result<(), String> {
-    let mut saved = user_config::load(config).unwrap_or_default();
-    saved.os_update_path = None;
-    user_config::save(config, &saved)
+    user_config::update(config, |c| c.os_update_path = None)
 }
 
 /// Plain-language text of a [`Status`] for the CLI and the GUI.
@@ -149,6 +142,7 @@ pub fn run(args: &[String], config: &Path, env: Option<&str>) -> Result<String, 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::user_config::UserConfig;
 
     fn cfg(name: &str) -> PathBuf {
         std::env::temp_dir()
@@ -275,6 +269,22 @@ mod tests {
         assert!(info(&img).unwrap_err().contains("not a Nord OS update"));
         assert_eq!(fnv1a64(b""), 0xCBF2_9CE4_8422_2325);
         assert_eq!(fnv1a64(b"a"), 0xAF63_DC4C_8601_EC8C);
+    }
+
+    #[test]
+    fn set_and_clear_keep_the_saved_engine_choice() {
+        let c = cfg("keep-engine");
+        user_config::update(&c, |u| u.engine = Some("lle".into())).unwrap();
+        let img = std::env::temp_dir().join(format!("ns4-fwset-keep-{}.bin", std::process::id()));
+        std::fs::write(&img, crate::synth::fw_wave_tables::tests::image()).unwrap();
+        set(&img, &c).unwrap();
+        assert_eq!(
+            user_config::load(&c).unwrap().engine.as_deref(),
+            Some("lle")
+        );
+        clear(&c).unwrap();
+        let u = user_config::load(&c).unwrap();
+        assert_eq!((u.os_update_path, u.engine.as_deref()), (None, Some("lle")));
     }
 
     #[test]

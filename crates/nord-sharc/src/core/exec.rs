@@ -196,6 +196,15 @@ impl Core {
         } else {
             self.fetch_and_cache(pc, isa)
         };
+        self.exec_cached(&c)
+    }
+
+    /// Executes the cached instruction `c` and finishes the step: the pc, the step count, the
+    /// circular-buffer overflow latch and the interrupt window. [`Core::step`] runs it on a
+    /// decode-cache entry; the AOT blocks (`aot_whole.rs`) call it with an entry built from
+    /// constants so that the decoded-op `match` and the field extractions fold away.
+    #[inline(always)]
+    pub(super) fn exec_cached(&mut self, c: &CachedInsn) -> Result<(), Fault> {
         let mut next = c.next_pc;
         let simd = self.simd();
         let make_decoded = |core: &Core, c: &CachedInsn| -> Decoded {
@@ -213,45 +222,45 @@ impl Core {
             DecodedOp::ComputeCond { cond, op } => {
                 let cond_ok = cond == 31 || self.cond(u64::from(cond));
                 let cond_y = simd && (cond == 31 || self.cond_for(true, u64::from(cond)));
-                self.run_compute_op(&c, cond_ok, cond_y, op)?;
+                self.run_compute_op(c, cond_ok, cond_y, op)?;
             }
             DecodedOp::ComputeBoth { op } => {
-                self.run_compute_op(&c, true, simd, op)?;
+                self.run_compute_op(c, true, simd, op)?;
             }
             DecodedOp::ModifyImm => {
-                let d = make_decoded(self, &c);
+                let d = make_decoded(self, c);
                 self.exec_modify_imm(&d);
             }
             DecodedOp::StackOp => {
-                let d = make_decoded(self, &c);
+                let d = make_decoded(self, c);
                 self.exec_stack_op(&d);
             }
             DecodedOp::DoUntil => {
-                let d = make_decoded(self, &c);
+                let d = make_decoded(self, c);
                 self.exec_do_until(&d, next)?;
             }
             DecodedOp::Type25 => {
-                let d = make_decoded(self, &c);
+                let d = make_decoded(self, c);
                 next = self.exec_type25(&d, next)?;
             }
             DecodedOp::ShiftImm => {
-                let d = make_decoded(self, &c);
+                let d = make_decoded(self, c);
                 self.exec_shift_imm(&d)?;
             }
             DecodedOp::ShiftMove => {
-                let d = make_decoded(self, &c);
+                let d = make_decoded(self, c);
                 self.exec_shift_move(&d)?;
             }
             DecodedOp::DualMove(dm) => {
-                let d = make_decoded(self, &c);
+                let d = make_decoded(self, c);
                 self.exec_dual_move_op(&d, dm)?;
             }
             DecodedOp::Flow(fl) => {
-                let d = make_decoded(self, &c);
+                let d = make_decoded(self, c);
                 next = self.exec_flow_op(&d, fl, next)?;
             }
             DecodedOp::Move(mv) => {
-                let d = make_decoded(self, &c);
+                let d = make_decoded(self, c);
                 self.exec_move_op(&d, mv)?;
             }
             DecodedOp::Unimplemented => return Err(self.fault(c.pc, &c.insn)),

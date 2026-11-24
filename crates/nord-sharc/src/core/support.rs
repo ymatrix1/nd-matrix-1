@@ -15,7 +15,7 @@ pub(super) fn load(core: &mut Core, short: u32, parcels: &[u16]) {
 }
 
 /// A core with `program` loaded and the pc at [`CODE`].
-pub(super) fn core_with(program: &[u16]) -> Core {
+pub(crate) fn core_with(program: &[u16]) -> Core {
     let mut c = Core::new(&[]);
     load(&mut c, CODE, program);
     c.pc = CODE;

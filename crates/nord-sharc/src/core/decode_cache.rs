@@ -27,7 +27,7 @@ pub(super) enum ComputeOp {
 
 impl ComputeOp {
     /// Decodes a 23-bit compute field once into a structured [`ComputeOp`].
-    #[inline]
+    #[inline(always)]
     pub(super) fn decode(c: u64) -> Self {
         if c == 0 {
             return Self::Nop;
@@ -80,7 +80,7 @@ pub(super) struct DualMoveOp {
 }
 
 impl DualMoveOp {
-    #[inline]
+    #[inline(always)]
     pub(super) fn decode(kind: Kind, w: u64) -> Self {
         let compute_raw = if kind == Kind::T1a { bits(w, 22, 0) } else { 0 };
         Self {
@@ -132,7 +132,7 @@ pub(super) enum FlowOp {
 }
 
 impl FlowOp {
-    #[inline]
+    #[inline(always)]
     pub(super) fn decode(kind: Kind, pc: u32, w: u64) -> Self {
         let cond = bits(w, 37, 33) as u8;
         let relative = bits(w, 40, 40) == 1;
@@ -235,7 +235,7 @@ pub(super) enum MoveOp {
 }
 
 impl MoveOp {
-    #[inline]
+    #[inline(always)]
     pub(super) fn decode(insn: &Insn, w: u64) -> Self {
         let kind = insn.kind;
         let with_compute = matches!(kind, Kind::T3a | Kind::T4a | Kind::T5a | Kind::T7a);
@@ -329,7 +329,7 @@ pub(super) enum DecodedOp {
 
 impl DecodedOp {
     /// Decodes a classified instruction and its 48-bit word into a [`DecodedOp`].
-    #[inline]
+    #[inline(always)]
     pub(super) fn from_insn(pc: u32, insn: &Insn, w: u64) -> Self {
         match insn.kind {
             Kind::T21c if insn.parcels[0] == 0x0001 => Self::Nop,
@@ -400,6 +400,34 @@ pub(super) struct CachedInsn {
     pub insn: Insn,
     pub w: u64,
     pub op: DecodedOp,
+}
+
+impl CachedInsn {
+    /// Entry for one instruction given as constants (what an AOT block holds): the decoded op is
+    /// derived here, so after inlining into a block the whole decode folds away. `next_pc` is the
+    /// pc after the instruction.
+    #[inline(always)]
+    #[allow(dead_code)] // only the generated AOT module calls it
+    pub(super) fn aot(
+        pc: u32,
+        next_pc: u32,
+        kind: Kind,
+        parcels: [u16; 3],
+        len: usize,
+        w: u64,
+    ) -> Self {
+        let insn = Insn { kind, parcels, len };
+        Self {
+            pc,
+            gen: 0,
+            next_pc,
+            isa: false,
+            cond: bits(w, 37, 33) as u8,
+            insn,
+            w,
+            op: DecodedOp::from_insn(pc, &insn, w),
+        }
+    }
 }
 
 impl Default for CachedInsn {

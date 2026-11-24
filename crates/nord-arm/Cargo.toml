@@ -1,0 +1,10 @@
+[package]
+name = "nord-arm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+repository.workspace = true
+description = "Native Rust ARM926EJ-S (ARMv5TE, ARM + Thumb) interpreter and Nord Stage 4 ARM0 machine model with idle skipping (LLE Gate 1a, ns4-lle2)."
+
+[dependencies]

@@ -651,7 +651,7 @@ fn build_app_icon() -> egui::IconData {
                 continue;
             }
             let alpha = ((12.2 - dist).clamp(0.0, 1.0) * 255.0) as u8;
-            // Graphite-navy chassis gradient (ASSUMED, D246: same family as `style::CHASSIS_BASE`)
+            // Graphite-navy chassis gradient (ASSUMED, D247: same family as `style::CHASSIS_BASE`)
             let t = y as f32 / size as f32;
             let mut r = (36.0 - t * 18.0) as u8;
             let mut g = (48.0 - t * 20.0) as u8;
@@ -753,6 +753,10 @@ wrote {}",
         }
         return Ok(());
     }
+    // opt-in `--engine lle` (D2/D119): a fallback to the built-in engine prints why, never fatal
+    let engine = nord_core::engine_select::startup("nd-matrix-1", &argv);
+    // `--precision exact|fast` (LLE only): plumbed to the backend seam, ignored by HLE
+    let _engine = nord_core::precision::apply_startup("nd-matrix-1", &argv, engine);
     let cli = parse_cli_args(argv);
 
     let mut viewport = egui::ViewportBuilder::default()
@@ -800,7 +804,7 @@ mod tests {
         // Center pixel is opaque navy/bone, corner pixel is transparent.
         assert_eq!(icon.rgba[3], 0);
         assert_eq!(icon.rgba[(32 * 64 + 32) * 4 + 3], 255);
-        // D246: the icon chassis is cool graphite-navy, never the old crimson (blue leads red).
+        // D247: the icon chassis is cool graphite-navy, never the old crimson (blue leads red).
         let chassis = (8 * 64 + 6) * 4;
         assert!(icon.rgba[chassis + 2] > icon.rgba[chassis]);
     }

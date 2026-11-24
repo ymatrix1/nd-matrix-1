@@ -26,12 +26,18 @@ fn run_cli(args: &[String]) -> Result<Option<String>, String> {
     let mut hot = false;
     let mut tier = AotTier::Pe;
     let mut ranges: Option<String> = None;
+    let mut whole: Option<String> = None;
+    let mut forced: Vec<u32> = Vec::new();
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
             "--fast-float" => opts.fast_float = true,
             "--ops" => ops = true,
             "--hot" => hot = true,
+            "--whole-pass" => whole = Some(it.next().ok_or("--whole-pass needs PCS_FILE")?.clone()),
+            "--force" => forced.push(
+                parse_number(it.next().ok_or("--force needs PC")?).ok_or("bad --force PC")? as u32,
+            ),
             "--ranges" => ranges = Some(it.next().ok_or("--ranges needs A:B,C:D,...")?.clone()),
             "--tier" => {
                 tier = match it.next().map(String::as_str) {
@@ -49,6 +55,30 @@ fn run_cli(args: &[String]) -> Result<Option<String>, String> {
             }
             _ => positional.push(a.clone()),
         }
+    }
+    if let Some(pcs) = whole {
+        let [image] = positional.as_slice() else {
+            return Err(
+                "usage: sharc-aot IMAGE --whole-pass PCS_FILE [--force PC] [--tier T] --out FILE"
+                    .into(),
+            );
+        };
+        let text = std::fs::read_to_string(&pcs).map_err(|e| format!("{pcs}: {e}"))?;
+        let executed = text
+            .lines()
+            .filter_map(|l| {
+                let (a, b) = l.split_once(' ')?;
+                Some((u32::from_str_radix(a, 16).ok()?, b.trim() == "1"))
+            })
+            .collect();
+        let data = std::fs::read(image).map_err(|e| format!("{image}: {e}"))?;
+        let src = Core::new(&data).emit_whole_pass_rust(&executed, &forced, tier)?;
+        return match out_path {
+            Some(path) => std::fs::write(&path, &src)
+                .map(|()| None)
+                .map_err(|e| format!("{path}: {e}")),
+            None => Ok(Some(src)),
+        };
     }
     if let Some(list) = ranges {
         let [image] = positional.as_slice() else {

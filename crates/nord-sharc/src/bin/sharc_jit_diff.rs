@@ -48,6 +48,8 @@ struct Opts {
     aot_audio: bool,
     bufs: Vec<String>,
     aot_rank: Option<(usize, u32)>,
+    /// `--aot-pcs FILE`: with `--aot-rank`, also write the executed pcs (`pc leader` per line).
+    aot_pcs: Option<String>,
 }
 
 fn parse_kv(s: &str) -> Result<(u32, u32), String> {
@@ -92,6 +94,7 @@ fn parse_args(args: &[String]) -> Result<Opts, String> {
         aot_audio: false,
         bufs: Vec::new(),
         aot_rank: None,
+        aot_pcs: None,
     };
     let mut it = args.iter();
     while let Some(a) = it.next() {
@@ -122,6 +125,7 @@ fn parse_args(args: &[String]) -> Result<Opts, String> {
             "--profile-jit" => o.profile_jit = true,
             "--lenient" => o.lenient = true,
             "--fast-float" => o.fast_float = true,
+            "--aot-pcs" => o.aot_pcs = Some(val("FILE")?),
             "--aot-rank" => {
                 let v = val("TOP:MINLEN")?;
                 let (a, b) = v.split_once(':').ok_or("--aot-rank needs TOP:MINLEN")?;
@@ -507,6 +511,22 @@ fn run_rank(o: &Opts, image: &[u8], (top, min_len): (usize, u32)) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    if let Some(path) = &o.aot_pcs {
+        let text: String = (0..prof.count.len())
+            .filter(|&i| prof.count[i] > 0)
+            .map(|i| {
+                format!(
+                    "{i:x} {}
+",
+                    u8::from(prof.leader[i])
+                )
+            })
+            .collect();
+        if let Err(e) = std::fs::write(path, text) {
+            eprintln!("{path}: {e}");
+            return ExitCode::FAILURE;
+        }
+    }
     let mut shape = |pc: u32| Core::aot_insn_class(&core, pc).1;
     let rep = build_report(&prof, &mut shape, min_len);
     print!("{}", format_report(&rep, top));

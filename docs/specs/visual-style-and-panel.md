@@ -4,7 +4,7 @@
 
 Specifies the visual layout, colour palette, typography, widgets, LED indicators, OLED displays, and interactive behaviours for the ND Matrix 1 GUI (Standalone & CLAP/VST3 DAW Plugin).
 
-**Identity (D246, 2026-11-23).** The look is an original design, the **Slate Matrix** identity, and deliberately does not imitate the vendor's red chassis or its control styling (trade dress, `ns4-80xe`). Control *positions*, counts, indices and parameter IDs are unchanged (D16: saved DAW projects keep loading); only surfaces, shapes, colours, texture and typography differ. Which control exists where and what it does follows the instrument's function as documented in its manual; no vendor art, photo, trace or colour sample is used. Photos in `.reference/` are measurement-only (control geometry, scale sweeps) and never ship (`tools/check_no_vendor_photos.py`).
+**Identity (D247, 2026-11-23).** The look is an original design, the **Slate Matrix** identity, and deliberately does not imitate the vendor's red chassis or its control styling (trade dress, `ns4-80xe`). Control *positions*, counts, indices and parameter IDs are unchanged (D16: saved DAW projects keep loading); only surfaces, shapes, colours, texture and typography differ. Which control exists where and what it does follows the instrument's function as documented in its manual; no vendor art, photo, trace or colour sample is used. Photos in `.reference/` are measurement-only (control geometry, scale sweeps) and never ship (`tools/check_no_vendor_photos.py`).
 
 ### 1.1 Slate Matrix: what differs from the original instrument
 
@@ -404,7 +404,7 @@ Status: accepted (owner request: production-ready look, compared with the Nord e
 
 ## 9. Offline HTML/CSS-to-`egui` Baked Panel Pipeline (D15 Amendment, `ns4-op1w`)
 
-To render the approved ND Matrix 1 HTML/CSS design (`prototypes/panel-mock/`, Slate Matrix identity, D246) inside OpenGL `egui` hosts without embedding a WebView:
+To render the approved ND Matrix 1 HTML/CSS design (`prototypes/panel-mock/`, Slate Matrix identity, D247) inside OpenGL `egui` hosts without embedding a WebView:
 
 - **Offline Baker (`tools/bake_panel_from_html.py`):** Launches headless Chromium or Edge (DevTools protocol) at `2x` device scale, hides dynamic moving elements via `.bake-static`, and exports deterministic assets to `crates/nord-gui/assets/baked/`:
   - `panel_plate_2x.png`: static graphite chassis, side cheeks, chamfered section headers with accent underlines, silkscreen, scales, keys and the `ND MATRIX 1` wordmark.

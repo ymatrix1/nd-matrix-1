@@ -57,6 +57,8 @@ pub(super) enum Item {
     Batch(Vec<LoweredOp>),
     /// One instruction at `pc` run by [`Core::step`].
     Interp { pc: u32, next: u32 },
+    /// One whole-pass block instruction: a lowered memory transfer or one interpreter step.
+    Step(super::aot_whole::StepItem),
 }
 
 /// How the lowering sees one instruction.
@@ -83,6 +85,8 @@ pub(super) struct Lowered {
     /// Instruction parcels `start..exit`, to detect self-modified code at run time.
     pub code: Vec<u16>,
     pub items: Vec<Item>,
+    /// The last item set the pc itself (a whole-pass block that ends in control flow).
+    pub dynamic_exit: bool,
 }
 
 /// Batches shorter than this run as interpreter items: loading and storing both elements costs
@@ -233,7 +237,7 @@ impl Core {
             .iter()
             .map(|i| match i {
                 Item::Batch(ops) => ops.len() as u32,
-                Item::Interp { .. } => 1,
+                Item::Interp { .. } | Item::Step(_) => 1,
             })
             .sum();
         Ok(Lowered {
@@ -243,6 +247,7 @@ impl Core {
             steps,
             code,
             items,
+            dynamic_exit: false,
         })
     }
 

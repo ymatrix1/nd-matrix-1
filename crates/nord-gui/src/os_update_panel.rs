@@ -14,6 +14,8 @@ pub struct OsUpdatePanel {
     /// What the running session was started with (`None` = placeholder).
     session: Option<PathBuf>,
     status: Status,
+    /// Engine toggle (HLE default, opt-in LLE).
+    engine: crate::engine_panel::EnginePanel,
     /// The window is open.
     pub open: bool,
     input: String,
@@ -31,6 +33,7 @@ impl OsUpdatePanel {
         };
         let session = status.path.as_ref().map(|(p, _)| p.clone());
         Self {
+            engine: crate::engine_panel::EnginePanel::new(config.clone()),
             config,
             session,
             status,
@@ -162,6 +165,9 @@ impl OsUpdatePanel {
         if let Some(m) = &self.message {
             ui.label(m);
         }
+        ui.separator();
+        let os_update = self.status.path.as_ref().map(|(p, _)| p.clone());
+        self.engine.show(ui, os_update.as_deref());
         ui.separator();
         match &self.status.path {
             None => {

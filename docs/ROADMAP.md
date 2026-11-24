@@ -448,14 +448,16 @@ The ticks below mean the model exists and is tested. Which parts match the firmw
 
 ## Phase 8: Full Real-Time ARM + SHARC Emulation (LLE) (`ns4-lle1`)
 
-**Goal:** Promote Track B (`ns4-trkb`) from an offline test oracle into a unified, real-time Rust low-level emulator (ARM0 + all 5 SHARC DSP images) driven by the user's own unencrypted OS update file and `.ns4b` backup — delivering 100% bit-exact audio/OLED fidelity while containing zero vendor DSP routines or lookup tables. Gated on Gate 1 real-time speed benchmarks before full UI/plugin integration. Spec: [sharc-core](specs/sharc-core.md).
-
-- [ ] **Gate 1a — Rust ARM0 runtime with idle-skipping (`ns4-lle2`):** replace the Python/Unicorn harness with an in-process Rust ARM0 emulator + `WFI`/poll-loop fast-forwarding (< 1 ms wall-clock per 1 ms virtual tick)
-- [ ] **Gate 1b — Whole-Pass AOT & multi-core SHARC 48 kHz benchmark (`ns4-lle3`, supersedes D118 / PR #466):** native `DirectMem`/`DagMem`/SIMD Whole-Pass AOT (`sharc-aot` → `rustc -O`) on the 1-thread-per-core `MultiCoreScheduler` (PR #460 `ns4-z2fq`, PR #461 `ns4-spj2`) to prove `PNO`, `ORG`, `FX`, `SY1SY2`, and `SMP` meet real-time 48 kHz buffers
+**Goal:** Promote Track B (`ns4-trkb`) from an offline test oracle into a unified, real-time Rust low-level emulator (ARM0 + all 5 SHARC DSP images) driven by the user's own unencrypted OS update file and `.ns4b` backup — with two selectable precision modes (**Exact**: emulated 40-bit extended-precision float, bit-exact, the oracle and default for offline renders and tests; **Fast**: native `f32`, audibly equivalent within a measured tolerance against Exact, intended for real-time play and switchable in the UI like the accuracy modes of other emulators), while containing zero vendor DSP routines or lookup tables. Gated on Gate 1 real-time speed benchmarks before full UI/plugin integration. Spec: [sharc-core](specs/sharc-core.md).
+- [ ] **Gate 1b — Whole-Pass AOT & multi-core SHARC 48 kHz benchmark (`ns4-lle3`, supersedes D118 / PR #466):** native `DirectMem`/`DagMem`/SIMD Whole-Pass AOT (`sharc-aot` → `rustc -O`) on the 1-thread-per-core `MultiCoreScheduler` (PR #460 `ns4-z2fq`, PR #461 `ns4-spj2`) to prove `PNO`, `ORG`, `FX`, `SY1SY2`, and `SMP` meet real-time 48 kHz buffers **Result 2026-11-24: NO-GO for real time** (AOT bit-exact, x1.34 faster; slowest core 8.0x over 46.08 us/pass): `docs/research/sharc-lle-realtime.md`.
+- [x] **Gate 1a — Rust ARM0 core + exact idle-skipping (`ns4-lle2`, done):** in-process Rust ARM0 emulator (`crates/nord-arm`), board devices, `WFI`/poll-loop fast-forwarding; mean 0.20 to 0.34 ms per 1 ms tick
+- [ ] **Gate 1a (open) — ARM0 under 1 ms on every tick:** 4.8 % of load ticks run over 1 ms (up to 32 in a row, backlog 73 ms); needs a faster interpreter (about 5x) or an accepted decoupled-thread queue ([arm0-rust-runtime](research/arm0-rust-runtime.md))
 - [ ] **Gate 2a — Live `SPORT`/audio DMA bus & SDRAM window (`ns4-lle4`):** wire `ORG`/`PNO`/`SY`/`SMP` outputs directly into `FX Core1/Core2`, fix `FX Core2` poll-loop continuation, and map external SDRAM (`0x20xxxxxx`) for delay/reverb (`ns4-8aoy`)
 - [ ] **Gate 2b — Unified Rust multi-chip LLE engine (`ns4-lle5`):** single lock-free `LleEngine` combining ARM0, all 5 DSP images, DSP→ARM return path (`ns4-nds8`), and `SMP` CNSP page refill (`ns4-pnoc`) with zero allocations in `process_block()`
 - [ ] **Gate 3a — Live I/O, `.ns4b` store & OLED (`ns4-lle6`):** wire real-time MIDI, pedals, panel controls, ARM program store (`ns4-pyqg`), and real OLED framebuffers (`ns4-2gdc`)
-- [ ] **Gate 3b — Opt-in LLE backend & D2/D119 decision (`ns4-lle7`):** expose `--engine lle` / Settings toggle in `nd-matrix-1` and `nord-plugin`, and decide whether LLE retires firmware-derived HLE tables (`ns4-u8o2`)
+  - [x] Engine-neutral half: wait-free SPSC event rings, MIDI / pedal / panel events and translation, lock-free OLED / LED telemetry, `LleInput` / `LleTelemetry` traits ([lle-io](specs/lle-io.md))
+  - [ ] Wiring into ARM0 input queues, `.ns4b` program store and real OLED / LED data (blocked on `ns4-lle5`)
+- [ ] **Gate 3b — Opt-in LLE backend & D2/D119 decision (`ns4-lle7`):** selection seam done (`--engine lle` / `--precision exact|fast` / Settings toggle in `nd-matrix-1` and `nord-plugin`, fallback with notice, stub backend, D246 proposed); open: real LLE backend, real-time stability in DAW hosts, and the decision whether LLE retires firmware-derived HLE tables (`ns4-u8o2`)
 
 ## Legal & Licensing (`ns4-9wq1`)
 
@@ -478,7 +480,7 @@ The ticks below mean the model exists and is tested. Which parts match the firmw
 - [ ] Required status checks and source-available repo description (`ns4-6fbu`, owner)
 - [x] Free check of macOS `.dmg` updater and `nordkeyboards.com` terms (`ns4-d7mg`)
 - [ ] Firmware-derived files moved to runtime loading — **Class B first**, then Class C (`ns4-u8o2`), followed by second history rewrite (`ns4-eh57`); done: Farfisa processor (2026-11-23), B3 Bass chain (2026-11-24); open: `vox_image.rs`, `firmware_bank.rs`, class C
-- [x] Proactive trade dress mitigation: original non-red "Slate Matrix" default panel identity (`ns4-80xe`, D246)
+- [x] Proactive trade dress mitigation: original non-red "Slate Matrix" default panel identity (`ns4-80xe`, D247)
 - [ ] VST3 host checks in real DAWs (`ns4-pvb3`)
 - [ ] *(Deferred / optional)* Additional permission counsel review (`ns4-4qmh`; shipped in D241), trademark registration (`ns4-0s8y`; policy shipped in D241), and paid counsel review of LEGAL.md (`ns4-ns2j`)
 

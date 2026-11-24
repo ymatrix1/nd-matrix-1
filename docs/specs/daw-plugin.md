@@ -102,3 +102,7 @@ Status: tested headlessly (frame shape count, sink mapping, coverage, persistenc
 | WAVE tables | OS update tables are installed off-thread into a process-global `OnceLock` from the saved config path (applies once per process). |
 | Not done | The loaded program is not stored in project state; `LoadPreset` is unmapped; program values are not pushed into host parameters (TD-21). |
 | Evidence | Counting-allocator tests for all four job kinds, `tests/load_path.rs` (OPEN pill, synthetic `.ns4b`, program, audible `process()`), `editor/dialog_tests.rs`. Not tried in FL Studio by hand. |
+
+## Engine selection (D246, `ns4-lle7`)
+
+The Settings > OS & Wave Tables page shows the same Engine toggle as the standalone app (shared `OsUpdatePanel`); the choice is saved in the user config and applies at the next instance start. LLE is opt-in and unavailable today, so the built-in engine keeps running and the page says why. See [gui-audio](gui-audio.md#engine-selection-d245-ns4-lle7).

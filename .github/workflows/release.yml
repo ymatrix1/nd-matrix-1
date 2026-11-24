@@ -309,3 +309,29 @@ jobs:
             artifacts/*.pkg
             artifacts/*.sha256
             artifacts/SHA256SUMS.txt
+
+  verify-published:
+    name: Verify published release assets
+    needs: [plan, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Download the release as a user would, check checksums and asset list
+        env:
+          TAG: ${{ needs.plan.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir dl && cd dl
+          gh release download "$TAG"
+          sha256sum -c SHA256SUMS.txt
+          missing=0
+          for pat in "*-$TAG-linux-x86_64.tar.gz" "*-$TAG-windows-x86_64.zip" \
+            "*-$TAG-macos-arm64.tar.gz" "*.deb" "*.AppImage" "*-setup.exe" "*.dmg" "*.pkg" \
+            "*-appimage-runtime-sources.tar.gz"; do
+            ls $pat > /dev/null 2>&1 || { echo "::error::no asset matching $pat"; missing=1; }
+          done
+          exit $missing

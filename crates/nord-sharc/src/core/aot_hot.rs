@@ -62,7 +62,7 @@ impl AotHotStats {
 
 /// The enabled blocks (sorted by start) and their counters.
 pub(super) struct AotHot {
-    blocks: Vec<AotBlock>,
+    pub(super) blocks: Vec<AotBlock>,
     per_block: Vec<AotHotStats>,
     total: AotHotStats,
     fault: Option<Fault>,
@@ -70,9 +70,20 @@ pub(super) struct AotHot {
 
 impl Core {
     /// Whether the live SRAM still holds the code the block was generated from.
-    fn aot_code_matches(&self, b: &AotBlock) -> bool {
+    pub(super) fn aot_code_matches(&self, b: &AotBlock) -> bool {
         let o = b.start as usize * 2;
         self.sram.get(o..o + b.code.len()) == Some(b.code)
+    }
+
+    /// The data accesses of generated blocks may bypass the watch, peripheral and JIT hooks of
+    /// [`Core::dm_read`] / [`Core::dm_write`] (`aot_mem.rs`) only while none of them is active.
+    #[inline(always)]
+    fn aot_fast_mem(&self) -> bool {
+        #[cfg(feature = "jit")]
+        if self.jit.is_some() {
+            return false;
+        }
+        self.periph.is_none() && !self.rwatch_on && (self.watch == u32::MAX || self.watch_len == 0)
     }
 
     /// Whether running `b` now is exactly equivalent to `b.steps` interpreter steps (SIMD or
@@ -83,6 +94,8 @@ impl Core {
         let n = u64::from(b.steps);
         self.pending.is_none()
             && self.trace.is_none()
+            && self.aot_fast_mem()
+            && self.site_hits.is_empty()
             && self.irq.window_len == 0
             && !self.irq.idle
             && self.steps + n <= self.irq.due
@@ -143,6 +156,31 @@ impl Core {
         }
         self.aot_install(picked);
         Ok(())
+    }
+
+    /// Enables every generated block of the embedded module `tag` (see `build.rs`,
+    /// `NORD_SHARC_AOT_HOT=TAG=file;...`), after checking that the loaded code is the code the
+    /// blocks were generated from. Returns the number of blocks.
+    pub fn enable_aot_tag(&mut self, tag: &str) -> Result<usize, String> {
+        let blocks = gen::by_tag(tag).ok_or_else(|| {
+            format!(
+                "no embedded AOT module {tag:?} (embedded: {:?}; set NORD_SHARC_AOT_HOT=TAG=file;... and rebuild)",
+                gen::tags()
+            )
+        })?;
+        if let Some(b) = blocks.iter().find(|b| !self.aot_code_matches(b)) {
+            return Err(format!(
+                "loaded code at 0x{:x} differs from the code module {tag:?} was generated from",
+                b.start
+            ));
+        }
+        self.aot_install(blocks.to_vec());
+        Ok(blocks.len())
+    }
+
+    /// Tags of the embedded AOT modules.
+    pub fn aot_tags() -> Vec<&'static str> {
+        gen::tags().to_vec()
     }
 
     /// Ranges `(start, last)` of every block this binary embeds (empty for a stub build).
@@ -212,6 +250,9 @@ impl Core {
         };
         let b = h.blocks[i];
         if self.steps + u64::from(b.steps) > limit || !self.aot_ready(&b) {
+            if super::aot_prof::aot_prof_on() {
+                super::aot_prof::prof_refusal(self.aot_refusal_reason(&b, limit));
+            }
             if let Some(h) = self.aot_hot.as_deref_mut() {
                 h.per_block[i].misses += 1;
                 h.total.misses += 1;
@@ -219,7 +260,11 @@ impl Core {
             return false;
         }
         let s0 = self.steps;
+        let t = super::aot_prof::aot_prof_on().then(super::aot_prof::tsc);
         let res = (b.run)(self);
+        if let Some(t) = t {
+            super::aot_prof::prof_run(super::aot_prof::tsc() - t);
+        }
         let done = self.steps - s0;
         let bailed = res.is_ok() && done < u64::from(b.steps);
         if let Some(h) = self.aot_hot.as_deref_mut() {

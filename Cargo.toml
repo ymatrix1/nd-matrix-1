@@ -4,6 +4,7 @@ members = [
     "crates/nord-core",
     "crates/nord-tools",
     "crates/nord-sharc",
+    "crates/nord-arm",
     "crates/nord-gui",
     "crates/nord-plugin",
     "crates/nord-panel",
