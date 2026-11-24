@@ -31,7 +31,7 @@ pub(super) fn slot_pos(leds: Rect, slot: usize) -> egui::Pos2 {
 pub(super) fn paint(painter: &Painter, leds: Rect, lit: usize) {
     for (slot, &(model, name)) in SLOTS.iter().enumerate() {
         let c = slot_pos(leds, slot);
-        led_small(painter, c, model == lit, LED_RED, LED_RED_DIM, 1.5);
+        led_small(painter, c, model == lit, LED_ACCENT, LED_ACCENT_DIM, 1.5);
         let (x, al) = if slot.is_multiple_of(2) {
             (leds.left() - 3.0, Align2::RIGHT_CENTER)
         } else {

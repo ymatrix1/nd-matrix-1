@@ -280,7 +280,7 @@ pub(super) fn gesture_button(
         } else {
             led_above(rect)
         };
-        led_small(p, at, lit, LED_RED, LED_RED_DIM, LED_ABOVE_R);
+        led_small(p, at, lit, LED_ACCENT, LED_ACCENT_DIM, LED_ABOVE_R);
     }
     mark(ui, id);
     let tip = match face.dim {

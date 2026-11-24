@@ -158,7 +158,7 @@ fn render_panel_at(
     audio_handle: &AudioHandle,
 ) {
     // 1. Outer Chassis Background
-    painter.rect_filled(panel_rect, 6.0, CHASSIS_RED);
+    painter.rect_filled(panel_rect, 6.0, CHASSIS_BASE);
     painter.rect_stroke(
         panel_rect,
         6.0,

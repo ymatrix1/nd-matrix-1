@@ -185,7 +185,7 @@ pub fn ladder(p: &Painter, rect: Rect, n: usize, lit: usize) {
     for i in 0..n {
         let on = i < lit;
         let col = if i + 1 >= n {
-            (LED_RED, LED_RED_DIM)
+            (LED_ACCENT, LED_ACCENT_DIM)
         } else if i + 3 >= n {
             (LED_AMBER, LED_AMBER_DIM)
         } else {

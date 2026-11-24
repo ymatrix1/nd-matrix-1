@@ -92,8 +92,8 @@ pub(super) fn level_ladder(ui: &Ui, rect: Rect, id: &str, level: f32, active: bo
         crate::widgets::probe::led_seg(p, r);
         let on = i < lit;
         let col = match (i, on) {
-            (10, true) => LED_RED,
-            (10, false) => LED_RED_DIM,
+            (10, true) => LED_ACCENT,
+            (10, false) => LED_ACCENT_DIM,
             (8 | 9, true) => LED_AMBER,
             (8 | 9, false) => LED_AMBER_DIM,
             (_, true) => LED_GREEN,
@@ -112,7 +112,7 @@ pub(super) fn drawbar_ladder(ui: &Ui, rect: Rect, id: &str, lit: u8) {
     let r = (rect.width() * 0.5).min(pitch * 0.5) - 2.8;
     for i in 0..8 {
         let c = pos2(rect.center().x, rect.top() + (i as f32 + 0.5) * pitch);
-        led_small(p, c, (i as u8) < lit, LED_RED, LED_RED_DIM, r.max(1.2));
+        led_small(p, c, (i as u8) < lit, LED_ACCENT, LED_ACCENT_DIM, r.max(1.2));
     }
     mark(ui, id);
 }

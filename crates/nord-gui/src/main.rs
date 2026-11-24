@@ -196,7 +196,7 @@ impl eframe::App for Stage4App {
         if self.state.use_baked_plate && self.shot.is_none() {
             egui::Rgba::TRANSPARENT.to_array()
         } else {
-            egui::Rgba::from(nord_gui::style::CHASSIS_RED).to_array()
+            egui::Rgba::from(nord_gui::style::CHASSIS_BASE).to_array()
         }
     }
 
@@ -454,7 +454,7 @@ impl eframe::App for Stage4App {
         let bg_fill = if self.state.use_baked_plate {
             egui::Color32::TRANSPARENT
         } else {
-            nord_gui::style::CHASSIS_RED
+            nord_gui::style::CHASSIS_BASE
         };
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE.fill(bg_fill))

@@ -1,66 +1,75 @@
 /* ==========================================================================
-   Nord Stage 4 HA88 — 1:1 Hardware Visual Prototype Stylesheet
+   ND Matrix 1 — Slate Matrix visual identity (original design)
    Tokens aligned with docs/specs/visual-style-and-panel.md for clean Rust/egui porting.
    ========================================================================== */
 
 :root {
-  /* Core Surface Tokens */
-  --chassis-red-light: #a8222a;
-  --chassis-red-primary: #8f1922;
-  --chassis-red-dark: #5e0d13;
-  --chassis-red-deep: #3d070b;
+  /* Identity: ND Matrix 1 "Slate Matrix" (original palette, see docs/specs/visual-style-and-panel.md) */
+  --chassis-base: #151c29;
+  --chassis-light: #1e2839;
+  --chassis-dark: #0b1018;
+  --chassis-deep: #070a10;
 
-  --module-slate-top: #3d4855;
-  --module-slate-bg: #323c47;
-  --module-slate-dark: #262e38;
-  --module-header-bar: #aab5c1;
-  --module-header-hi: #c4ced8;
-  --module-header-lo: #8c98a5;
-  --group-frame-border: #9da9b5;
+  --module-slate-top: #2b3a52;
+  --module-slate-bg: #243249;
+  --module-slate-dark: #1a2538;
+  --module-header-bar: #0d121b;
+  --group-frame-border: #7f97ba;
 
-  /* Hardware Control Surfaces */
-  --btn-black-cap: #23262a;
-  --btn-black-hi: #3a3f46;
-  --btn-black-well: #0c0e10;
-  --btn-grey-cap: #91979d;
-  --btn-grey-hi: #b5bbc2;
-  --btn-red-cap: #b8292e;
-  --btn-red-hi: #d44247;
+  /* Section accents (one hue per bay header underline) */
+  --acc-master: #35e0e8;
+  --acc-organ: #f0a63c;
+  --acc-piano: #2fd0b8;
+  --acc-program: #35e0e8;
+  --acc-synth: #9a87ff;
+  --acc-fx: #4cb0ff;
+  --accent: #35e0e8;
+  --accent-dim: #1f9aa2;
+  --accent-glow: rgba(53, 224, 232, 0.72);
+
+  /* Bone plates (light sub-panels) */
+  --bone-hi: #e3ddcc;
+  --bone: #d3ccb9;
+  --bone-lo: #bdb6a2;
+
+  /* Control surfaces */
+  --btn-graphite-cap: #33405a;
+  --btn-graphite-hi: #46536b;
+  --btn-bone-cap: #e6e0d0;
+  --btn-accent-cap: #35d9e1;
 
   /* LEDs */
-  --led-off: #3a3e44;
-  --led-red: #ff3128;
-  --led-red-glow: rgba(255, 49, 40, 0.75);
-  --led-green: #7ce826;
-  --led-green-glow: rgba(124, 232, 38, 0.72);
+  --led-off: #3a4252;
+  --led-accent: #35e0e8;
+  --led-accent-glow: rgba(53, 224, 232, 0.72);
+  --led-green: #3de8a8;
+  --led-green-glow: rgba(61, 232, 168, 0.7);
   --led-amber: #ffbc24;
   --led-amber-glow: rgba(255, 188, 36, 0.75);
 
   /* OLED */
-  --oled-bg: #07090d;
-  --oled-fg: #d9ecff;
-  --oled-accent: #8cb7d9;
+  --oled-bg: #06090e;
+  --oled-fg: #bff6f2;
+  --oled-accent: #6fd6d2;
 
   /* Drawbars */
-  --drawbar-white: #eae9e4;
-  --drawbar-white-side: #bfbdb6;
-  --drawbar-black: #22252a;
-  --drawbar-black-side: #0e1013;
+  --drawbar-white: #e6dcc0;
+  --drawbar-white-side: #b9ac88;
+  --drawbar-black: #1f2a3f;
+  --drawbar-black-side: #0c121c;
 
   /* Silkscreen */
   --ink-white: #eef2f6;
-  --ink-muted: #c2ccd6;
-  --ink-dark: #161a1e;
-  --badge-red: #9f222a;
+  --ink-muted: #b4c0d0;
+  --ink-dark: #121821;
 
-  /* Fonts */
-  --font-silk: "Bahnschrift", "DIN Alternate", "Arial Narrow", "Segoe UI", system-ui, sans-serif;
+  /* Fonts (Windows system fonts when baking; fallbacks keep the layout sane elsewhere) */
+  --font-silk: "Cascadia Mono", "Consolas", "Lucida Console", "Courier New", monospace;
   --font-oled: "Cascadia Mono", "Consolas", "Courier New", monospace;
 
-  /* Subtle Realistic Nord Powder-Coat Micro-Grain (fine high-freq stipple, soft-light blend) */
-  --tex-powder-strong: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110'%3E%3Cfilter id='p' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' seed='7' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' lighting-color='%23ffffff' surfaceScale='1.05' diffuseConstant='1.0' result='l'%3E%3CfeDistantLight azimuth='225' elevation='55'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='110' height='110' filter='url(%23p)' opacity='0.22'/%3E%3C/svg%3E");
-  --tex-powder-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110'%3E%3Cfilter id='p' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='11' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' lighting-color='%23ffffff' surfaceScale='0.8' diffuseConstant='1.0' result='l'%3E%3CfeDistantLight azimuth='225' elevation='58'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='110' height='110' filter='url(%23p)' opacity='0.14'/%3E%3C/svg%3E");
-  --tex-stone-wheel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='s' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' seed='3' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' lighting-color='%23ffffff' surfaceScale='1.6' diffuseConstant='1.1' result='l'%3E%3CfeDistantLight azimuth='215' elevation='45'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='80' height='80' filter='url(%23s)' opacity='0.42'/%3E%3C/svg%3E");
+  /* Plate texture: fine dot matrix (original; replaces the powder-coat stipple) */
+  --tex-dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Ccircle cx='3' cy='3' r='0.75' fill='%23b4c8ff' fill-opacity='0.075'/%3E%3C/svg%3E");
+  --tex-dots-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Ccircle cx='3' cy='3' r='0.75' fill='%23000000' fill-opacity='0.07'/%3E%3C/svg%3E");
 }
 
 * {
@@ -83,7 +92,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Prototype Top Toolbar (not part of the hardware)
+   Prototype Top Toolbar (not part of the panel)
    ========================================================================== */
 .proto-toolbar {
   height: 44px;
@@ -106,7 +115,7 @@ html, body {
 }
 
 .proto-badge {
-  background: #8f1922;
+  background: #0f7f87;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -155,7 +164,7 @@ html, body {
 }
 
 .tb-btn.active {
-  background: #8f1922;
+  background: #0f7f87;
   color: #fff;
 }
 
@@ -193,77 +202,68 @@ html, body {
 }
 
 /* ==========================================================================
-   Nord Stage 4 Outer Chassis (Continuous Full-Height Wooden End Cheeks)
+   Outer Chassis (continuous full-height graphite side cheeks)
    ========================================================================== */
 .ns4-chassis {
   width: fit-content;
   display: flex;
   align-items: stretch;
   border-radius: 16px 16px 8px 8px;
-  background: #4e0a10;
+  background: #0a0f17;
   box-shadow:
     0 34px 90px rgba(0, 0, 0, 0.84),
     0 6px 20px rgba(0, 0, 0, 0.58);
-  border: 1px solid #3c060a;
+  border: 1px solid #05080d;
   position: relative;
   overflow: hidden;
 }
 
-.wood-cheek {
+.side-cheek {
   width: 44px;
   flex-shrink: 0;
   position: relative;
   z-index: 6;
   background-image:
-    repeating-linear-gradient(
-      90deg,
-      rgba(35, 3, 6, 0.14) 0px,
-      rgba(35, 3, 6, 0.14) 1px,
-      transparent 1px,
-      transparent 4px,
-      rgba(255, 175, 175, 0.045) 4px,
-      rgba(255, 175, 175, 0.045) 5px
-    ),
-    linear-gradient(180deg, #b92c36 0%, #981b24 4%, #87151e 35%, #7d121b 82%, #680d15 100%);
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.18) 0px, rgba(0, 0, 0, 0.18) 1px, transparent 1px, transparent 3px),
+    linear-gradient(180deg, #2f3a4f 0%, #263044 4%, #1f2839 35%, #1a2231 82%, #131a26 100%);
   box-shadow:
-    inset 0 2px 3px rgba(255, 195, 200, 0.3),
-    inset 0 -3px 5px rgba(30, 3, 5, 0.65);
+    inset 0 2px 3px rgba(160, 190, 235, 0.22),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.6);
 }
 
-.wood-cheek.left {
+.side-cheek.left {
   border-radius: 15px 0 0 7px;
-  border-right: 2px solid #380509;
+  border-right: 2px solid var(--accent-dim);
   box-shadow:
-    inset 4px 0 6px rgba(48, 5, 9, 0.5),
-    inset -3px 0 4px rgba(255, 175, 180, 0.14),
-    inset 0 2px 3px rgba(255, 195, 200, 0.3),
-    2px 0 6px rgba(25, 2, 4, 0.55);
+    inset 4px 0 6px rgba(0, 0, 0, 0.5),
+    inset -3px 0 4px rgba(160, 190, 235, 0.10),
+    inset 0 2px 3px rgba(160, 190, 235, 0.22),
+    2px 0 6px rgba(0, 0, 0, 0.55);
 }
 
-.wood-cheek.right {
+.side-cheek.right {
   border-radius: 0 15px 7px 0;
-  border-left: 2px solid #380509;
+  border-left: 2px solid var(--accent-dim);
   box-shadow:
-    inset -4px 0 6px rgba(48, 5, 9, 0.5),
-    inset 3px 0 4px rgba(255, 175, 180, 0.14),
-    inset 0 2px 3px rgba(255, 195, 200, 0.3),
-    -2px 0 6px rgba(25, 2, 4, 0.55);
+    inset -4px 0 6px rgba(0, 0, 0, 0.5),
+    inset 3px 0 4px rgba(160, 190, 235, 0.10),
+    inset 0 2px 3px rgba(160, 190, 235, 0.22),
+    -2px 0 6px rgba(0, 0, 0, 0.55);
 }
 
 .chassis-center {
   display: flex;
   flex-direction: column;
   background-image:
-    var(--tex-powder-strong),
-    linear-gradient(180deg, #9b1d26 0%, #8c1720 14%, #82151d 84%, #75121a 100%);
-  background-size: 110px 110px, 100% 100%;
-  background-blend-mode: soft-light, normal;
+    var(--tex-dots),
+    linear-gradient(180deg, #1c2536 0%, #182131 14%, #131a28 84%, #0f1520 100%);
+  background-size: 6px 6px, 100% 100%;
   position: relative;
 }
 
 .chassis-top-lip {
   height: 24px;
-  background: linear-gradient(180deg, rgba(255, 195, 200, 0.22) 0%, rgba(255, 180, 185, 0.08) 45%, rgba(0, 0, 0, 0) 100%);
+  background: linear-gradient(180deg, rgba(160, 190, 235, 0.16) 0%, rgba(160, 190, 235, 0.05) 45%, rgba(0, 0, 0, 0) 100%);
   display: flex;
   align-items: center;
   padding: 0 330px 0 400px;
@@ -294,16 +294,16 @@ html, body {
 .end-cheek {
   width: 28px;
   flex-shrink: 0;
-  background: linear-gradient(90deg, #650e14 0%, #9c1e27 32%, #86161e 72%, #520a0f 100%);
+  background: linear-gradient(90deg, #121925 0%, #2a3548 32%, #1f293a 72%, #0e141e 100%);
   box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.45);
 }
 
 .end-cheek.left-cheek {
-  border-right: 1px solid rgba(40, 4, 7, 0.6);
+  border-right: 1px solid rgba(0, 0, 0, 0.6);
 }
 
 .end-cheek.right-cheek {
-  border-left: 1px solid rgba(40, 4, 7, 0.6);
+  border-left: 1px solid rgba(0, 0, 0, 0.6);
 }
 
 /* ==========================================================================
@@ -325,7 +325,7 @@ html, body {
   background: linear-gradient(180deg, #060708 0%, #141619 100%);
   box-shadow:
     inset 0 4px 8px rgba(0, 0, 0, 0.95),
-    0 1px 0 rgba(255, 190, 195, 0.25);
+    0 1px 0 rgba(160, 190, 235, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -338,12 +338,12 @@ html, body {
   height: 22px;
   border-radius: 3px;
   background:
-    repeating-linear-gradient(90deg, rgba(95, 52, 18, 0.22) 0 2px, transparent 2px 5px),
-    linear-gradient(180deg, #d7a66a 0%, #b57c42 42%, #8e5a28 78%, #6c4119 100%);
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, #b4bece 0%, #8895a9 42%, #5f6c82 78%, #414d62 100%);
   box-shadow:
     0 5px 10px rgba(0, 0, 0, 0.72),
-    inset 0 2px 3px rgba(255, 232, 195, 0.48),
-    inset 0 -3px 4px rgba(58, 28, 8, 0.6);
+    inset 0 2px 3px rgba(235, 244, 255, 0.5),
+    inset 0 -3px 4px rgba(20, 28, 44, 0.6);
   position: relative;
   transition: transform 0.08s ease-out;
 }
@@ -351,9 +351,14 @@ html, body {
 .pitch-stick-wood::after {
   content: "";
   position: absolute;
-  inset: 3px 4px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(0,0,0,0.16), rgba(255,255,255,0.12));
+  left: 5px;
+  right: 5px;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 4px var(--accent-glow);
 }
 
 .mod-wheel-well {
@@ -366,7 +371,7 @@ html, body {
   background: linear-gradient(90deg, #040506 0%, #141619 52%, #050607 100%);
   box-shadow:
     inset 0 4px 10px rgba(0, 0, 0, 0.96),
-    0 1px 0 rgba(255, 190, 195, 0.18);
+    0 1px 0 rgba(160, 190, 235, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -374,21 +379,18 @@ html, body {
   transform: rotate(-10deg);
 }
 
-/* Authentic Nord pebbled cast-stone Mod Wheel with single concave finger dimple */
+/* Ribbed metal mod wheel with a single concave finger dimple */
 .mod-wheel-drum {
   width: 15px;
   height: 86px;
   border-radius: 8px;
   background-image:
-    linear-gradient(180deg, rgba(8,8,10,0.78) 0%, rgba(16,18,22,0.18) 20%, rgba(255,255,255,0.22) 48%, rgba(18,20,24,0.22) 78%, rgba(8,8,10,0.82) 100%),
-    var(--tex-stone-wheel),
-    linear-gradient(90deg, #5d181e 0%, #7d7e82 22%, #c9cdd4 48%, #e4e7ec 62%, #8e9299 84%, #44474d 100%);
-  background-size: 100% 100%, 80px 80px, 100% 100%;
-  background-blend-mode: normal, overlay, normal;
-  background-position: 0 0, 0 0, 0 0;
+    linear-gradient(180deg, rgba(4, 6, 10, 0.78) 0%, rgba(10, 14, 22, 0.18) 20%, rgba(220, 235, 255, 0.20) 48%, rgba(12, 16, 24, 0.22) 78%, rgba(4, 6, 10, 0.82) 100%),
+    repeating-linear-gradient(180deg, rgba(220, 235, 255, 0.10) 0 1px, rgba(0, 0, 0, 0.28) 1px 3px),
+    linear-gradient(90deg, #121824 0%, #3c4860 24%, #7a879d 50%, #45526b 74%, #151b27 100%);
   box-shadow:
     -2px 2px 6px rgba(0, 0, 0, 0.85),
-    inset 1px 0 2px rgba(155, 30, 40, 0.45);
+    inset 1px 0 2px rgba(53, 224, 232, 0.28);
   position: relative;
   overflow: hidden;
 }
@@ -402,14 +404,14 @@ html, body {
   top: var(--mod-notch-top, 74%);
   height: 11px;
   border-radius: 50%;
-  background: radial-gradient(ellipse at 58% 35%, rgba(255, 255, 255, 0.45) 0%, rgba(130, 134, 140, 0.3) 38%, rgba(24, 26, 30, 0.78) 78%, rgba(255, 255, 255, 0.35) 100%);
+  background: radial-gradient(ellipse at 58% 35%, rgba(220, 235, 255, 0.45) 0%, rgba(130, 134, 140, 0.3) 38%, rgba(24, 26, 30, 0.78) 78%, rgba(220, 235, 255, 0.35) 100%);
   box-shadow:
     inset 0 2px 3px rgba(0, 0, 0, 0.72),
-    0 1px 1px rgba(255, 255, 255, 0.4);
+    0 1px 1px rgba(220, 235, 255, 0.4);
 }
 
 /* ==========================================================================
-   Right Brand Zone ("nord stage 4")
+   Right Brand Zone ("ND MATRIX 1" lockup)
    ========================================================================== */
 .zone-brand {
   flex: 0 0 18px;
@@ -423,32 +425,55 @@ html, body {
   right: 16px;
   white-space: nowrap;
   text-align: right;
-  color: rgba(247, 245, 245, 0.94);
-  text-shadow: 0 1px 1px rgba(45, 4, 8, 0.55);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(238, 244, 250, 0.95);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
 }
 
-.nord-wordmark {
-  font-family: "Century Gothic", "Trebuchet MS", "Segoe UI", sans-serif;
-  font-size: 16px;
+.brand-glyph {
+  display: grid;
+  grid-template-columns: repeat(3, 3px);
+  grid-template-rows: repeat(3, 3px);
+  gap: 2px;
+}
+
+.brand-glyph i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(190, 205, 225, 0.55);
+}
+
+.brand-glyph i.on {
+  background: var(--accent);
+  box-shadow: 0 0 4px var(--accent-glow);
+}
+
+.brand-wordmark {
+  font-family: var(--font-silk);
+  font-size: 11px;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
 
-.nord-n {
-  font-weight: 700;
-  letter-spacing: -0.04em;
+.brand-nd {
+  font-weight: 800;
+  color: var(--accent);
 }
 
-.nord-stage {
-  font-weight: 300;
+.brand-name {
+  font-weight: 400;
 }
 
-.nord-sub {
+.brand-sub {
   margin-top: 8px;
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.24em;
-  color: rgba(242, 232, 232, 0.8);
+  color: rgba(190, 205, 225, 0.8);
 }
 
 /* ==========================================================================
@@ -479,14 +504,13 @@ html, body {
 .piano-body,
 .synth-body {
   background-image:
-    var(--tex-powder-strong),
-    linear-gradient(180deg, #3b4652 0%, #333d49 52%, #2d3642 100%);
-  background-size: 110px 110px, 100% 100%;
-  background-blend-mode: soft-light, normal;
+    var(--tex-dots),
+    linear-gradient(180deg, #2b3a52 0%, #243249 52%, #1e2a3f 100%);
+  background-size: 6px 6px, 100% 100%;
   border-radius: 0 0 5px 5px;
 }
 
-.bay-red {
+.bay-deck {
   background: transparent;
 }
 
@@ -494,23 +518,25 @@ html, body {
 .bay-header {
   height: 30px;
   background-image:
-    var(--tex-powder-soft),
-    linear-gradient(180deg, #bcc6d1 0%, #aab6c2 55%, #9faab6 100%);
-  background-size: 110px 110px, 100% 100%;
-  background-blend-mode: soft-light, normal;
-  color: var(--ink-dark);
+    var(--tex-dots),
+    linear-gradient(180deg, #121926 0%, #0c111a 100%);
+  background-size: 6px 6px, 100% 100%;
+  color: var(--ink-white);
   display: flex;
   align-items: center;
   padding: 0 8px;
   gap: 8px;
   position: relative;
   flex-shrink: 0;
-  border-radius: 5px 5px 0 0;
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+  box-shadow: inset 0 -3px 0 var(--acc, var(--accent));
 }
 
-/* Stepped header cutout: smooth rounded S-curve SVG background so real red chassis shows through */
+/* Stepped header cutout: chamfered SVG background so the chassis shows through the notch */
 .bay-header.has-notch {
   background: transparent;
+  box-shadow: none;
+  clip-path: none;
 }
 
 .bay-header-svg {
@@ -525,10 +551,6 @@ html, body {
 .bay-header.has-notch > *:not(.bay-header-svg) {
   position: relative;
   z-index: 1;
-}
-
-.header-red-notch {
-  display: none;
 }
 
 .bay-header-title {
@@ -549,15 +571,8 @@ html, body {
   letter-spacing: 0.1em;
 }
 
-/* Red top-right stepped notch on Organ, Synth, FX headers */
-.header-red-notch {
-  position: absolute;
-  right: 0;
-  top: 0;
-  height: 15px;
-  background: linear-gradient(180deg, #981c25 0%, #881720 100%);
-  border-bottom-left-radius: 3px;
-  box-shadow: inset 1px -1px 0 rgba(255, 255, 255, 0.12);
+.bay-header .lbl-dark {
+  color: var(--ink-white);
 }
 
 .header-fx-focus {
@@ -626,8 +641,8 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  background: linear-gradient(180deg, #d7dfe7 0%, #b5c0cb 100%);
-  color: #161a1e;
+  background: linear-gradient(180deg, #e6e0cf 0%, #c3bca8 100%);
+  color: #121821;
   border-radius: 2px;
   padding: 1px 4px;
   font-size: 6.8px;
@@ -635,25 +650,25 @@ html, body {
   letter-spacing: 0.03em;
 }
 
-.lbl-pill-red {
+.lbl-pill-accent {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  background: linear-gradient(180deg, #b82931 0%, #8f1a21 100%);
-  color: #fff;
+  background: linear-gradient(180deg, #3fe3ea 0%, #1fb0b9 100%);
+  color: #031416;
   border-radius: 2px;
   padding: 1px 4px;
   font-size: 6.5px;
   font-weight: 800;
   letter-spacing: 0.04em;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(220, 235, 255, 0.25);
 }
 
 .lbl-pill-blue {
   display: inline-flex;
   align-items: center;
-  background: #b6c2ce;
-  color: #161a1e;
+  background: #8ea3c2;
+  color: #121821;
   border-radius: 2px;
   padding: 0.5px 3.5px;
   font-size: 6.5px;
@@ -703,11 +718,10 @@ html, body {
 /* Light Silver-Blue Sub-Panel (flush painted silkscreen zone, no floating shadow) */
 .silver-subpanel {
   background-image:
-    var(--tex-powder-soft),
-    linear-gradient(180deg, #b5c0cc 0%, #a7b3bf 100%);
-  background-size: 110px 110px, 100% 100%;
-  background-blend-mode: soft-light, normal;
-  border-radius: 4px;
+    var(--tex-dots-ink),
+    linear-gradient(180deg, #e0dac9 0%, #cfc8b4 100%);
+  background-size: 6px 6px, 100% 100%;
+  border-radius: 2px;
   color: var(--ink-dark);
   position: relative;
 }
@@ -717,16 +731,16 @@ html, body {
 }
 
 /* ==========================================================================
-   Hardware Widgets: Pill Buttons, LEDs, Triangle Matrices, Faders, Drawbars, Knobs
+   Widgets: Pill Buttons, LEDs, Triangle Matrices, Faders, Drawbars, Knobs
    ========================================================================== */
 
-/* --- Pill Button (Authentic Nord rectangular collar + raised stadium boss) --- */
+/* --- Pill Button (square collar + flat tile cap with a centre groove) --- */
 .pill-btn {
   width: 34px;
   height: 17px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #2d3137 0%, #1d2024 45%, #121417 100%);
-  border: 1px solid #090a0c;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #1b2231 0%, #121825 55%, #0b0f18 100%);
+  border: 1px solid #05080d;
   padding: 2.5px 4px;
   cursor: pointer;
   display: inline-flex;
@@ -734,7 +748,7 @@ html, body {
   justify-content: center;
   box-shadow:
     0 2px 3px rgba(0, 0, 0, 0.72),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 1px 0 rgba(150, 185, 235, 0.16),
     inset 0 -1px 1px rgba(0, 0, 0, 0.65);
   position: relative;
   flex-shrink: 0;
@@ -745,13 +759,15 @@ html, body {
   content: "";
   width: 100%;
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #3c4148 0%, #262a2f 42%, #1a1d21 100%);
+  border-radius: 1px;
+  background:
+    linear-gradient(180deg, transparent 44%, rgba(0, 0, 0, 0.38) 44% 56%, transparent 56%) center / 62% 100% no-repeat,
+    linear-gradient(180deg, #4a5873 0%, #36435d 42%, #283349 100%);
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.85),
     0 0 0 0.8px rgba(0, 0, 0, 0.55),
-    inset 0 1px 1px rgba(255, 255, 255, 0.22),
-    inset 0 -1px 1.5px rgba(0, 0, 0, 0.75);
+    inset 0 1px 0 rgba(190, 215, 255, 0.32),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.32);
   transition: transform 0.05s, filter 0.08s;
 }
 
@@ -774,39 +790,43 @@ html, body {
 }
 
 .pill-btn.grey {
-  background: linear-gradient(180deg, #adb3ba 0%, #8e949b 50%, #737980 100%);
-  border-color: #2c3036;
+  background: linear-gradient(180deg, #cfc8b5 0%, #aaa38f 50%, #8c8672 100%);
+  border-color: #1b2230;
   box-shadow:
     0 2px 3px rgba(0, 0, 0, 0.62),
-    inset 0 1px 0 rgba(255, 255, 255, 0.48),
-    inset 0 -1px 1px rgba(20, 24, 28, 0.5);
+    inset 0 1px 0 rgba(220, 235, 255, 0.45),
+    inset 0 -1px 1px rgba(20, 24, 34, 0.5);
 }
 
 .pill-btn.grey::after {
-  background: linear-gradient(180deg, #c6ccd2 0%, #9fa5ac 45%, #848a91 100%);
+  background:
+    linear-gradient(180deg, transparent 44%, rgba(0, 0, 0, 0.30) 44% 56%, transparent 56%) center / 62% 100% no-repeat,
+    linear-gradient(180deg, #efe9d9 0%, #d7d0bc 45%, #bcb5a1 100%);
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.45),
-    0 0 0 0.7px rgba(40, 45, 50, 0.35),
-    inset 0 1px 1px rgba(255, 255, 255, 0.62),
-    inset 0 -1px 1.5px rgba(35, 40, 46, 0.5);
+    0 0 0 0.7px rgba(30, 36, 48, 0.4),
+    inset 0 1px 0 rgba(220, 235, 255, 0.7),
+    inset 0 -2px 0 rgba(60, 56, 44, 0.28);
 }
 
-.pill-btn.red {
-  background: linear-gradient(180deg, #c7353b 0%, #a52227 52%, #7d1519 100%);
-  border-color: #46090c;
+.pill-btn.accent {
+  background: linear-gradient(180deg, #27c1c9 0%, #1b9aa2 52%, #126f76 100%);
+  border-color: #04282b;
   box-shadow:
     0 2px 3px rgba(0, 0, 0, 0.68),
-    inset 0 1px 0 rgba(255, 195, 195, 0.35),
-    inset 0 -1px 1px rgba(40, 4, 6, 0.6);
+    inset 0 1px 0 rgba(200, 255, 255, 0.35),
+    inset 0 -1px 1px rgba(0, 30, 34, 0.6);
 }
 
-.pill-btn.red::after {
-  background: linear-gradient(180deg, #dc4a50 0%, #bd2d33 48%, #961c21 100%);
+.pill-btn.accent::after {
+  background:
+    linear-gradient(180deg, transparent 44%, rgba(0, 40, 44, 0.38) 44% 56%, transparent 56%) center / 62% 100% no-repeat,
+    linear-gradient(180deg, #7ef3f7 0%, #3adfe7 48%, #1ea9b2 100%);
   box-shadow:
-    0 1px 2px rgba(45, 4, 6, 0.65),
-    0 0 0 0.7px rgba(65, 8, 10, 0.45),
-    inset 0 1px 1px rgba(255, 200, 200, 0.48),
-    inset 0 -1px 1.5px rgba(55, 6, 9, 0.65);
+    0 1px 2px rgba(0, 30, 34, 0.65),
+    0 0 0 0.7px rgba(0, 45, 50, 0.45),
+    inset 0 1px 0 rgba(220, 255, 255, 0.6),
+    inset 0 -2px 0 rgba(0, 60, 66, 0.35);
 }
 
 .pill-btn.sm {
@@ -826,13 +846,13 @@ html, body {
   padding: 4px 2.5px;
 }
 
-/* Solid printed crimson collar behind red-framed Synth buttons */
-.pill-btn.red-frame {
+/* Solid printed teal collar behind accent-framed Synth buttons */
+.pill-btn.accent-frame {
   margin: 3.5px 2.5px;
   box-shadow:
-    0 0 0 2.5px #981c25,
+    0 0 0 2.5px var(--accent-dim),
     0 2px 3px rgba(0, 0, 0, 0.65),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    inset 0 1px 0 rgba(150, 185, 235, 0.14);
 }
 
 /* --- Round LED --- */
@@ -840,24 +860,24 @@ html, body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #5b616a 0%, #32363c 65%, #1d2024 100%);
-  border: 1px solid #16181b;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.16);
+  background: radial-gradient(circle at 35% 35%, #596378 0%, #333c50 65%, #1c2230 100%);
+  border: 1px solid #10151f;
+  box-shadow: inset 0 1px 1px rgba(190, 215, 255, 0.16);
   display: inline-block;
   flex-shrink: 0;
   transition: background 0.1s, box-shadow 0.1s;
 }
 
-.led.on.red {
-  background: radial-gradient(circle at 38% 35%, #ffaca4 0%, #ff3328 48%, #c9120c 100%);
-  box-shadow: 0 0 6px var(--led-red-glow), 0 0 2px #ff5a52;
-  border-color: #7c0c08;
+.led.on.accent {
+  background: radial-gradient(circle at 38% 35%, #d2ffff 0%, #35e0e8 48%, #0e98a4 100%);
+  box-shadow: 0 0 6px var(--led-accent-glow), 0 0 2px #7cf5fa;
+  border-color: #07525a;
 }
 
 .led.on.green {
-  background: radial-gradient(circle at 38% 35%, #e5ffc2 0%, #7ce826 50%, #44a60d 100%);
-  box-shadow: 0 0 6px var(--led-green-glow), 0 0 2px #a4ff54;
-  border-color: #296208;
+  background: radial-gradient(circle at 38% 35%, #d6ffee 0%, #3de8a8 50%, #1aa874 100%);
+  box-shadow: 0 0 6px var(--led-green-glow), 0 0 2px #8bffd0;
+  border-color: #0e5a3e;
 }
 
 .led.on.amber {
@@ -899,8 +919,8 @@ html, body {
 }
 
 .tri-window {
-  background: linear-gradient(180deg, #1b1f24 0%, #262b32 100%);
-  border: 1px solid #0e1013;
+  background: linear-gradient(180deg, #0d121b 0%, #151c2a 100%);
+  border: 1px solid #06090f;
   border-radius: 2px;
   padding: 3px 3.5px;
   display: grid;
@@ -946,13 +966,13 @@ html, body {
 
 .tri.on {
   opacity: 1;
-  filter: drop-shadow(0 0 3px var(--led-red-glow));
+  filter: drop-shadow(0 0 3px var(--led-accent-glow));
 }
 
-.tri.left.on { border-color: transparent var(--led-red) transparent transparent; }
-.tri.right.on { border-color: transparent transparent transparent var(--led-red); }
-.tri.up.on { border-color: transparent transparent var(--led-red) transparent; }
-.tri.down.on { border-color: var(--led-red) transparent transparent transparent; }
+.tri.left.on { border-color: transparent var(--led-accent) transparent transparent; }
+.tri.right.on { border-color: transparent transparent transparent var(--led-accent); }
+.tri.up.on { border-color: transparent transparent var(--led-accent) transparent; }
+.tri.down.on { border-color: var(--led-accent) transparent transparent transparent; }
 
 /* --- Layer Level Fader + 11-Segment Green LED Ladder --- */
 .fader-strip {
@@ -968,7 +988,7 @@ html, body {
   background: linear-gradient(90deg, #060708 0%, #15181c 50%, #070809 100%);
   box-shadow:
     inset 0 2px 5px rgba(0, 0, 0, 0.95),
-    1px 0 0 rgba(255, 255, 255, 0.08);
+    1px 0 0 rgba(220, 235, 255, 0.08);
   position: relative;
   cursor: ns-resize;
 }
@@ -990,36 +1010,35 @@ html, body {
   transform: translate(-50%, -50%);
   width: 22px;
   height: 18px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #747a82 0%, #9ba2aa 16%, #b2b8c0 30%, #868d95 72%, #52575e 100%);
-  border: 1px solid #2b2f34;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #4a5873 0%, #34415b 45%, #232d43 100%);
+  border: 1px solid #05080d;
   box-shadow:
     0 4px 6px rgba(0, 0, 0, 0.72),
-    inset 0 1px 1px rgba(255, 255, 255, 0.42),
-    inset 0 -2px 2px rgba(18, 20, 24, 0.65);
+    inset 0 1px 0 rgba(190, 215, 255, 0.35),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.5);
   pointer-events: none;
 }
 
-/* Raised tapered top plateau matching real pyramidal fader cap */
+/* Accent index line across the fader cap */
 .fader-cap::after {
   content: "";
   position: absolute;
-  left: 3px;
-  right: 3px;
-  top: 3px;
-  bottom: 4px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #c2c8cf 0%, #9ea5ad 55%, #848b93 100%);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  left: 2px;
+  right: 2px;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 4px var(--accent-glow);
 }
 
 .led-ladder {
   width: 8px;
   height: 90px;
-  background: #171a1e;
-  border: 1px solid #0b0d0f;
+  background: #0f141d;
+  border: 1px solid #06090f;
   border-radius: 2px;
   padding: 2px 1.5px;
   display: flex;
@@ -1032,21 +1051,21 @@ html, body {
   width: 100%;
   height: 5px;
   border-radius: 1px;
-  background: #31373e;
+  background: #2a3344;
   transition: background 0.06s, box-shadow 0.06s;
 }
 
 .led-seg.on.green {
-  background: linear-gradient(90deg, #6bd61c 0%, #a5ff4c 50%, #6bd61c 100%);
-  box-shadow: 0 0 4px rgba(132, 240, 48, 0.72);
+  background: linear-gradient(90deg, #22c88a 0%, #6dffc4 50%, #22c88a 100%);
+  box-shadow: 0 0 4px rgba(80, 255, 190, 0.7);
 }
 
-.led-seg.on.red {
-  background: linear-gradient(90deg, #e02820 0%, #ff5c4d 50%, #e02820 100%);
-  box-shadow: 0 0 5px rgba(255, 58, 46, 0.78);
+.led-seg.on.accent {
+  background: linear-gradient(90deg, #17b5c0 0%, #6ef3f8 50%, #17b5c0 100%);
+  box-shadow: 0 0 5px rgba(53, 224, 232, 0.78);
 }
 
-/* --- Physical Organ Drawbars + 8-LED Red Ladders --- */
+/* --- Physical Organ Drawbars + 8-LED Ladders --- */
 .drawbar-unit {
   display: flex;
   flex-direction: column;
@@ -1079,7 +1098,7 @@ html, body {
   width: 8px;
   height: 142px;
   margin-top: 6px;
-  background: linear-gradient(90deg, #050607, #14171b, #050607);
+  background: linear-gradient(90deg, #05070b, #121822, #05070b);
   border-radius: 2px;
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.95);
   position: relative;
@@ -1089,18 +1108,18 @@ html, body {
 .drawbar-scale-plate {
   width: 22px;
   height: 98px;
-  border: 1px solid #9ba7b4;
+  border: 1px solid #7f97ba;
   border-bottom: none;
   border-radius: 2px 2px 0 0;
   display: flex;
   overflow: hidden;
-  background: #232a33;
+  background: #1b2330;
 }
 
 .drawbar-nums {
   width: 10px;
-  background: #a5b1bd;
-  color: #161a1e;
+  background: #cfc8b6;
+  color: #121821;
   font-size: 6px;
   font-weight: 800;
   display: flex;
@@ -1112,7 +1131,7 @@ html, body {
 
 .drawbar-leds {
   flex: 1;
-  background: #14171c;
+  background: #0f141d;
   padding: 2px 1.5px;
   display: flex;
   flex-direction: column;
@@ -1135,34 +1154,33 @@ html, body {
 }
 
 .drawbar-cap.white {
-  background: linear-gradient(180deg, #e5e3db 0%, #d8d6ce 50%, #c0beb5 58%, #f4f3ee 64%, #eae9e2 86%, #bcbab2 100%);
-  border: 1px solid #8c8a82;
+  background: linear-gradient(180deg, #ece2c6 0%, #ddd0ae 50%, #c3b692 58%, #f3ebd3 64%, #e7dcc0 86%, #bdb08c 100%);
+  border: 1px solid #8a7d5c;
   box-shadow:
     0 6px 10px rgba(0, 0, 0, 0.72),
-    inset 0 1px 1px rgba(255, 255, 255, 0.75),
+    inset 0 1px 1px rgba(220, 235, 255, 0.75),
     inset 0 -3px 3px rgba(0, 0, 0, 0.28);
 }
 
 .drawbar-cap.black {
-  background: linear-gradient(180deg, #272a30 0%, #1c1f24 50%, #101215 58%, #363a42 64%, #22252a 86%, #0c0e10 100%);
-  border: 1px solid #090b0d;
+  background: linear-gradient(180deg, #2a3650 0%, #1f2a3f 50%, #121a2a 58%, #38466a 64%, #243049 86%, #0d1320 100%);
+  border: 1px solid #05080d;
   box-shadow:
     0 6px 10px rgba(0, 0, 0, 0.8),
-    inset 0 1px 1px rgba(255, 255, 255, 0.14),
+    inset 0 1px 1px rgba(190, 215, 255, 0.18),
     inset 0 -3px 3px rgba(0, 0, 0, 0.75);
 }
 
-/* Raised L-profile front finger tab matching real Hammond/Nord drawbar cap */
+/* Ribbed grip band on the drawbar cap */
 .drawbar-cap::after {
   content: "";
   position: absolute;
   left: 1.5px;
   right: 1.5px;
-  top: 62%;
+  top: 56%;
   bottom: 4px;
-  border-radius: 2px 2px 3px 3px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 45%, rgba(0,0,0,0.22) 100%);
-  box-shadow: 0 -2px 3px rgba(0, 0, 0, 0.35);
+  border-radius: 1px;
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0 1px, rgba(220, 235, 255, 0.12) 1px 3px);
 }
 
 .drawbar-foot-lbl {
@@ -1172,7 +1190,7 @@ html, body {
   margin-top: 2px;
 }
 
-/* --- Hardware Rotary Knob (Fluted / Skirted Nord Style) --- */
+/* --- Rotary Knob (hexagonal body, aluminium cap, accent pointer) --- */
 .knob-wrap {
   display: flex;
   flex-direction: column;
@@ -1211,33 +1229,31 @@ html, body {
 .knob-body {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
   background:
-    repeating-conic-gradient(from -7deg, rgba(255,255,255,0.1) 0deg 14deg, rgba(0,0,0,0.42) 14deg 30deg),
-    radial-gradient(circle at 32% 28%, #3c4046 0%, #22252a 58%, #101215 100%);
-  border: 1.5px solid #0a0b0d;
+    repeating-conic-gradient(from 0deg, rgba(190, 215, 255, 0.10) 0deg 60deg, rgba(0, 0, 0, 0.30) 60deg 120deg),
+    radial-gradient(circle at 32% 28%, #3d4a62 0%, #1f2838 58%, #0e1420 100%);
   box-shadow:
-    0 5px 8px rgba(0, 0, 0, 0.8),
-    0 1px 2px rgba(0, 0, 0, 0.88),
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.18);
+    inset 0 1px 1.5px rgba(190, 215, 255, 0.22);
   position: relative;
   cursor: ns-resize;
   z-index: 2;
 }
 
-/* Matte rubberized flat top disc matching real 12-flute Nord knob */
+/* Brushed-aluminium cap on the hexagonal knob body */
 .knob-body::before {
   content: "";
   position: absolute;
-  inset: 3.5px;
+  inset: 4px;
   border-radius: 50%;
-  background: radial-gradient(circle at 36% 32%, #35383e 0%, #23262b 65%, #191b1f 100%);
+  background:
+    conic-gradient(from 25deg, #eceff4, #aab3c1, #f2f4f8, #8b95a5, #eceff4);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.14),
-    0 0 0 0.8px rgba(0, 0, 0, 0.45);
+    inset 0 0 0 0.8px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px rgba(220, 235, 255, 0.6);
 }
 
-/* Crisp wrap-over white indicator bar extending from top disc over outer rim */
+/* Accent indicator bar running from the cap over the hexagon rim */
 .knob-pointer {
   position: absolute;
   left: 50%;
@@ -1245,32 +1261,30 @@ html, body {
   width: 3px;
   height: 12.5px;
   margin-left: -1.5px;
-  background: linear-gradient(180deg, #d8dde3 0%, #ffffff 28%, #f2f5f8 100%);
-  border-radius: 1px;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.85);
+  background: linear-gradient(180deg, #7ef3f7 0%, #35e0e8 40%, #1fb0b9 100%);
+  border-radius: 1.5px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.85), 0 0 4px rgba(53, 224, 232, 0.6);
   z-index: 3;
 }
 
 .knob-body.encoder {
   width: 26px;
   height: 26px;
+  clip-path: none;
+  border-radius: 50%;
   box-shadow:
-    0 0 0 3.5px #a8b6c4,
+    0 0 0 3.5px var(--accent-dim),
     0 4px 7px rgba(0, 0, 0, 0.78),
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.18);
+    inset 0 1px 1.5px rgba(190, 215, 255, 0.22);
 }
 
 .knob-body.master-ring {
   width: 28px;
   height: 28px;
-  box-shadow:
-    0 5px 9px rgba(0, 0, 0, 0.8),
-    0 1px 2px rgba(0, 0, 0, 0.88),
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.18);
 }
 
 .knob-dark-inlay {
-  background: #303a45;
+  background: #1a2334;
   color: var(--ink-white);
   border-radius: 28px 28px 4px 4px;
   padding: 6px 6px 3px;
@@ -1292,7 +1306,7 @@ html, body {
   border-radius: 3px;
   box-shadow:
     inset 0 2px 8px rgba(0, 0, 0, 0.95),
-    0 1px 0 rgba(255, 255, 255, 0.16);
+    0 1px 0 rgba(220, 235, 255, 0.16);
   font-family: var(--font-oled);
   color: var(--oled-fg);
   overflow: hidden;
@@ -1424,7 +1438,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Individual Bay Layouts (Matching Reference Images 1:1)
+   Individual Bay Layouts
    ========================================================================== */
 
 /* --- BAY 1: MASTER LEVEL & ROTARY SPEAKER --- */
@@ -1453,7 +1467,7 @@ html, body {
 
 .rotary-hdr {
   width: 100%;
-  background: linear-gradient(180deg, #c2ccd7 0%, #a5b1bd 100%);
+  background: linear-gradient(180deg, #e0dac9 0%, #c3bca8 100%);
   color: var(--ink-dark);
   text-align: center;
   padding: 2px 2px;
@@ -1595,8 +1609,8 @@ html, body {
 .morph-box {
   width: 158px;
   flex-shrink: 0;
-  background: #2e3743;
-  border: 1px solid rgba(220, 228, 236, 0.55);
+  background: #19233a;
+  border: 1px solid rgba(190, 210, 240, 0.5);
   border-radius: 4px;
   overflow: hidden;
   display: flex;
@@ -1825,7 +1839,7 @@ html, body {
   top: -1px;
   left: 50%;
   transform: translateX(-50%);
-  background: #333d49;
+  background: #1e2a3f;
   color: var(--ink-white);
   font-size: 7px;
   font-weight: 800;
@@ -1860,10 +1874,9 @@ html, body {
 .fx-slate-area {
   flex: 1;
   background-image:
-    var(--tex-powder-strong),
-    linear-gradient(180deg, #3b4652 0%, #323c48 52%, #2d3642 100%);
-  background-size: 110px 110px, 100% 100%;
-  background-blend-mode: soft-light, normal;
+    var(--tex-dots),
+    linear-gradient(180deg, #2b3a52 0%, #233047 52%, #1e2a3f 100%);
+  background-size: 6px 6px, 100% 100%;
   border-radius: 0 0 5px 5px;
   display: flex;
   padding: 8px 6px 6px;
@@ -1892,7 +1905,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Front Red Lip + Split LEDs (100% seamless single metal sheet; zero seam line)
+   Front Lip + Split LEDs (100% seamless single metal sheet; zero seam line)
    ========================================================================== */
 .chassis-front-lip {
   height: 14px;
@@ -1909,7 +1922,7 @@ html, body {
   bottom: 0;
   height: 28px;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(20, 1, 2, 0) 0%, rgba(20, 1, 2, 0.06) 45%, rgba(28, 2, 4, 0.38) 78%, rgba(16, 1, 2, 0.82) 100%);
+  background: linear-gradient(180deg, rgba(3, 6, 12, 0) 0%, rgba(3, 6, 12, 0.06) 45%, rgba(4, 8, 14, 0.38) 78%, rgba(2, 4, 8, 0.82) 100%);
 }
 
 .split-led {
@@ -1918,15 +1931,15 @@ html, body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: radial-gradient(circle at 38% 35%, #ffdf9a 0%, #ff8a1e 55%, #b83b00 100%);
-  box-shadow: 0 0 6px rgba(255, 140, 30, 0.85);
-  border: 1px solid #4a1700;
+  background: radial-gradient(circle at 38% 35%, #d2ffff 0%, #35e0e8 55%, #0e98a4 100%);
+  box-shadow: 0 0 6px rgba(53, 224, 232, 0.85);
+  border: 1px solid #07424a;
 }
 
 .split-led.off {
-  background: radial-gradient(circle at 35% 35%, #5b616a 0%, #32363c 65%, #1d2024 100%);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.16);
-  border-color: #16181b;
+  background: radial-gradient(circle at 35% 35%, #596378 0%, #333c50 65%, #1c2230 100%);
+  box-shadow: inset 0 1px 1px rgba(190, 215, 255, 0.16);
+  border-color: #10151f;
 }
 
 /* ==========================================================================
@@ -1934,7 +1947,7 @@ html, body {
    ========================================================================== */
 .keybed-frame {
   height: 224px;
-  background: #141518;
+  background: #0a0e15;
   display: flex;
   position: relative;
 }
@@ -1946,7 +1959,7 @@ html, body {
 .keybed-cheek {
   width: 34px;
   flex-shrink: 0;
-  background: linear-gradient(90deg, #5e0d13 0%, #8f1922 45%, #711118 85%, #3d060a 100%);
+  background: linear-gradient(90deg, #121925 0%, #2a3548 45%, #1f293a 85%, #0b1018 100%);
   box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.55);
 }
 
@@ -1956,7 +1969,7 @@ html, body {
   right: 0;
   top: 0;
   height: 3px;
-  background: linear-gradient(180deg, #1b0305 0%, #3d070b 100%);
+  background: linear-gradient(180deg, #04060a 0%, #0f1520 100%);
   z-index: 4;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.75);
 }
@@ -1965,16 +1978,16 @@ html, body {
   flex: 1;
   position: relative;
   display: flex;
-  background: #0a0b0d;
+  background: #070a10;
   padding: 0 3px 6px;
 }
 
 .key-white {
   flex: 1;
   height: 100%;
-  background: linear-gradient(180deg, #dedcd5 0%, #f3f2ec 8%, #faf9f5 84%, #e5e3dc 96%, #c9c7be 100%);
-  border-right: 1px solid #9c9a92;
-  border-bottom: 3px solid #bdbbb2;
+  background: linear-gradient(180deg, #d9d2bd 0%, #efe8d4 8%, #f7f1e0 84%, #e1dac6 96%, #c7bfa8 100%);
+  border-right: 1px solid #9d957f;
+  border-bottom: 3px solid #b8af97;
   border-radius: 0 0 3px 3px;
   position: relative;
   cursor: pointer;
@@ -1982,11 +1995,11 @@ html, body {
 }
 
 .key-white:hover {
-  background: linear-gradient(180deg, #e7e5de 0%, #ffffff 12%, #ffffff 85%, #eceae3 100%);
+  background: linear-gradient(180deg, #e2dbc7 0%, #faf5e6 12%, #fffaee 85%, #eae3cf 100%);
 }
 
 .key-white.active {
-  background: linear-gradient(180deg, #cfcdc6 0%, #e4e2db 20%, #ebe9e2 88%, #d2d0c8 100%);
+  background: linear-gradient(180deg, #a9d6d6 0%, #c5e8e5 20%, #d3efe9 88%, #acd3d1 100%);
   transform: translateY(2px);
   border-bottom-width: 1px;
 }
@@ -1998,16 +2011,16 @@ html, body {
   width: 28px;
   height: 61%;
   background:
-    linear-gradient(90deg, #0b0c0e 0%, #23262c 11%, #1b1e23 20%, #15171b 82%, #0a0b0d 92%, #050607 100%);
-  border: 1px solid #07080a;
+    linear-gradient(90deg, #080b11 0%, #1e2636 11%, #171e2c 20%, #111723 82%, #070a10 92%, #040608 100%);
+  border: 1px solid #05070b;
   border-top: none;
   border-radius: 0 0 2.5px 2.5px;
   box-shadow:
     1px 2px 2px rgba(0, 0, 0, 0.52),
     -1px 1px 1px rgba(0, 0, 0, 0.35),
     inset 0 2px 2px rgba(0, 0, 0, 0.7),
-    inset 0 -14px 0 #1f2228,
-    inset 0 -15px 0 rgba(255, 255, 255, 0.14);
+    inset 0 -14px 0 #1b2436,
+    inset 0 -15px 0 rgba(160, 190, 235, 0.16);
   z-index: 3;
   cursor: pointer;
   transform: translateX(-50%);
@@ -2023,15 +2036,15 @@ html, body {
   top: 2px;
   bottom: 15px;
   border-radius: 0 0 1.5px 1.5px;
-  background: linear-gradient(180deg, #272b31 0%, #1d2025 18%, #16181c 88%, #2a2e35 100%);
+  background: linear-gradient(180deg, #232c3f 0%, #19202f 18%, #121825 88%, #263148 100%);
   box-shadow:
-    inset 1px 0 0 rgba(255, 255, 255, 0.08),
+    inset 1px 0 0 rgba(160, 190, 235, 0.10),
     inset -1px 0 0 rgba(0, 0, 0, 0.45);
   pointer-events: none;
 }
 
 .key-black:hover::before {
-  background: linear-gradient(180deg, #32363e 0%, #24282e 20%, #1c1f24 88%, #343942 100%);
+  background: linear-gradient(180deg, #2e3850 0%, #202a3d 20%, #171f2f 88%, #303c58 100%);
 }
 
 .key-black.active {
@@ -2040,7 +2053,7 @@ html, body {
     0 1px 1px rgba(0, 0, 0, 0.55),
     inset 0 2px 3px rgba(0, 0, 0, 0.8),
     inset 0 -10px 0 #181a1f,
-    inset 0 -11px 0 rgba(255, 255, 255, 0.1);
+    inset 0 -11px 0 rgba(220, 235, 255, 0.1);
 }
 
 /* Helpers */
@@ -2099,13 +2112,13 @@ body.bake-static .oled-synth > * {
 
 body.bake-static .led,
 body.bake-static .split-led {
-  background: radial-gradient(circle at 35% 35%, #5b616a 0%, #32363c 65%, #1d2024 100%) !important;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.16) !important;
-  border-color: #16181b !important;
+  background: radial-gradient(circle at 35% 35%, #596378 0%, #333c50 65%, #1c2230 100%) !important;
+  box-shadow: inset 0 1px 1px rgba(190, 215, 255, 0.16) !important;
+  border-color: #10151f !important;
 }
 
 body.bake-static .led-seg {
-  background: #31373e !important;
+  background: #2a3344 !important;
   box-shadow: none !important;
 }
 
@@ -2137,16 +2150,25 @@ body.bake-sprite-stage .sprite-stage {
 
 /* Strip outer drop-shadows from rotating knob sprites so the shadow stays fixed at runtime. */
 body.bake-sprite-stage .knob-body {
-  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.18) !important;
+  box-shadow: inset 0 1px 1.5px rgba(190, 215, 255, 0.22) !important;
 }
 
 body.bake-sprite-stage .knob-body.encoder {
   box-shadow:
-    0 0 0 3.5px #a8b6c4,
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.18) !important;
+    0 0 0 3.5px var(--accent-dim),
+    inset 0 1px 1.5px rgba(190, 215, 255, 0.22) !important;
 }
 
 /* Strip static dimple from mod_wheel_drum sprite so baked_view.rs animates the dimple cleanly. */
 body.bake-sprite-stage .mod-wheel-drum::after {
   display: none !important;
 }
+
+
+/* Per-bay section accent (header underline) */
+.bay-master { --acc: var(--acc-master); }
+.bay-organ { --acc: var(--acc-organ); }
+.bay-piano { --acc: var(--acc-piano); }
+.bay-program { --acc: var(--acc-program); }
+.bay-synth { --acc: var(--acc-synth); }
+.bay-fx { --acc: var(--acc-fx); }
