@@ -474,6 +474,7 @@ The ticks below mean the model exists and is tested. Which parts match the firmw
 - [x] History rewrite purging vendor files (2026-11-23, LEGAL.md section 8; `v0.1.0`–`v0.1.2` tags moved)
 - [x] Keep DCO (no CLA) under $0 legal budget; `ADDITIONAL-PERMISSIONS.md` updated to cover contributors (`ns4-9ngp`)
 - [x] AppImage runtime license notices and LGPL corresponding source (`ns4-sgro`, D242)
+- [ ] AppImage catalog compatibility: Ubuntu 22.04 build, bundled xkbcommon, catalog file name (`ns4-nyqj`, D248; needs a release, then `/retest` on appimage.github.io PR 12432)
 - [x] Rename `nord-plugin-standalone` to `nd-matrix-1-standalone` and fail releases that ship any `nord-` name (`ns4-b9rn`)
 - [x] Remove in-GUI sponsorship button to keep strictly non-commercial posture (`ns4-s3pn`; README badge and `.github/FUNDING.yml` removed too)
 - [ ] GitHub Support purge of old PR refs and release tag verification (`ns4-vt4r`, owner)

@@ -307,3 +307,11 @@ def test_release_workflow_downloads_the_pinned_runtime():
     workflow = (rp.ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     assert rp.APPIMAGE_RUNTIME_URL in workflow
     assert "--appimage-runtime" in workflow
+
+
+def test_release_workflow_builds_linux_on_the_oldest_supported_lts_and_installs_xkb():
+    """glibc: the AppImage catalog test runs on the oldest Ubuntu LTS (D248)."""
+    workflow = (rp.ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert "os: ubuntu-22.04" in workflow
+    assert "os: ubuntu-24.04\n            target: x86_64-unknown-linux-gnu" not in workflow
+    assert "libxkbcommon-x11-0" in workflow

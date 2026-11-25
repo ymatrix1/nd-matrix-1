@@ -17,8 +17,10 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
+from release_bundle_libs import DEFAULT_DOC_ROOT, DEFAULT_LIB_DIRS, bundle_libs
 from release_package import (
     APPIMAGE_RUNTIME_DIR,
     APPIMAGE_RUNTIME_SHA256,
@@ -73,6 +75,8 @@ APPRUN_SCRIPT = """#!/bin/sh
 set -eu
 HERE="$(dirname "$(readlink -f "$0")")"
 export PATH="$HERE/usr/bin:$PATH"
+# Bundled xkbcommon libraries (winit loads them at start-up; D248).
+export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 case "${1:-}" in
   --cli)
@@ -453,8 +457,14 @@ def stage_linux_appdir(
     work_dir: Path,
     root: Path = ROOT,
     target_dir: Path | None = None,
+    lib_dirs: Sequence[Path] | None = None,
+    doc_root: Path = DEFAULT_DOC_ROOT,
 ) -> tuple[Path, Path]:
-    """Create a Linux AppDir for `appimagetool`; return `(appdir, appimage_path)`."""
+    """Create a Linux AppDir for `appimagetool`; return `(appdir, appimage_path)`.
+
+    With `lib_dirs` the shared libraries of `release_bundle_libs.BUNDLED_LIBS` and their
+    copyright files are copied in (D248); `None` skips that, for staging tests.
+    """
     platform = PLATFORMS["x86_64-unknown-linux-gnu"]
     raw_stage = work_dir / "linux-raw-appimage"
     if raw_stage.exists():
@@ -490,6 +500,9 @@ def stage_linux_appdir(
     # Notices of the runtime that appimagetool prepends (musl, LGPL libfuse, ...; D242).
     shutil.copytree(raw_stage / APPIMAGE_RUNTIME_DIR, doc_dir / "appimage-runtime")
 
+    if lib_dirs is not None:
+        bundle_libs(appdir, lib_dirs, doc_root)
+
     (appdir / "nd-matrix-1.desktop").write_text(DESKTOP_ENTRY, encoding="utf-8", newline="\n")
     (appdir / "nd-matrix-1.svg").write_text(APP_SVG_ICON, encoding="utf-8", newline="\n")
     apprun = appdir / "AppRun"
@@ -497,7 +510,9 @@ def stage_linux_appdir(
     apprun.chmod(0o755)
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    appimage_path = out_dir / f"nd-matrix-1-{label}-{platform.name}.AppImage"
+    # Catalog naming (appimage.github.io): no "linux", no leading "v": `<name>-<version>-<arch>`.
+    arch = platform.name.removeprefix("linux-")
+    appimage_path = out_dir / f"nd-matrix-1-{_strip_v(label)}-{arch}.AppImage"
     return appdir, appimage_path
 
 
@@ -525,9 +540,13 @@ def build_linux_appimage(
     root: Path = ROOT,
     target_dir: Path | None = None,
     runtime_file: Path | None = None,
+    lib_dirs: Sequence[Path] = DEFAULT_LIB_DIRS,
+    doc_root: Path = DEFAULT_DOC_ROOT,
 ) -> Path:
     runtime_file = check_appimage_runtime(runtime_file)
-    appdir, appimage_path = stage_linux_appdir(label, out_dir, work_dir, root, target_dir)
+    appdir, appimage_path = stage_linux_appdir(
+        label, out_dir, work_dir, root, target_dir, lib_dirs, doc_root
+    )
     merged_env = {**os.environ, "ARCH": "x86_64", "APPIMAGE_EXTRACT_AND_RUN": "1"}
     cmd = [appimagetool, "--runtime-file", str(runtime_file), str(appdir), str(appimage_path)]
     subprocess.run(cmd, env=merged_env, check=True)

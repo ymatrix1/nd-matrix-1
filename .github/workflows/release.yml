@@ -99,7 +99,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-24.04
+          # Oldest Ubuntu LTS in standard support: glibc is only as old as the build system, and
+          # the AppImage catalog test runs on that LTS (D248). Bump when it leaves support.
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             exe: ''
           - os: windows-latest
@@ -163,7 +165,7 @@ jobs:
           for i in 1 2 3 4 5; do
             echo "Attempt $i: Updating apt and installing dependencies..."
             if sudo apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout=20 && \
-               sudo apt-get install -y --no-install-recommends -o Acquire::Retries=5 libasound2-dev libudev-dev libjack-jackd2-dev libgl-dev libx11-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxi-dev libxext-dev libxfixes-dev libxrender-dev libxinerama-dev pkg-config desktop-file-utils; then
+               sudo apt-get install -y --no-install-recommends -o Acquire::Retries=5 libasound2-dev libudev-dev libjack-jackd2-dev libgl-dev libx11-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxi-dev libxext-dev libxfixes-dev libxrender-dev libxinerama-dev libxkbcommon0 libxkbcommon-x11-0 libxcb-xkb1 pkg-config desktop-file-utils; then
               echo "Dependencies installed successfully."
               break
             fi

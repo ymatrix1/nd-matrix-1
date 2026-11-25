@@ -1,6 +1,6 @@
 # ARM0 runtime (`crates/nord-arm`)
 
-Status: v0.2 (2026-11-24), bean `ns4-lle2`, decisions [D245](../DECISIONS.md), [D248](../DECISIONS.md). Measurements: [arm0-rust-runtime](../research/arm0-rust-runtime.md).
+Status: v0.2 (2026-11-24), bean `ns4-lle2`, decisions [D245](../DECISIONS.md), [D249](../DECISIONS.md). Measurements: [arm0-rust-runtime](../research/arm0-rust-runtime.md).
 
 Native Rust ARM926EJ-S (ARMv5TE) interpreter that boots the user's OS v1.66 ARM0 image with the hardware the Python harness stubbed. Opt-in crate (no dependencies, not linked by the audio engine). Firmware bytes are never committed: the tests use synthetic in-memory code.
 

@@ -30,6 +30,7 @@ Done:
 - [x] ns4-9ngp Keep DCO (no CLA) under the $0 legal budget; `ADDITIONAL-PERMISSIONS.md` updated to cover contributors
 - [x] ns4-b9rn Standalone binary renamed to `nd-matrix-1-standalone`; `release_verify.py` rejects `nord-` names
 - [x] ns4-sgro Licenses of the AppImage runtime shipped in Linux releases (D242, PR #638)
+- [ ] ns4-nyqj AppImage catalog compatibility: glibc 2.35 build, bundled xkbcommon, catalog file name (D248; needs a release and `/retest`)
 - [x] History rewrite of 2026-11-23 (docs/LEGAL.md section 8 question 5; `v0.1.0`–`v0.1.2` tags moved)
 
 Open — Tier 1 ($0 quick wins):
