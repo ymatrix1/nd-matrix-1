@@ -10,7 +10,11 @@
 //!
 //! Environment: `TICK_INSNS` (instructions per tick, default 200000), `BOOT_ONLY=1` (boot, print
 //! the rate, stop), `PHASE_SCALE` (percent of the tick counts, default 100), `NO_FULL=1` skips the
-//! full-execution comparison, `NO_RESERVE=1` skips the arena reservation.
+//! full-execution comparison, `NO_RESERVE=1` skips the arena reservation. `PREDECODE=0` runs the
+//! whole benchmark on the plain `Cpu::step` path. The "full" comparison above clones the machine,
+//! so it checks idle skipping against full execution on ONE interpreter; to compare the old
+//! interpreter with the predecode cache, run once with `PREDECODE=0` and once without and diff the
+//! `digest` and `boot rate ... state hash` lines (same `TICK_INSNS`).
 
 use nord_arm::machine::idle::IdleStats;
 use nord_arm::machine::metrics::{
@@ -343,6 +347,15 @@ fn main() {
         return;
     }
     let mut m = Machine::new();
+    m.predecode = std::env::var("PREDECODE").map_or(true, |v| v != "0");
+    println!(
+        "predecode: {}",
+        if m.predecode {
+            "on"
+        } else {
+            "off (plain Cpu::step path)"
+        }
+    );
     let t = Instant::now();
     m.prepare_system(&code, &sram).expect("init array");
     m.bus.i2c.as_mut().unwrap().load_image(&eeprom);

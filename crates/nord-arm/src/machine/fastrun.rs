@@ -131,7 +131,9 @@ impl Machine {
             }
             cpu.r[15] = p;
             left -= done;
-            if done < n || left == 0 {
+            // a store that made decoded code stale ends the run even when it was the last
+            // instruction before the ender: the ender must come from the fresh page, not `table`
+            if done < n || left == 0 || !bus.mem.stale_code.is_empty() {
                 break None;
             }
             if done == table[i].run as u64 {
@@ -208,8 +210,24 @@ mod tests {
     /// transfers on r9, short branches, a few generic and garbage words.
     fn word(rng: &mut Rng, at: usize) -> u32 {
         let cond = if rng.below(4) == 0 { rng.below(14) } else { 14 } << 28;
-        let (rd, rn, rm) = (rng.below(8), rng.below(8), rng.below(8));
-        cond | match rng.below(20) {
+        let rd = if rng.below(12) == 0 { 15 } else { rng.below(8) }; // sometimes writes pc
+        let (rn, rm) = (rng.below(8), rng.below(8));
+        cond | match rng.below(28) {
+            20 => 0x050F_0004 | rd << 12 | rng.below(2) << 20, // str/ldr rd,[pc,#-4]: the next word
+            21 => {
+                0x01C0_00B0
+                    | 10 << 16
+                    | rd << 12
+                    | rng.below(2) << 20
+                    | rng.below(2) << 8
+                    | rng.below(16)
+            } // strh/ldrh [r10,#imm]
+            22 => 0x038F_C001,                                 // orr r12,pc,#1 (Thumb target)
+            23 => 0x012F_FF1C,                                 // bx r12 (enter Thumb state)
+            24 => {
+                0x0890_800F | rng.below(2) << 20 | rng.below(2) << 24 | rng.below(2) << 23 | 9 << 16
+            } // ldm/stm with pc
+            25..=27 => rng.next() & 0x0FFF_FFFF,
             0..=8 => {
                 let (op, s) = (rng.below(16), rng.below(2));
                 let s = if (8..=11).contains(&op) { 1 } else { s };
@@ -265,8 +283,15 @@ mod tests {
 
     #[test]
     fn the_cached_run_equals_the_plain_run_on_random_programs() {
-        let mut rng = Rng(0xD1B5_4A32_D192_ED03);
-        for case in 0..60 {
+        // `NS4_FUZZ_CASES` / `NS4_FUZZ_SEED` widen the search (a large run is a manual check)
+        let env = |k: &str, d: u64| {
+            std::env::var(k)
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(d)
+        };
+        let mut rng = Rng(0xD1B5_4A32_D192_ED03 ^ env("NS4_FUZZ_SEED", 0));
+        for case in 0..env("NS4_FUZZ_CASES", 60) {
             let words: Vec<u32> = (0..WORDS).map(|i| word(&mut rng, i)).collect();
             let seed = rng.next();
             let (mut a, mut b) = (
@@ -322,6 +347,29 @@ mod tests {
         m.run(1, 0, None);
         assert_eq!(m.cpu.r[0], 99, "the new word ran, not the stale decode");
         assert!(m.code.decoded_pages >= 2, "and decoded the page again");
+    }
+
+    #[test]
+    fn a_store_into_the_ender_right_after_it_runs_the_new_ender() {
+        // 0: str r1,[r2] (r2 -> word 4) ; 4: b . ; the store is the last non-ender before the ender
+        let mut results = [(0, 0); 2];
+        for (k, predecode) in [false, true].into_iter().enumerate() {
+            let mut m = Machine::new();
+            m.predecode = predecode;
+            m.bus.mem.write32(CODE, 0xE582_1000);
+            m.bus.mem.write32(CODE + 4, 0xEAFF_FFFE);
+            m.cpu.r[1] = 0xE3A0_0063; // mov r0,#99
+            m.cpu.r[2] = CODE + 4;
+            m.cpu.r[15] = CODE;
+            m.run(2, 0, None);
+            results[k] = (m.cpu.r[0], m.cpu.r[15]);
+        }
+        assert_eq!(
+            results[0],
+            (99, CODE + 8),
+            "the plain path runs the rewritten word"
+        );
+        assert_eq!(results[1], results[0], "the cached path must match it");
     }
 
     #[test]

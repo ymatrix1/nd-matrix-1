@@ -27,6 +27,7 @@ This document tracks deliberate trade-offs, structural compromises, temporary wo
 | **TD-19** | `crates/nord-gui/src/panel` (`organ_strip.rs`, `bay_synth/strip.rs`) | Low | Organ and Synth SOLO (ON held) only flip a panel flag and its LED; no engine command. Piano SOLO works (scene mask) | Phase 6b | Open |
 | **TD-20** | `crates/nord-gui/src/panel/ui_state/fx` | Low | `StateEcho` / `ChainUi` do not mirror `mod2_variation` (and the firmware Mod 2 words), so after a program load the Mod 2 VAR legend shows off and the first Shift+click on the type selector writes `true`/`false` from a stale view | Phase 6b | Open |
 | **TD-21** | `crates/nord-plugin/` (`program_overrides.rs`, `lib.rs`, `editor/readback.rs`) | Medium | Loader and per-group hold exist (D218); the loaded program is not mirrored into host parameters or persisted, and a touched group collapses to host values | Phase 7 | Partly resolved |
+| **TD-22** | `crates/nord-arm` (`cpu/predecode.rs` 440 lines, `mem.rs` 453, `machine/fastrun.rs` 407), `crates/nord-tools/src/bin/arm_lle_bench.rs` (453) | Low | Four files are over the 400-line rule ([code-structure](../.agents/rules/code-structure.md)); most of the excess is unit tests and the benchmark's report code | `ns4-lle3` (split with the next change to these files) | Open |
 
 ---
 
@@ -175,6 +176,12 @@ This document tracks deliberate trade-offs, structural compromises, temporary wo
 - **Impact:** After touching a control the program's other values in that group go away; reopening a project loses the program until it is loaded again.
 - **Remediation Plan:** (1) push program values into the host parameters on load (`begin_set/set/end_set` from the GUI thread) so panel, automation and persistence agree and the hold can go; (2) persist the loaded program path or bytes in `Stage4Params`; (3) map `LoadPreset`; (4) hand-test in FL Studio, Reaper and Ableton and record it in `docs/HOST_COMPATIBILITY.md`.
 - **Status:** Partly resolved by D218 (loader and hold); the items above are Open.
+
+### TD-22: Four ARM0 files are over the 400-line rule
+
+- **What:** `cpu/predecode.rs` (440), `mem.rs` (453), `machine/fastrun.rs` (407) and the benchmark `arm_lle_bench.rs` (453) exceed about 400 lines of code plus tests. The tests stay in the same file because `tools/check_tests.py` counts a source file as covered only when it holds a `#[test]`.
+- **Plan:** move the benchmark's report and percentile printing into `machine/metrics.rs` (which has its own tests), split `mem.rs` into `mem/{pages,flags}.rs` and `predecode.rs` into decode and block-length submodules, each with its own tests, in the next change that touches them (a split in this PR would hide the review of the cache itself).
+- **Risk:** none for behaviour; review cost only.
 
 ---
 
