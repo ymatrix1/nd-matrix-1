@@ -211,7 +211,7 @@ impl Core {
         } else if self
             .loops
             .last()
-            .is_some_and(|f| f.term.is_some() || (b.start..=b.last).contains(&f.end))
+            .is_some_and(|f| f.term.is_some() || super::Core::loop_end_blocks(b, f.end))
         {
             "hardware loop ends inside block"
         } else if self.arith_irq_enabled() {

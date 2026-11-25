@@ -234,6 +234,11 @@ impl MemXfer {
         }
     }
 
+    /// Whether this transfer is a store to data memory.
+    pub(super) fn is_store(&self) -> bool {
+        matches!(self.data, Data::Reg { write: true, .. } | Data::Imm(_))
+    }
+
     /// Whether executing this transfer may change state the block guard assumes constant.
     pub(super) fn may_change_guard(&self) -> bool {
         match self.data {
@@ -245,24 +250,42 @@ impl MemXfer {
         }
     }
 
+    /// The one immediate operand of the transfer (address offset, absolute address, stored or
+    /// loaded value), if any. A shared handler takes it as a run-time argument.
+    pub(super) fn imm(&self) -> Option<u32> {
+        match (self.addr, self.data) {
+            (Addr::Direct(a) | Addr::PreImm(a) | Addr::PostImm(a), _) => Some(a),
+            (_, Data::Imm(v) | Data::LoadImm { value: v, .. }) => Some(v),
+            _ => None,
+        }
+    }
+
     /// Rust expression of this constant for the generated module (`MemXfer`, `Addr`, `Data`,
     /// `ComputeOp` in scope).
+    #[cfg(test)]
     pub(super) fn to_rust(self) -> String {
+        self.to_rust_with(None)
+    }
+
+    /// [`MemXfer::to_rust`] with the immediate of [`MemXfer::imm`] written as the expression
+    /// `imm` (a handler argument) instead of its value.
+    pub(super) fn to_rust_with(self, imm: Option<&str>) -> String {
         let mut s = String::new();
+        let num = |v: u32| imm.map_or_else(|| format!("0x{v:x}"), str::to_string);
         let addr = match self.addr {
             Addr::None => "Addr::None".to_string(),
-            Addr::Direct(a) => format!("Addr::Direct(0x{a:x})"),
+            Addr::Direct(a) => format!("Addr::Direct({})", num(a)),
             Addr::PostM(m) => format!("Addr::PostM({m})"),
             Addr::PreM(m) => format!("Addr::PreM({m})"),
-            Addr::PostImm(d) => format!("Addr::PostImm(0x{d:x})"),
-            Addr::PreImm(d) => format!("Addr::PreImm(0x{d:x})"),
+            Addr::PostImm(d) => format!("Addr::PostImm({})", num(d)),
+            Addr::PreImm(d) => format!("Addr::PreImm({})", num(d)),
         };
         let data = match self.data {
             Data::Reg { ureg, write } => format!("Data::Reg {{ ureg: {ureg}, write: {write} }}"),
-            Data::Imm(v) => format!("Data::Imm(0x{v:x})"),
+            Data::Imm(v) => format!("Data::Imm({})", num(v)),
             Data::Modify { dst, src } => format!("Data::Modify {{ dst: {dst}, src: {src} }}"),
             Data::LoadImm { ureg, value } => {
-                format!("Data::LoadImm {{ ureg: {ureg}, value: 0x{value:x} }}")
+                format!("Data::LoadImm {{ ureg: {ureg}, value: {} }}", num(value))
             }
             Data::Swap { r, s } => format!("Data::Swap {{ r: {r}, s: {s} }}"),
             Data::Mov { src, dst } => format!("Data::Mov {{ src: {src}, dst: {dst} }}"),
@@ -310,6 +333,7 @@ impl Core {
             }
             Ok(())
         } else {
+            self.aot_slow = true;
             self.dm_write(addr, v)
         }
     }
@@ -362,11 +386,13 @@ impl Core {
         let simd = self.simd();
         let mut pe = Pe::load(self, false).with_kern(kern);
         pe.exec(cop);
-        pe.store(self);
+        let st = pe.sticky();
+        self.aot_pe_end(false, st);
         if simd {
             let mut pe = Pe::load(self, true).with_kern(kern);
             pe.exec(cop);
-            pe.store(self);
+            let st = pe.sticky();
+            self.aot_pe_end(true, st);
         }
     }
 
@@ -396,11 +422,11 @@ impl Core {
         }
         match m.data {
             Data::LoadImm { ureg, value } => {
-                self.write_ureg(ureg, value);
+                self.aot_write_ureg(ureg, value);
                 if self.simd() && (ureg < 16 || ureg >> 4 == 5) {
-                    self.write_ureg(if ureg < 16 { 0x50 | ureg } else { ureg & 15 }, value);
+                    self.aot_write_ureg(if ureg < 16 { 0x50 | ureg } else { ureg & 15 }, value);
                 } else if self.simd() && (ureg == 0x76 || ureg == 0x78) {
-                    self.write_ureg(ureg + 1, value);
+                    self.aot_write_ureg(ureg + 1, value);
                 }
                 return Ok(());
             }
@@ -479,12 +505,12 @@ impl Core {
                     }
                 } else {
                     let v = self.aot_rd(addr).map_err(bad)?;
-                    self.write_ureg(ureg, v);
+                    self.aot_write_ureg(ureg, v);
                     let data = ureg < 16 || (0x50..0x60).contains(&ureg);
                     if simd && data {
                         let twin = if ureg < 16 { 0x50 | ureg } else { ureg & 15 };
                         let v = self.aot_rd(addr.wrapping_add(1)).map_err(bad)?;
-                        self.write_ureg(twin, v);
+                        self.aot_write_ureg(twin, v);
                     }
                 }
                 if !matches!(m.addr, Addr::Direct(_)) {
@@ -609,6 +635,63 @@ mod tests {
         same_as_interpreter(&[0x753e, 0x93bf], "T5 M7 = S1");
         same_as_interpreter(&[0x023e, 0x0032, 0x1fa0], "T6n R10 = BTGL R0 BY 31");
         same_as_interpreter(&[0x013e, 0x0000, 0x1312], "T2 R3 = R1 + R2");
+    }
+
+    #[test]
+    fn the_immediate_is_a_handler_argument_in_the_shared_form() {
+        let m = MemXfer {
+            ii: 3,
+            addr: Addr::PreImm(0xffff_ffe4),
+            data: Data::Reg {
+                ureg: 0,
+                write: false,
+            },
+            compute: None,
+        };
+        assert_eq!(m.imm(), Some(0xffff_ffe4));
+        assert!(m.to_rust().contains("Addr::PreImm(0xffffffe4)"));
+        assert!(m.to_rust_with(Some("imm")).contains("Addr::PreImm(imm)"));
+        let l = MemXfer {
+            addr: Addr::None,
+            data: Data::LoadImm { ureg: 8, value: 7 },
+            ..m
+        };
+        assert_eq!(l.imm(), Some(7));
+        assert!(l.to_rust_with(Some("imm")).contains("value: imm"));
+        let s = MemXfer {
+            addr: Addr::PostM(2),
+            data: Data::Swap { r: 1, s: 2 },
+            ..m
+        };
+        assert_eq!(s.imm(), None);
+        assert_eq!(s.to_rust_with(None), s.to_rust());
+    }
+
+    #[test]
+    fn only_a_store_outside_the_sram_raises_the_slow_flag() {
+        let mut c = core_at_zero(&[0x0001]);
+        c.aot_wr(0x9_1000, 5).unwrap();
+        assert!(!c.aot_slow, "internal SRAM store");
+        c.aot_wr(0x3_E018, 7).unwrap();
+        assert!(c.aot_slow, "IOP store");
+        let st = MemXfer {
+            ii: 0,
+            addr: Addr::Direct(0x9_1000),
+            data: Data::Reg {
+                ureg: 0,
+                write: true,
+            },
+            compute: None,
+        };
+        assert!(st.is_store());
+        assert!(!MemXfer {
+            data: Data::Reg {
+                ureg: 0,
+                write: false
+            },
+            ..st
+        }
+        .is_store());
     }
 
     #[test]

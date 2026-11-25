@@ -73,6 +73,7 @@ impl Core {
             aot_lo: 0,
             aot_span: 0,
             aot_bits: Box::default(),
+            aot_slow: false,
             #[cfg(feature = "jit")]
             jit: None,
         };

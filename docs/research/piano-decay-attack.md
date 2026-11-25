@@ -40,7 +40,7 @@ Tail T60 after the key release (`tail_t60_s`, 0.15 to 0.9 s after a release, har
 
 The "T60 3.2 s hardware against 1.3 s emulator" of [piano-felt-upright-soft](piano-felt-upright-soft.md) s2 is **not reproduced**: it was read from the uniform-velocity, pedal-less replay. With the transcribed pedal the Felt Upright emulator tail is 4.25 s against 3.34 s (longer, not shorter). The decay of a default note is the library sample's own decay (no engine envelope on a stroke voice while held; the 80 / 180 ms release envelope applies only after key-up without pedal), and it equals the hardware within the scatter of the method. No decay parameter is fitted: there is no systematic gap to fit (D86).
 
-The single held notes show the library itself: a note falls 40 dB in 3.7 to 5.8 s and is then silent (the sample ends; no loop is played by the default engine; since D249 the engine loops the last third of the stroke with the firmware in-loop decay, issue #640; D243 fade only for strokes without loop). Whether the hardware loops or holds the tail of the same sample past that point is not measurable from the clips (the clips' notes are released or pedalled long before; open, section 6).
+The single held notes show the library itself: a note falls 40 dB in 3.7 to 5.8 s and is then silent (the sample ends; no loop is played by the default engine; since D250 the engine loops the last third of the stroke with the firmware in-loop decay, issue #640; D243 fade only for strokes without loop). Whether the hardware loops or holds the tail of the same sample past that point is not measurable from the clips (the clips' notes are released or pedalled long before; open, section 6).
 
 ## 3. Result: attack and level at this HEAD
 

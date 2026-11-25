@@ -99,42 +99,82 @@ mod tests {
         assert_eq!(cell.publishes(), 2);
     }
 
-    /// One writer republishes `[n; 32]` flat out while readers check every word is equal.
+    /// Writes made by the concurrent test's writer thread (bounded, so the test ends on its own).
+    const WRITES: u32 = 4_000;
+
+    /// One writer republishes `[n; 32]` a fixed number of times, yielding every 64 writes; readers
+    /// loop until the writer is done and check every word is equal. Pass conditions do not depend on
+    /// scheduling: each successful read is untorn, and once writes stop a read must succeed and
+    /// return the last value (sequence is even and stable, so no retry budget can run out).
     #[test]
     fn concurrent_readers_never_see_a_torn_snapshot() {
         let cell = Arc::new(SeqCell::<32>::new());
-        let stop = Arc::new(AtomicBool::new(false));
+        let done = Arc::new(AtomicBool::new(false));
         let writer = {
-            let (cell, stop) = (Arc::clone(&cell), Arc::clone(&stop));
+            let (cell, done) = (Arc::clone(&cell), Arc::clone(&done));
             std::thread::spawn(move || {
-                let mut n = 1u32;
-                while !stop.load(Ordering::Relaxed) {
+                for n in 1..=WRITES {
                     cell.publish(&[n; 32]);
-                    n = n.wrapping_add(1).max(1);
+                    if n % 64 == 0 {
+                        std::thread::yield_now(); // let readers in; bounded, so no scheduling dependence
+                    }
                 }
-                n
+                done.store(true, Ordering::Release);
             })
         };
         let readers: Vec<_> = (0..3)
             .map(|_| {
-                let cell = Arc::clone(&cell);
+                let (cell, done) = (Arc::clone(&cell), Arc::clone(&done));
                 std::thread::spawn(move || {
-                    let (mut ok, mut out) = (0u32, [0u32; 32]);
-                    let t0 = std::time::Instant::now();
-                    while t0.elapsed() < std::time::Duration::from_millis(300) {
+                    let mut out = [0u32; 32];
+                    let mut last = 0u32;
+                    while !done.load(Ordering::Acquire) {
                         if cell.read(&mut out) {
                             assert!(out.iter().all(|&w| w == out[0]), "torn: {out:?}");
-                            ok += 1;
+                            assert!(out[0] >= last, "went backwards: {} < {last}", out[0]);
+                            last = out[0];
+                        } else {
+                            std::thread::yield_now();
                         }
                     }
-                    ok
+                    // Writer finished: the cell is stable, so this read cannot fail.
+                    assert!(
+                        cell.read(&mut out),
+                        "no consistent read after writes stopped"
+                    );
+                    assert_eq!(out, [WRITES; 32]);
                 })
             })
             .collect();
-        let reads: u32 = readers.into_iter().map(|r| r.join().unwrap()).sum();
-        stop.store(true, Ordering::Relaxed);
-        assert!(writer.join().unwrap() > 1, "writer never advanced");
-        // Liveness only: a loaded CI runner can starve readers (seen: 749 reads); tearing is asserted per read.
-        assert!(reads > 0, "no consistent read at all");
+        for r in readers {
+            r.join().unwrap();
+        }
+        writer.join().unwrap();
+        assert_eq!(cell.publishes(), WRITES);
+    }
+
+    /// Deterministic torn-read check without threads: a manual odd/even sequence stands in for the
+    /// writer being mid-publish.
+    #[test]
+    fn read_rejects_in_progress_write_and_accepts_after_completion() {
+        let cell = SeqCell::<4>::new();
+        cell.publish(&[7; 4]);
+        // Begin a publish by hand: odd sequence, half the words new.
+        cell.seq
+            .store(cell.seq.load(Ordering::Relaxed) + 1, Ordering::Release);
+        cell.words[0].store(9, Ordering::Relaxed);
+        cell.words[1].store(9, Ordering::Relaxed);
+        let mut out = [0u32; 4];
+        assert!(
+            !cell.read(&mut out),
+            "must not return a half-written snapshot"
+        );
+        // Finish it: even sequence, all words new.
+        cell.words[2].store(9, Ordering::Relaxed);
+        cell.words[3].store(9, Ordering::Relaxed);
+        cell.seq
+            .store(cell.seq.load(Ordering::Relaxed) + 1, Ordering::Release);
+        assert!(cell.read(&mut out));
+        assert_eq!(out, [9; 4]);
     }
 }

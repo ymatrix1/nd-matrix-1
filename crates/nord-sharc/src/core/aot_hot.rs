@@ -27,6 +27,9 @@ pub(super) struct AotBlock {
     pub steps: u32,
     /// Of those, the steps run natively (the rest are interpreter items).
     pub native: u32,
+    /// The last item sets the pc itself (a flow or a loop-back), so a loop ending at `last` is
+    /// handled by that item's tail.
+    pub dynamic: bool,
     /// Little-endian bytes of the parcels `start..exit`.
     pub code: &'static [u8],
     pub run: fn(&mut Core) -> Result<(), Fault>,
@@ -102,9 +105,16 @@ impl Core {
             && self
                 .loops
                 .last()
-                .is_none_or(|f| f.term.is_none() && !(b.start..=b.last).contains(&f.end))
+                .is_none_or(|f| f.term.is_none() && !Self::loop_end_blocks(b, f.end))
             && !self.arith_irq_enabled()
             && self.aot_code_matches(b)
+    }
+
+    /// Whether a loop ending at `end` cannot be left to `b`'s own tail (`end` inside the block, or
+    /// at its last instruction when the block does not set the pc itself).
+    #[inline(always)]
+    pub(super) fn loop_end_blocks(b: &AotBlock, end: u32) -> bool {
+        (b.start..b.last).contains(&end) || (end == b.last && !b.dynamic)
     }
 
     /// Installs `blocks` (any order) as the enabled set and builds the entry bitmap.
@@ -315,6 +325,7 @@ mod tests {
             last: start + steps - 1,
             steps,
             native: 0,
+            dynamic: false,
             code: &[1, 0, 1, 0],
             run: run2,
         }
@@ -417,5 +428,26 @@ mod tests {
             (d.calls, d.steps, d.native_steps, d.misses, d.bails),
             (3, 30, 30, 2, 1)
         );
+    }
+
+    #[test]
+    fn loop_end_blocks_is_a_truth_table_on_the_block_range_and_its_exit() {
+        let mut b = nop_block(100, 2); // start 100, last 101
+        for (end, dynamic, blocks) in [
+            (99, false, false),
+            (100, false, true),
+            (100, true, true),
+            (101, false, true),
+            (101, true, false),
+            (102, false, false),
+            (102, true, false),
+        ] {
+            b.dynamic = dynamic;
+            assert_eq!(
+                Core::loop_end_blocks(&b, end),
+                blocks,
+                "end {end} dynamic {dynamic}"
+            );
+        }
     }
 }

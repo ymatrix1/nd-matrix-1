@@ -1,7 +1,7 @@
 //! Fade-out over the last frames of a stroke that has no loop points, so a held note that outlasts
 //! its sample ends smoothly instead of stopping abruptly (issue #640, D243).
 //!
-//! `.npno` strokes loop on the hardware and in the engine (`sample_loop`, D249) and never reach
+//! `.npno` strokes loop on the hardware and in the engine (`sample_loop`, D250) and never reach
 //! their end. A stroke without loop points (SFZ / WAV banks without `loop_start`, `loop_end`) ends
 //! at its last frame, where the voice is freed; library notes fall 40 dB in 3.7 to 5.8 s
 //! (`docs/research/piano-decay-attack.md`), so that end is audible as a sudden cut.

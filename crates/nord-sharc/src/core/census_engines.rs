@@ -121,9 +121,10 @@ fn the_aot_bit_shifts_equal_the_interpreter() {
                 b.r[1] = rx;
                 b.sys.astat_extra[0] = 1 << 14;
                 assert!(a.shifter_op(op, 2, rx, ry));
-                let mut pe = Pe::load(&b, false);
+                let mut pe = Pe::load(&mut b, false);
                 pe.shift(op, 2, 1, ry);
-                pe.store(&mut b);
+                let st = pe.sticky();
+                b.aot_pe_end(false, st);
                 assert_eq!(a.r, b.r, "op {op:#x} rx {rx:#x} ry {ry:#x}");
                 assert_eq!(a.flags, b.flags, "flags op {op:#x} rx {rx:#x} ry {ry:#x}");
                 assert_eq!(a.sys.astat_extra[0], b.sys.astat_extra[0]);

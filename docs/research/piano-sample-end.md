@@ -46,7 +46,7 @@ Stroke 502 (voice 1): same behaviour (counter 151,898 at pass 96,000, 130,206 at
 
 Real time of stroke 513: 162,505 / 1.596 passes x 2 / 43,402.34 Hz = 4.69 s to the loop end, a 1.56 s loop (key 60 of Astoria Grand).
 
-## 4. What the engine does now (D249)
+## 4. What the engine does now (D250)
 
 | Part | Engine | Evidence |
 |---|---|---|
@@ -58,7 +58,7 @@ Not modelled: the `F+7` decay (`d` about 200) of the hold before the loop (the d
 
 ## Implications
 
-- The abrupt cut of #640 was the missing loop, not a library limit. D243 (fade) is superseded for `.npno` strokes by D249; the fade stays as the tail rule of strokes without loop points.
+- The abrupt cut of #640 was the missing loop, not a library limit. D243 (fade) is superseded for `.npno` strokes by D250; the fade stays as the tail rule of strokes without loop points.
 - A looped note decays 4.2 dB/s: low notes (longer strokes, same rate) outlast high notes by their stroke length, as the reporter expects.
 - OQ20 (end-of-sample behaviour) is answered for the sample end; the level at loop entry against the hardware stays open.
 

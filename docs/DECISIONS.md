@@ -2620,7 +2620,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 
 ### D243. A held `.npno` note fades out over the last 0.25 s of its stroke instead of stopping (issue #640)
 
-- **Status:** accepted 2026-11-23; superseded in part by D249 (`.npno` strokes loop on the hardware, the fade stays for strokes without loop points)
+- **Status:** accepted 2026-11-23; superseded in part by D250 (`.npno` strokes loop on the hardware, the fade stays for strokes without loop points)
 - **Decided by:** the repo owner (chose "Fade tail out" over "Loop sample tail" in session)
 - **Context:** `.npno` strokes carry no loop points (`NpnoStroke::loop_start` / `loop_end` are `None`) and the engine freed a voice at the last decoded frame. Library notes are 3.7 to 5.8 s long (stroke 513 of Astoria Grand: 162,532 frames = 4.64 s at 35 kHz, oracle run below), so a note held longer ended with a sudden cut, higher notes first, while the key-up sample still played on pedal release. Reported in issue #640.
 - **Decision:** `piano/tail_fade.rs` scales every non-release sample voice by a raised-cosine gain over the last `0.25 s` of its stroke (at most the last quarter of a short stroke). Release (key-up) strokes are untouched.
@@ -2682,7 +2682,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Impact:** `.github/workflows/release.yml`, `tools/release_bundle_libs.py` (+ test), `tools/release_installers.py` (+ tests), `tools/tests/test_release_package.py`, `docs/RELEASING.md`, bean `ns4-nyqj`.
 
 
-### D249. A held `.npno` note loops the last third of its stroke and decays, as the firmware SMP voice does (issue #640)
+### D250. A held `.npno` note loops the last third of its stroke and decays, as the firmware SMP voice does (issue #640)
 
 - **Status:** accepted 2026-11-24 (number chosen after fetching `origin/main`, renumber on merge if another branch takes it).
 - **Decided by:** the task of the parent session ("investigate whether we can do this exactly like the real hardware via the ARM+SHARC emulation ... if hardware behaviour is established implement it"); the issue #640 reporter asked for the loop after v0.1.5 shipped D243.
@@ -2692,3 +2692,14 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** keep D243 (rejected: the reporter heard it as unnatural, and the hardware does not stop); loop without decay (rejected: the firmware decays by `F+6`); also apply `F+7` before the loop in the default path (rejected: the default path plays the sample's own decay, D86; the opt-in slew chain models `F+7`).
 - **Limits:** VERIFIED: loop words, wrap, rate switch at the loop start, `F+6` value and no stream-end free (2 strokes of one sound). ASSUMED: the `i16` at `0x38` law for other sounds and pitches, the start of the in-loop decay at 1.0 (the hardware level at loop entry also carries `F+7`), no seam handling (predictor history after the wrap). `--piano-slew-fw` wraps but keeps one rate.
 - **Impact:** `crates/nord-core/src/cbin/piano_sample.rs`, `piano.rs`, `piano/sample_loop.rs`, `piano/tail_fade.rs` (+ tests); `tools/smp_stream_end.py` (+ test); `specs/piano-engine.md` s9a; [piano-sample-end](research/piano-sample-end.md); [smp-slew](research/smp-slew.md) s3; OQ20.
+
+### D249. SHARC whole-pass AOT: the speed work takes ORG Core2 from x7.2 to x3.5 over budget; real-time exact LLE stays out of reach, the hybrid verdict stands
+
+- **Status:** proposed 2026-11-24
+- **Decided by:** agent (bean `ns4-lle3`, follow-up experiment); owner to confirm.
+- **Context:** D118 (whole-pass AOT, PR #466) and the first prototype left ORG Core2 (6 280 steps per pass) at x7.0 to x8.0 of the 46.08 us budget. The experiment asked whether per-site folded code, state in locals and native control flow can reach x2 in exact 40-bit mode, with a checkpoint at x3.5.
+- **Decision:** (1) Keep three changes that are bit-exact (1 854 395 steps 1:1) and measured: blocks end at guard-changing instructions instead of bailing, one shared handler per transfer shape instead of one inlined body per site, compute run in place on the core registers. (2) Do not build registers-in-locals and do not pursue x2: the experiment stopped at its checkpoint with ORG Core2 at x4.6 (fast-f32 x4.0); lowering v2 stages A and B then reached x3.5 (fast-f32 x2.93, not diffed 1:1). (3) SHARC LLE stays opt-in and not real time in exact mode; the hybrid (HLE for live play, LLE for oracle and offline use) from the first prototype's verdict stands.
+- **Update 2026-11-24:** lowering v2 stages A and B (`research/sharc-lowering-v2.md`) took ORG Core2 on to x3.5 (fast-f32 x2.93), still 1:1; the verdict is unchanged (x2.5 not reached).
+- **Why:** The pass runs each generated site once, so the instruction bytes a pass fetches matter more than the work per instruction: the inlined per-site layout made the module ~2.5 MB; sharing handlers cut it to ~0.4 MB (x7.2 to x5.5). Locals only pay in inlined straight-line code, which is that same layout. In-place compute removed the 170-byte copy per op (x5.5 to x4.6). What remains (stage B profile, final build 161 us): compute 25% (2 831 ops x 59 cycles per both-element op, about 37 us, x0.8), interpreter-run steps 21%, loop glue 7%, dispatch 5%, transfers the rest. Even with compute free the other 75% is about x2.6, and the identified rows give about -15% at best: x2 is not reachable in exact mode. (An earlier version of this argument, "compute alone is x1.7", mixed per-element and per-op units and is withdrawn.)
+- **Alternatives:** Full redesign with per-block register locals and native `DO`/`CALL` (rejected: conflicts with the code-size finding, the non-compute 75% of the pass alone is about x2.6); more cores (rejected: the slowest core sets the tick); fast-f32 as the live tier (open: x2.93 after stage B, a min of 7, not diffed 1:1; needs a listening or null test and the cheaper non-compute path).
+- **Impact:** `crates/nord-sharc/src/core/{aot_whole,aot_emit,aot_mem,aot_pe,aot_hot,mod,new,census_engines}.rs`, [sharc-lle-realtime](research/sharc-lle-realtime.md), [specs/sharc-core.md](specs/sharc-core.md) section 9, ROADMAP Gate 1b, bean `ns4-lle3`. No default, engine or golden changes.
