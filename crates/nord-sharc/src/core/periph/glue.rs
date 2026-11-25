@@ -117,6 +117,8 @@ impl Core {
     fn device_peek(&self, addr: u32) -> u32 {
         if (addr as usize) < crate::core::IOP_WORDS {
             self.iop[addr as usize]
+        } else if crate::core::sdram::Sdram::contains(addr) {
+            self.sdram.read(addr)
         } else {
             self.device.get(&addr).copied().unwrap_or(0)
         }

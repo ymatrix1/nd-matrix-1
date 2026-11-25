@@ -220,6 +220,13 @@ fn run(args: &[String]) -> Result<String, String> {
         out,
         "output L peak {pk:.6} rms {rms:.6}; R peak {pkr:.6} rms {rmsr:.6}"
     );
+    if core.sdram_reads + core.sdram_writes > 0 {
+        let _ = writeln!(
+            out,
+            "sdram window 0x08000000: {} reads, {} writes",
+            core.sdram_reads, core.sdram_writes
+        );
+    }
     if let Some(pc) = o.calls_at {
         let _ = core.dm_write(o.core.ping_select, 0);
         let n = calls_at(&mut core, &o.core.config(), pc);

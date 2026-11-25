@@ -5,7 +5,7 @@
     python tools/bump_version.py 0.1.6 --no-lock  # edit files only
 
 Edits `[workspace.package] version` in Cargo.toml and `[project] version` in
-pyproject.toml, then runs `uv lock` and `cargo check --workspace` so the lock
+pyproject.toml, then runs `uv lock` and `cargo update --workspace` so the lock
 files follow. Used by .github/workflows/prepare-release.yml.
 """
 
@@ -63,7 +63,7 @@ def bump(root: Path, new: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("version", help="new version without a leading v, e.g. 0.1.6")
-    parser.add_argument("--no-lock", action="store_true", help="skip uv lock / cargo check")
+    parser.add_argument("--no-lock", action="store_true", help="skip uv lock / cargo update")
     args = parser.parse_args(argv)
     try:
         old = bump(ROOT, args.version)
@@ -73,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"bumped {old} -> {args.version}")
     if not args.no_lock:
         subprocess.run(["uv", "lock"], cwd=ROOT, check=True)
-        subprocess.run(["cargo", "check", "--workspace"], cwd=ROOT, check=True)
+        subprocess.run(["cargo", "update", "--workspace"], cwd=ROOT, check=True)
     return 0
 
 

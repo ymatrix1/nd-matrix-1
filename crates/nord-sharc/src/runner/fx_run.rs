@@ -172,6 +172,33 @@ impl FxPeer {
     }
 }
 
+/// What an FX core needs from its environment before every pass: the Core1 hand-over counter
+/// (Core2 only) and the ping-buffer selector. Without it the Core2 pass loses its poll loop after
+/// pass 0 (`docs/research/pno-jit-arm-profile.md`: it waits at `0x1212E4` for the counter); one
+/// value serves `fx_live_run`, `pass_sched` and `lle_sharc_bench`.
+#[derive(Clone, Copy, Debug)]
+pub struct FxDrive {
+    pub core: FxCore,
+    peer: FxPeer,
+}
+
+impl FxDrive {
+    pub fn new(core: FxCore) -> Self {
+        Self {
+            core,
+            peer: FxPeer::default(),
+        }
+    }
+
+    /// Presents the peer counter (when the core has a peer) and the ping selector.
+    pub fn before_pass(&mut self, core: &mut Core) {
+        if self.core.peer {
+            self.peer.before_pass(core);
+        }
+        let _ = core.dm_write(self.core.ping_select, PING_VALUE);
+    }
+}
+
 /// Stereo output of a live FX run.
 #[derive(Debug, Default, PartialEq)]
 pub struct FxLive {
@@ -208,16 +235,13 @@ pub fn fx_live_run(
     let mut due: Vec<&Msg> = msgs.iter().collect();
     due.sort_by_key(|m| m.pass);
     let cfg = fx.config();
-    let (mut next, mut peer, mut out) = (0, FxPeer::default(), FxLive::default());
+    let (mut next, mut drive, mut out) = (0, FxDrive::new(*fx), FxLive::default());
     for p in 0..total {
         while next < due.len() && due[next].pass <= p {
             deliver(core, 0, due[next])?;
             next += 1;
         }
-        if fx.peer {
-            peer.before_pass(core);
-        }
-        let _ = core.dm_write(fx.ping_select, PING_VALUE);
+        drive.before_pass(core);
         inject(p, core);
         let (steps, idle) = lean_pass(core, &cfg);
         if !idle {
@@ -260,6 +284,23 @@ mod tests {
             .collect();
         assert_eq!(seen, [0, 1, 2, 3, 4, 5, 6, 7, 1, 2]);
         assert_eq!(c.dm_read(SELF_COUNTER), Ok(3), "own copy = counter + 1");
+    }
+
+    #[test]
+    fn the_drive_presents_counter_and_ping_select_before_every_pass() {
+        let mut c = clearing_core();
+        let mut d = FxDrive::new(FX2);
+        for _ in 0..3 {
+            d.before_pass(&mut c);
+        }
+        assert_eq!(c.dm_read(SELF_COUNTER), Ok(3), "pass 2 shows counter 2");
+        assert_eq!(c.dm_read(FX2.ping_select), Ok(PING_VALUE));
+        // Core1 has no peer: its own counter cell is left alone, the selector is still set
+        let mut c1 = clearing_core();
+        let mut d1 = FxDrive::new(FX1);
+        d1.before_pass(&mut c1);
+        assert_eq!(c1.dm_read(SELF_COUNTER), Ok(0));
+        assert_eq!(c1.dm_read(FX1.ping_select), Ok(PING_VALUE));
     }
 
     #[test]

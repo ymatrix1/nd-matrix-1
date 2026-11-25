@@ -1,6 +1,7 @@
 //! Start-up presets of the chips `sharc-live` can serve (D138, D144, D153): the constants of `sharc-sys`
 //! (`--pno`, default ORG) as data, so one binary serves PNO core 1, and the organ program that runs
 //! on ORG core 1, ORG core 2 and PNO core 2 (loader entry `0x125C88`, `dsp-image-hunt.md` s5.17).
+use super::fx_run::{FxCore, FX1, FX2};
 use super::pass::{fault_text, run_steps};
 use super::periph_run::PeriphOpts;
 use super::system::PNO_PING_PONG;
@@ -21,6 +22,8 @@ pub struct Preset {
     pub sy: bool,
     /// The SMP piano chip (`live_smp`, OQ41): the SY model with its own FIFO and ring tap.
     pub smp: bool,
+    /// An FX chip core: [`FxDrive`] runs before every pass (peer counter, ping selector).
+    pub fx: Option<FxCore>,
 }
 
 /// VERIFIED: the `--pno` preset of `sharc-sys` (`pno-full-pass.md`): entry `0x121007`, poll loop
@@ -42,6 +45,7 @@ pub fn pno_preset() -> Preset {
         flag1: true,
         sy: false,
         smp: false,
+        fx: None,
     }
 }
 
@@ -64,6 +68,7 @@ pub fn org_preset() -> Preset {
         flag1: false,
         sy: false,
         smp: false,
+        fx: None,
     }
 }
 
@@ -82,6 +87,7 @@ pub fn sy_preset() -> Preset {
         flag1: false,
         sy: true,
         smp: false,
+        fx: None,
     }
 }
 
@@ -97,6 +103,35 @@ pub fn smp_preset() -> Preset {
     }
 }
 
+/// Preset of one FX core from its descriptor (entry, poll loop, mailbox, gates, FLAG1, receive
+/// interrupt), the values `sharc-fxlive` boots with (`fx-oracle-live.md` s2, VERIFIED from the
+/// listings). The boot length is the `sharc-fxlive` default; ASSUMED enough for both cores.
+fn fx_preset(fx: FxCore) -> Preset {
+    Preset {
+        entry: fx.entry,
+        idle_pc: fx.idle_pc,
+        trigger: fx.trigger,
+        boot: 3_000_000,
+        irq: fx.irq,
+        ping_pong: None,
+        devs: fx.devs.to_vec(),
+        flag1: fx.flag1,
+        sy: false,
+        smp: false,
+        fx: Some(fx),
+    }
+}
+
+/// FX Core1 start-up (`--irq P4I:0x41`, FLAG1, `FX1.devs`).
+pub fn fx1_preset() -> Preset {
+    fx_preset(FX1)
+}
+
+/// FX Core2 start-up (mailbox `0xC02C2`, Core1 hand-over counter played by the drive).
+pub fn fx2_preset() -> Preset {
+    fx_preset(FX2)
+}
+
 /// Preset by its `sharc-live` flag name (`pno`, `org`).
 pub fn preset_named(name: &str) -> Option<Preset> {
     match name {
@@ -104,6 +139,8 @@ pub fn preset_named(name: &str) -> Option<Preset> {
         "org" => Some(org_preset()),
         "sy" => Some(sy_preset()),
         "smp" => Some(smp_preset()),
+        "fx1" => Some(fx1_preset()),
+        "fx2" => Some(fx2_preset()),
         _ => None,
     }
 }
@@ -167,5 +204,17 @@ mod tests {
         assert!(smp.sy && smp.smp && smp.entry == 0x1C_11E0);
         assert!(!preset_named("sy").unwrap().smp);
         assert!(preset_named("nope").is_none());
+        let (f1, f2) = (preset_named("fx1").unwrap(), preset_named("fx2").unwrap());
+        assert_eq!(
+            (f1.entry, f1.idle_pc, f1.trigger),
+            (0x12_11E3, 0x12_128B, 0xC_02C1)
+        );
+        assert_eq!(
+            (f2.idle_pc, f2.trigger, f2.irq),
+            (0x12_125B, 0xC_02C2, None)
+        );
+        assert!(f1.flag1 && f1.irq == Some((15, 0x41)) && !f2.flag1);
+        assert!(f2.fx.unwrap().peer && !f1.fx.unwrap().peer);
+        assert!(preset_named("org").unwrap().fx.is_none());
     }
 }

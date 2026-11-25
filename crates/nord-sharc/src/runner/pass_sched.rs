@@ -8,6 +8,7 @@
 //! scheduler measures the compute side only: how long each core takes for a pass of its own
 //! (latency per core, and the tick wall time = the slowest core plus the barrier) when all cores
 //! run at the same time on separate host cores.
+use super::fx_run::FxDrive;
 use super::msg::{self, Msg};
 use super::pass::PassConfig;
 use super::system::{lean_pass, refresh_inputs, set_ping_pong};
@@ -82,7 +83,65 @@ pub struct PassJob {
     pub msgs: Vec<Msg>,
     pub msg_base: u32,
     pub ping_pong: Option<(u32, u32, u32)>,
+    /// FX chip core: the Core1 hand-over counter and ping selector before every pass.
+    pub fx: Option<FxDrive>,
     pub engine: Engine,
+}
+
+impl PassJob {
+    /// A job from a booted core and its start-up preset (poll loop, mailbox, ping-pong, FX drive).
+    pub fn from_preset(
+        name: &str,
+        core: Core,
+        preset: &super::live_presets::Preset,
+        msgs: Vec<Msg>,
+        engine: Engine,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            core,
+            cfg: PassConfig {
+                trigger: preset.trigger,
+                idle_pc: preset.idle_pc,
+                max_steps: 2_000_000,
+                irq: preset.irq,
+            },
+            msgs,
+            msg_base: 0,
+            ping_pong: preset.ping_pong,
+            fx: preset.fx.map(FxDrive::new),
+            engine,
+        }
+    }
+
+    /// Everything that happens before pass `p`: the ping-pong pointer, the ARM messages due
+    /// (`next_msg` indexes `msgs`, which must be sorted by pass), the FX hand-over words and the
+    /// input refresh. The first message that cannot be stored is returned after all were tried.
+    pub fn before_pass(&mut self, p: u32, next_msg: &mut usize) -> Result<(), String> {
+        let mut err = Ok(());
+        if let Some(pp) = self.ping_pong {
+            set_ping_pong(&mut self.core, pp, p);
+        }
+        while *next_msg < self.msgs.len() && self.msgs[*next_msg].pass <= p {
+            if let Err(e) = msg::deliver(&mut self.core, self.msg_base, &self.msgs[*next_msg]) {
+                err = Err(e);
+            }
+            *next_msg += 1;
+        }
+        if let Some(fx) = self.fx.as_mut() {
+            fx.before_pass(&mut self.core);
+        }
+        refresh_inputs(&mut self.core);
+        err
+    }
+
+    /// Runs the pass on the job's engine; `(steps, returned to the poll loop)`.
+    pub fn run_pass(&mut self) -> (u64, bool) {
+        match self.engine {
+            Engine::Interp => lean_pass(&mut self.core, &self.cfg),
+            Engine::Aot => lean_pass_aot(&mut self.core, &self.cfg),
+        }
+    }
 }
 
 /// What one core measured.
@@ -132,21 +191,11 @@ pub fn run_ticks(jobs: Vec<PassJob>, warmup: u32, ticks: u32) -> Result<SchedRep
                     }
                 }
                 let p = tick as u32;
-                if let Some(pp) = job.ping_pong {
-                    set_ping_pong(&mut job.core, pp, p);
+                if job.before_pass(p, &mut next_msg).is_err() {
+                    series.all_idle = false;
                 }
-                while next_msg < job.msgs.len() && job.msgs[next_msg].pass <= p {
-                    if msg::deliver(&mut job.core, job.msg_base, &job.msgs[next_msg]).is_err() {
-                        series.all_idle = false;
-                    }
-                    next_msg += 1;
-                }
-                refresh_inputs(&mut job.core);
                 let t0 = Instant::now();
-                let (steps, idle) = match job.engine {
-                    Engine::Interp => lean_pass(&mut job.core, &job.cfg),
-                    Engine::Aot => lean_pass_aot(&mut job.core, &job.cfg),
-                };
+                let (steps, idle) = job.run_pass();
                 let ns = t0.elapsed().as_nanos() as u64;
                 series.steps.push(steps);
                 series.ns.push(ns);
@@ -220,6 +269,7 @@ mod tests {
             msgs: Vec::new(),
             msg_base: 0,
             ping_pong: None,
+            fx: None,
             engine,
         }
     }
@@ -243,6 +293,16 @@ mod tests {
             assert_eq!(c.ns.len(), 7);
         }
         assert_eq!(r.jobs.len(), 2);
+    }
+
+    #[test]
+    fn an_fx_job_gets_its_drive_before_every_tick() {
+        let mut j = poll_job("fx2", Engine::Interp);
+        j.fx = Some(FxDrive::new(super::super::fx_run::FX2));
+        let r = run_ticks(vec![j], 0, 4).unwrap();
+        // counter shown for pass 3 is 3, the core's own copy is counter + 1
+        let mut c = r.jobs.into_iter().next().unwrap().core;
+        assert_eq!(c.dm_read(super::super::fx_run::SELF_COUNTER), Ok(4));
     }
 
     #[test]

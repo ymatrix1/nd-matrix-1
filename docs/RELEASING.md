@@ -55,7 +55,7 @@ after [HOST_COMPATIBILITY.md](HOST_COMPATIBILITY.md) records real host tests.
 
 ## Automated path (preferred)
 
-1. Actions, **Prepare release**, Run workflow, enter the version (`0.1.6`, no `v`). It runs `tools/bump_version.py`, refreshes `Cargo.lock` and `uv.lock`, and opens the release PR.
+1. Actions, **Prepare release**, Run workflow, enter the version (`0.1.6`, no `v`). It runs `tools/bump_version.py`, refreshes `Cargo.lock` (`cargo update --workspace`, no system libraries needed) and `uv.lock`, and opens the release PR.
 2. On the PR branch run Actions, **Release**, Run workflow, tag empty (dry run) and inspect the artifacts.
 3. Merge after CI is green, then tag and push (see Cut the release). The `verify-published` job then downloads the published assets, checks `SHA256SUMS.txt` and the asset list.
 4. Release notes are grouped by PR label via `.github/release.yml` (`enhancement`, `bug`, `documentation`, `skip-changelog`).

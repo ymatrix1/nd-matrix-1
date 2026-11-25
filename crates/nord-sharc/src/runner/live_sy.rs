@@ -329,6 +329,11 @@ impl SyModel {
         Ok(steps)
     }
 
+    /// The frames (float bits `[L, R]`) the last pass tapped, one per audio interrupt.
+    pub fn frames(&self) -> &[[u32; 2]] {
+        &self.frames
+    }
+
     /// One pass (`isrs_per_pass` frames): `(steps, ok)`; an error is kept for the `P` reply.
     pub fn pass(&mut self, core: &mut Core) -> (u64, bool) {
         self.frames.clear();
