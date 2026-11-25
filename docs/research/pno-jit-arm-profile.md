@@ -98,7 +98,7 @@ Unmodelled per core (all cores): audio-input and output DMA (stub), external-por
 | ORG c2, PNO c2, ORG c1 | `DM(0x3E021)` loop count (ASSUMED 1); gates of the Core1 sections preset by hand; no key message reaches ORG (keys go to PNO c1) |
 | PNO c1 | key to weight messages (`0xC0224468`), Vox/Pipe install burst for the chosen program, output DMA (output pointers write the device store) |
 | FX c1 | the effect routines of the program are installed by 1,840 messages and the pass is stable at 3,370 steps, but the output stage is not captured; no audio claim |
-| FX c2 | pass 1 loses the poll loop (zero vector table); needs the state pointer the ARM install normally provides |
+| FX c2 | pass 1 loses the poll loop: it waits for the Core1 hand-over counter (not a state pointer); resolved by `FxDrive` in `ns4-lle4`, see [sharc-audio-bus](sharc-audio-bus.md) |
 | SY1SY2, SMP | no pass concept: FLAG12 start, interrupt dispatch from the audio DMA, path-1 block stream (1,516 words for SMP, none for SY in this capture); the oracle runs their ISRs only through `sharc-run --enter` |
 
 Numbers: `data/org-system-cores.txt`. The all-cores capture (`tools/arm_org_stream.py`, `TARGETS`) now writes a script per receiving core and phase.

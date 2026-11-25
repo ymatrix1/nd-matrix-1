@@ -86,6 +86,7 @@ mod new;
 mod pcstack;
 pub mod periph;
 pub mod probe_fixture;
+pub mod sdram;
 mod shifter;
 mod shifter_bits;
 #[cfg(test)]
@@ -192,6 +193,11 @@ pub struct Core {
     iop: Box<[u32]>,
     /// Sparse store for addresses outside the SRAM and IOP windows (peripherals, external bus).
     device: DeviceMap,
+    /// Dense external delay-line window `0x0800_0000..` ([`sdram`]).
+    sdram: sdram::Sdram,
+    /// Reads and writes that went to the SDRAM window (diagnostic counters).
+    pub sdram_reads: u64,
+    pub sdram_writes: u64,
     /// Values returned by device reads regardless of earlier writes (scripted status registers).
     preset: DeviceMap,
     /// Reads and writes that went to the device store (diagnostic counters).

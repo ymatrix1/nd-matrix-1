@@ -60,6 +60,24 @@ pub fn parse_script(text: &str) -> Result<Vec<Msg>, String> {
     Ok(out)
 }
 
+/// Messages of a text of `--msg X` tokens, or of an ARM load script (`PASS W1 W2` lines, the
+/// `sharc-sys --script-flat` format: every message is delivered before pass 0, in file order).
+pub fn parse_msg_text(text: &str) -> Result<Vec<Msg>, String> {
+    if text.trim_start().starts_with(|c: char| c.is_ascii_digit()) {
+        let mut v = parse_script(text)?;
+        v.iter_mut().for_each(|m| m.pass = 0);
+        return Ok(v);
+    }
+    let mut out = Vec::new();
+    let mut it = text.split_whitespace();
+    while let Some(t) = it.next() {
+        if t == "--msg" {
+            out.push(parse_msg(it.next().ok_or("--msg without a value")?)?);
+        }
+    }
+    Ok(out)
+}
+
 /// `VECTOR:STATUS` (for example `P4I:0x41`): interrupt raised to start each pass and the SEC
 /// source id its service routine reads.
 pub fn parse_rx_irq(s: &str) -> Result<(u8, u32), String> {
@@ -104,6 +122,29 @@ mod tests {
         assert_eq!(parse_rx_irq("P4I:1"), Ok((15, 1)));
         assert!(parse_rx_irq("P4I:0").is_err());
         assert!(parse_rx_irq("nope:1").is_err());
+    }
+
+    #[test]
+    fn msg_text_is_tokens_or_a_flat_load_script() {
+        let m = parse_msg_text(
+            "--msg 0:0x3e021=1
+--msg 2:0xe02f8=f1.0",
+        )
+        .unwrap();
+        assert_eq!(m.len(), 2);
+        assert_eq!((m[0].pass, m[0].word1, m[0].word2), (0, 0x3e021, 1));
+        assert_eq!((m[1].pass, m[1].word2), (2, 0x3F80_0000));
+        assert!(parse_msg_text("--msg").is_err());
+        let flat = parse_msg_text(
+            "5 0xb0497 0x000b0495  # tick
+7 0xc12ee 3
+",
+        )
+        .unwrap();
+        assert_eq!(flat.len(), 2);
+        assert!(flat.iter().all(|m| m.pass == 0));
+        assert_eq!((flat[1].word1, flat[1].word2), (0xc12ee, 3));
+        assert!(parse_msg_text("--other x").unwrap().is_empty());
     }
 
     #[test]

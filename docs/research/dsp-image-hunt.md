@@ -526,7 +526,7 @@ python tools/ns4_dsp_ldr.py DIR/dsp_image_0_FX.bin --sram SRAM
 python tools/sharc_visa.py SRAM/core1_sram.bin 0x2423c6 0x2423f0   # entry 0x1211E3 * 2 = 0x2423C6
 ```
 
-The external window (`0x20xxxxxx`) is not mapped yet. Candidates are the SDRAM address space of the datasheet (Table 6/7, bank 0 starts at `0x00200000`); the zero-fill blocks of 409,600 B (FX), 240,000 B (ORG) and 655,360 B (PNO Core1) are delay or work RAM there.
+The external window (`0x20xxxxxx`) is now mapped (`ns4-lle4`, [sharc-sdram-window](sharc-sdram-window.md): data word `w` at `0x0800_0000 + ...` = loader byte `0x2000_0000 + 4 * (w - 0x0800_0000)`). Earlier candidates are the SDRAM address space of the datasheet (Table 6/7, bank 0 starts at `0x00200000`); the zero-fill blocks of 409,600 B (FX), 240,000 B (ORG) and 655,360 B (PNO Core1) are delay or work RAM there.
 
 ### 5.19 What the SHARC code uses (scope for a core model)
 

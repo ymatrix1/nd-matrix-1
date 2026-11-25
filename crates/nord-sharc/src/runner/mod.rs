@@ -6,6 +6,9 @@ pub mod aot_audio;
 pub mod aot_hot;
 pub mod aot_rank;
 pub mod audio;
+pub mod audio_bus;
+pub mod audio_bus_node;
+pub mod audio_bus_sy;
 pub mod feed_run;
 pub mod fx_probe;
 pub mod fx_run;
@@ -21,6 +24,7 @@ pub mod live_sy;
 mod live_sy_tests;
 #[cfg(test)]
 mod live_tests;
+pub mod lle_system;
 pub mod msg;
 pub mod pass;
 pub mod pass_sched;
