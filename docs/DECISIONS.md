@@ -2620,7 +2620,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 
 ### D243. A held `.npno` note fades out over the last 0.25 s of its stroke instead of stopping (issue #640)
 
-- **Status:** accepted 2026-11-23
+- **Status:** accepted 2026-11-23; superseded in part by D249 (`.npno` strokes loop on the hardware, the fade stays for strokes without loop points)
 - **Decided by:** the repo owner (chose "Fade tail out" over "Loop sample tail" in session)
 - **Context:** `.npno` strokes carry no loop points (`NpnoStroke::loop_start` / `loop_end` are `None`) and the engine freed a voice at the last decoded frame. Library notes are 3.7 to 5.8 s long (stroke 513 of Astoria Grand: 162,532 frames = 4.64 s at 35 kHz, oracle run below), so a note held longer ended with a sudden cut, higher notes first, while the key-up sample still played on pedal release. Reported in issue #640.
 - **Decision:** `piano/tail_fade.rs` scales every non-release sample voice by a raised-cosine gain over the last `0.25 s` of its stroke (at most the last quarter of a short stroke). Release (key-up) strokes are untouched.
@@ -2681,3 +2681,14 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Limits:** Not yet run on a bare 22.04 host: other libraries that `winit`, GL or ALSA load at run time may still be missing there (the first error hides later ones), and `ubuntu-22.04` runners are retired by GitHub on a schedule we do not control. The catalog reads the last release, so `/retest` needs a new tag. `ASSUMED` in `release_bundle_libs.py` until the bare-host run.
 - **Impact:** `.github/workflows/release.yml`, `tools/release_bundle_libs.py` (+ test), `tools/release_installers.py` (+ tests), `tools/tests/test_release_package.py`, `docs/RELEASING.md`, bean `ns4-nyqj`.
 
+
+### D249. A held `.npno` note loops the last third of its stroke and decays, as the firmware SMP voice does (issue #640)
+
+- **Status:** accepted 2026-11-24 (number chosen after fetching `origin/main`, renumber on merge if another branch takes it).
+- **Decided by:** the task of the parent session ("investigate whether we can do this exactly like the real hardware via the ARM+SHARC emulation ... if hardware behaviour is established implement it"); the issue #640 reporter asked for the loop after v0.1.5 shipped D243.
+- **Context:** D243 faded the tail because the hardware behaviour at the sample end was unobservable (the ring tap gate closes after ~2,300 frames, D235). [piano-sample-end](research/piano-sample-end.md): the ARM copies the stroke record loop words into the SMP voice record (`F-8` loop end, `F-7` loop length, `F-9` stroke end), and the SMP wraps the counter at `F-8`; the voice record read directly (no ring) over 260,000 held passes on two strokes (513 and 502) stays active, wraps, and its level `F15` decays by the in-loop rate word `F+6` (`d = 370`, 4.16 dB/s).
+- **Decision:** (1) `NpnoStroke` carries `loop_start` / `loop_end` / `loop_decay` from the record (`u32` at `0x24`, `0x28`, `i16` at `0x38`), `LoadedPianoStroke::loop_decay` carries the decay. (2) `piano/sample_loop.rs`: the read position wraps by the loop length at the loop end; looped strokes never end and get no tail fade. (3) In the loop region (position above the loop start) the voice envelope decays by `exp(-2 * -loop_decay / 2^24 * 21,701 / fs)` per frame; below `1e-4` the voice is freed. (4) Strokes without loop points (key-up, SFZ without loop) keep the D243 tail fade; SFZ `loop_start` / `loop_end` now loop too, without decay.
+- **Why:** it is the measured hardware behaviour, it gives the natural long decay the reporter describes (low notes last longer because their strokes are longer), and it replaces a guessed fade with a verified loop.
+- **Alternatives:** keep D243 (rejected: the reporter heard it as unnatural, and the hardware does not stop); loop without decay (rejected: the firmware decays by `F+6`); also apply `F+7` before the loop in the default path (rejected: the default path plays the sample's own decay, D86; the opt-in slew chain models `F+7`).
+- **Limits:** VERIFIED: loop words, wrap, rate switch at the loop start, `F+6` value and no stream-end free (2 strokes of one sound). ASSUMED: the `i16` at `0x38` law for other sounds and pitches, the start of the in-loop decay at 1.0 (the hardware level at loop entry also carries `F+7`), no seam handling (predictor history after the wrap). `--piano-slew-fw` wraps but keeps one rate.
+- **Impact:** `crates/nord-core/src/cbin/piano_sample.rs`, `piano.rs`, `piano/sample_loop.rs`, `piano/tail_fade.rs` (+ tests); `tools/smp_stream_end.py` (+ test); `specs/piano-engine.md` s9a; [piano-sample-end](research/piano-sample-end.md); [smp-slew](research/smp-slew.md) s3; OQ20.

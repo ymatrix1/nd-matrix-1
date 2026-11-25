@@ -44,8 +44,45 @@ pub struct NpnoStroke {
     pub stroke_kind: u8,
     pub init_left: [i16; 4],
     pub init_right: [i16; 4],
+    /// First frame of the sustain loop (`F-8 - F-7` of the SMP voice record), `None` when the stroke
+    /// does not loop (key-up strokes, zero length). VERIFIED: see [`parse_loop`].
     pub loop_start: Option<u32>,
+    /// One past the last looped frame (`F-8`, the counter that wraps), `None` without a loop.
     pub loop_end: Option<u32>,
+    /// Big-endian `i16` at record byte `0x38`: the ARM stores the SMP in-loop decay count
+    /// `d = 2 * -loop_decay` (`F+6 = 1 - d / 2^24` per update). `0` without a loop.
+    pub loop_decay: i16,
+}
+
+/// Record byte of the loop start frame (`u32`, big-endian).
+const LOOP_START_FIELD: usize = 0x24;
+/// Record byte of the loop length in frames (`u32`, big-endian).
+const LOOP_LEN_FIELD: usize = 0x28;
+/// Record byte of the in-loop decay field (`i16`, big-endian).
+const LOOP_DECAY_FIELD: usize = 0x38;
+
+/// Sustain loop `(start, end, decay)` of a stroke record, `None` when it has none or it is
+/// inconsistent with the stroke length.
+///
+/// VERIFIED: the ARM copies these record words into the SMP voice record at note-on: `F-8` (loop
+/// end) = start + length, `F-7` (loop length) = the `u32` at `0x28`, `F-9` = `total_frames`
+/// (Astoria Grand strokes 513, 502: `0x27AC9 = 108356 + 54149`, `0xB385 = 54149`, `0x27AE4 =
+/// 162532 = total_frames`; `tools/smp_stream_end.py loop-words`, `docs/research/piano-sample-end.md`
+/// s2). Key-up strokes carry zeros. ASSUMED: the decay law (`d = 2 * -i16`, no pitch scaling;
+/// 370 from `-185` on both strokes, the pitch factor was 1 or absent).
+fn parse_loop(rec: &[u8], total_frames: usize) -> Option<(u32, u32, i16)> {
+    let start = u32::from_be_bytes(
+        rec[LOOP_START_FIELD..LOOP_START_FIELD + 4]
+            .try_into()
+            .ok()?,
+    );
+    let len = u32::from_be_bytes(rec[LOOP_LEN_FIELD..LOOP_LEN_FIELD + 4].try_into().ok()?);
+    let end = start.checked_add(len)?;
+    if len == 0 || end as usize > total_frames {
+        return None;
+    }
+    let decay = i16::from_be_bytes([rec[LOOP_DECAY_FIELD], rec[LOOP_DECAY_FIELD + 1]]);
+    Some((start, end, decay))
 }
 
 /// Parsed Nord Piano (`.npno`) instrument format.
@@ -185,6 +222,7 @@ impl NpnoInstrument {
 
                 let root_key = key_for_idx.get(k).copied().unwrap_or(60);
                 if npages > 0 && data_offset < bytes.len() {
+                    let lp = parse_loop(rec, total_frames);
                     strokes.push(NpnoStroke {
                         data_offset,
                         data_size: data_size.min(bytes.len() - data_offset),
@@ -197,8 +235,9 @@ impl NpnoInstrument {
                         stroke_kind,
                         init_left,
                         init_right,
-                        loop_start: None,
-                        loop_end: None,
+                        loop_start: lp.map(|l| l.0),
+                        loop_end: lp.map(|l| l.1),
+                        loop_decay: lp.map_or(0, |l| l.2),
                     });
                 }
             }
@@ -788,5 +827,28 @@ mod tests {
         assert!(decode_npno_stroke(&bad_order, &bad_raw).is_err());
 
         assert!(decode_npno_stroke(&inst.strokes[0], &raw[..data_off + 10]).is_err());
+    }
+    /// The record words the ARM copies into `F-8` / `F-7` give the sustain loop (issue #640).
+    #[test]
+    fn stroke_loop_fields_follow_the_record() {
+        let mut raw = build_synthetic_npno();
+        let base = NPNO_STROKE_TABLE_OFFSET;
+        raw[base + 0x24..base + 0x28].copy_from_slice(&300u32.to_be_bytes());
+        raw[base + 0x28..base + 0x2C].copy_from_slice(&200u32.to_be_bytes());
+        raw[base + 0x38..base + 0x3A].copy_from_slice(&(-185i16).to_be_bytes());
+        let s = &NpnoInstrument::parse(&raw).unwrap().strokes[0];
+        // total_frames is 512: loop end = 500, loop length = 200.
+        assert_eq!(
+            (s.loop_start, s.loop_end, s.loop_decay),
+            (Some(300), Some(500), -185)
+        );
+
+        // A loop that ends past the stroke, or has no length, is no loop.
+        raw[base + 0x28..base + 0x2C].copy_from_slice(&300u32.to_be_bytes());
+        let s = &NpnoInstrument::parse(&raw).unwrap().strokes[0];
+        assert_eq!((s.loop_start, s.loop_end, s.loop_decay), (None, None, 0));
+        raw[base + 0x28..base + 0x2C].copy_from_slice(&0u32.to_be_bytes());
+        let s = &NpnoInstrument::parse(&raw).unwrap().strokes[0];
+        assert_eq!(s.loop_end, None);
     }
 }

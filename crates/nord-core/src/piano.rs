@@ -31,6 +31,7 @@ mod extra_voice;
 #[cfg(test)]
 mod interp_switch;
 mod pedal_voices;
+mod sample_loop;
 mod slew_voice;
 mod tail_fade;
 mod timbre_gain_tables;
@@ -93,8 +94,12 @@ pub struct LoadedPianoStroke {
     pub sample_rate: f32,
     pub pcm: Arc<[f32]>,
     pub pcm_right: Option<Arc<[f32]>>,
+    /// First looped frame (`F-8 - F-7`): a held note repeats `loop_start..loop_end` (see
+    /// `sample_loop`), `None` for strokes that end (key-up strokes, SFZ without loop points).
     pub loop_start: Option<usize>,
     pub loop_end: Option<usize>,
+    /// `NpnoStroke::loop_decay`, `0` for non-`.npno` strokes.
+    pub loop_decay: i16,
     /// `true` when `pcm` holds the integer samples of a CNSP decode (`y / 8192`), so the hardware
     /// integer MAC applies (`SampleInterp::SmpQ31Hw`); `false` for float WAV / SFZ material.
     pub integer_pcm: bool,
@@ -163,6 +168,7 @@ impl NpnoSound {
                 pcm_right: right.map(Into::into),
                 loop_start: s.loop_start.map(|x| x as usize),
                 loop_end: s.loop_end.map(|x| x as usize),
+                loop_decay: s.loop_decay,
                 integer_pcm: true,
             });
             meta.push((idx, s.root_key, s.stroke_kind, s.vel_low));
@@ -294,6 +300,7 @@ impl NpnoSound {
             pcm_right: None,
             loop_start: None,
             loop_end: None,
+            loop_decay: 0,
             integer_pcm: false,
         };
         let strokes = vec![stroke];
@@ -359,6 +366,7 @@ impl NpnoSound {
                     pcm_right: None,
                     loop_start: reg.loop_start,
                     loop_end: reg.loop_end,
+                    loop_decay: 0,
                     integer_pcm: false,
                 });
                 cache.insert(cache_key, idx);
@@ -1414,8 +1422,11 @@ impl PianoLayer {
         let l = at(&stroke.pcm)?;
         let r = stroke.pcm_right.as_deref().and_then(at).unwrap_or(l);
         *pos = p + step;
-        if fade_tail {
-            // Issue #640: end a held note smoothly instead of cutting it at the last frame.
+        if let (Some(ls), Some(le)) = (stroke.loop_start, stroke.loop_end) {
+            // Firmware loop (issue #640): wrap by the loop length at the loop end, never end.
+            *pos = sample_loop::wrap(*pos, ls, le);
+        } else if fade_tail {
+            // A stroke without loop ends at its last frame: fade it out instead of cutting it.
             let g = tail_fade::tail_gain(p, stroke.pcm.len(), stroke.sample_rate);
             return Some((l * g, r * g));
         }
@@ -1524,6 +1535,7 @@ impl PianoLayer {
         let mut dec_soft: Option<f32> = None;
         let mut dec_hard: Option<f32> = None;
         let mut dec_sustain: Option<f32> = None;
+        let mut dec_loop: Option<(f32, f32)> = None;
         for v in &mut self.voices {
             if !v.active {
                 continue;
@@ -1584,6 +1596,19 @@ impl PianoLayer {
                 }
             };
 
+            // In the sustain loop the firmware slew rate is the steeper `F+6` (issue #640).
+            let loop_x = match (&self.sound, v.stroke_idx) {
+                (Some(snd), Some(i)) if !v.is_release_sample => snd
+                    .strokes
+                    .get(i)
+                    .filter(|st| {
+                        st.loop_start
+                            .is_some_and(|ls| sample_loop::in_loop(v.sample_pos, ls))
+                    })
+                    .map_or(0.0, |st| sample_loop::rate_x(st.loop_decay)),
+                _ => 0.0,
+            };
+
             let sample_scale = downstream::voice_scale(
                 v.stroke_idx.is_some(),
                 self.firmware_bus_scale,
@@ -1622,6 +1647,12 @@ impl PianoLayer {
                 }
             } else if v.stroke_idx.is_none() {
                 v.env *= *dec_sustain.get_or_insert_with(|| (-inv_fs / 1.8).exp());
+            } else if loop_x > 0.0 {
+                let (x, f) = *dec_loop.filter(|c| c.0 == loop_x).get_or_insert_with(|| {
+                    (loop_x, sample_loop::frame_factor(loop_x, self.sample_rate))
+                });
+                dec_loop = Some((x, f));
+                v.env *= f;
             }
             if v.env < 1e-4 {
                 v.active = false;
@@ -1804,6 +1835,54 @@ mod tests {
         let medium = VelocityTouch::Medium.map_velocity(64);
         let heavy = VelocityTouch::Heavy.map_velocity(64);
         assert!(heavy < medium && medium < light);
+    }
+
+    fn looped_sound(loop_decay: i16) -> Arc<NpnoSound> {
+        let sfz = "<region> sample=a.wav lokey=0 hikey=127 pitch_keycenter=60
+";
+        let wav = build_test_wav_i16(48_000, 261.63, 4096);
+        let mut sound = NpnoSound::from_sfz_str("Loop", sfz, |_| Ok(wav.clone())).unwrap();
+        sound.strokes[0].loop_start = Some(2048);
+        sound.strokes[0].loop_end = Some(4096);
+        sound.strokes[0].loop_decay = loop_decay;
+        Arc::new(sound)
+    }
+
+    /// Issue #640: the firmware wraps a held stroke at the loop end, so the note outlasts its
+    /// sample instead of ending (hardware: SMP `F-8` / `F-7`, `docs/research/piano-sample-end.md`).
+    #[test]
+    fn held_looped_note_outlasts_its_sample() {
+        let mut piano = PianoLayer::new(48_000.0);
+        piano.set_sound(Some(looped_sound(0)));
+        piano.note_on(60, 110);
+        let out: Vec<f32> = (0..30_000).map(|_| piano.render_frame()[0].abs()).collect();
+        let peak = |a: usize, b: usize| out[a..b].iter().cloned().fold(0.0f32, f32::max);
+        assert!(
+            piano.voices.iter().any(|v| v.active),
+            "voice must survive the stroke end"
+        );
+        assert!(
+            peak(29_000, 30_000) > 0.8 * peak(1000, 2000),
+            "looped tail must keep sounding"
+        );
+    }
+
+    /// Inside the loop the firmware rate word `F+6` makes every repetition quieter.
+    #[test]
+    fn looped_note_decays_in_the_loop_and_is_freed_when_silent() {
+        let mut piano = PianoLayer::new(48_000.0);
+        piano.set_sound(Some(looped_sound(-20_000)));
+        piano.note_on(60, 110);
+        let out: Vec<f32> = (0..60_000).map(|_| piano.render_frame()[0].abs()).collect();
+        let peak = |a: usize, b: usize| out[a..b].iter().cloned().fold(0.0f32, f32::max);
+        let early = peak(4_200, 5_200);
+        let late = peak(20_000, 21_000);
+        assert!(late < 0.5 * early, "loop must decay: {late} vs {early}");
+        assert!(late > 0.0);
+        assert!(
+            piano.voices.iter().all(|v| !v.active),
+            "voice freed when decayed"
+        );
     }
 
     /// Issue #640: a held note that outlasts its sample must fade out, not stop at full level.
