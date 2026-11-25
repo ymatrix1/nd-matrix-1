@@ -6,7 +6,7 @@
 
 **Question:** Can ARM0 run the real OS v1.66 boot, program load and key events inside Rust below 1.0 ms wall-clock per 1 ms virtual tick (`ns4-lle2`, Gate 1a), and what is the tail, the message latency through a decoupled queue and the instruction budget per ms?
 
-**Answer in one line:** a predecode cache doubles the instruction rate (about 85 to 185 M insns/s, state and message content bit-identical); the mean is 0.11 ms (p50 0.07), 0.3 to 0.5 % of ticks (5 to 9 of 1,900) still run over 1 ms (max 1.5 ms, never more than 2 in a row, worst backlog 0.53 ms), so "< 1 ms on every tick" is still NOT strictly met; through a decoupled queue drained once per ms no message waits more than 1 ms in the simulation.
+**Answer in one line:** a predecode cache doubles the instruction rate (median 93 to 187 M insns/s in an interleaved A/B, state and message content bit-identical); the mean is 0.11 ms (p50 0.07), 0.3 to 0.5 % of ticks (5 to 9 of 1,900) still run over 1 ms (max 1.5 ms, never more than 2 in a row, worst backlog 0.53 ms), so "< 1 ms on every tick" is still NOT strictly met; through a decoupled queue drained once per ms no message waits more than 1 ms in the simulation.
 
 ## Method
 
@@ -31,18 +31,43 @@ One decoded page (1,024 `Entry { insn, cond mask, op, run }`) per guest 4 KiB co
 
 | Build | Boot rate (executed insns/s) | Source |
 |---|---|---|
-| Old interpreter (`Cpu::step` per instruction) | 83 to 90 M | best of N, `target/lle/ab.sh` A/B on the shared machine |
+| Old interpreter (`Cpu::step` per instruction) | 93.5 M median (93 to 95), 7 interleaved runs | A/B on the shared machine, see "Measurement conditions" |
 | + per-instruction decode cache | 136 M | same |
 | + block execution, inline B/BL | 167 M | same |
-| + probe on the cached path, page-wise zero | 183 to 188 M (5 runs: 183.1, 183.5, 184.5, 185.0, 187.7) | same |
+| + probe on the cached path, page-wise zero | 187 M median (184 to 189), 7 interleaved runs | same |
 
-About 2.1x, **not the targeted 5x**. Straight-line synthetic code reaches about 470 M insns/s (`MICRO=1`), so dispatch is no longer the limit: the firmware is branchy and load/store heavy and each guest instruction still costs about 5 ns of host work (memory entry lookup, device checks, flags). `codegen-units = 1` gave +3 % and was not adopted. A faster core needs a different technique (translation to host code or superblocks with cached flags), not a better dispatch loop.
+About 2.0x, **not the targeted 5x**. Straight-line synthetic code reaches about 470 M insns/s (`MICRO=1`), so dispatch is no longer the limit: the firmware is branchy and load/store heavy and each guest instruction still costs about 5 ns of host work (memory entry lookup, device checks, flags). `codegen-units = 1` gave +3 % and was not adopted. A faster core needs a different technique (translation to host code or superblocks with cached flags), not a better dispatch loop.
 
 **Equivalence (every existing test kept, plus new ones).** Boot state hash `0960ef4eefb7fad5` and the per-phase message digests (load `221c6f69751f1f8e`, idle `0cb5cb143a3b7106`, key1 on `67ab63840268b92d`, key1 off `dbdec8588970d602`, key8 on `17622e4962354279`, key8 off `8f24476a8b30f9ee`) and per-phase state hashes (`68a8abb37e4e1d0b`, `8221207b8b72c8e4`, `97893e12e5db4be8`, `d2eb2e9801341ef5`, `a5e39de19c49b79e`, `6be2c14282a84986`) are **identical** to the old interpreter's (built from the parent commit with the digest lines added). The skipping run equals the full run in all phases at every tick budget tried (100 k to 456 k). Unit tests: a 200,000-word random differential of `exec_decoded` against `Cpu::step` (registers, cpsr, bus access log), a 60-program random differential of `Machine::run` with `predecode` on and off including self-modifying code, store and hook invalidation tests, probe-mode tests. `WFI` count is 0 in this workload and is covered by `wfi_has_one_semantic_in_the_full_and_the_skipping_path`.
 
+## Measurement conditions and variance
+
+The machine is shared (three Claude sessions, a codebase indexer and two spinning `find` processes ran throughout), so wall-clock numbers are noisy and the tail (p99, p99.9, max, over-1-ms counts) is the most sensitive. Conditions: AMD Ryzen 9 5900XT (16 cores, 32 logical, 3.3 GHz base), Windows 11, power plan "Alto desempenho" (High performance), release build, same build flags for both binaries. No `cargo` or `rustc` process was running during the A/B below; host CPU load sampled just before each run was 49 to 99 % (median 87 to 88 %), i.e. **never idle**, so absolute values are an upper bound on cost and the other cores were busy.
+
+A/B, load phase, `NO_FULL=1`, one warm-up run of each binary discarded, then 7 runs of each **interleaved** (old, new, new, old, ...; `ab_tail.py` in the scratch folder, raw rows in `target/lle/ab_tail.json`). Median (min to max):
+
+| Metric (load phase unless noted) | Old interpreter | Predecode cache | Outside noise? |
+|---|---|---|---|
+| Boot rate, M executed insns/s | 93.5 (93 to 95) | 187 (184 to 189) | yes, 2.0x, ranges do not overlap |
+| Boot wall time, s | 2.48 (2.44 to 2.49) | 1.24 (1.23 to 1.26) | yes |
+| Mean ms/tick | 0.270 (0.268 to 0.275) | 0.108 (0.105 to 0.112) | yes |
+| p50 ms | 0.170 (0.170 to 0.171) | 0.070 (0.068 to 0.071) | yes |
+| p99 ms | 2.53 (2.49 to 2.61) | 0.963 (0.952 to 0.994) | yes |
+| p99.9 ms | 2.72 (2.56 to 3.61) | 1.27 (1.19 to 1.36) | yes (old max is a spike) |
+| Max ms | 2.73 (2.65 to 3.62) | 1.48 (1.42 to 1.55) | yes |
+| Ticks over 1 ms (of 800) | 36 (35 to 37) | 6 (4 to 8) | yes |
+| Longest run over 1 ms | 32 (32 to 32) | 1 (1 to 3) | yes |
+| Worst backlog, ms | 47.9 (47.4 to 50.6) | 0.48 (0.42 to 0.55) | yes |
+
+Earlier single runs in this note (old: 43 ticks over 1 ms, backlog 61 ms; boot 83 to 90 M insns/s) were taken under heavier load and sit outside the old binary's A/B range: they show the noise, and the A/B medians above replace them as the quoted before values. The new core's figures agree across 12 runs (5 + 7): 4 to 9 ticks over 1 ms in all phases, max 1.42 to 1.55 ms, run at most 3.
+
+**What is deterministic.** Executed instructions per tick do not depend on the host: 12,481 per load tick (mean), 3,288 to 3,448 in the other phases, identical in every run of both binaries, and every over-1-ms tick of the old core executed the full 200,000-instruction budget. So the tail is set by how many ticks do a full budget of real work (a count fixed by the firmware and the tick budget) times the host cost per instruction (about 5.3 ns now, about 10.7 ns before); OS scheduling only adds the jitter seen in the ranges above. I did **not** measure per-thread CPU time or count host cycles, so the wall-clock tail still includes preemption by the other load: a single spike coincident with other load (such as the old max of 3.62 ms in one run) is unproven. The conclusions drawn (6x fewer slow ticks, no backlog above 0.55 ms, still 4 to 9 ticks over 1 ms) rest on medians and on ranges that do not overlap.
+
+Not repeated under these conditions (single runs, noise band not measured, treat as indicative): the tick-budget sensitivity table (the ordering of 300 k against 456 k in ticks over 1 ms, 23 against 16, is inside the noise; the growth of p99 and max with the budget is not), the queue simulation (derived from the same per-tick costs; its 1 ms maximum is quantised by the 1 ms drain and was the same in all five runs that printed it), and the `PACED=1` runs (OS scheduler dominated, already not quoted).
+
 ## Tick tail with the faster core (follow-up 2)
 
-Skipping run, 1,900 ticks per run, five runs (`NO_FULL=1`), best and worst of the five:
+Skipping run, 1,900 ticks per run, five runs (`NO_FULL=1`), min to max of the five (see the previous section for the interleaved A/B and its conditions):
 
 | Phase | Ticks | Mean ms | p50 | p99 | p99.9 | Max | Ticks > 1 ms | Longest run > 1 ms | Worst backlog ms | Executed insns/tick | Messages |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -53,7 +78,7 @@ Skipping run, 1,900 ticks per run, five runs (`NO_FULL=1`), best and worst of th
 | key8 on | 200 | 0.069 to 0.072 | 0.072 | 0.12 to 0.40 | 0.40 to 0.45 | 0.92 to 0.95 | 0 | 0 | 0 | 3,365 | 1006 |
 | key8 off | 200 | 0.070 to 0.072 | 0.072 | 0.11 to 0.39 | 0.38 to 0.47 | 0.97 to 1.01 | 0 to 1 | 0 to 1 | 0 to 0.01 | 3,426 | 969 |
 
-All phases: 5 to 9 ticks over 1 ms out of 1,900 (0.3 to 0.5 %), longest run 1 to 2, worst backlog 0.43 to 0.53 ms (backlog = work behind real time if ticks are consumed at one per ms and slow ticks carry over). Before (old interpreter, same machine, same session, `NO_FULL`): load mean 0.305, p50 0.174, p99 3.25, max 3.83, 38 ticks over 1 ms (4.8 %), longest run 32, backlog 61.5 ms. A full 200,000-instruction tick cost about 2.1 ms before and costs about 1.03 ms now (`target/lle/old_full.txt`, `v3_full.txt`). The over-1-ms ticks are the same real firmware work as before (full 200,000-instruction ticks during program load); they got about 2x shorter, not 5x.
+All phases: 5 to 9 ticks over 1 ms out of 1,900 (0.3 to 0.5 %), longest run 1 to 2, worst backlog 0.43 to 0.53 ms (backlog = work behind real time if ticks are consumed at one per ms and slow ticks carry over). Before (old interpreter, interleaved A/B medians): load mean 0.270, p50 0.170, p99 2.53, max 2.73, 36 of 800 load ticks over 1 ms (4.5 %), longest run 32, backlog 47.9 ms (first single run, under more load: 38 ticks, max 3.83, backlog 61.5 ms). A full 200,000-instruction tick cost about 2.1 ms before and costs about 1.03 ms now (`target/lle/old_full.txt`, `v3_full.txt`). The over-1-ms ticks are the same real firmware work as before (full 200,000-instruction ticks during program load); they got about 2x shorter, not 5x.
 
 **Criterion "< 1 ms on every tick": NOT met.** 0.3 to 0.5 % of ticks exceed it, by at most 0.53 ms. The bean criterion stays unticked. For real-time use the margin is small but the tail is bounded: no backlog above 0.53 ms and no run above 2 ticks.
 

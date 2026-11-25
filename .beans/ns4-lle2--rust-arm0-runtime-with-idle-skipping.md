@@ -34,7 +34,7 @@ Wiring live GUI controls (`ns4-lle6`); multi-chip SHARC audio routing (`ns4-lle4
 - Open (bean stays in-progress): predecode cache for about 5x, message-latency/queue sizing, real instructions per ms, null-call 747 vs 762, live DSP return layers (`ns4-lle5`).
 
 ### Follow-ups (2026-11-24, D247)
-- Predecode cache (`cpu/predecode.rs`, `cpu/arm_cached.rs`, `machine/fastrun.rs`, page flag `HOOK_C`, probe mode): boot 83 to 90 M to 183 to 188 M executed insns/s (about 2.1x, not the 5x target); state hash and message digests identical to the old interpreter at tick budgets 100 k, 200 k, 300 k, 456 k.
+- Predecode cache (`cpu/predecode.rs`, `cpu/arm_cached.rs`, `machine/fastrun.rs`, page flag `HOOK_C`, probe mode): boot median 93 M to 187 M (interleaved A/B, 7 runs each) executed insns/s (about 2.1x, not the 5x target); state hash and message digests identical to the old interpreter at tick budgets 100 k, 200 k, 300 k, 456 k.
 - Tail (5 runs): mean 0.11 ms (load), p99 0.97 to 1.0, p99.9 1.25 to 1.39, max 1.43 to 1.53; 5 to 9 of 1,900 ticks over 1 ms, longest run 2, worst backlog 0.53 ms (was 38 ticks, run 32, 61 ms). Criterion NOT ticked.
 - Queue: simulated drain per ms gives max message latency 1 ms, at most 2 ticks / 1,855 messages per drain (was p99 59 ms). Real-thread run (`PACED=1`) is OS-scheduler noise on the shared machine.
 - Budget: `INSNS_PER_TICK = 200000` stays ASSUMED; bound clock x IPC <= 300 k to 456 k per ms; sensitivity 100 k to 456 k in the research note (load tail: 1, 4 to 8, 23, 16 ticks over 1 ms).
