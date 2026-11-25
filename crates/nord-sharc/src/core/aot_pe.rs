@@ -18,8 +18,11 @@ use super::aot_native::{
     approx_add, approx_from_int, approx_mul, guarded_add, guarded_from_int, guarded_mul, Kern,
 };
 use super::decode_cache::ComputeOp;
-use super::float::{Mode, Out, MODE1_ALUSAT};
+use super::float::{self, Mode, Out, MODE1_ALUSAT};
+use super::float_conv as conv;
 use super::float_misc as misc;
+use super::shifter_bits;
+use super::types::Flags;
 use super::Core;
 use crate::visa::bits;
 
@@ -32,22 +35,18 @@ const STKY_AOS: u32 = 1 << 2;
 /// Float ALU opcodes of the float multifunction forms, indexed by `op6 & 7` (`multifunction.rs`).
 const FLOAT_ALU_OPS: [u8; 8] = [0x81, 0x82, 0xDA, 0xD9, 0x89, 0xB0, 0xE2, 0xE1];
 
-/// One element (PEx or PEy) of a core, held in locals for the duration of an AOT block.
-pub(super) struct Pe {
+/// One element (PEx or PEy) of a core, worked on in place: the registers, float extensions, flags
+/// and ASTAT extra bits are borrowed from the [`Core`] for the duration of a block or a single
+/// kernel, so one compute op does not copy the ~170 bytes of element state in and out (that
+/// copy was about half the cost of a lowered op). The pending STKY bits stay local and are
+/// raised once through [`Core::aot_pe_end`].
+pub(super) struct Pe<'a> {
     y: bool,
-    r: [u32; 16],
-    tag: [u32; 16],
-    lo: [u8; 16],
-    az: bool,
-    an: bool,
-    av: bool,
-    ac: bool,
-    as_: bool,
-    ai: bool,
-    sz: bool,
-    sv: bool,
-    ss: bool,
-    astat: u32,
+    r: &'a mut [u32; 16],
+    tag: &'a mut [u32; 16],
+    lo: &'a mut [u8; 16],
+    f: &'a mut Flags,
+    astat: &'a mut u32,
     sticky: u32,
     mode: Mode,
     sat: bool,
@@ -58,10 +57,27 @@ pub(super) struct Pe {
 pub(super) fn pe_supports(op: ComputeOp) -> bool {
     match op {
         ComputeOp::Nop | ComputeOp::FloatMul { .. } => true,
+        ComputeOp::Shifter { op, .. } => pe_supports_shift(u64::from(op)),
         ComputeOp::FloatAlu { op, .. } => {
-            matches!(op, 0x81 | 0x82 | 0xDA | 0xE0..=0xE3 | 0xA2 | 0xC4)
+            matches!(
+                op,
+                0x81 | 0x82
+                    | 0x89
+                    | 0x8A
+                    | 0xA1
+                    | 0xA2
+                    | 0xB0
+                    | 0xC4
+                    | 0xC5
+                    | 0xC9
+                    | 0xD9
+                    | 0xDA
+                    | 0xE0..=0xE3
+            )
         }
-        ComputeOp::FixedAlu { op, .. } => matches!(op, 0x01 | 0x02),
+        ComputeOp::FixedAlu { op, .. } => {
+            matches!(op, 0x01 | 0x02 | 0x0A | 0x21 | 0x22 | 0x29 | 0x40..=0x42 | 0x61..=0x63)
+        }
         ComputeOp::Multifunction { c } => float_multi(c).is_some(),
         _ => false,
     }
@@ -69,7 +85,23 @@ pub(super) fn pe_supports(op: ComputeOp) -> bool {
 
 /// Whether [`Pe::shift`] implements the register-form shifter opcode `op`.
 pub(super) fn pe_supports_shift(op: u64) -> bool {
-    matches!(op, 0xC0 | 0xC4 | 0xC8)
+    matches!(
+        op,
+        0x00 | 0x04
+            | 0x08
+            | 0x20
+            | 0x24
+            | 0x40
+            | 0x44
+            | 0x48
+            | 0x4C
+            | 0x64
+            | 0x6C
+            | 0xC0
+            | 0xC4
+            | 0xC8
+            | 0xCC
+    )
 }
 
 /// `(rm, xm, ym, alu opcode, ra, xa, ya)` of a float multiplier + float ALU multifunction word.
@@ -78,9 +110,6 @@ fn float_multi(c: u64) -> Option<(u8, u8, u8, u8, u8, u8, u8)> {
         return None;
     }
     let alu = FLOAT_ALU_OPS[bits(c, 18, 16) as usize];
-    if !matches!(alu, 0x81 | 0x82 | 0xDA | 0xE0..=0xE3) {
-        return None;
-    }
     Some((
         bits(c, 15, 12) as u8,
         bits(c, 7, 6) as u8,
@@ -92,33 +121,26 @@ fn float_multi(c: u64) -> Option<(u8, u8, u8, u8, u8, u8, u8)> {
     ))
 }
 
-impl Pe {
-    /// Copies element `y` (false = PEx) out of `core`.
+impl<'a> Pe<'a> {
+    /// Borrows element `y` (false = PEx) of `core`.
     #[inline(always)]
-    pub(super) fn load(core: &Core, y: bool) -> Pe {
+    pub(super) fn load(core: &'a mut Core, y: bool) -> Pe<'a> {
+        let (mode, sat) = (Mode::from_mode1(core.mode1), core.mode1 & MODE1_ALUSAT != 0);
         let (r, fx, f) = if y {
-            (&core.s, &core.fx_y, &core.flags_y)
+            (&mut core.s, &mut core.fx_y, &mut core.flags_y)
         } else {
-            (&core.r, &core.fx, &core.flags)
+            (&mut core.r, &mut core.fx, &mut core.flags)
         };
         Pe {
             y,
-            r: *r,
-            tag: fx.tag,
-            lo: fx.lo,
-            az: f.az,
-            an: f.an,
-            av: f.av,
-            ac: f.ac,
-            as_: f.as_,
-            ai: f.ai,
-            sz: f.sz,
-            sv: f.sv,
-            ss: f.ss,
-            astat: core.sys.astat_extra[usize::from(y)],
+            r,
+            tag: &mut fx.tag,
+            lo: &mut fx.lo,
+            f,
+            astat: &mut core.sys.astat_extra[usize::from(y)],
             sticky: 0,
-            mode: Mode::from_mode1(core.mode1),
-            sat: core.mode1 & MODE1_ALUSAT != 0,
+            mode,
+            sat,
             kern: Kern::Exact,
         }
     }
@@ -126,7 +148,7 @@ impl Pe {
     /// The same element with the float kernels `kern` (a constant in generated code, so the
     /// choice folds away).
     #[inline(always)]
-    pub(super) fn with_kern(mut self, kern: Kern) -> Pe {
+    pub(super) fn with_kern(mut self, kern: Kern) -> Pe<'a> {
         self.kern = kern;
         self
     }
@@ -170,24 +192,11 @@ impl Pe {
         fast_from_int(x, scale, self.mode)
     }
 
-    /// Writes the element back and records the block's arithmetic exceptions.
+    /// The arithmetic-exception bits accumulated so far; pass them to [`Core::aot_pe_end`] once the
+    /// element's borrow has ended.
     #[inline(always)]
-    pub(super) fn store(&self, core: &mut Core) {
-        let (r, fx, f) = if self.y {
-            (&mut core.s, &mut core.fx_y, &mut core.flags_y)
-        } else {
-            (&mut core.r, &mut core.fx, &mut core.flags)
-        };
-        *r = self.r;
-        fx.tag = self.tag;
-        fx.lo = self.lo;
-        (f.az, f.an, f.av, f.ac, f.as_, f.ai) =
-            (self.az, self.an, self.av, self.ac, self.as_, self.ai);
-        (f.sz, f.sv, f.ss) = (self.sz, self.sv, self.ss);
-        core.sys.astat_extra[usize::from(self.y)] = self.astat;
-        if self.sticky != 0 {
-            core.aot_note_sticky(self.y, self.sticky);
-        }
+    pub(super) fn sticky(&self) -> u32 {
+        self.sticky
     }
 
     /// The 40-bit float in register `n` (the extension counts while its tag matches).
@@ -213,8 +222,9 @@ impl Pe {
     /// `Core::apply`: the ALU flags of a float result and the sticky bits they latch.
     #[inline(always)]
     fn apply(&mut self, o: Out) {
-        (self.az, self.an, self.av, self.ac, self.as_, self.ai) =
-            (o.az, o.an, o.av, false, o.as_, o.ai);
+        (
+            self.f.az, self.f.an, self.f.av, self.f.ac, self.f.as_, self.f.ai,
+        ) = (o.az, o.an, o.av, false, o.as_, o.ai);
         self.sticky |= u32::from(o.au) | u32::from(o.av) << 1 | u32::from(o.ai) << 5;
     }
 
@@ -230,7 +240,7 @@ impl Pe {
         self.set_f40(n, o.v);
         let mult =
             u32::from(o.mn) | u32::from(o.mv) << 1 | u32::from(o.mu) << 2 | u32::from(o.mi) << 3;
-        self.astat = self.astat & !(0xF << 6) | mult << 6;
+        (*self.astat) = (*self.astat) & !(0xF << 6) | mult << 6;
         self.sticky |= u32::from(o.mv) << 7 | u32::from(o.mu) << 8 | u32::from(o.mi) << 9;
     }
 
@@ -240,10 +250,72 @@ impl Pe {
         let n = usize::from(n);
         self.r[n] = r;
         self.lo[n] = 0;
-        (self.az, self.an, self.av, self.ac, self.as_, self.ai) =
-            (r == 0, (r as i32) < 0, av, ac, false, false);
+        (
+            self.f.az, self.f.an, self.f.av, self.f.ac, self.f.as_, self.f.ai,
+        ) = (r == 0, (r as i32) < 0, av, ac, false, false);
         if av {
             self.sticky |= STKY_AOS;
+        }
+    }
+
+    /// `Core::fixed_add` / `fixed_sub` (`Rx + Ry + cin`, or `Rx + !Ry + cin`) with ALUSAT.
+    #[inline(always)]
+    fn fixed_addsub(&mut self, n: u8, x: u32, y: u32, cin: u64, sub: bool) {
+        let (yy, ey) = if sub {
+            (u64::from(!y), -i64::from(y as i32) - 1)
+        } else {
+            (u64::from(y), i64::from(y as i32))
+        };
+        let t = u64::from(x) + yy + cin;
+        let exact = i64::from(x as i32) + ey + cin as i64;
+        let av = i32::try_from(exact).is_err();
+        let r = if av && self.sat {
+            if exact > 0 {
+                0x7FFF_FFFF
+            } else {
+                0x8000_0000
+            }
+        } else {
+            t as u32
+        };
+        self.fixed_result(n, r, t >> 32 != 0, av);
+    }
+
+    /// The fixed-point ALU opcodes of `Core::fixed_alu` that [`pe_supports`] lists.
+    #[inline(always)]
+    fn fixed_alu(&mut self, op: u8, n: u8, rx: u32, ry: u32) {
+        let plain = |s: &mut Self, r: u32| s.fixed_result(n, r, false, false);
+        match op {
+            0x01 => self.fixed_addsub(n, rx, ry, 0, false),
+            0x02 => self.fixed_addsub(n, rx, ry, 1, true),
+            0x22 => self.fixed_addsub(n, 0, rx, 1, true),
+            0x29 => self.fixed_addsub(n, rx, 1, 0, false),
+            0x21 => plain(self, rx),
+            0x40 => plain(self, rx & ry),
+            0x41 => plain(self, rx | ry),
+            0x42 => plain(self, rx ^ ry),
+            0x61 => plain(self, (rx as i32).min(ry as i32) as u32),
+            0x62 => plain(self, (rx as i32).max(ry as i32) as u32),
+            0x63 => {
+                let lim = i64::from(ry as i32).abs();
+                plain(self, i64::from(rx as i32).clamp(-lim, lim) as u32);
+            }
+            _ => {
+                // 0x0A: signed compare; CACC shifts in `Rx > Ry`, no result register
+                let greater = (rx as i32) > (ry as i32);
+                *self.astat = *self.astat & 0x00FF_FFFF
+                    | ((*self.astat >> 24 >> 1) | u32::from(greater) << 7) << 24;
+                (
+                    self.f.az, self.f.an, self.f.av, self.f.ac, self.f.as_, self.f.ai,
+                ) = (
+                    rx == ry,
+                    (rx as i32) < (ry as i32),
+                    false,
+                    false,
+                    false,
+                    false,
+                );
+            }
         }
     }
 
@@ -253,13 +325,41 @@ impl Pe {
         let o = match op {
             0x81 => self.k_add(self.f40(x), self.f40(y), false),
             0x82 => self.k_add(self.f40(x), self.f40(y), true),
+            0x89 => float::add(self.f40(x), self.f40(y), false, true, self.mode),
+            0x8A => {
+                // compare: CACC shifts in `Fx > Fy`, no result register
+                let (a, b) = (self.f40(x), self.f40(y));
+                let cacc =
+                    (*self.astat >> 24 >> 1) | u32::from(misc::greater(a, b, self.mode)) << 7;
+                *self.astat = *self.astat & 0x00FF_FFFF | cacc << 24;
+                self.apply(misc::compare(a, b, self.mode));
+                (*self.astat) |= AF;
+                return;
+            }
+            0xA1 => misc::sign_op(self.f40(x), 0, self.mode),
+            0xB0 => misc::sign_op(self.f40(x), 2, self.mode),
+            0xC9 | 0xD9 => {
+                let iy = if op == 0xD9 {
+                    self.r[usize::from(y)] as i32
+                } else {
+                    0
+                };
+                let o = conv::to_int(self.f40(x), iy, false, self.mode);
+                let n = usize::from(n);
+                self.r[n] = o.v as u32;
+                self.lo[n] = 0;
+                self.apply(o);
+                (*self.astat) |= AF;
+                return;
+            }
+            0xC5 => misc::rsqrts(self.f40(x), self.mode),
             0xDA => self.k_from_int(self.r[usize::from(x)] as i32, self.r[usize::from(y)] as i32),
             0xE0..=0xE3 => misc::select_op(self.f40(x), self.f40(y), op & 3, self.mode),
             0xA2 => misc::sign_op(self.f40(x), 1, self.mode),
             _ => misc::recips(self.f40(x), self.mode),
         };
         self.float_result(n, o);
-        self.astat |= AF;
+        (*self.astat) |= AF;
     }
 
     /// Executes one lowered compute field on this element ([`pe_supports`] gates the ops).
@@ -274,29 +374,12 @@ impl Pe {
             }
             ComputeOp::FixedAlu { op, n, x, y } => {
                 let (rx, ry) = (self.r[usize::from(x)], self.r[usize::from(y)]);
-                let (t, exact) = if op == 0x01 {
-                    (
-                        u64::from(rx) + u64::from(ry),
-                        i64::from(rx as i32) + i64::from(ry as i32),
-                    )
-                } else {
-                    (
-                        u64::from(rx) + u64::from(!ry) + 1,
-                        i64::from(rx as i32) - i64::from(ry as i32),
-                    )
-                };
-                let av = i32::try_from(exact).is_err();
-                let r = if av && self.sat {
-                    if exact > 0 {
-                        0x7FFF_FFFF
-                    } else {
-                        0x8000_0000
-                    }
-                } else {
-                    t as u32
-                };
-                self.fixed_result(n, r, t >> 32 != 0, av);
-                self.astat &= !AF;
+                self.fixed_alu(op, n, rx, ry);
+                (*self.astat) &= !AF;
+            }
+            ComputeOp::Shifter { op, n, x, y } => {
+                let ry = self.r[usize::from(y)];
+                self.shift(u64::from(op), n, x, ry);
             }
             ComputeOp::Multifunction { c } => {
                 if let Some((rm, xm, ym, alu, ra, xa, ya)) = float_multi(c) {
@@ -314,16 +397,24 @@ impl Pe {
     fn multi_float(&mut self, rm: u8, xm: u8, ym: u8, alu: u8, ra: u8, xa: u8, ya: u8) {
         let i = usize::from(ra);
         let orig = (self.r[i], self.tag[i], self.lo[i]);
-        let orig_flags = (self.az, self.an, self.av, self.ac, self.as_, self.ai);
+        let orig_flags = (
+            self.f.az, self.f.an, self.f.av, self.f.ac, self.f.as_, self.f.ai,
+        );
         self.float_alu(alu, ra, xa, ya);
         let done = (self.r[i], self.tag[i], self.lo[i]);
-        let done_flags = (self.az, self.an, self.av, self.ac, self.as_, self.ai);
+        let done_flags = (
+            self.f.az, self.f.an, self.f.av, self.f.ac, self.f.as_, self.f.ai,
+        );
         (self.r[i], self.tag[i], self.lo[i]) = orig;
-        (self.az, self.an, self.av, self.ac, self.as_, self.ai) = orig_flags;
+        (
+            self.f.az, self.f.an, self.f.av, self.f.ac, self.f.as_, self.f.ai,
+        ) = orig_flags;
         let o = self.k_mul(self.f40(xm), self.f40(ym));
         self.mul_result(rm, o);
         (self.r[i], self.tag[i], self.lo[i]) = done;
-        (self.az, self.an, self.av, self.ac, self.as_, self.ai) = done_flags;
+        (
+            self.f.az, self.f.an, self.f.av, self.f.ac, self.f.as_, self.f.ai,
+        ) = done_flags;
     }
 
     /// `Rn = Rimm` for a data register (`Core::write_ureg`: the float extension is dropped).
@@ -352,17 +443,56 @@ impl Pe {
     #[inline(always)]
     pub(super) fn shift(&mut self, op: u64, n: u8, x: u8, ry: u32) {
         let rx = self.r[usize::from(x)];
+        let old = self.r[usize::from(n)];
+        let (len, pos) = ((ry >> 6) & 63, ry & 63);
         let bit = ry as i32;
         let bit_ok = (0..32).contains(&bit);
-        let r = match (bit_ok, op) {
-            (false, _) => rx,
-            (true, 0xC0) => rx | (1 << bit),
-            (true, 0xC4) => rx & !(1 << bit),
-            (true, _) => rx ^ (1 << bit),
+        let r = match op {
+            0x00 | 0x20 | 0x04 | 0x24 => {
+                let arith = op & 4 != 0;
+                let r = shifter_bits::shift(rx, bit, arith) | if op & 0x20 != 0 { old } else { 0 };
+                let sv = bit > 0
+                    && (!arith
+                        || shifter_bits::shift(rx, bit, true) as i32 >> ry.min(31) != rx as i32
+                        || (ry >= 32 && (rx != 0 || op & 0x20 != 0)));
+                (self.f.sz, self.f.sv, self.f.ss) = (r == 0, sv, false);
+                r
+            }
+            0x08 => {
+                let r = rx.rotate_left(bit.rem_euclid(32) as u32);
+                (self.f.sz, self.f.sv, self.f.ss) = (r == 0, false, false);
+                r
+            }
+            0xC0 | 0xC4 | 0xC8 => {
+                let r = match (bit_ok, op) {
+                    (false, _) => rx,
+                    (true, 0xC0) => rx | (1 << bit),
+                    (true, 0xC4) => rx & !(1 << bit),
+                    (true, _) => rx ^ (1 << bit),
+                };
+                (self.f.sz, self.f.sv, self.f.ss) = (r == 0, !bit_ok, false);
+                r
+            }
+            0xCC => {
+                let zero = !bit_ok || (rx >> bit) & 1 == 0;
+                (self.f.sz, self.f.sv, self.f.ss) = (zero, !bit_ok, false);
+                (*self.astat) &= !SHIFTER_CLEAR;
+                return;
+            }
+            0x44 | 0x4C | 0x64 | 0x6C => {
+                let (v, over) = shifter_bits::deposit(rx, len, pos, op & 8 != 0);
+                let r = v | if op & 0x20 != 0 { old } else { 0 };
+                (self.f.sz, self.f.sv, self.f.ss) = (r == 0, over, false);
+                r
+            }
+            _ => {
+                let (r, over) = shifter_bits::extract(rx, len, pos, op & 8 != 0);
+                (self.f.sz, self.f.sv, self.f.ss) = (r == 0, over, false);
+                r
+            }
         };
-        (self.sz, self.sv, self.ss) = (r == 0, !bit_ok, false);
         self.r[usize::from(n)] = r;
-        self.astat &= !SHIFTER_CLEAR;
+        (*self.astat) &= !SHIFTER_CLEAR;
     }
 }
 
@@ -370,8 +500,18 @@ impl Core {
     /// Records the block's accumulated arithmetic-exception bits of element `y`: STKY and the
     /// latched `FIXI`/`FLTOI`/`FLTUI`/`FLTII` interrupts, like `note_arith_exception` called
     /// from PEy's swapped view (the writable-bit mask is PEx's).
+    #[cold]
+    #[inline(never)]
     pub(super) fn aot_note_sticky(&mut self, y: bool, sticky: u32) {
         self.note_arith_exception_in(usize::from(y), 0, sticky);
+    }
+
+    /// Ends an in-place [`Pe`] run: raises its accumulated arithmetic-exception bits.
+    #[inline(always)]
+    pub(super) fn aot_pe_end(&mut self, y: bool, sticky: u32) {
+        if sticky != 0 {
+            self.aot_note_sticky(y, sticky);
+        }
     }
 }
 
@@ -398,7 +538,8 @@ mod tests {
                     LoweredOp::Shift { op, n, x, ry } => pe.shift(op, n, x, ry),
                 }
             }
-            pe.store(core);
+            let st = pe.sticky();
+            core.aot_pe_end(y, st);
         }
     }
 
@@ -445,12 +586,26 @@ mod tests {
         let (n, x, y) = (r.reg() % 8, r.reg(), r.reg() + 4);
         let (n, x, y) = (n, x.min(15), y.min(15));
         let falu = |op| ComputeOp::FloatAlu { op, n, x, y };
-        let ops = [0x81, 0x82, 0xDA, 0xE0, 0xE1, 0xE2, 0xE3, 0xA2, 0xC4];
-        match r.next() % 12 {
-            0..=3 => LoweredOp::Compute(falu(ops[(r.next() % 9) as usize])),
+        let ops = [
+            0x81, 0x82, 0xDA, 0xE0, 0xE1, 0xE2, 0xE3, 0xA2, 0xC4, 0x89, 0x8A, 0xA1, 0xB0, 0xC5,
+            0xC9, 0xD9,
+        ];
+        match r.next() % 14 {
+            12 | 13 => LoweredOp::Compute(ComputeOp::Shifter {
+                op: [
+                    0x00, 0x04, 0x08, 0x20, 0x24, 0x40, 0x44, 0x48, 0x4C, 0x64, 0x6C, 0xC0, 0xC4,
+                    0xC8, 0xCC,
+                ][(r.next() % 15) as usize],
+                n,
+                x,
+                y,
+            }),
+            0..=3 => LoweredOp::Compute(falu(ops[(r.next() % 16) as usize])),
             4 | 5 => LoweredOp::Compute(ComputeOp::FloatMul { n, x, y }),
             6 => LoweredOp::Compute(ComputeOp::FixedAlu {
-                op: 1 + (r.next() % 2) as u8,
+                op: [
+                    0x01, 0x02, 0x0A, 0x21, 0x22, 0x29, 0x40, 0x41, 0x42, 0x61, 0x62, 0x63,
+                ][(r.next() % 12) as usize],
                 n,
                 x,
                 y,
@@ -477,10 +632,17 @@ mod tests {
                 compute: (r.next() & 1 == 0).then(|| falu(0x82)),
             },
             _ => LoweredOp::Shift {
-                op: [0xC0, 0xC4, 0xC8][(r.next() % 3) as usize],
+                op: [
+                    0xC0, 0xC4, 0xC8, 0x00, 0x04, 0x08, 0x20, 0x24, 0x40, 0x44, 0x48, 0x4C, 0x64,
+                    0x6C, 0xCC,
+                ][(r.next() % 15) as usize],
                 n,
                 x,
-                ry: (r.next() % 40) as u32,
+                ry: if r.next() & 1 == 0 {
+                    (r.next() % 40) as u32
+                } else {
+                    r.next() as u32 >> (r.next() % 20)
+                },
             },
         }
     }
@@ -556,11 +718,11 @@ mod tests {
         assert!(float_multi(1 << 21).is_none(), "three-operation form");
         assert!(float_multi(1 << 22).is_none(), "register transfer");
         assert!(!pe_supports(ComputeOp::Shifter {
-            op: 0,
+            op: 0x80,
             n: 0,
             x: 0,
             y: 0
         }));
-        assert!(pe_supports_shift(0xC8) && !pe_supports_shift(0x00));
+        assert!(pe_supports_shift(0xC8) && pe_supports_shift(0x00) && !pe_supports_shift(0x80));
     }
 }

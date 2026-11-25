@@ -51,7 +51,7 @@ pub(super) struct IrqState {
     pub idle: bool,
     pub ivt_base: u32,
     /// Short-word window `[window_lo, window_lo + window_len)` fetched in ISA parcel order.
-    window_lo: u32,
+    pub(super) window_lo: u32,
     pub window_len: u32,
     /// External interrupts scheduled as `(cycle, vector)`, ascending.
     scheduled: Vec<(u64, u8)>,

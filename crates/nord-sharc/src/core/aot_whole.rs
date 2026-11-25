@@ -33,6 +33,36 @@ pub(super) enum Chk {
     /// The pc is the next instruction and the guard signature of `aot_glue.rs` is unchanged
     /// (the item may write the interrupt controller, the mode bits, the code or the stacks).
     Sig,
+    /// A store through the data bus: the signature is re-checked only when the access left the
+    /// internal SRAM (`Core::aot_slow`), because a store to SRAM cannot change guarded state.
+    /// A store into the code of the running block is not an exit: self-modified SRAM code is only
+    /// seen at the next block entry (`aot_code_matches`). ASSUMED not to happen inside one block
+    /// (the 1:1 diff on ORG Core2 holds); a block that rewrites its own later steps would run the
+    /// stale lowered code until it ends.
+    Slow,
+}
+
+/// How an instruction relates to the state the block guard assumed constant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Guard {
+    /// Cannot change it.
+    Keep,
+    /// A store: changes it only when it leaves the internal SRAM.
+    Store,
+    /// May change it (system register write, bit operation on a system register, ...): the
+    /// block ends after the instruction and the dispatcher re-enters (and re-checks the guard).
+    Cut,
+}
+
+/// Where an instruction sits in a block.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Pos {
+    /// Straight line: a [`Guard::Cut`] instruction ends the block.
+    Plain,
+    /// A delayed flow instruction: the two delay slots follow in the block.
+    Flow,
+    /// A delay slot.
+    Slot,
 }
 
 /// One instruction of a whole-pass block that is not a native batch op: a lowered memory transfer
@@ -70,6 +100,17 @@ fn may_change_guard(op: &DecodedOp, kind: Kind, w: u64) -> bool {
     }
 }
 
+/// The [`Guard`] class of an instruction.
+fn guard_class(xfer: &Option<MemXfer>, op: &DecodedOp, kind: Kind, w: u64) -> Guard {
+    match xfer {
+        Some(x) if x.is_store() => Guard::Store,
+        Some(x) if x.may_change_guard() => Guard::Cut,
+        Some(_) => Guard::Keep,
+        None if may_change_guard(op, kind, w) => Guard::Cut,
+        None => Guard::Keep,
+    }
+}
+
 /// Delay slots a block must keep out of native batches after this op, and whether it ends the
 /// block (its pc is not the fall-through pc).
 fn terminator(op: &DecodedOp) -> Option<u32> {
@@ -96,6 +137,23 @@ impl Core {
         (d.insn.len as u32, op, d.insn.kind, d.insn.parcels, d.w)
     }
 
+    /// The last-instruction pcs of the counter loops (`DO ... UNTIL LCE`) entered by `executed`.
+    /// A block ends there, so the loop-back is the block's own exit (`finish_step` in the tail).
+    pub(super) fn loop_ends(&self, executed: &BTreeMap<u32, bool>) -> BTreeSet<u32> {
+        executed
+            .keys()
+            .filter(|&&pc| !self.isa_at(pc))
+            .filter_map(|&pc| match self.whole_decode(pc).1 {
+                DecodedOp::Flow(FlowOp::DoUntilCounter { end, .. })
+                    if executed.contains_key(&end) =>
+                {
+                    Some(end)
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Block start pcs for the executed pcs `executed` (pc to "reached from outside the previous
     /// instruction") plus `forced`: the leaders, and the pc after every flow instruction with its
     /// delay slots.
@@ -110,12 +168,18 @@ impl Core {
             .filter(|p| executed.contains_key(p))
             .collect();
         starts.extend(executed.iter().filter(|(_, &l)| l).map(|(&p, _)| p));
+        for end in self.loop_ends(executed) {
+            let after = end + self.whole_decode(end).0;
+            if executed.contains_key(&after) {
+                starts.insert(after);
+            }
+        }
         for &pc in executed.keys() {
             if self.isa_at(pc) {
                 continue;
             }
-            let (len, op, ..) = self.whole_decode(pc);
-            let Some(slots) = terminator(&op) else {
+            let (len, op, kind, _, w) = self.whole_decode(pc);
+            let Some(slots) = terminator(&op).or_else(|| self.cuts_block(pc, &op, kind, w)) else {
                 continue;
             };
             let mut after = pc + len;
@@ -129,6 +193,14 @@ impl Core {
         starts
     }
 
+    /// `Some(0)` when the instruction at `pc` ends its block because it may change guarded state
+    /// ([`Guard::Cut`]); the block after it starts at the next pc.
+    fn cuts_block(&self, pc: u32, op: &DecodedOp, kind: Kind, w: u64) -> Option<u32> {
+        let d = self.fetch(pc);
+        let xfer = MemXfer::from_insn(&d.insn, w).or_else(|| MemXfer::from_decoded(op, w));
+        (guard_class(&xfer, op, kind, w) == Guard::Cut).then_some(0)
+    }
+
     /// Lowers the block that starts at `start`.
     pub(super) fn lower_whole_block(
         &self,
@@ -140,12 +212,13 @@ impl Core {
         let mut pending: Vec<(u32, u32, LoweredOp)> = Vec::new();
         let (mut slots_left, mut ended) = (0u32, false);
         let mut last_start = start;
+        let loop_ends = self.loop_ends(executed);
         let flush = |pending: &mut Vec<(u32, u32, LoweredOp)>, items: &mut Vec<Item>| {
             if pending.len() >= MIN_BATCH {
                 items.push(Item::Batch(pending.drain(..).map(|p| p.2).collect()));
             } else {
                 for (pc, next, _) in pending.drain(..) {
-                    items.push(self.step_item(pc, next, false, false));
+                    items.push(self.step_item(pc, next, false, Pos::Plain));
                 }
             }
         };
@@ -167,7 +240,7 @@ impl Core {
                 flush(&mut pending, &mut items);
                 slots_left -= 1;
                 let last = slots_left == 0;
-                items.push(self.step_item(pc, next, last, true));
+                items.push(self.step_item(pc, next, last, Pos::Slot));
                 pc = next;
                 if last {
                     ended = true;
@@ -175,15 +248,22 @@ impl Core {
                 }
                 continue;
             }
+            if loop_ends.contains(&pc) && terminator(&op).is_none() {
+                flush(&mut pending, &mut items);
+                items.push(self.step_item(pc, next, true, Pos::Plain));
+                pc = next;
+                ended = true;
+                break;
+            }
             if let Some(slots) = terminator(&op) {
                 flush(&mut pending, &mut items);
                 if slots == 0 {
-                    items.push(self.step_item(pc, next, true, false));
+                    items.push(self.step_item(pc, next, true, Pos::Plain));
                     pc = next;
                     ended = true;
                     break;
                 }
-                items.push(self.step_item(pc, next, false, false));
+                items.push(self.step_item(pc, next, false, Pos::Flow));
                 (slots_left, pc) = (slots, next);
                 continue;
             }
@@ -197,7 +277,14 @@ impl Core {
                 )),
                 None => {
                     flush(&mut pending, &mut items);
-                    items.push(self.step_item(pc, next, false, false));
+                    let item = self.step_item(pc, next, false, Pos::Plain);
+                    let cut = matches!(&item, Item::Step(e) if e.last);
+                    items.push(item);
+                    if cut {
+                        pc = next;
+                        ended = true;
+                        break;
+                    }
                 }
             }
             pc = next;
@@ -217,23 +304,22 @@ impl Core {
         })
     }
 
-    /// The [`StepItem`] of the instruction at `pc`; `slot` is true inside delay slots.
-    fn step_item(&self, pc: u32, next: u32, last: bool, slot: bool) -> Item {
+    /// The [`StepItem`] of the instruction at `pc` at position `pos` in its block. A
+    /// [`Guard::Cut`] instruction in a straight line becomes the last item of the block.
+    fn step_item(&self, pc: u32, next: u32, last: bool, pos: Pos) -> Item {
         let (_, op, kind, _, w) = self.whole_decode(pc);
         let d = self.fetch(pc);
         let xfer = MemXfer::from_insn(&d.insn, w).or_else(|| MemXfer::from_decoded(&op, w));
-        let guard = match &xfer {
-            Some(x) => x.may_change_guard(),
-            None => may_change_guard(&op, kind, w),
-        };
-        let chk = if last {
-            Chk::None
-        } else if guard {
-            Chk::Sig
-        } else if slot {
-            Chk::Pc
-        } else {
-            Chk::None
+        let class = guard_class(&xfer, &op, kind, w);
+        let last = last || (pos == Pos::Plain && class == Guard::Cut);
+        let chk = match (pos, class) {
+            _ if last => Chk::None,
+            // the pending delayed branch is expected: the two delay slots run in the block
+            (Pos::Flow, _) => Chk::Pc,
+            (Pos::Slot, Guard::Keep) => Chk::Pc,
+            (Pos::Slot, _) => Chk::Sig,
+            (Pos::Plain, Guard::Store) => Chk::Slow,
+            (Pos::Plain, _) => Chk::None,
         };
         Item::Step(StepItem {
             pc,
@@ -337,10 +423,69 @@ mod tests {
             .collect();
         assert_eq!(execs.len() as u32, 1 + terminator(&op).unwrap());
         assert!(execs.last().unwrap().last && !execs[0].last);
+        // the pending delayed branch is expected after the flow: only the pc is checked
+        assert_eq!(execs[0].chk, Chk::Pc);
         assert_eq!(
             blocks.len(),
             2,
             "the pc after the delay slots starts a block"
+        );
+    }
+
+    #[test]
+    fn a_counter_loop_end_ends_its_block_and_leaves_the_loop_back_to_its_tail() {
+        // DO (+3) UNTIL LCE, LCNTR = 4; body: one ADD at the loop end; then one more ADD
+        let mut p = vec![0x0C00, 0x0480, 0x0003];
+        p.extend_from_slice(&ADD);
+        p.extend_from_slice(&ADD);
+        let c = core_with(&p);
+        let ex = executed(&c, 3);
+        assert_eq!(c.loop_ends(&ex).into_iter().collect::<Vec<_>>(), [c.pc + 3]);
+        let blocks = c.lower_whole_pass(&ex, &[]).unwrap();
+        assert_eq!(blocks.len(), 3, "DO, the body, the code after the loop");
+        let body = &blocks[1];
+        assert_eq!((body.start, body.last, body.steps), (c.pc + 3, c.pc + 3, 1));
+        assert!(
+            body.dynamic_exit,
+            "the tail sets the pc (loop-back or fall out)"
+        );
+    }
+
+    #[test]
+    fn a_system_register_write_ends_its_block_and_a_store_only_checks_a_slow_access() {
+        let store = (0b1001u16 << 12) | (2 << 9) | (2 << 6) | (1 << 4) | 0x20; // DM(I2, M2) = R0
+        let mut p = Vec::new();
+        p.extend_from_slice(&ADD);
+        p.push(store);
+        p.extend_from_slice(&[0x0f74, 0x0000, 0x0000]); // MODE1 = 0
+        p.extend_from_slice(&ADD);
+        let c = core_with(&p);
+        let ex = executed(&c, 4);
+        let blocks = c.lower_whole_pass(&ex, &[]).unwrap();
+        assert_eq!(
+            blocks.len(),
+            2,
+            "the pc after the MODE1 write starts a block"
+        );
+        let first = &blocks[0];
+        assert_eq!((first.steps, first.dynamic_exit), (3, true));
+        let steps: Vec<_> = first
+            .items
+            .iter()
+            .filter_map(|i| match i {
+                Item::Step(e) => Some(e),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(steps.len(), 3);
+        assert_eq!(
+            steps[1].chk,
+            Chk::Slow,
+            "store: checked only after a slow access"
+        );
+        assert!(
+            steps[2].last && steps[2].chk == Chk::None,
+            "MODE1 write ends the block"
         );
     }
 }

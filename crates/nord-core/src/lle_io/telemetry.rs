@@ -224,38 +224,48 @@ mod tests {
         assert!(!s.oled_pixel(2, 0, 0) && !s.oled_pixel(0, 128, 0) && !s.oled_pixel(0, 0, 64));
     }
 
+    /// Bounded writer with yields; readers run until it is done. Passes regardless of scheduling:
+    /// every successful read is untorn and in order, and a read after the last write must succeed.
     #[test]
     fn concurrent_readers_never_see_a_torn_snapshot() {
+        const WRITES: u32 = 1_000;
         let (mut w, r) = channel();
-        let stop = Arc::new(AtomicBool::new(false));
-        let stop_w = Arc::clone(&stop);
+        let done = Arc::new(AtomicBool::new(false));
+        let done_w = Arc::clone(&done);
         let writer = std::thread::spawn(move || {
-            let mut n = 1u32;
-            while !stop_w.load(Ordering::Relaxed) {
+            for n in 1..=WRITES {
                 w.publish(&stamped(n));
-                n = n.wrapping_add(1).max(1);
+                if n % 64 == 0 {
+                    std::thread::yield_now();
+                }
             }
-            n
+            done_w.store(true, Ordering::Release);
         });
         let readers: Vec<_> = (0..3)
             .map(|_| {
-                let r = r.clone();
+                let (r, done) = (r.clone(), Arc::clone(&done));
                 std::thread::spawn(move || {
-                    let (mut ok, mut out) = (0u32, TelemetrySnapshot::default());
-                    let t0 = std::time::Instant::now();
-                    while t0.elapsed() < std::time::Duration::from_millis(300) {
+                    let mut out = TelemetrySnapshot::default();
+                    let mut last = 0u32;
+                    while !done.load(Ordering::Acquire) {
                         if r.read(&mut out) {
                             assert!(consistent(&out), "torn snapshot at frame {}", out.frame);
-                            ok += 1;
+                            assert!(out.frame >= last, "went backwards");
+                            last = out.frame;
+                        } else {
+                            std::thread::yield_now();
                         }
                     }
-                    ok
+                    assert!(r.read(&mut out), "no consistent read after writes stopped");
+                    assert!(consistent(&out));
+                    assert_eq!(out.frame, WRITES);
                 })
             })
             .collect();
-        let reads: u32 = readers.into_iter().map(|h| h.join().unwrap()).sum();
-        stop.store(true, Ordering::Relaxed);
-        assert!(writer.join().unwrap() > 1);
-        assert!(reads > 0, "no consistent read at all");
+        for h in readers {
+            h.join().unwrap();
+        }
+        writer.join().unwrap();
+        assert_eq!(r.publishes(), WRITES);
     }
 }
