@@ -2,6 +2,7 @@ import plistlib
 from pathlib import Path
 
 import pytest
+import release_bundle_libs as bl
 import release_installers as ri
 import release_package as rp
 from test_release_package import LIN, MAC, NOTICES_OK, WIN, make_tree
@@ -100,9 +101,10 @@ def test_stage_linux_appdir(tmp_path):
     appdir, appimage_path = ri.stage_linux_appdir(
         "v1.2.3", tmp_path / "dist", tmp_path / "work", root=root
     )
-    assert appimage_path.name == "nd-matrix-1-v1.2.3-linux-x86_64.AppImage"
+    assert appimage_path.name == "nd-matrix-1-1.2.3-x86_64.AppImage"
     apprun = (appdir / "AppRun").read_text(encoding="utf-8")
     assert "--install-plugins" in apprun
+    assert 'LD_LIBRARY_PATH="$HERE/usr/lib' in apprun
     assert (appdir / "nd-matrix-1.desktop").exists()
     assert (appdir / "nd-matrix-1.svg").exists()
     assert (appdir / "usr" / "bin" / "nd-matrix-1").exists()
@@ -359,6 +361,16 @@ def test_build_appimage_rejects_unpinned_runtime(tmp_path):
         ri.build_linux_appimage(*args, None, other)
 
 
+def _fake_libs(root):
+    lib_dir, doc_root = root / "libs", root / "docs"
+    lib_dir.mkdir()
+    for soname, package in bl.BUNDLED_LIBS.items():
+        (lib_dir / soname).write_bytes(b"lib")
+        (doc_root / package).mkdir(parents=True)
+        (doc_root / package / "copyright").write_text("notice", encoding="utf-8")
+    return lib_dir, doc_root
+
+
 def test_build_appimage_passes_pinned_runtime_to_appimagetool(tmp_path, monkeypatch):
     root = _make_tree_with_licenses(tmp_path, LIN)
     runtime = tmp_path / "runtime"
@@ -371,8 +383,17 @@ def test_build_appimage_passes_pinned_runtime_to_appimagetool(tmp_path, monkeypa
         Path(cmd[-1]).write_bytes(b"appimage")
 
     monkeypatch.setattr(ri.subprocess, "run", fake_run)
+    lib_dir, doc_root = _fake_libs(tmp_path)
     out = ri.build_linux_appimage(
-        "v1.2.3", tmp_path / "dist", tmp_path / "work", "tool", root, None, runtime
+        "v1.2.3",
+        tmp_path / "dist",
+        tmp_path / "work",
+        "tool",
+        root,
+        None,
+        runtime,
+        [lib_dir],
+        doc_root,
     )
     assert calls == [
         [
@@ -384,6 +405,11 @@ def test_build_appimage_passes_pinned_runtime_to_appimagetool(tmp_path, monkeypa
         ]
     ]
     assert out.with_name(out.name + ".sha256").exists()
+    assert out.name == "nd-matrix-1-1.2.3-x86_64.AppImage"
+    assert "linux" not in out.name.lower()
+    assert (
+        tmp_path / "work" / "NdMatrix1.AppDir" / "usr" / "lib" / "libxkbcommon-x11.so.0"
+    ).exists()
 
 
 def test_main_requires_runtime_for_appimage(tmp_path):

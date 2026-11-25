@@ -9,7 +9,7 @@ Each platform ships a portable archive plus native OS installers (all with `.sha
 
 | Platform | Runner | Target triple | Artifacts |
 |---|---|---|---|
-| Linux x86_64 | `ubuntu-24.04` | `x86_64-unknown-linux-gnu` | `nd-matrix-1-vX.Y.Z-linux-x86_64.tar.gz`, `.AppImage`, `nd-matrix-1_X.Y.Z_amd64.deb` |
+| Linux x86_64 | `ubuntu-22.04` | `x86_64-unknown-linux-gnu` | `nd-matrix-1-vX.Y.Z-linux-x86_64.tar.gz`, `nd-matrix-1-X.Y.Z-x86_64.AppImage`, `nd-matrix-1_X.Y.Z_amd64.deb` |
 | Windows x86_64 | `windows-latest` | `x86_64-pc-windows-msvc` | `nd-matrix-1-vX.Y.Z-windows-x86_64.zip`, `-setup.exe` (Inno Setup) |
 | macOS Apple silicon | `macos-latest` | `aarch64-apple-darwin` | `nd-matrix-1-vX.Y.Z-macos-arm64.tar.gz`, `.dmg`, `.pkg` |
 
@@ -194,3 +194,14 @@ Dry run or release: 3 build jobs (Linux, Windows, macOS) plus two small ubuntu j
 2. Read its `LICENSE`, `src/runtime/Makefile` and `scripts/common/install-dependencies.sh` for added or changed libraries, and run `strings` on the binary for the versions.
 3. Update the pins in `tools/release_runtime_sources.py` (libfuse and squashfuse versions and sha256 from the new `scripts/common/install-dependencies.sh`, runtime tag and commit) and `licenses/appimage-runtime/` (texts and the README table), `APPIMAGE_RUNTIME_URL` and `APPIMAGE_RUNTIME_SHA256`, the URL in `release.yml`, and `docs/LEGAL.md` section 4.
 4. Run `uv run pytest tools/tests/test_release_package.py` (it checks the README names the pinned tag and sha256, and that `release.yml` uses the pinned URL).
+
+## AppImage on a bare host
+
+The catalog (appimage.github.io) runs the AppImage on the oldest supported Ubuntu LTS, with no network and no extra packages ([D248](DECISIONS.md#d248-the-linux-appimage-is-built-on-the-oldest-supported-lts-bundles-the-xkbcommon-libraries-and-follows-the-catalog-file-name)). That is why the Linux job builds on `ubuntu-22.04` (glibc is only as old as the build system) and bundles `libxkbcommon`, `libxkbcommon-x11` and `libxcb-xkb` with their notices. Before a release, check on a bare Ubuntu 22.04 (container or VM, with `xvfb`):
+
+```bash
+chmod +x nd-matrix-1-X.Y.Z-x86_64.AppImage
+xvfb-run -a ./nd-matrix-1-X.Y.Z-x86_64.AppImage   # must stay up for 10 s without "could not be loaded"
+```
+
+After a fix is released, comment `/retest` on the catalog pull request. Bump the runner when Ubuntu 22.04 leaves standard support (April 2027).
