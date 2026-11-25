@@ -480,7 +480,7 @@ The ticks below mean the model exists and is tested. Which parts match the firmw
 - [ ] Required status checks and source-available repo description (`ns4-6fbu`, owner)
 - [x] Free check of macOS `.dmg` updater and `nordkeyboards.com` terms (`ns4-d7mg`)
 - [ ] Firmware-derived files moved to runtime loading — **Class B first**, then Class C (`ns4-u8o2`), followed by second history rewrite (`ns4-eh57`); done: Farfisa processor (2026-11-23), B3 Bass chain (2026-11-24); open: `vox_image.rs`, `firmware_bank.rs`, class C
-- [x] Proactive trade dress mitigation: original non-red "Slate Matrix" default panel identity (`ns4-80xe`, D248)
+- [x] Proactive trade dress mitigation: original non-red "Slate Matrix" default panel identity (`ns4-80xe`, D249)
 - [ ] VST3 host checks in real DAWs (`ns4-pvb3`)
 - [ ] *(Deferred / optional)* Additional permission counsel review (`ns4-4qmh`; shipped in D241), trademark registration (`ns4-0s8y`; policy shipped in D241), and paid counsel review of LEGAL.md (`ns4-ns2j`)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline HTML/CSS-to-egui panel baker for the ND Matrix 1 UI ("Slate Matrix" identity, D248).
+"""Offline HTML/CSS-to-egui panel baker for the ND Matrix 1 UI ("Slate Matrix" identity, D249).
 
 Renders ``prototypes/panel-mock/`` in headless Chromium/Edge at 2x HiDPI and
 exports:

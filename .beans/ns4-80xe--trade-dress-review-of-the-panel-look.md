@@ -26,8 +26,8 @@ The default GUI look and all public screenshots have a distinct, non-red ND Matr
 Removing the panel GUI. Moving controls or changing parameter IDs (D16).
 
 ## Summary of Changes
-- New original "Slate Matrix" identity (D248): graphite-navy dot-matrix chassis, chamfered dark headers with per-section accents, bone sub-panels, hexagonal pot knobs, teal-ringed encoders, tile buttons, mint/cyan LEDs, ivory and blue-black keys, monospace silkscreen, `ND MATRIX 1` lockup. Replaces the red look in `prototypes/panel-mock/`; re-baked with `tools/bake_panel_from_html.py` (deterministic: a second bake gave identical hashes).
+- New original "Slate Matrix" identity (D249): graphite-navy dot-matrix chassis, chamfered dark headers with per-section accents, bone sub-panels, hexagonal pot knobs, teal-ringed encoders, tile buttons, mint/cyan LEDs, ivory and blue-black keys, monospace silkscreen, `ND MATRIX 1` lockup. Replaces the red look in `prototypes/panel-mock/`; re-baked with `tools/bake_panel_from_html.py` (deterministic: a second bake gave identical hashes).
 - One default for `nord-gui` and `nord-plugin`; the old red theme, red screenshots and red Blender proof plate are deleted, not hidden behind a switch.
 - Ids renamed off the vendor colour: `LED_RED` to `LED_ACCENT`, `CHASSIS_RED` to `CHASSIS_BASE`, `PROGRAM_RED` to `PROGRAM_PLATE`, `btn_red_*` to `btn_accent_*`, variant `red` to `accent`.
 - Guards: `crates/nord-gui/src/identity_tests.rs`, `tools/tests/test_bake_panel_from_html.py`.
-- Docs: D248, `visual-style-and-panel.md` s1 s2 s9, ROADMAP, LEGAL follow-ups, `docs/img/gui/overview.png`, README.
+- Docs: D249, `visual-style-and-panel.md` s1 s2 s9, ROADMAP, LEGAL follow-ups, `docs/img/gui/overview.png`, README.

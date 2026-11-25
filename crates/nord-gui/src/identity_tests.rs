@@ -1,4 +1,4 @@
-//! Visual identity guard (D248): the default look must stay a neutral, non-red ND Matrix 1 design.
+//! Visual identity guard (D249): the default look must stay a neutral, non-red ND Matrix 1 design.
 //!
 //! These tests read the shipped palette tokens and the embedded baked plate, so a re-bake or a
 //! palette edit that brings back a red chassis fails here. Spec:

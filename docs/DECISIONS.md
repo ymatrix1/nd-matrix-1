@@ -6,7 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
-| [D248](#d248-original-slate-matrix-panel-identity-replaces-the-red-chassis-look-the-old-red-theme-is-deleted-not-kept-as-an-option-ns4-80xe) | 2026-11-24 | Original "Slate Matrix" panel identity replaces the red chassis look; the old red theme is deleted, not kept as an option | accepted |
+| [D249](#d249-original-slate-matrix-panel-identity-replaces-the-red-chassis-look-the-old-red-theme-is-deleted-not-kept-as-an-option-ns4-80xe) | 2026-11-24 | Original "Slate Matrix" panel identity replaces the red chassis look; the old red theme is deleted, not kept as an option | accepted |
 | [D247](#d247-multi-chip-sharc-lle-runs-on-an-offline-audio-bus-the-fx-hand-over-is-a-per-pass-drive-the-delay-window-is-a-dense-store) | 2026-11-24 | Multi-chip SHARC LLE runs on an offline audio bus; the FX hand-over is a per-pass drive; the delay window is a dense store | accepted |
 | [D246](#d246-lle-is-opt-in-first-the-engine-selection-seam-ships-before-the-engine-retiring-class-bc-files-waits-for-gate-3-evidence) | 2026-11-23 | LLE is opt-in first: the engine-selection seam ships before the engine; retiring Class B/C files waits for Gate 3 evidence (updates D2 and D119) | proposed |
 | [D245](#d245-arm0-runs-in-a-native-rust-armv5te-core-cratesnord-arm-not-unicorn-idle-loops-are-skipped-by-an-exact-state-equality-probe) | 2026-11-23 | ARM0 runs in a native Rust ARMv5TE core (`crates/nord-arm`), not Unicorn; idle loops skipped by an exact state-equality probe | proposed |
@@ -2670,7 +2670,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** model SPORT/DAI registers and DMA descriptors (rejected for now: the transmit side never appears as a DSP access and the descriptor rings are not captured); exchange inside the threaded `run_ticks` (deferred: correctness first, no real-time claim); an FX-only fix in `sharc-sys` (rejected: the scheduler and the bench need the same hook).
 - **Impact:** `crates/nord-sharc/src/core/{sdram,memory,mod,new}.rs`, `runner/{fx_run,live_presets,pass_sched,msg,audio_bus,audio_bus_node,audio_bus_sy,lle_system}.rs`, `crates/nord-tools` (`lle_sharc_bus`, `lle_sharc_bench`), [sharc-core](specs/sharc-core.md) s10. No HLE, audio default or golden change; the sparse device store still serves everything outside the window.
 
-### D248. Original "Slate Matrix" panel identity replaces the red chassis look; the old red theme is deleted, not kept as an option (`ns4-80xe`)
+### D249. Original "Slate Matrix" panel identity replaces the red chassis look; the old red theme is deleted, not kept as an option (`ns4-80xe`)
 
 - **Status:** accepted 2026-11-24
 - **Decided by:** the repo owner (request 2026-11-23: change colours, images and other visual elements so the GUI looks clearly different from the original panel, not only a recolour)

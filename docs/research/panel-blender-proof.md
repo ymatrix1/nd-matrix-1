@@ -23,10 +23,10 @@ python tools/panel_assets.py verify    # CI-safe: committed PNGs match manifest 
 | Camera | orthographic, tilted 14 deg toward the player so cap sides and slot walls show | `ASSUMED`, confirm in B8 |
 | Scale | 64 px per Blender unit at 1x; 2x doubles | `EMPIRICAL` |
 | Knob rotation | 64 frames, -135 to +135 deg clockwise (270 deg) | `EMPIRICAL`: the Rotary Speaker `DRIVE` scale on the reference photo runs 0 at lower-left to 10 at lower-right |
-| Materials | base lacquer (`#151C29`), navy slate (`#243249`), graphite rubber (`#1B2231`), bone cap (`#CFC8B5`); procedural flake and grain, no image textures | `ASSUMED` design tokens (D248; the first proof used the former red palette, re-rendered 2026-11-24) |
+| Materials | base lacquer (`#151C29`), navy slate (`#243249`), graphite rubber (`#1B2231`), bone cap (`#CFC8B5`); procedural flake and grain, no image textures | `ASSUMED` design tokens (D249; the first proof used the former red palette, re-rendered 2026-11-24) |
 | Shadow layers | knob: baked into each frame (shadow catcher); fader: separate sprite, cap held out | |
 
-Colour check of the first (red) render: plate and slate sat slightly lifted by ambient and specular light; acceptable for the proof. The geometry (fluted knob, wedge fader cap) is proof-only and not shipped (D248: the shipped panel bakes from HTML/CSS).
+Colour check of the first (red) render: plate and slate sat slightly lifted by ambient and specular light; acceptable for the proof. The geometry (fluted knob, wedge fader cap) is proof-only and not shipped (D249: the shipped panel bakes from HTML/CSS).
 
 ## Sizes (committed PNG, 8-bit RGBA)
 
