@@ -150,7 +150,7 @@ The two numbers count different things:
 
 ## Implications
 
-* A native interpreter with a predecode cache is enough for the mean and for key events; decision [D245](../DECISIONS.md), update [D249](../DECISIONS.md).
+* A native interpreter with a predecode cache is enough for the mean and for key events; decision [D245](../DECISIONS.md), update [D250](../DECISIONS.md).
 * Idle skipping needs no firmware knowledge; it is exact on the 6 benchmark phases at four tick budgets (state and message content), not proven in general.
 * A decoupled ARM0 thread with a queue of a few ticks keeps every message within 1 ms of its tick in the simulation. A lockstep design inside the 1 ms audio callback would still miss 0.2 to 0.5 % of ticks by up to 0.5 ms.
 

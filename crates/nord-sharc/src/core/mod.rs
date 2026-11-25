@@ -234,6 +234,9 @@ pub struct Core {
     aot_lo: u32,
     aot_span: u32,
     aot_bits: Box<[u64]>,
+    /// Set when a lowered AOT store left the internal SRAM (`aot_mem.rs`); the generated block
+    /// then re-checks its guard signature.
+    aot_slow: bool,
     /// Optional Level-2 Cranelift JIT engine (allocated lazily on first `run_jit`).
     #[cfg(feature = "jit")]
     jit: Option<Box<jit::JitEngine>>,

@@ -91,10 +91,10 @@ Evidence, timing table and limits: [org-system-run](../research/org-system-run.m
 | Item | Value |
 |---|---|
 | Build | `NORD_SHARC_AOT_HOT=TAG=file;TAG2=file2` embeds generated whole-pass modules (`sharc-aot --whole-pass PCS --force IDLE_PC --tier pe\|approx`); `Core::enable_aot_tag(tag)` installs one after a code check. Without the variable a stub is built (CI stays firmware-free) |
-| Lowering | `core/aot_mem.rs` `MemXfer`: DirectMem, DagMem, SIMD twin and broadcast, Move/RegSwap, ShiftImm, Multifunction; conditional and long-word forms stay on `Core::step` |
+| Lowering | `core/aot_mem.rs` `MemXfer`: DirectMem, DagMem, SIMD twin and broadcast, Move/RegSwap, ShiftImm, Multifunction; conditional and long-word forms stay on `Core::step`. The generated module calls one out-of-line handler per transfer shape (`hN(core, pc, imm)`, `core/aot_emit.rs`); compute runs in place on the core's registers (`Pe<'a>`, `core/aot_pe.rs`); an instruction that may change guarded state (system register write, bit operation) ends its block (`aot_whole.rs`, `Guard::Cut`), a store re-checks the guard only after an access outside the SRAM (`Core::aot_slow`) |
 | Exactness | VERIFIED by `aot_mem` random-state tests and `sharc_jit_diff --aot-top`: ORG Core2, 1 854 395 steps 1:1 |
 | Scheduler | `runner/pass_sched.rs`, binary `lle_sharc_bench` (`nord-tools`): one thread per core, atomic spin barrier |
-| Result | slowest core 8.0x over 46.08 us/pass with AOT (interpreter 10 to 13x): NO-GO for real time, `docs/research/sharc-lle-realtime.md` |
+| Result | ORG Core2 x3.5 over 46.08 us/pass with AOT (x7.2 before the bounded experiment, x4.6 after it, x3.5 after lowering v2 stages A and B; fast-f32 x2.93; interpreter x10 to 13), PNO Core2 x6.7 on the interpreter: NO-GO for real time in exact mode, `docs/research/sharc-lle-realtime.md` |
 
 ## 10. Multi-chip audio bus, FX hand-over and delay window (D247, `ns4-lle4`, opt-in, not real time)
 

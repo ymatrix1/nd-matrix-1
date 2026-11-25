@@ -5,7 +5,7 @@ status: in-progress
 type: task
 priority: high
 created_at: 2026-11-23T21:40:00Z
-updated_at: 2026-11-23T22:30:00Z
+updated_at: 2026-11-24T21:30:00Z
 parent: ns4-lle1
 ---
 
@@ -18,7 +18,7 @@ Establish a hard go/no-go real-time CPU budget for running all SHARC cores concu
 ## Acceptance Criteria
 - [x] Prototype **Whole-Pass AOT** (`sharc-aot` → `rustc -O`) with native lowering for `DirectMem`/`DagMem`, `SIMD`, `Move(Other/RegSwap)`, `ShiftImm`, and `Multifunction`, verified 1:1 against the interpreter on a real pass (absorbing PR #466 `D118` milestones)
 - [ ] (partial: PNO c1/c2 and ORG c2 measured; ORG c1, FX, SY1SY2, SMP blocked on presets/ISR job, see research note) Run a 300-pass warmed-up multi-core benchmark across `PNO`, `ORG`, `FX`, `SY1SY2`, and `SMP` on the lock-free 1-thread-per-core `MultiCoreScheduler` (PR #461 `ns4-spj2`, spin-barrier pass sync)
-- [ ] (partial: exact and fast-f32 measured on PNO c1/c2 and ORG c2; best 8.0x over budget) Measure per-core pass latency (target `< 46.08 us/pass` or within 128/256/512-frame 48 kHz buffers), p99 jitter, and total CPU usage in both exact-40-bit and fast-`f32` modes
+- [ ] (partial: exact and fast-f32 measured on PNO c1/c2 and ORG c2; best per core: PNO Core1 x1.3 to x1.5 on the interpreter; slowest ORG Core2 x3.5 with AOT, PNO Core2 x6.5 to x6.7 on the interpreter; the first prototype was 8.0x) Measure per-core pass latency (target `< 46.08 us/pass` or within 128/256/512-frame 48 kHz buffers), p99 jitter, and total CPU usage in both exact-40-bit and fast-`f32` modes
 - [x] Record measurements, risks (compile time, dynamic SRAM code invalidation, computed jumps), and go/no-go verdict in `docs/research/`
 - [x] Unit tests verifying Whole-Pass AOT lowering and the multi-core benchmark harness on synthetic SHARC programs
 
@@ -33,8 +33,12 @@ Full ARM0 integration (`ns4-lle5`); SPORT audio routing (`ns4-lle4`).
 - Result: ORG Core2 AOT 1:1 with the interpreter over 1 854 395 steps; x1.34 per pass; 8.0x over the 46.08 us budget. Verdict NO-GO for real time, see `docs/research/sharc-lle-realtime.md`.
 - Follow-up in the same PR: `core/aot_prof.rs` profile (`lle_sharc_bench --profile`), compute fields of lowered transfers on generated `Pe` kernels (one per distinct op, exact/approx by generation-time tier), gap analysis table and curve in the research note. A block-splitting variant (v3) verified 1:1 but was slower and was reverted.
 
+- Bounded speed experiment (D249, `docs/research/sharc-lle-realtime.md` "Bounded redesign experiment"): blocks end at guard-changing instructions (bails 29 to 0 per pass), one shared handler per transfer shape (module code ~2.5 MB to ~0.4 MB), compute in place on the core registers (`Pe<'a>`). ORG Core2 x7.2 (min of 10 runs, no load check, a best case) to x4.6 of the 46.08 us budget (fast-f32 x4.0, not diffed 1:1), 1:1 with the interpreter over 1 854 395 steps in exact mode. Stopped at the x3.5 checkpoint: x2 is not reachable in exact mode with this design. PNO Core2 (interpreter) is now the slowest measured core at x6.7; PNO Core1 x1.5. Acceptance criteria 2 and 3 stay unticked (cores still missing, no core under budget).
+- Lowering v2 stage A (`docs/research/sharc-lowering-v2.md`, research note "Lowering v2 stages"): fixed ALU, float ALU and shifter ops on `Pe`, loop-end blocks; `exec_compute_op` ops per pass 842 to 88, ORG Core2 x4.57 to x4.13 (medians of 7 interleaved runs, outside noise), 1:1 with the interpreter.
+- Lowering v2 stage B (research note "Stage B"): the handler tail and pending-exception raise moved out of line, register writes inline: ORG Core2 x4.10 to x3.5 (medians of 7 interleaved runs; B1 is outside noise, B2 against B1 is inside it and no gain is claimed for B2), exact mode 1:1 with the interpreter; fast-f32 x2.93 is a min of 7, not a median, and is NOT diffed 1:1 (approximate kernels). Native locals and lazy flags not built: compute is 25% of the pass and flags are under 1% of it, and locals conflict with shared handlers (details in the note). x2 not reached (with compute free the other 75% is still about x2.6); criteria stay unticked.
+
 ## Left to do (status stays in-progress)
 
 - Presets/jobs for ORG Core1 (P4I start, own idle pc), FX Core1/Core2 (`FX1`/`FX2` consts exist; add presets + `FxPeer` tick hook), SY1SY2/SMP (ISR job kind in `pass_sched`): see "Missing cores" in `docs/research/sharc-lle-realtime.md`.
 - Fast-vs-Exact error in dB on a real pass for the current module build.
-- Follow-up lowering lines the profile shows (per-site folded code, registers in locals, cheaper compute) only if a redesign is wanted; two rounds moved ORG Core2 from x8.0 to x7.0 of budget, so the verdict stays no-go.
+- AOT module for PNO Core2 (its own `--aot-pcs` run), lowering of the 481 generic `aot_step` steps (stage A already cut the `exec_compute_op` ops from 842 to 88 per pass); the verdict stays no-go for real time in exact mode.

@@ -6,7 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
-| [D249](#d249-arm0-interpreter-gets-a-predecode-cache-with-page-invalidation-the-1-ms-criterion-stays-open-the-tick-budget-is-bounded-not-measured) | 2026-11-24 | ARM0 interpreter gets a predecode cache with page invalidation; the 1 ms criterion stays open; the tick budget is bounded, not measured | proposed |
+| [D250](#d250-arm0-interpreter-gets-a-predecode-cache-with-page-invalidation-the-1-ms-criterion-stays-open-the-tick-budget-is-bounded-not-measured) | 2026-11-24 | ARM0 interpreter gets a predecode cache with page invalidation; the 1 ms criterion stays open; the tick budget is bounded, not measured | proposed |
 | [D248](#d248-the-linux-appimage-is-built-on-the-oldest-supported-lts-bundles-the-xkbcommon-libraries-and-follows-the-catalog-file-name) | 2026-11-24 | The Linux AppImage is built on the oldest supported LTS, bundles the xkbcommon libraries and follows the catalog file name | accepted |
 | [D247](#d247-multi-chip-sharc-lle-runs-on-an-offline-audio-bus-the-fx-hand-over-is-a-per-pass-drive-the-delay-window-is-a-dense-store) | 2026-11-24 | Multi-chip SHARC LLE runs on an offline audio bus; the FX hand-over is a per-pass drive; the delay window is a dense store | accepted |
 | [D246](#d246-lle-is-opt-in-first-the-engine-selection-seam-ships-before-the-engine-retiring-class-bc-files-waits-for-gate-3-evidence) | 2026-11-23 | LLE is opt-in first: the engine-selection seam ships before the engine; retiring Class B/C files waits for Gate 3 evidence (updates D2 and D119) | proposed |
@@ -2682,7 +2682,18 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Limits:** Not yet run on a bare 22.04 host: other libraries that `winit`, GL or ALSA load at run time may still be missing there (the first error hides later ones), and `ubuntu-22.04` runners are retired by GitHub on a schedule we do not control. The catalog reads the last release, so `/retest` needs a new tag. `ASSUMED` in `release_bundle_libs.py` until the bare-host run.
 - **Impact:** `.github/workflows/release.yml`, `tools/release_bundle_libs.py` (+ test), `tools/release_installers.py` (+ tests), `tools/tests/test_release_package.py`, `docs/RELEASING.md`, bean `ns4-nyqj`.
 
-### D249. ARM0 interpreter gets a predecode cache with page invalidation; the 1 ms criterion stays open; the tick budget is bounded, not measured
+### D249. SHARC whole-pass AOT: the speed work takes ORG Core2 from x7.2 to x3.5 over budget; real-time exact LLE stays out of reach, the hybrid verdict stands
+
+- **Status:** proposed 2026-11-24
+- **Decided by:** agent (bean `ns4-lle3`, follow-up experiment); owner to confirm.
+- **Context:** D118 (whole-pass AOT, PR #466) and the first prototype left ORG Core2 (6 280 steps per pass) at x7.0 to x8.0 of the 46.08 us budget. The experiment asked whether per-site folded code, state in locals and native control flow can reach x2 in exact 40-bit mode, with a checkpoint at x3.5.
+- **Decision:** (1) Keep three changes that are bit-exact (1 854 395 steps 1:1) and measured: blocks end at guard-changing instructions instead of bailing, one shared handler per transfer shape instead of one inlined body per site, compute run in place on the core registers. (2) Do not build registers-in-locals and do not pursue x2: the experiment stopped at its checkpoint with ORG Core2 at x4.6 (fast-f32 x4.0); lowering v2 stages A and B then reached x3.5 (fast-f32 x2.93, not diffed 1:1). (3) SHARC LLE stays opt-in and not real time in exact mode; the hybrid (HLE for live play, LLE for oracle and offline use) from the first prototype's verdict stands.
+- **Update 2026-11-24:** lowering v2 stages A and B (`research/sharc-lowering-v2.md`) took ORG Core2 on to x3.5 (fast-f32 x2.93), still 1:1; the verdict is unchanged (x2.5 not reached).
+- **Why:** The pass runs each generated site once, so the instruction bytes a pass fetches matter more than the work per instruction: the inlined per-site layout made the module ~2.5 MB; sharing handlers cut it to ~0.4 MB (x7.2 to x5.5). Locals only pay in inlined straight-line code, which is that same layout. In-place compute removed the 170-byte copy per op (x5.5 to x4.6). What remains (stage B profile, final build 161 us): compute 25% (2 831 ops x 59 cycles per both-element op, about 37 us, x0.8), interpreter-run steps 21%, loop glue 7%, dispatch 5%, transfers the rest. Even with compute free the other 75% is about x2.6, and the identified rows give about -15% at best: x2 is not reachable in exact mode. (An earlier version of this argument, "compute alone is x1.7", mixed per-element and per-op units and is withdrawn.)
+- **Alternatives:** Full redesign with per-block register locals and native `DO`/`CALL` (rejected: conflicts with the code-size finding, the non-compute 75% of the pass alone is about x2.6); more cores (rejected: the slowest core sets the tick); fast-f32 as the live tier (open: x2.93 after stage B, a min of 7, not diffed 1:1; needs a listening or null test and the cheaper non-compute path).
+- **Impact:** `crates/nord-sharc/src/core/{aot_whole,aot_emit,aot_mem,aot_pe,aot_hot,mod,new,census_engines}.rs`, [sharc-lle-realtime](research/sharc-lle-realtime.md), [specs/sharc-core.md](specs/sharc-core.md) section 9, ROADMAP Gate 1b, bean `ns4-lle3`. No default, engine or golden changes.
+
+### D250. ARM0 interpreter gets a predecode cache with page invalidation; the 1 ms criterion stays open; the tick budget is bounded, not measured
 
 - **Status:** proposed 2026-11-24
 - **Decided by:** agent (bean `ns4-lle2` follow-ups); owner to confirm.
