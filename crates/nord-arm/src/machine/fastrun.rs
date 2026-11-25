@@ -253,8 +253,8 @@ mod tests {
         for (i, w) in words.iter().enumerate() {
             m.bus.mem.write32(CODE + 4 * i as u32, *w);
         }
-        for r in 0..8 {
-            m.cpu.r[r] = rng.next();
+        for reg in m.cpu.r.iter_mut().take(8) {
+            *reg = rng.next();
         }
         (m.cpu.r[8], m.cpu.r[9], m.cpu.r[10], m.cpu.r[13]) =
             (0x9000_0000, 0x9000_1000, CODE + 0x100, 0x9000_2000);
