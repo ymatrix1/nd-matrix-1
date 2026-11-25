@@ -17,9 +17,8 @@
 //! Equivalence is checked by `tests` and by the per-tick state hash of `arm-lle-bench`.
 
 use super::{Machine, Stop};
-use crate::cpu::{Bus, Cpu, Fault};
-use crate::machine::sysbus::SysBus;
-use crate::mem::{HOOK_R, HOOK_W, HOOK_X};
+use crate::cpu::{Cpu, Fault};
+use crate::mem::HOOK_X;
 
 /// Longest loop body the probe looks for (instructions).
 pub const MAX_PERIOD: u64 = 4096;
@@ -36,63 +35,9 @@ pub struct IdleStats {
     pub skipped: u64,
     /// Instructions executed (probe instructions included).
     pub executed: u64,
+    /// Part of `executed` that ran inside probes (the plain, instrumented path).
+    pub probe_executed: u64,
     pub wfi: u64,
-}
-
-/// Bus wrapper that notices side effects.
-struct Probe<'a> {
-    bus: &'a mut SysBus,
-    impure: bool,
-}
-
-impl Probe<'_> {
-    #[inline(always)]
-    fn watch(&mut self, a: u32, flag: u32) {
-        let f = self.bus.mem.flags(a) & flag;
-        if (f != 0 && self.bus.has_side_effect(a, flag == HOOK_W)) || !self.bus.mem.is_mapped(a) {
-            self.impure = true;
-        }
-    }
-}
-
-macro_rules! probe_write {
-    ($s:ident, $a:ident, $v:ident, $rd:ident, $wr:ident) => {{
-        $s.watch($a, HOOK_W);
-        if !$s.impure && $s.bus.mem.$rd($a) != $v {
-            $s.impure = true;
-        }
-        $s.bus.$wr($a, $v)
-    }};
-}
-
-impl Bus for Probe<'_> {
-    fn read8(&mut self, a: u32) -> u8 {
-        self.watch(a, HOOK_R);
-        self.bus.read8(a)
-    }
-    fn read16(&mut self, a: u32) -> u16 {
-        self.watch(a, HOOK_R);
-        self.bus.read16(a)
-    }
-    fn read32(&mut self, a: u32) -> u32 {
-        self.watch(a, HOOK_R);
-        self.bus.read32(a)
-    }
-    fn write8(&mut self, a: u32, v: u8) {
-        probe_write!(self, a, v, read8, write8)
-    }
-    fn write16(&mut self, a: u32, v: u16) {
-        probe_write!(self, a, v, read16, write16)
-    }
-    fn write32(&mut self, a: u32, v: u32) {
-        probe_write!(self, a, v, read32, write32)
-    }
-    fn fetch16(&mut self, a: u32) -> u16 {
-        self.bus.mem.read16(a)
-    }
-    fn fetch32(&mut self, a: u32) -> u32 {
-        self.bus.mem.read32(a)
-    }
 }
 
 fn same_state(a: &Cpu, b: &Cpu) -> bool {
@@ -102,30 +47,38 @@ fn same_state(a: &Cpu, b: &Cpu) -> bool {
 impl Machine {
     /// Execute up to `MAX_PERIOD` instructions looking for a pure loop. Returns the loop period
     /// when found (the CPU is back in the starting state), else `None` (the executed instructions
-    /// are real progress).
+    /// are real progress). The bus reports side effects while `probing` (see `probe.rs`).
     pub fn probe_idle(&mut self, limit: u64) -> (Option<u64>, Option<Stop>) {
         let start = self.cpu.clone();
-        let mut probe = Probe {
-            bus: &mut self.bus,
-            impure: false,
-        };
-        let n = limit.min(MAX_PERIOD);
+        self.bus.probing = true;
+        self.bus.impure = false;
+        let out = self.probe_loop(&start, limit.min(MAX_PERIOD));
+        self.bus.probing = false;
+        out
+    }
+
+    fn probe_loop(&mut self, start: &Cpu, n: u64) -> (Option<u64>, Option<Stop>) {
         for i in 1..=n {
             let pc = self.cpu.r[15];
             if Some(pc) == self.stop_pc {
                 return (None, Some(Stop::StopPc));
             }
-            if probe.bus.mem.flags(pc) & HOOK_X != 0 {
+            if self.bus.mem.flags(pc) & HOOK_X != 0 {
                 return (None, None);
             }
-            probe.bus.pc = pc;
-            if let Err(f) = self.cpu.step(&mut probe) {
+            self.bus.pc = pc;
+            let fault = if self.predecode && !self.cpu.thumb && pc & 3 == 0 {
+                self.step_cached(pc)
+            } else {
+                self.cpu.step(&mut self.bus).err()
+            };
+            if let Some(f) = fault {
                 return (None, Some(Stop::Fault(f)));
             }
-            if probe.impure {
+            if self.bus.impure {
                 return (None, None);
             }
-            if same_state(&self.cpu, &start) {
+            if same_state(&self.cpu, start) {
                 return (Some(i), None);
             }
         }
@@ -161,6 +114,7 @@ impl Machine {
             let before = self.cpu.insns;
             let (period, stop) = self.probe_idle(remaining);
             stats.executed += self.cpu.insns - before;
+            stats.probe_executed += self.cpu.insns - before;
             if let Some(Stop::Fault(Fault::Wfi)) = stop {
                 stats.wfi += 1;
                 self.wfi += 1;
