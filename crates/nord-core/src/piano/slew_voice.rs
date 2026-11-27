@@ -21,6 +21,8 @@ const GAIN_MUL: i32 = 0x7000_0000;
 const RELEASE_Y_STATE: u32 = 0x3F7F_BB6E;
 /// One Q31 unit.
 const Q31: f32 = 2_147_483_648.0;
+/// Hold gain per unit of level word (VERIFIED: `tests::hold_gain_is_a_fifth_of_the_level_and_release_decays`).
+const HOLD_GAIN: f32 = 0.21875;
 /// Below this gain (about -120 dB of full scale) a released voice is done.
 const DONE_GAIN: f32 = 1e-6;
 
@@ -151,6 +153,25 @@ impl SlewVoice {
 
     pub(super) fn is_done(&self) -> bool {
         (self.released || self.finite) && self.left.max(self.right) < DONE_GAIN
+    }
+
+    /// Loads the rate word `F17`: inside the sample loop the SMP takes it from `F+6` instead of
+    /// `F+7` (`super::sample_loop`, `docs/research/smp-slew.md` s3, VERIFIED both branches).
+    /// Ignored once the voice is released or for a key-up record, whose rate is its own.
+    pub(super) fn set_rate(&mut self, rate: f32) {
+        if self.released || self.finite {
+            return;
+        }
+        if let Some(r) = self.rec.as_mut() {
+            r.x_rate = rate;
+        }
+    }
+
+    /// Current audible gain of the voice scaled to the engine envelope (`1.0` at the hold gain
+    /// `0.21875 * level`, so a slew voice compares with a plain voice's `env` when the allocator
+    /// picks a voice to steal). ASSUMED: only a priority heuristic; a loud note starts above 1.
+    pub(super) fn steal_level(&self) -> f32 {
+        self.left.max(self.right) / HOLD_GAIN
     }
 
     fn advance(&mut self) {
@@ -406,6 +427,59 @@ mod tests {
             v.tick();
         }
         assert!(v.is_done());
+    }
+
+    /// Inside the sample loop `F17` is `F+6`: a rate word below the note-on word makes the hold
+    /// gain fall faster, by exactly the new word per update.
+    #[test]
+    fn loop_rate_word_replaces_the_hold_rate() {
+        let slow = f32::from_bits(0x3F7F_FF42);
+        let loop_rate = f32::from_bits(0x3F7F_FE8E);
+        let mut a = SlewVoice::start(0.5, slow, 48_000.0);
+        let mut b = SlewVoice::start(0.5, slow, 48_000.0);
+        for _ in 0..4800 {
+            a.tick();
+            b.tick();
+        }
+        b.set_rate(loop_rate);
+        let (a0, b0) = (a.tick().0, b.tick().0);
+        for _ in 0..48_000 {
+            a.tick();
+            b.tick();
+        }
+        let (a1, b1) = (a.tick().0, b.tick().0);
+        assert!(b1 / b0 < a1 / a0, "loop rate must decay faster");
+        // 1 s = 21,701 updates of F17 each: the ratio is the rate word to that power.
+        let want = f64::from(loop_rate).powf(21_701.0);
+        assert!(
+            (f64::from(b1 / b0) / want - 1.0).abs() < 1e-3,
+            "{} vs {want}",
+            b1 / b0
+        );
+    }
+
+    #[test]
+    fn set_rate_is_ignored_after_the_release_and_for_key_up_records() {
+        let mut v = SlewVoice::start(0.5, f32::from_bits(0x3F7F_FF42), 48_000.0);
+        v.release();
+        let before = v.rec.unwrap().x_rate;
+        v.set_rate(0.5);
+        assert_eq!(v.rec.unwrap().x_rate, before);
+        let mut k = SlewVoice::start_release_sample(64, 48_000.0);
+        let before = k.rec.unwrap().x_rate;
+        k.set_rate(0.5);
+        assert_eq!(k.rec.unwrap().x_rate, before);
+        // An inactive voice has nothing to set and a level of zero.
+        let mut d = SlewVoice::default();
+        d.set_rate(0.5);
+        assert_eq!(d.steal_level(), 0.0);
+    }
+
+    #[test]
+    fn steal_level_is_one_at_the_hold_gain() {
+        let mut v = SlewVoice::start(0.4454, f32::from_bits(0x3F7F_FF42), 48_000.0);
+        let g = v.tick().0 / (0.21875 * 0.4454);
+        assert!((v.steal_level() / 0.4454 - g).abs() < 1e-3);
     }
 
     #[test]

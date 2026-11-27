@@ -864,7 +864,12 @@ impl PianoLayer {
         let mut best = 0;
         let mut min_score = f32::MAX;
         for (i, v) in self.voices.iter().enumerate() {
-            let mut score = if v.releasing { v.env * 0.1 } else { v.env };
+            let base = if v.slew.is_active() {
+                v.env * v.slew.steal_level()
+            } else {
+                v.env
+            };
+            let mut score = if v.releasing { base * 0.1 } else { base };
             if v.is_release_sample {
                 score *= 0.05;
             }
@@ -1391,16 +1396,15 @@ impl PianoLayer {
 
             // In the sustain loop the firmware slew rate is the steeper `F+6` (issue #640).
             let loop_x = match (&self.sound, v.stroke_idx) {
-                (Some(snd), Some(i)) if !v.is_release_sample => snd
-                    .strokes
-                    .get(i)
-                    .filter(|st| {
-                        st.loop_start
-                            .is_some_and(|ls| sample_loop::in_loop(v.sample_pos, ls))
-                    })
-                    .map_or(0.0, |st| sample_loop::rate_x(st.loop_decay)),
+                (Some(snd), Some(i)) if !v.is_release_sample => {
+                    sample_loop::voice_rate_x(snd.strokes.get(i), v.sample_pos)
+                }
                 _ => 0.0,
             };
+            if loop_x > 0.0 {
+                // The slew path loads the rate word from `F+6` in the loop (replacing `F+7`).
+                v.slew.set_rate(1.0 - loop_x);
+            }
 
             let sample_scale = downstream::voice_scale(
                 v.stroke_idx.is_some(),

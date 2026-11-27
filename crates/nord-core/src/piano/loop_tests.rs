@@ -207,3 +207,73 @@ fn sfz_loop_mode_is_part_of_the_stroke_identity() {
     assert_eq!(sound.strokes[0].loop_end, None);
     assert_eq!(sound.strokes[1].loop_end, Some(1000));
 }
+
+/// Layer on the firmware slew path (`--piano-slew-fw`) playing synthetic looped strokes: every
+/// stroke loops over frames `64..256` and carries `loop_decay`.
+fn slew_looped_layer(loop_decay: i16) -> PianoLayer {
+    use super::npno_level::{test_image, NpnoLevel};
+    let mut image = test_image(60, &[(0, 66, 0), (0, 56, 16), (0, 36, 46)], 40);
+    image[0x44] = 5;
+    let mut snd = NpnoSound::new_synthetic("fw", 60, &[0.2; 256], 48_000.0);
+    let mut stroke = snd.strokes[0].clone();
+    stroke.loop_start = Some(64);
+    stroke.loop_end = Some(256);
+    stroke.loop_decay = loop_decay;
+    snd.strokes = vec![stroke; 3];
+    snd.firmware_level = NpnoLevel::parse(&image).map(Arc::new);
+    let mut layer = PianoLayer::new(48_000.0);
+    layer.set_sound(Some(Arc::new(snd)));
+    layer.firmware_velocity_level = true;
+    layer.firmware_slew = true;
+    layer
+}
+
+/// Slew voice level (the engine gain) after `frames` frames of a held `slew_looped_layer` note.
+fn slew_level_after(loop_decay: i16, frames: usize) -> f32 {
+    let mut layer = slew_looped_layer(loop_decay);
+    layer.note_on(60, 64);
+    for _ in 0..frames {
+        layer.render_frame();
+    }
+    let v = layer.voices.iter().find(|v| v.active).expect("voice alive");
+    assert!(v.slew.is_active() && v.stroke_idx.is_some());
+    v.slew.steal_level()
+}
+
+/// On the slew path the in-loop rate word `F+6` replaces `F+7`: a looped voice with a loop decay
+/// ends quieter than the same voice without one, which only follows the note-on rate.
+#[test]
+fn slew_path_looped_voice_decays_with_the_loop_rate() {
+    let plain = slew_level_after(0, 48_000);
+    let looped = slew_level_after(-20_000, 48_000);
+    assert!(plain > 0.05, "no-loop-decay voice still sounds: {plain}");
+    assert!(looped < 0.1 * plain, "{looped} vs {plain}");
+}
+
+/// The allocator steals the decayed looped slew voice before a fresh one (its envelope `env`
+/// stays 1.0 on the slew path, so the score has to use the slew gain). Slot 0 is a fresh plain
+/// voice and the looped voice sits in slot 1: without the slew term both score 1.0 and slot 0
+/// is stolen.
+#[test]
+fn decayed_slew_looped_voice_is_stolen_first() {
+    let mut layer = slew_looped_layer(-20_000);
+    layer.voices[0] = PianoVoice {
+        active: true,
+        env: 1.0,
+        ..PianoVoice::default()
+    };
+    layer.note_on(60, 64);
+    assert!(layer.voices[1].active && layer.voices[1].slew.is_active());
+    for _ in 0..96_000 {
+        layer.render_frame();
+    }
+    for v in layer.voices.iter_mut().skip(2) {
+        *v = PianoVoice {
+            active: true,
+            env: 1.0,
+            ..PianoVoice::default()
+        };
+    }
+    assert!(layer.voices[1].active, "looped voice still allocated");
+    assert_eq!(layer.allocate_voice_slot(None), 1);
+}

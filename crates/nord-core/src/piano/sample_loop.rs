@@ -43,6 +43,15 @@ pub fn rate_x(decay: i16) -> f32 {
     2.0 * f32::from(decay.min(0).unsigned_abs()) / TWO_POW_24
 }
 
+/// In-loop rate `x` of a voice playing `stroke` at read position `pos`: `0.0` outside the loop
+/// region (before the loop start, no loop, no stroke) and for strokes without decay.
+#[inline]
+pub fn voice_rate_x(stroke: Option<&super::LoadedPianoStroke>, pos: f64) -> f32 {
+    stroke
+        .filter(|st| st.loop_start.is_some_and(|ls| in_loop(pos, ls)))
+        .map_or(0.0, |st| rate_x(st.loop_decay))
+}
+
 /// Gain factor per output frame at `sample_rate_hz` for a rate word `1 - x` applied once per
 /// slew update (`ln(1 - x)` is `-x` to 1e-5 for the verified words).
 #[inline]
@@ -88,6 +97,22 @@ mod tests {
         assert!((1.0 - x - f32::from_bits(0x3F7F_FE8E)).abs() < 1e-9);
         assert_eq!(rate_x(0), 0.0);
         assert_eq!(rate_x(37), 0.0);
+    }
+
+    #[test]
+    fn voice_rate_is_zero_outside_the_loop_region() {
+        let mut st = super::super::NpnoSound::new_synthetic("t", 60, &[0.1; 64], 48_000.0).strokes
+            [0]
+        .clone();
+        st.loop_start = Some(32);
+        st.loop_end = Some(64);
+        st.loop_decay = -185;
+        assert_eq!(voice_rate_x(Some(&st), 10.0), 0.0);
+        assert_eq!(voice_rate_x(Some(&st), 32.0), 0.0);
+        assert_eq!(voice_rate_x(Some(&st), 40.0), rate_x(-185));
+        assert_eq!(voice_rate_x(None, 40.0), 0.0);
+        st.loop_start = None;
+        assert_eq!(voice_rate_x(Some(&st), 40.0), 0.0);
     }
 
     #[test]
