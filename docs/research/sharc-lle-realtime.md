@@ -8,7 +8,7 @@ Question: can Whole-Pass AOT (`sharc-aot` generates Rust, `rustc -O` compiles it
 
 **NO-GO on this prototype.** The whole-pass AOT is bit-exact (ORG Core2: 57 blocks, boot 100 000 steps + 300 passes = 1 854 395 steps matched 1:1, full state and SRAM compared every 20 000 steps) and faster than the interpreter, but only by x1.3 to x1.4 per pass. The slowest measured core (ORG Core2, 6 280 steps per pass) needs **~370 us per pass with AOT, 8.0x the budget** (repeat runs 8.0 to 9.8x; the interpreter needs 12 to 13x). PNO Core2 (4 266 steps) needs 7.2 to 7.9x on the interpreter. Real time needs 6 280 steps / 46.08 us = **136 Msteps/s per core**; the AOT delivers 10 to 17 Msteps/s. The fast-f32 mode is no faster than exact mode (explained below). Closing the gap needs roughly a further 8x on the hottest core, which the structure of the current lowering cannot reach without the changes under "What would close it". A follow-up gap analysis and two more lowering rounds (section "Gap analysis and lowering rounds") moved the best ORG Core2 case only from x8.0 to x7.0; the curve flattens far above x2.
 
-**Bounded redesign experiment (section "Bounded redesign experiment", later the same day): ORG Core2 x7.2 (min of 10 runs, no load check, a best case) to x4.6 of the budget (fast-f32 x4.0), still bit-exact in exact mode; it stopped at the pre-set checkpoint (x3.5) because that was not reached. Lowering v2 stages A and B (sections below) then took ORG Core2 to x3.5 (median of 7 interleaved runs, band 158.9 to 164.4 us) and the fast-f32 tier to x2.93 (min of 7, not diffed 1:1 against the interpreter). x2 in exact mode stays out of reach, for the reason in "Verdict after stage B".** PNO Core2 (interpreter, no AOT module built for it) is now the slowest benchmarked core at x6.7.
+**Bounded redesign experiment (section "Bounded redesign experiment", later the same day): ORG Core2 x7.2 (min of 10 runs, no load check, a best case) to x4.6 of the budget (fast-f32 x4.0), still bit-exact in exact mode; it stopped at the pre-set checkpoint (x3.5) because that was not reached. Lowering v2 stages A and B (sections below) then took ORG Core2 to x3.5 (median of 7 interleaved runs, band 158.9 to 164.4 us) and the fast-f32 tier to x2.93 (min of 7, not diffed 1:1 against the interpreter). x2 in exact mode stays out of reach, for the reason in "Verdict after stage B".** PNO Core2 had no AOT module and was the slowest benchmarked core at x6.7; the section "PNO Core2 AOT module" (2026-11-27) builds it (x2.9 on a loaded host) and ORG Core2 is the slowest again.
 
 ## 1. Whole-Pass AOT prototype
 
@@ -237,6 +237,101 @@ ORG Core2 exact: x7.2 (merged prototype, min of 10 runs without a load check, a 
 
 Why x2 is not reachable in exact mode, from the stage B numbers only: compute is 25% of the 161 us pass (about 40 us, x0.9). Even if compute cost nothing, the other 75% is about 121 us = x2.6, above x2. The identified rows in that 75% (interpreter-run steps 21%, loop glue 7%, dispatch 5%, transfers the rest) add up to about -15% of the pass at best, which gives x3.0 and not x2. x2.5 would need roughly -28%.
 
+## PNO Core2 AOT module and consistent per-core table (2026-11-27, `ns4-lle3`)
+
+Question: what does the slowest interpreted core (PNO Core2, x6.5 to x7.5) cost with its own whole-pass AOT module, and what do the three benchmarked cores need together after the faster 40-bit kernels (`sharc-kernel-speed.md`)?
+
+### Module and exactness
+
+| Item | Result |
+|---|---|
+| Census | `sharc_jit_diff target/sram/PNO/core2_sram.bin --pc 0x125c88 --boot 100000 --passes 300 --warmup 16 --dev 0x282c0380=1 --dev 0x3108d008=5 --trigger 0xB00E2 --idle-pc 0x125DDF --msg-base 0 --aot-rank 40:8 --aot-pcs target/lle/pno2.pcs`: 4 069 executed pcs, 4 266 steps per pass. PNO Core2 runs the same loader and the same pc ranges as ORG Core2 (`0x125eb2..0x12712d`, `0x127cdf..0x12869a`, `0x1273ce..0x127a84`), but with no ARM message script it is an idle-state pass (no keys, no strips): 71% of the steps are moves |
+| Generation | `sharc-aot IMG --whole-pass pno2.pcs --force 0x125DDF --tier pe` and `--tier approx`; tags `PNO2` / `PNO2F` in `NORD_SHARC_AOT_HOT` next to `ORG2` / `ORG2F`; 625 KB of Rust per tier; the bench binary builds in 1 min 40 s |
+| 1:1 diff | `AOT DIFF OK: 265 blocks, boot 100000 steps + 300 passes (1279800 steps) matched 1:1 (strict state + SRAM every 20000 steps); block calls=142989 steps=1298495 misses=4201 bails=0; audio passes: 93.69% of steps covered (4.59% native)`, on the first run. **No lowering coverage gap was hit, so no source code changed**: the module is new generated data (never committed, D20/D128) |
+| Not checked | The fast module `PNO2F` is not diffed 1:1 (approximate kernels). A pass with ARM messages (keys, voices) is not covered: no PNO Core2 message script exists. If PNO Core2 under load behaves like ORG Core2 it costs 6 280 steps, not this idle pass |
+
+### Measurement
+
+Protocol: before every round no cargo/rustc/link process was running (0 in all rounds), 2 warm-up runs, then 9 interleaved rounds (`lle_sharc_bench --engine aot|interp`, one core per run, 300 passes + 16 warm-up, mean us of the pass), median with min..max. **The host was not quiet:** other sessions kept it at 74 to 87% CPU load in every round (`Win32_Processor.LoadPercentage`, Ryzen 9 5900XT; no compiler running, so tests and tools). ORG Core2 exact reads x3.9 here against x3.5 on the quiet host of stage B (160.9 us), so absolute figures are about 10% high and the bands are wide. Tags: EMPIRICAL.
+
+| Core | Engine | Steps/pass | Median us (min..max, 9 runs) | x of 46.08 us |
+|---|---|---:|---|---:|
+| PNO Core2 | interpreter | 4 266 | 346.1 (322.2..397.7) | 7.51 |
+| PNO Core2 | AOT exact | 4 266 | 135.1 (125.2..143.2) | 2.93 |
+| PNO Core2 | AOT fast f32 (not diffed 1:1) | 4 266 | 119.2 (115.4..140.6) | 2.59 |
+| ORG Core2 | interpreter | 6 280 | 468.9 (446.1..695.4) | 10.18 |
+| ORG Core2 | AOT exact | 6 280 | 179.5 (167.9..190.5) | 3.90 |
+| ORG Core2 | AOT fast f32 (not diffed 1:1) | 6 280 | 148.9 (145.2..170.8) | 3.23 |
+| PNO Core1 | interpreter | 1 214 | 60.3 (58.7..122.2) | 1.31 |
+
+PNO Core2 AOT exact against its interpreter: 135.1 against 346.1 us (x2.56), bands far apart: real. Fast against exact on PNO Core2: 119.2 (115.4..140.6) against 135.1 (125.2..143.2), the bands overlap, so **no gain is claimed** for fast f32 on PNO Core2. ORG Core2 fast against exact (148.9 (145.2..170.8) against 179.5 (167.9..190.5)) also overlaps at the edges; an earlier 7-round run gave 158.4 against 197.4 us with the same ordering, so the direction repeats but the size is not pinned.
+
+Three cores at the same time (7 runs per tier, one thread each, spin barrier; median and min..max of the run means):
+
+| Tier | PNO Core1 us | PNO Core2 us | ORG Core2 us | Tick us (slowest + barrier) | Total CPU per pass us |
+|---|---|---|---|---|---|
+| exact | 75.7 (66.9..96.3) | 137.1 (132.7..198.7) | 180.7 (171.3..244.3) | 183.6 (173.7..257.8) | 395.1 (370.9..538.0) = 8.6 budgets |
+| fast f32 | 71.0 (65.3..98.1) | 131.9 (118.0..169.8) | 160.6 (142.7..200.8) | 165.9 (145.6..215.6) | 379.9 (326.1..468.8) = 8.2 budgets |
+
+### Where the PNO Core2 pass goes (`--profile`, one run, shares of the profiled pass)
+
+The profiled pass is 596 199 cycles = 176.5 us wall in the same run, against 135.1 us unprofiled (+31%): the profiler costs one timestamp pair per fallback step, compute op and block call (about 3 000 per pass), so the shares are order-correct but inflated for the categories with many pairs.
+
+| Share of the pass | Time | Steps | Note |
+|---|---:|---:|---|
+| Compute fields on generated `Pe` kernels | 18.8% | 1 712 ops, 66 cycles/op | exact 40-bit arithmetic plus the timestamp pair |
+| Compute fields through `exec_compute_op` | 1.6% | 90 ops, 108 cycles/op | |
+| Rest of the native steps (transfers, moves) | 36.9% | 3 047 native steps in all | |
+| Generic `aot_step` inside blocks | 14.0% | 475 | `Move:Other(4b)` 4.3% (167 steps: conditional or long-word forms `MemXfer` does not lower), `DirectMem` 3.7%, `DagMem` 1.4%, `Move:Other(4a)` 1.1%, conditional compute 0.7% |
+| Interpreter after a refused entry (timer event due inside the block) | 12.7% (+1.3% refused entries) | 255 steps, 14 entries | guard `steps + n > irq.due` |
+| Block entry and exit | 6.6% | 477 calls | search, guard, code memcmp |
+| Loop glue and idle check | 8.2% | | |
+
+Interpreter-run steps in total: 744 of 4 266 steps (17.4%) take 28% of the profiled time.
+
+Validation against the unprofiled wall clock, **partial**:
+
+1. Profiler overhead: 41 us (176.5 against 135.1 us) over about 3 000 timestamp pairs is about 46 cycles per pair, consistent with two `rdtsc` reads (not measured separately).
+2. Compute share, a real A/B: the approximate kernels (`PNO2F`) save 15.9 us (12%, bands overlap) on PNO Core2 and 30.6 us (17%) on ORG Core2, while the profile puts exact compute at 20.4% of the profiled pass. A cheaper kernel does not remove the op, so the A/B is a lower bound and agrees with the profile.
+3. **Not validated:** the shares of interpreter-run steps (28%), dispatch (6.6%) and glue (8.2%). No ablation exists for them (removing them changes the pass; see "Tried and discarded" above).
+
+### Step 4: no step above the noise band
+
+Candidates and the most each could give (profile shares, not deflated for the timestamp overhead, so upper bounds):
+
+| Candidate | Upper bound | Why not built |
+|---|---:|---|
+| Lower the conditional/long-word `T4a/T4b` forms (167 steps) | ~2% | needs condition evaluation in the shared handler plus the SIMD `cond_y` rule; far below the band |
+| All generic `aot_step` forms (475 steps) | ~7% | many small shapes, each below the band |
+| Run the 255 steps after a refused entry natively | ~8% | needs mid-block entry or an event-split block; it touches interrupt timing, so it needs the diff with the event pattern; below the 14% min..max spread of this host |
+| Dispatch (6.6%) and glue (8.2%) | a few % each | more blocks made dispatch worse in v3 (see "Gap analysis and lowering rounds") |
+
+The measured spread of the exact PNO Core2 pass is 125.2..143.2 us (14% of the median) on this loaded host; no candidate alone is above it, so by the stop rule nothing was built, and a change below the band could not be called real here. A quiet host (stage B: 158.9..164.4 us, a 3% band) would make the 7 to 8% candidates measurable: re-measure there first.
+
+### Total host need and verdict
+
+| Set of cores (exact; AOT where a module exists) | Sum of medians us | Budget periods | Slowest core |
+|---|---:|---:|---|
+| Measured now: PNO Core1 + PNO Core2 + ORG Core2, loaded host | 60.3 + 135.1 + 179.5 = 374.9 | **8.1** | ORG Core2 x3.90 |
+| Same in fast f32 (`PNO2F`, `ORG2F`, not diffed 1:1) | 60.3 + 119.2 + 148.9 = 328.4 | 7.1 | ORG Core2 x3.23 |
+| Before this change (stage B, interpreter for PNO Core2) | 61 + 305 + 161 = 527 | 11.4 | PNO Core2 x6.6 |
+| Projection to 8 cores (ASSUMED: ORG Core1 = ORG Core2; FX1, FX2, SY1SY2, SMP = PNO Core1) | 60.3 + 135.1 + 2 x 179.5 + 4 x 60.3 = 795.6 | **17.3** | ORG Core2 |
+
+- **Total host need across the three benchmarked cores: 8.1 budget periods** of one host core (8.6 measured concurrently, tick 183.6 us), against 11.4 before this change and 17 to 20 for the first prototype; about 10% less on a quiet host.
+- **The slowest core is ORG Core2 again** (x3.9 loaded, x3.5 quiet); PNO Core2 in the idle state is x2.9. More host cores do not help: every core already has a thread and the slowest one sets the tick.
+- **Verdict unchanged:** pure real-time SHARC LLE is not reached (the slowest core is still about 3.5 times over budget) and neither is x2; the hybrid conclusion (HLE for live play, LLE for oracle, offline and selected cores, Gate 1b) stands. The new fact is that PNO Core2 no longer bounds the set, and only PNO Core1 (x1.3) is within x1.5. If PNO Core2 under load costs like ORG Core2 (6 280 steps), the three-core need rises to about 9.1 periods (ASSUMED, not measured: no message script).
+
+Reproduce (local-only images, `target/sram/{PNO,ORG}/`; messages `org2.msgtokens` as above):
+
+```bash
+# census: sharc_jit_diff command in the table above; module:
+sharc-aot target/sram/PNO/core2_sram.bin --whole-pass target/lle/pno2.pcs --force 0x125DDF --tier pe --out target/lle/pno2_whole.rs
+export NORD_SHARC_AOT_HOT="ORG2=...;ORG2F=...;PNO2=$PWD/target/lle/pno2_whole.rs;PNO2F=..."
+CARGO_TARGET_DIR=target/aot cargo build --release -p nord-tools --bin lle_sharc_bench -p nord-sharc --bin sharc_jit_diff
+# 1:1 (module PNO2 alone in the env): sharc_jit_diff IMG <same args without --aot-rank> --aot-top 999 --chunk 20000
+target/aot/release/lle_sharc_bench --engine aot --core PNOc2=target/sram/PNO/core2_sram.bin,org,,PNO2
+```
+
 ## Alternatives (what to do instead)
 
 - **HLE hybrid** (recommended by the numbers): run LLE only for cores that fit the budget and keep the Rust HLE engines for the rest. On these measurements only PNO Core1 (x1.6 over, closest) could ever fit; ORG/PNO Core2 are x7 to x8 over.
@@ -252,7 +347,7 @@ Why x2 is not reachable in exact mode, from the stage B numbers only: compute is
 ## Follow-ups
 
 - Presets and message scripts for ORG Core1 (FX Core1/Core2 done in `ns4-lle4`); SY1SY2/SMP as ISR-driven jobs in `pass_sched`, so the 300-pass benchmark covers all five chips.
-- AOT module for PNO Core2 (needs its own `--aot-pcs` run), then re-measure the 3-core tick; lowering of the 481 generic `aot_step` steps and of the 14 refused block entries per pass.
+- AOT module for PNO Core2: done (section "PNO Core2 AOT module"). Still open: a PNO Core2 message script for a loaded pass; a re-measure on a quiet host; lowering of the 475 generic `aot_step` steps and of the 14 refused block entries per pass (each below the noise band, see Step 4 there).
 - Fast-vs-Exact error in dB on a real pass for the current module build (`sharc_jit_diff --aot-audio` with the approximate module compiled first).
 - Listening/null test for the fast-f32 tier, only if the compute share of the pass becomes native.
 
