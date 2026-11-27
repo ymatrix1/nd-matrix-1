@@ -1,5 +1,33 @@
 //! SFZ text parser for `NpnoSound::from_sfz_str`: regions, groups, opcodes (moved out of `piano.rs`).
 
+/// SFZ `loop_mode` (v1 opcode). `one_shot` plays the whole sample ignoring the key-up; the
+/// engine has no such mode, so it behaves like `no_loop` (no loop; the key-up still releases).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) enum LoopMode {
+    NoLoop,
+    OneShot,
+    LoopContinuous,
+    LoopSustain,
+}
+
+impl LoopMode {
+    fn parse(val: &str) -> Option<Self> {
+        match val.to_ascii_lowercase().as_str() {
+            "no_loop" => Some(Self::NoLoop),
+            "one_shot" => Some(Self::OneShot),
+            "loop_continuous" => Some(Self::LoopContinuous),
+            "loop_sustain" => Some(Self::LoopSustain),
+            _ => None,
+        }
+    }
+
+    /// `loop_continuous` and `loop_sustain` hold the loop while the key is down; the engine's
+    /// release envelope ends the note on key-up in both (no continuation past the loop).
+    fn loops(self) -> bool {
+        matches!(self, Self::LoopContinuous | Self::LoopSustain)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(super) struct SfzRegionSpec {
     pub(super) default_path: String,
@@ -13,6 +41,33 @@ pub(super) struct SfzRegionSpec {
     pub(super) trigger_release: bool,
     pub(super) loop_start: Option<usize>,
     pub(super) loop_end: Option<usize>,
+    pub(super) loop_mode: Option<LoopMode>,
+}
+
+impl SfzRegionSpec {
+    /// Loop of a region over a sample of `frames` frames as the engine plays it: `(start, end)`
+    /// with an **exclusive** end (`piano/sample_loop.rs::wrap`).
+    ///
+    /// Default rule (ASSUMED, chosen): SFZ's `loop_mode` default is `no_loop` (the default only
+    /// changes for loop points embedded in the sample file, which `parse_wav_mono` does not
+    /// read), so a region loops only for an explicit `loop_continuous` / `loop_sustain`;
+    /// `loop_start` / `loop_end` alone (the behaviour before D250, where they were parsed and
+    /// unused) stay inert. What would confirm it: the SFZ format text for `loop_mode`.
+    ///
+    /// The SFZ `loop_end` is the last sample **inside** the loop (inclusive), the engine wraps at
+    /// an exclusive end, hence `+ 1`. A missing `loop_start` is `0`, a missing `loop_end` the
+    /// whole sample; an empty or inverted loop gives `None`.
+    pub(super) fn loop_points(&self, frames: usize) -> Option<(usize, usize)> {
+        if !self.loop_mode.is_some_and(LoopMode::loops) || frames == 0 {
+            return None;
+        }
+        let start = self.loop_start.unwrap_or(0);
+        let end = self
+            .loop_end
+            .map_or(frames, |e| e.saturating_add(1))
+            .min(frames);
+        (start < end).then_some((start, end))
+    }
 }
 
 impl Default for SfzRegionSpec {
@@ -29,6 +84,7 @@ impl Default for SfzRegionSpec {
             trigger_release: false,
             loop_start: None,
             loop_end: None,
+            loop_mode: None,
         }
     }
 }
@@ -121,6 +177,7 @@ fn apply_sfz_opcode(spec: &mut SfzRegionSpec, key: &str, val: &str) {
                 spec.loop_end = Some(v);
             }
         }
+        "loop_mode" => spec.loop_mode = LoopMode::parse(val),
         _ => {}
     }
 }
@@ -248,6 +305,48 @@ mod tests {
             (62, 64, 63)
         );
         assert_eq!(regions[1].vel_high, 90);
+    }
+
+    #[test]
+    fn loop_mode_gates_the_loop_points() {
+        let regions = parse_sfz_regions(
+            "<group> loop_start=100 loop_end=199\n\
+             <region> sample=a.wav\n\
+             <region> sample=b.wav loop_mode=no_loop\n\
+             <region> sample=c.wav loop_mode=one_shot\n\
+             <region> sample=d.wav loop_mode=loop_continuous\n\
+             <region> sample=e.wav loop_mode=LOOP_SUSTAIN",
+        );
+        let pts: Vec<_> = regions.iter().map(|r| r.loop_points(1000)).collect();
+        // Absent, no_loop, one_shot: no loop. Loop modes: `loop_end` 199 is inclusive, so the
+        // exclusive engine end is 200.
+        assert_eq!(pts, [None, None, None, Some((100, 200)), Some((100, 200))]);
+    }
+
+    #[test]
+    fn loop_points_default_and_clamp() {
+        let spec = |s: &str| parse_sfz_regions(&format!("<region> sample=a.wav {s}")).remove(0);
+        let lc = "loop_mode=loop_continuous";
+        // No points: the whole sample.
+        assert_eq!(spec(lc).loop_points(500), Some((0, 500)));
+        // `loop_end` past the sample is clamped; an inclusive end on the last frame is exact.
+        assert_eq!(
+            spec(&format!("{lc} loop_end=9999")).loop_points(500),
+            Some((0, 500))
+        );
+        assert_eq!(
+            spec(&format!("{lc} loop_end=499")).loop_points(500),
+            Some((0, 500))
+        );
+        // Start at or after the end, or an empty sample: no loop.
+        assert_eq!(spec(&format!("{lc} loop_start=500")).loop_points(500), None);
+        assert_eq!(
+            spec(&format!("{lc} loop_start=40 loop_end=39")).loop_points(500),
+            None
+        );
+        assert_eq!(spec(lc).loop_points(0), None);
+        // An unknown mode leaves the default (`no_loop`).
+        assert_eq!(spec("loop_mode=bogus loop_end=9").loop_points(500), None);
     }
 
     #[test]

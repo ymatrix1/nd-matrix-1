@@ -10,6 +10,15 @@ use std::f32::consts::TAU;
 use std::path::Path;
 use std::sync::Arc;
 
+/// Stroke cache key of an SFZ load: sample path, root key, loop mode and loop opcodes.
+type SfzStrokeKey = (
+    String,
+    u8,
+    Option<sfz::LoopMode>,
+    Option<usize>,
+    Option<usize>,
+);
+
 pub mod category;
 pub mod downstream;
 pub mod ext40;
@@ -324,7 +333,7 @@ impl NpnoSound {
     ///
     /// Shared `sample=` paths are decoded once into `Arc<[f32]>` RAM buffers. Supports multi-velocity
     /// (`lovel`/`hivel`), key ranges (`lokey`/`hikey`/`key`/`pitch_keycenter`), fine `tune`,
-    /// loops (`loop_start`/`loop_end`), and key-off release samples (`trigger=release`).
+    /// loops (`loop_mode`, `loop_start`/`loop_end`), and key-off release samples (`trigger=release`).
     pub fn from_sfz_str<F>(name: &str, sfz_text: &str, mut load_sample: F) -> Result<Self, String>
     where
         F: FnMut(&str) -> Result<Vec<u8>, String>,
@@ -336,13 +345,13 @@ impl NpnoSound {
 
         let mut strokes: Vec<LoadedPianoStroke> = Vec::new();
         let mut zones: Vec<PianoSampleZone> = Vec::new();
-        let mut cache: HashMap<(String, u8, Option<usize>, Option<usize>), usize> = HashMap::new();
+        let mut cache: HashMap<SfzStrokeKey, usize> = HashMap::new();
         let mut key_map = [60u8; 128];
         let mut tuning_cents = [0i8; 128];
         let mut stroke_by_key = [None; 128];
 
         for reg in parsed {
-            let Some(sample_rel) = reg.sample else {
+            let Some(sample_rel) = reg.sample.clone() else {
                 continue;
             };
             let full_path = if reg.default_path.is_empty() {
@@ -350,9 +359,10 @@ impl NpnoSound {
             } else {
                 format!("{}{}", reg.default_path, sample_rel)
             };
-            let cache_key = (
+            let cache_key: SfzStrokeKey = (
                 full_path.clone(),
                 reg.root_key,
+                reg.loop_mode,
                 reg.loop_start,
                 reg.loop_end,
             );
@@ -361,14 +371,16 @@ impl NpnoSound {
             } else {
                 let wav_bytes = load_sample(&full_path)?;
                 let (sample_rate, pcm) = parse_wav_mono(&wav_bytes)?;
+                // SFZ loops only for `loop_mode=loop_continuous|loop_sustain` (`sfz.rs`).
+                let points = reg.loop_points(pcm.len());
                 let idx = strokes.len();
                 strokes.push(LoadedPianoStroke {
                     root_key: reg.root_key,
                     sample_rate,
                     pcm: pcm.into(),
                     pcm_right: None,
-                    loop_start: reg.loop_start,
-                    loop_end: reg.loop_end,
+                    loop_start: points.map(|p| p.0),
+                    loop_end: points.map(|p| p.1),
                     loop_decay: 0,
                     integer_pcm: false,
                 });
