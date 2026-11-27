@@ -38,6 +38,11 @@ pub trait BusNode {
     }
     /// Runs one pass with `input` (exactly `in_frames()` frames) and returns the frames produced.
     fn run_pass(&mut self, input: &[Frame]) -> Result<Vec<Frame>, String>;
+    /// Queues one ARM message (`word1` = DM word or FIFO address, `word2` = value) for delivery
+    /// before the node's next pass (the live path of `ns4-lle5`). `false` when the node takes none.
+    fn post(&mut self, _word1: u32, _word2: u32) -> bool {
+        false
+    }
 }
 
 /// Where a route delivers.
@@ -75,6 +80,11 @@ pub struct AudioBus {
     pub tick: u64,
     /// Frames each node was short of at its passes (zero padded).
     pub underruns: Vec<u64>,
+    /// Host wall time spent in each node's passes, nanoseconds (a measurement, not part of the
+    /// deterministic output).
+    pub node_ns: Vec<u64>,
+    /// Largest finite absolute sample each node produced so far (0 = silent so far).
+    pub node_peak: Vec<f32>,
 }
 
 impl AudioBus {
@@ -96,6 +106,8 @@ impl AudioBus {
         Ok(Self {
             fifos: vec![VecDeque::new(); n],
             underruns: vec![0; n],
+            node_ns: vec![0; n],
+            node_peak: vec![0.0; n],
             nodes,
             routes,
             host: Stereo::default(),
@@ -106,6 +118,11 @@ impl AudioBus {
     /// Frames waiting in the input FIFO of node `n`.
     pub fn queued(&self, n: usize) -> usize {
         self.fifos[n].len()
+    }
+
+    /// Hands an ARM message to node `n` (see [`BusNode::post`]); `false` when it takes none.
+    pub fn post(&mut self, n: usize, word1: u32, word2: u32) -> bool {
+        self.nodes.get_mut(n).is_some_and(|x| x.post(word1, word2))
     }
 
     /// Puts `frames` in front of node `n`'s FIFO contents (start-up fill, host input).
@@ -131,10 +148,15 @@ impl AudioBus {
                     }
                 }
             }
-            produced[i] = Some(
-                node.run_pass(&input)
-                    .map_err(|e| format!("tick {} node {i}: {e}", self.tick))?,
-            );
+            let t0 = std::time::Instant::now();
+            let out = node
+                .run_pass(&input)
+                .map_err(|e| format!("tick {} node {i}: {e}", self.tick))?;
+            self.node_ns[i] += t0.elapsed().as_nanos() as u64;
+            for x in out.iter().flatten().filter(|x| x.is_finite()) {
+                self.node_peak[i] = self.node_peak[i].max(x.abs());
+            }
+            produced[i] = Some(out);
         }
         let mut to_node: Vec<Vec<Frame>> = vec![Vec::new(); self.nodes.len()];
         let mut to_host: Vec<Frame> = Vec::new();
@@ -298,5 +320,15 @@ pub(crate) mod tests {
         let mut bus = AudioBus::new(vec![Box::new(Bad)], vec![]).unwrap();
         let e = bus.run_tick().unwrap_err();
         assert!(e.contains("tick 0 node 0: stuck"), "{e}");
+    }
+
+    #[test]
+    fn nodes_without_a_message_path_refuse_posts_and_the_bus_times_the_nodes() {
+        let mut bus = AudioBus::new(vec![counter(1, 1)], vec![]).unwrap();
+        assert!(!bus.post(0, 1, 2), "a test double takes no ARM message");
+        assert!(!bus.post(7, 1, 2), "no such node");
+        bus.run(3).unwrap();
+        assert_eq!(bus.node_ns.len(), 1);
+        assert!(bus.node_peak[0] > 0.0, "the counter source is not silent");
     }
 }
