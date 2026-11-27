@@ -16,3 +16,7 @@ serde_json = "1.0"
 [[bin]]
 name = "arm-lle-bench"
 path = "src/bin/arm_lle_bench.rs"
+
+[[bin]]
+name = "kernel-bench"
+path = "src/bin/kernel_bench.rs"

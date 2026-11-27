@@ -69,6 +69,9 @@ pub struct SysBus {
     pub panel: Option<KeyMatrix>,
     pub i2c: Option<I2cBus>,
     pub uart2: Option<Uart2>,
+    /// Idle-probe mode: loads and stores report side effects to `impure` (`probe.rs`).
+    pub probing: bool,
+    pub impure: bool,
 }
 
 impl Default for SysBus {
@@ -94,6 +97,8 @@ impl SysBus {
             panel: None,
             i2c: None,
             uart2: None,
+            probing: false,
+            impure: false,
         }
     }
 
@@ -220,46 +225,54 @@ impl SysBus {
 
 macro_rules! rd {
     ($self:ident, $a:ident, $f:ident) => {{
-        if $self.mem.flags($a) & HOOK_R != 0 {
+        let e = $self.mem.entry($a);
+        if $self.probing {
+            $self.probe_read($a);
+        }
+        if e & HOOK_R != 0 {
             $self.on_read($a);
         }
-        $self.mem.$f($a)
+        $self.mem.$f(e, $a)
     }};
 }
 
 macro_rules! wr {
-    ($self:ident, $a:ident, $v:ident, $f:ident, $mask:expr) => {{
-        if $self.mem.flags($a) & HOOK_W != 0 {
+    ($self:ident, $a:ident, $v:ident, $f:ident, $mask:expr, $bytes:expr) => {{
+        let e = $self.mem.entry($a);
+        if $self.probing {
+            $self.probe_write($a, $v as u32 & $mask, $bytes);
+        }
+        if e & HOOK_W != 0 {
             $self.on_write($a, $v as u32 & $mask);
         }
-        $self.mem.$f($a, $v)
+        $self.mem.$f(e, $a, $v)
     }};
 }
 
 impl Bus for SysBus {
     #[inline(always)]
     fn read8(&mut self, a: u32) -> u8 {
-        rd!(self, a, read8)
+        rd!(self, a, read8_e)
     }
     #[inline(always)]
     fn read16(&mut self, a: u32) -> u16 {
-        rd!(self, a, read16)
+        rd!(self, a, read16_e)
     }
     #[inline(always)]
     fn read32(&mut self, a: u32) -> u32 {
-        rd!(self, a, read32)
+        rd!(self, a, read32_e)
     }
     #[inline(always)]
     fn write8(&mut self, a: u32, v: u8) {
-        wr!(self, a, v, write8, 0xFF)
+        wr!(self, a, v, write8_e, 0xFF, 1)
     }
     #[inline(always)]
     fn write16(&mut self, a: u32, v: u16) {
-        wr!(self, a, v, write16, 0xFFFF)
+        wr!(self, a, v, write16_e, 0xFFFF, 2)
     }
     #[inline(always)]
     fn write32(&mut self, a: u32, v: u32) {
-        wr!(self, a, v, write32, 0xFFFF_FFFF)
+        wr!(self, a, v, write32_e, 0xFFFF_FFFF, 4)
     }
     #[inline(always)]
     fn fetch16(&mut self, a: u32) -> u16 {

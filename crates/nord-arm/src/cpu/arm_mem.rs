@@ -21,12 +21,17 @@ impl Cpu {
     }
 
     pub(crate) fn arm_ldst<B: Bus>(&mut self, bus: &mut B, insn: u32) {
-        let (p, u, byte, w, l) = (
+        self.ldst_exec(bus, insn, insn >> 20 & 1 != 0, insn >> 22 & 1 != 0);
+    }
+
+    /// Single word/byte load (`l`) or store with the byte flag `byte`; the predecoded handlers
+    /// pass constants for both.
+    #[inline(always)]
+    pub(crate) fn ldst_exec<B: Bus>(&mut self, bus: &mut B, insn: u32, l: bool, byte: bool) {
+        let (p, u, w) = (
             insn >> 24 & 1 != 0,
             insn >> 23 & 1 != 0,
-            insn >> 22 & 1 != 0,
             insn >> 21 & 1 != 0,
-            insn >> 20 & 1 != 0,
         );
         let rn = (insn >> 16 & 0xF) as usize;
         let rd = (insn >> 12 & 0xF) as usize;

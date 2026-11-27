@@ -17,7 +17,10 @@ pub const HOOK_R: u32 = 1 << 31;
 pub const HOOK_W: u32 = 1 << 30;
 /// Page flag: an instruction fetch on this page may need a code hook (stub, null guard).
 pub const HOOK_X: u32 = 1 << 29;
-const FLAGS: u32 = HOOK_R | HOOK_W | HOOK_X;
+/// Page flag: the predecode cache holds decoded instructions of this page; a write to it (or a
+/// new `HOOK_X`) queues the page in [`Mem::stale_code`] and clears the flag.
+pub const HOOK_C: u32 = 1 << 28;
+const FLAGS: u32 = HOOK_R | HOOK_W | HOOK_X | HOOK_C;
 
 /// Sparse guest memory.
 #[derive(Clone)]
@@ -28,6 +31,9 @@ pub struct Mem {
     pub auto_mapped: Vec<u32>,
     /// Every on-demand mapping, also those past `AUTO_MAPPED_CAP`.
     pub auto_mapped_count: u64,
+    /// Page numbers whose decoded code went stale (written, or hooked) since the predecode cache
+    /// last drained them; the run loop checks this before each fetch.
+    pub stale_code: Vec<u32>,
 }
 
 /// Entries kept in `auto_mapped`.
@@ -46,6 +52,7 @@ impl Mem {
             arena: Vec::new(),
             auto_mapped: Vec::new(),
             auto_mapped_count: 0,
+            stale_code: Vec::new(),
         }
     }
 
@@ -70,8 +77,24 @@ impl Mem {
     /// on demand by its first access, exactly as an unflagged one).
     pub fn add_flag(&mut self, begin: u32, end: u32, flag: u32) {
         for page in (begin >> PAGE_SHIFT)..=(end >> PAGE_SHIFT) {
+            if flag & HOOK_X != 0 {
+                self.mark_stale(page);
+            }
             self.table[page as usize] |= flag;
         }
+    }
+
+    /// Queue `page` for decode invalidation when it holds decoded code.
+    fn mark_stale(&mut self, page: u32) {
+        if self.table[page as usize] & HOOK_C != 0 {
+            self.table[page as usize] &= !HOOK_C;
+            self.stale_code.push(page);
+        }
+    }
+
+    /// Flag `addr`'s page as holding decoded code (the page must be mapped).
+    pub fn mark_code(&mut self, addr: u32) {
+        self.table[(addr >> PAGE_SHIFT) as usize] |= HOOK_C;
     }
 
     fn ensure(&mut self, page: u32) {
@@ -107,6 +130,23 @@ impl Mem {
         (e as usize - 1) * PAGE_SIZE + (addr as usize & (PAGE_SIZE - 1))
     }
 
+    /// [`Mem::off`] for a store: a page with decoded code goes stale first.
+    #[inline(always)]
+    fn off_w(&mut self, addr: u32) -> usize {
+        let e = self.table[(addr >> PAGE_SHIFT) as usize];
+        let idx = (e & !FLAGS) as usize;
+        if idx == 0 || e & HOOK_C != 0 {
+            return self.off_w_slow(addr);
+        }
+        (idx - 1) * PAGE_SIZE + (addr as usize & (PAGE_SIZE - 1))
+    }
+
+    #[cold]
+    fn off_w_slow(&mut self, addr: u32) -> usize {
+        self.mark_stale(addr >> PAGE_SHIFT);
+        self.off(addr)
+    }
+
     #[cold]
     fn map_on_demand(&mut self, addr: u32) -> usize {
         let page = addr >> PAGE_SHIFT;
@@ -127,7 +167,7 @@ impl Mem {
 
     #[inline(always)]
     pub fn write8(&mut self, addr: u32, v: u8) {
-        let o = self.off(addr);
+        let o = self.off_w(addr);
         self.arena[o] = v;
     }
 
@@ -135,7 +175,7 @@ impl Mem {
     pub fn read16(&mut self, addr: u32) -> u16 {
         if addr & 0xFFF <= 0xFFE {
             let o = self.off(addr);
-            u16::from_le_bytes([self.arena[o], self.arena[o + 1]])
+            u16::from_le_bytes(self.arena[o..o + 2].try_into().unwrap())
         } else {
             u16::from_le_bytes([self.read8(addr), self.read8(addr.wrapping_add(1))])
         }
@@ -145,7 +185,7 @@ impl Mem {
     pub fn write16(&mut self, addr: u32, v: u16) {
         let b = v.to_le_bytes();
         if addr & 0xFFF <= 0xFFE {
-            let o = self.off(addr);
+            let o = self.off_w(addr);
             self.arena[o..o + 2].copy_from_slice(&b);
         } else {
             self.write8(addr, b[0]);
@@ -157,12 +197,7 @@ impl Mem {
     pub fn read32(&mut self, addr: u32) -> u32 {
         if addr & 0xFFF <= 0xFFC {
             let o = self.off(addr);
-            u32::from_le_bytes([
-                self.arena[o],
-                self.arena[o + 1],
-                self.arena[o + 2],
-                self.arena[o + 3],
-            ])
+            u32::from_le_bytes(self.arena[o..o + 4].try_into().unwrap())
         } else {
             let mut b = [0u8; 4];
             for (i, x) in b.iter_mut().enumerate() {
@@ -176,12 +211,79 @@ impl Mem {
     pub fn write32(&mut self, addr: u32, v: u32) {
         let b = v.to_le_bytes();
         if addr & 0xFFF <= 0xFFC {
-            let o = self.off(addr);
+            let o = self.off_w(addr);
             self.arena[o..o + 4].copy_from_slice(&b);
         } else {
             for (i, x) in b.iter().enumerate() {
                 self.write8(addr.wrapping_add(i as u32), *x);
             }
+        }
+    }
+
+    /// Table entry of `addr`'s page (page index plus flags), for the `*_e` accessors: a bus that
+    /// already looked at the flags passes the entry on instead of looking the page up again.
+    #[inline(always)]
+    pub fn entry(&self, addr: u32) -> u32 {
+        self.table[(addr >> PAGE_SHIFT) as usize]
+    }
+
+    /// Arena offset of `addr` when `e` (from [`Mem::entry`]) maps it, `addr..addr + len` stays in
+    /// the page and, for a store, no decoded code lives there; `None` sends the caller to the
+    /// general accessor.
+    #[inline(always)]
+    fn fast(e: u32, addr: u32, len: u32, store: bool) -> Option<usize> {
+        let idx = (e & !FLAGS) as usize;
+        if idx == 0 || addr & 0xFFF > 0x1000 - len || (store && e & HOOK_C != 0) {
+            return None;
+        }
+        Some((idx - 1) * PAGE_SIZE + (addr as usize & (PAGE_SIZE - 1)))
+    }
+
+    #[inline(always)]
+    pub fn read8_e(&mut self, e: u32, addr: u32) -> u8 {
+        match Self::fast(e, addr, 1, false) {
+            Some(o) => self.arena[o],
+            None => self.read8(addr),
+        }
+    }
+
+    #[inline(always)]
+    pub fn read16_e(&mut self, e: u32, addr: u32) -> u16 {
+        match Self::fast(e, addr, 2, false) {
+            Some(o) => u16::from_le_bytes(self.arena[o..o + 2].try_into().unwrap()),
+            None => self.read16(addr),
+        }
+    }
+
+    #[inline(always)]
+    pub fn read32_e(&mut self, e: u32, addr: u32) -> u32 {
+        match Self::fast(e, addr, 4, false) {
+            Some(o) => u32::from_le_bytes(self.arena[o..o + 4].try_into().unwrap()),
+            None => self.read32(addr),
+        }
+    }
+
+    #[inline(always)]
+    pub fn write8_e(&mut self, e: u32, addr: u32, v: u8) {
+        match Self::fast(e, addr, 1, true) {
+            Some(o) => self.arena[o] = v,
+            None => self.write8(addr, v),
+        }
+    }
+
+    #[inline(always)]
+    pub fn write16_e(&mut self, e: u32, addr: u32, v: u16) {
+        match Self::fast(e, addr, 2, true) {
+            Some(o) => self.arena[o..o + 2].copy_from_slice(&v.to_le_bytes()),
+            None => self.write16(addr, v),
+        }
+    }
+
+    #[inline(always)]
+    pub fn write32_e(&mut self, e: u32, addr: u32, v: u32) {
+        match Self::fast(e, addr, 4, true) {
+            Some(o) => self.arena[o..o + 4].copy_from_slice(&v.to_le_bytes()),
+            None => self.write32(addr, v),
         }
     }
 
@@ -199,10 +301,15 @@ impl Mem {
             .collect()
     }
 
-    /// Zero `len` bytes at `addr`.
+    /// Zero `len` bytes at `addr` (maps the pages like a store would).
     pub fn zero(&mut self, addr: u32, len: usize) {
-        for i in 0..len {
-            self.write8(addr.wrapping_add(i as u32), 0);
+        let mut done = 0usize;
+        while done < len {
+            let a = addr.wrapping_add(done as u32);
+            let n = (PAGE_SIZE - (a as usize & (PAGE_SIZE - 1))).min(len - done);
+            let o = self.off_w(a);
+            self.arena[o..o + n].fill(0);
+            done += n;
         }
     }
 
@@ -240,6 +347,45 @@ impl Mem {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn zero_clears_across_pages_maps_them_and_stales_decoded_code() {
+        let mut m = Mem::new();
+        m.write32(0x1FFC, 0xFFFF_FFFF);
+        m.write32(0x2000, 0xFFFF_FFFF);
+        m.mark_code(0x2000);
+        m.zero(0x1FFE, 6); // 2 bytes of page 1, 4 of page 2
+        assert_eq!((m.read32(0x1FFC), m.read32(0x2000)), (0x0000_FFFF, 0));
+        assert_eq!(m.stale_code, vec![2]);
+        m.zero(0x9000, 5000); // unmapped: maps two pages
+        assert!(m.is_mapped(0x9000) && m.is_mapped(0xA000));
+    }
+
+    #[test]
+    fn a_store_to_a_page_with_decoded_code_queues_it_once_and_clears_the_flag() {
+        let mut m = Mem::new();
+        m.write32(0x5000, 1);
+        m.mark_code(0x5000);
+        assert_eq!(m.flags(0x5000) & HOOK_C, HOOK_C);
+        m.write8(0x5FFF, 9); // other byte of the same page
+        assert_eq!(m.stale_code, vec![5]);
+        assert_eq!(m.flags(0x5000) & HOOK_C, 0);
+        m.write32(0x5004, 2); // flag already clear: nothing queued
+        assert_eq!(m.stale_code, vec![5]);
+        assert_eq!(m.read32(0x5000), 1); // content untouched by the flag handling
+    }
+
+    #[test]
+    fn reads_keep_decoded_code_and_hooking_a_page_makes_it_stale() {
+        let mut m = Mem::new();
+        m.write32(0x6000, 7);
+        m.mark_code(0x6000);
+        assert_eq!(m.read32(0x6000), 7);
+        assert!(m.stale_code.is_empty());
+        m.add_flag(0x6000, 0x6000, HOOK_X);
+        assert_eq!(m.stale_code, vec![6]);
+        assert!(m.is_mapped(0x6000)); // the flag bits never leak into the page index
+    }
 
     #[test]
     fn unmapped_read_maps_zero_page_and_logs_it() {

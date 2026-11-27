@@ -2,191 +2,77 @@
 //! and `FLOAT Rx BY Ry` on 40-bit registers, equal to `float::add`, `float::mul` and
 //! `float_conv::from_int` result for result and flag for flag, but with `u64` arithmetic instead
 //! of the `u128` of the reference kernels and a direct path for ordinary (normal, non-zero)
-//! operands. Zero, denormal, infinite and NaN operands, and results that overflow or flush,
-//! delegate to the reference kernel, so the special-value rules stay in one place.
+//! operands (add: `aot_fadd.rs`, rounding: `aot_round.rs`). Zero and denormal operands, and
+//! results that overflow or flush, are handled by cold paths in `aot_round.rs` (a zero operand
+//! passes the other through, a zero product is a signed zero); infinity, NaN and RND32 with a
+//! zero operand delegate to the reference kernel, so the remaining special-value rules stay in
+//! one place.
 //!
 //! Provenance: ASSUMED equal to the reference kernels by construction; the claim "bit-identical"
 //! is VERIFIED by the randomized equivalence tests below (`fast_*_equals_reference_*`: operand
 //! classes x RND32 x TRUNC, every `Out` field compared) and by the real-firmware differential in
 //! `docs/research/sharc-aot-hot-block.md`. The reference kernels themselves are VERIFIED against
 //! the CCES simulator (see `float.rs`).
+use super::aot_fadd::add_normal;
+use super::aot_round::{add_with_zero, both_normal, exp_field, mul_with_zero, round_norm};
 use super::decode_cache::ComputeOp;
-use super::float::{self, overflow_value, Mode, Out};
+#[cfg(test)]
+use super::float;
+use super::float::{Mode, Out};
 use super::float_conv;
 use super::Core;
 
-const NORM_EXP_MAX: u64 = 255;
-
-/// Exponent field (bits 38..31) of a 40-bit float.
+/// Mask that clears the 8 extension bits when RND32 is set, and nothing otherwise.
 #[inline(always)]
-fn exp_field(v: u64) -> u64 {
-    (v >> 31) & 0xFF
+fn operand_mask(mode: Mode) -> u64 {
+    !(0xFFu64 * u64::from(mode.r32))
 }
 
-/// Whether the exponent field marks a normal number (not zero/denormal, not infinity/NaN).
+/// The 32-bit significand of a normal float with its implicit leading one.
 #[inline(always)]
-fn is_normal(v: u64) -> bool {
-    let e = exp_field(v);
-    e != 0 && e != NORM_EXP_MAX
-}
-
-/// `float::round_pack` for a `u64` significand: rounds `m * 2^e2` (plus a non-zero fraction of
-/// the last place when `sticky`) to a 24- or 32-bit significand and encodes it.
-#[inline(always)]
-fn round_pack64(neg: bool, e2: i32, m: u64, sticky: bool, mode: Mode, narrow: bool) -> Out {
-    let sign = u64::from(neg) << 39;
-    if m == 0 {
-        return Out::value(sign, false, true);
-    }
-    let width: i32 = if narrow { 24 } else { 32 };
-    let msb = 63 - m.leading_zeros() as i32;
-    let mut exp = e2.saturating_add(msb);
-    let shift = msb + 1 - width;
-    let mut mant = if shift > 0 {
-        let sh = shift as u32;
-        let (rem, half) = (m & ((1u64 << sh) - 1), 1u64 << (sh - 1));
-        let mut q = m >> sh;
-        if !mode.trunc && (rem > half || (rem == half && (sticky || q & 1 == 1))) {
-            q += 1;
-        }
-        q
-    } else {
-        m << (-shift) as u32
-    };
-    if mant == 1u64 << width {
-        mant >>= 1;
-        exp += 1;
-    }
-    if exp > 127 {
-        return Out::value(overflow_value(neg, mode, narrow), true, false);
-    }
-    if exp < -126 {
-        return Out {
-            au: true,
-            ..Out::value(sign, false, true)
-        };
-    }
-    let frac = mant & ((1u64 << (width - 1)) - 1);
-    let frac = if narrow { frac << 8 } else { frac };
-    let v = sign | (((exp + 127) as u64) << 31) | frac;
-    // a normal result: biased exponent 1..=254, so AZ is clear and AN is the sign
-    Out {
-        v,
-        an: neg,
-        ..Out::default()
-    }
-}
-
-/// `Fx +/- Fy` when an operand is zero or denormal (flushed to zero): the other operand passes
-/// through exactly (RND32 off) and a zero sum is `+0`; anything else (infinity, NaN, RND32)
-/// delegates to the reference kernel.
-#[cold]
-#[inline(never)]
-fn add_with_zero(a: u64, b: u64, sub: bool, mode: Mode) -> Out {
-    let (fa, fb) = (exp_field(a), exp_field(b));
-    if mode.r32 || fa == NORM_EXP_MAX || fb == NORM_EXP_MAX {
-        return float::add(a, b, sub, false, mode);
-    }
-    let nb = (b >> 39 == 1) ^ sub;
-    match (fa == 0, fb == 0) {
-        (true, true) => Out {
-            v: u64::from(a >> 39 == 1 && nb) << 39,
-            az: true,
-            an: a >> 39 == 1 && nb,
-            ..Out::default()
-        },
-        (true, false) => {
-            let v = (b & ((1 << 39) - 1)) | u64::from(nb) << 39;
-            Out {
-                v,
-                an: nb,
-                ..Out::default()
-            }
-        }
-        _ => Out {
-            v: a,
-            an: a >> 39 == 1,
-            ..Out::default()
-        },
-    }
+pub(super) fn significand(v: u64) -> u64 {
+    (1 << 31) | (v & 0x7FFF_FFFF)
 }
 
 /// `Fx + Fy` (`sub` = false) or `Fx - Fy` on 40-bit floats, like `float::add(a, b, sub, false, m)`.
+///
+/// Normal operands go through the double-precision path of `aot_fadd.rs` (one hardware add, one
+/// rounding); zero, denormal, infinite and NaN operands take the cold path, and the rare cases
+/// the double path cannot decide (see `aot_fadd.rs`) take the exact integer kernel.
 #[inline(always)]
 pub(super) fn fast_add(a: u64, b: u64, sub: bool, mode: Mode) -> Out {
-    let (a, b) = if mode.r32 {
-        (a & !0xFF, b & !0xFF)
-    } else {
-        (a, b)
-    };
-    if !is_normal(a) || !is_normal(b) {
+    let keep = operand_mask(mode);
+    let (a, b) = (a & keep, b & keep);
+    if !both_normal(a, b) {
         return add_with_zero(a, b, sub, mode);
     }
-    let (ea, eb) = (exp_field(a) as i32 - 127, exp_field(b) as i32 - 127);
-    let (ma, mb) = (
-        (1u64 << 31) | (a & 0x7FFF_FFFF),
-        (1u64 << 31) | (b & 0x7FFF_FFFF),
-    );
-    let (na, nb) = (a >> 39 == 1, (b >> 39 == 1) ^ sub);
-    let a_big = (ea, ma) >= (eb, mb);
-    let ((e_big, m_big, n_big), (e_small, m_small, n_small)) = if a_big {
-        ((ea, ma, na), (eb, mb, nb))
-    } else {
-        ((eb, mb, nb), (ea, ma, na))
-    };
-    let d = (e_big - e_small) as u32;
-    let (big, full) = (m_big << 30, m_small << 30);
-    let (small, sticky) = if d >= 62 {
-        (0, true)
-    } else {
-        (full >> d, full & ((1u64 << d) - 1) != 0)
-    };
-    let m = if n_big == n_small {
-        big + small
-    } else {
-        big - small - u64::from(sticky)
-    };
-    if m == 0 && !sticky {
-        return Out::value(0, false, true);
-    }
-    round_pack64(n_big, e_big - 61, m, sticky, mode, mode.r32)
-}
-
-/// `Fx * Fy` when an operand is zero or denormal: a zero of the product's sign with MN set when it
-/// is negative, unless the other operand is infinity or NaN (reference kernel).
-#[cold]
-#[inline(never)]
-fn mul_with_zero(a: u64, b: u64, mode: Mode) -> Out {
-    let (fa, fb) = (exp_field(a), exp_field(b));
-    if fa == NORM_EXP_MAX || fb == NORM_EXP_MAX {
-        return float::mul(a, b, mode);
-    }
-    let neg = (a >> 39) != (b >> 39);
-    Out {
-        v: u64::from(neg) << 39,
-        mn: neg,
-        ..Out::default()
-    }
+    add_normal(a, b ^ (u64::from(sub) << 39), mode)
 }
 
 /// `Fx * Fy` on 40-bit floats, like `float::mul(a, b, m)`.
+///
+/// The 32x32 significand product has its top bit at 63 or 62, so the normalization is a shift by
+/// 0 or 1 and the rounding happens once in [`round_norm`].
 #[inline(always)]
 pub(super) fn fast_mul(a: u64, b: u64, mode: Mode) -> Out {
-    let (a, b) = if mode.r32 {
-        (a & !0xFF, b & !0xFF)
-    } else {
-        (a, b)
-    };
-    if !is_normal(a) || !is_normal(b) {
+    let keep = operand_mask(mode);
+    let (a, b) = (a & keep, b & keep);
+    if !both_normal(a, b) {
         return mul_with_zero(a, b, mode);
     }
-    let (ea, eb) = (exp_field(a) as i32 - 127, exp_field(b) as i32 - 127);
-    let (ma, mb) = (
-        (1u64 << 31) | (a & 0x7FFF_FFFF),
-        (1u64 << 31) | (b & 0x7FFF_FFFF),
+    let neg = (a ^ b) >> 39 != 0;
+    let p = significand(a) * significand(b);
+    // top bit at 63 or 62: shift left by one (p + p) in the second case
+    let low = u64::from(p >> 63 == 0);
+    let exp = (exp_field(a) + exp_field(b)) as i64 - 253 - low as i64;
+    let o = round_norm(
+        neg,
+        exp,
+        p + (p & low.wrapping_neg()),
+        false,
+        mode,
+        mode.r32,
     );
-    let neg = (a >> 39) != (b >> 39);
-    let o = round_pack64(neg, ea + eb - 62, ma * mb, false, mode, mode.r32);
     Out {
         mn: neg,
         mv: o.av,
@@ -201,14 +87,11 @@ pub(super) fn fast_from_int(x: i32, scale: i32, mode: Mode) -> Out {
     if x == 0 {
         return float_conv::from_int(x, scale, mode);
     }
-    round_pack64(
-        x < 0,
-        scale,
-        u64::from(x.unsigned_abs()),
-        false,
-        mode,
-        false,
-    )
+    let m = u64::from(x.unsigned_abs());
+    let lz = m.leading_zeros();
+    // bit 63 of `m << lz` has the weight 2^(scale + 63 - lz)
+    let exp = i64::from(scale) + 63 - i64::from(lz);
+    round_norm(x < 0, exp, m << lz, false, mode, false)
 }
 
 /// ASTAT bit 10: the last ALU operation was floating-point (set by every float ALU op).
