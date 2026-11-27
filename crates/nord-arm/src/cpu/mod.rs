@@ -7,10 +7,12 @@
 
 pub mod alu;
 mod arm;
+mod arm_cached;
 mod arm_dp;
 mod arm_mem;
 mod arm_mul;
 pub mod bus;
+pub mod predecode;
 mod thumb;
 mod thumb_mem;
 
@@ -48,6 +50,8 @@ pub struct Cpu {
     pub mode_changes: u64,
     pub insns: u64,
     pub(crate) jumped: bool,
+    /// Fault of the last predecoded handler that returned `true` (see `arm_cached`).
+    pub(crate) fault: Option<Fault>,
 }
 
 /// Supervisor mode, the reset mode.
@@ -80,7 +84,14 @@ impl Cpu {
             mode_changes: 0,
             insns: 0,
             jumped: false,
+            fault: None,
         }
+    }
+
+    /// Flags as `n << 3 | z << 2 | c << 1 | v`, the index into [`predecode::COND_MASK`] bits.
+    #[inline(always)]
+    pub fn nzcv(&self) -> u32 {
+        (self.n as u32) << 3 | (self.z as u32) << 2 | (self.c as u32) << 1 | self.v as u32
     }
 
     pub fn cpsr(&self) -> u32 {

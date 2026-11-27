@@ -4,9 +4,24 @@ use super::alu::{add_c, arm_imm, shift};
 use super::Cpu;
 
 impl Cpu {
-    /// Second operand of a data-processing instruction with its shifter carry.
-    pub(crate) fn dp_operand(&self, insn: u32) -> (u32, bool) {
+    /// Operand form of a data-processing instruction: 0 immediate, 1 register shifted by an
+    /// immediate, 2 register shifted by a register.
+    #[inline(always)]
+    pub(crate) fn dp_form(insn: u32) -> u32 {
         if insn >> 25 & 1 != 0 {
+            0
+        } else if insn >> 4 & 1 != 0 {
+            2
+        } else {
+            1
+        }
+    }
+
+    /// Second operand of a data-processing instruction with its shifter carry (`form` from
+    /// [`Cpu::dp_form`]; a constant after inlining in the predecoded handlers).
+    #[inline(always)]
+    pub(crate) fn dp_operand(&self, insn: u32, form: u32) -> (u32, bool) {
+        if form == 0 {
             let v = arm_imm(insn & 0xFF, insn >> 8 & 0xF);
             let c = if insn >> 8 & 0xF == 0 {
                 self.c
@@ -17,7 +32,7 @@ impl Cpu {
         }
         let rm = (insn & 0xF) as usize;
         let ty = insn >> 5 & 3;
-        if insn >> 4 & 1 != 0 {
+        if form == 2 {
             // register-specified shift: an r15 operand reads pc + 12
             let val = if rm == 15 {
                 self.r[15].wrapping_add(4)
@@ -26,18 +41,26 @@ impl Cpu {
             };
             let amt = self.r[(insn >> 8 & 0xF) as usize];
             shift(ty, amt, val, self.c, false)
+        } else if insn >> 4 & 0xFF == 0 {
+            (self.r[rm], self.c) // lsl #0 (plain register)
         } else {
             shift(ty, insn >> 7 & 0x1F, self.r[rm], self.c, true)
         }
     }
 
     pub(crate) fn arm_dp(&mut self, _pc: u32, insn: u32) {
-        let op = insn >> 21 & 0xF;
-        let s = insn >> 20 & 1 != 0;
+        let (op, s) = (insn >> 21 & 0xF, insn >> 20 & 1 != 0);
+        self.dp_exec(op, s, Self::dp_form(insn), insn);
+    }
+
+    /// Data-processing instruction with opcode `op`, S bit `s` and operand form `form`. The
+    /// predecoded handlers call it with constants so the opcode `match` folds away.
+    #[inline(always)]
+    pub(crate) fn dp_exec(&mut self, op: u32, s: bool, form: u32, insn: u32) {
         let rd = (insn >> 12 & 0xF) as usize;
         let rn = (insn >> 16 & 0xF) as usize;
-        let (b, sc) = self.dp_operand(insn);
-        let a = if rn == 15 && insn >> 25 & 1 == 0 && insn >> 4 & 1 != 0 {
+        let (b, sc) = self.dp_operand(insn, form);
+        let a = if rn == 15 && form == 2 {
             self.r[15].wrapping_add(4)
         } else {
             self.r[rn]

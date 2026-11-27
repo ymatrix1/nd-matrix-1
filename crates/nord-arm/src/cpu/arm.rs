@@ -45,6 +45,16 @@ impl Cpu {
         if !self.cond(cond) {
             return Ok(());
         }
+        self.exec_arm_body(bus, pc, insn)
+    }
+
+    /// Everything after the condition check (the predecode cache tests the condition itself).
+    pub(crate) fn exec_arm_body<B: Bus>(
+        &mut self,
+        bus: &mut B,
+        pc: u32,
+        insn: u32,
+    ) -> Result<(), Fault> {
         match insn >> 25 & 7 {
             0 => self.arm_000(bus, pc, insn),
             1 => self.arm_001(pc, insn),
@@ -80,7 +90,12 @@ impl Cpu {
         }
     }
 
-    fn exec_arm_uncond<B: Bus>(&mut self, bus: &mut B, pc: u32, insn: u32) -> Result<(), Fault> {
+    pub(crate) fn exec_arm_uncond<B: Bus>(
+        &mut self,
+        bus: &mut B,
+        pc: u32,
+        insn: u32,
+    ) -> Result<(), Fault> {
         if insn >> 25 & 7 == 5 {
             // BLX <imm>
             let off = ((((insn & 0x00FF_FFFF) << 8) as i32 >> 6) as u32) | (insn >> 23 & 2);
