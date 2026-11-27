@@ -5,15 +5,21 @@
 
 pub mod boot;
 pub mod dsp_return;
+mod fastrun;
 pub mod grouper;
 mod hooks;
 pub mod i2c;
 pub mod idle;
+pub mod metrics;
+pub mod micro;
+pub mod paced;
 pub mod panel;
+mod probe;
 pub mod sysbus;
 pub mod system;
 pub mod uart;
 
+pub use fastrun::CodeCache;
 pub use hooks::Hook;
 use std::collections::HashMap;
 pub use sysbus::SysBus;
@@ -67,6 +73,11 @@ pub struct Machine {
     pub stop_pc: Option<u32>,
     pub dsp_return: Option<dsp_return::DspReturn>,
     pub heap_top: u32,
+    /// Decoded ARM code (see `fastrun.rs`).
+    pub code: CodeCache,
+    /// Run ARM-state code from the predecode cache (default on); `false` keeps the plain
+    /// fetch-decode-execute path for comparison runs.
+    pub predecode: bool,
 }
 
 impl Default for Machine {
@@ -91,6 +102,8 @@ impl Machine {
             stop_pc: None,
             dsp_return: None,
             heap_top: 0,
+            code: CodeCache::default(),
+            predecode: true,
         }
     }
 
@@ -133,6 +146,7 @@ impl Machine {
     pub fn run(&mut self, max: u64, until: u32, stop_pc: Option<u32>) -> (u64, Stop) {
         let start = self.cpu.insns;
         let limit = start + max;
+        self.drop_stale_code();
         let mut page = u32::MAX;
         let mut hooked = false;
         let stop = stop_pc.unwrap_or(u32::MAX);
@@ -161,6 +175,12 @@ impl Machine {
                 continue;
             }
             spin = 0;
+            if self.predecode && !hooked && !self.cpu.thumb && pc & 3 == 0 {
+                if let Some(f) = self.run_cached(limit, until, stop) {
+                    break Stop::Fault(f);
+                }
+                continue;
+            }
             self.bus.pc = pc;
             if let Err(f) = self.cpu.step(&mut self.bus) {
                 break Stop::Fault(f);

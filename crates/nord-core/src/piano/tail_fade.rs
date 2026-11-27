@@ -1,13 +1,14 @@
-//! Fade-out over the last frames of a note stroke, so a held note that outlasts its sample ends
-//! smoothly instead of stopping abruptly (issue #640).
+//! Fade-out over the last frames of a stroke that has no loop points, so a held note that outlasts
+//! its sample ends smoothly instead of stopping abruptly (issue #640, D243).
 //!
-//! `.npno` strokes carry no loop points and the stroke ends at its last frame, where the voice is
-//! freed. A held note reached that point at a level still audible (the library notes fall 40 dB in
-//! 3.7 to 5.8 s, `docs/research/piano-decay-attack.md`), which is heard as a sudden cut.
+//! `.npno` strokes loop on the hardware and in the engine (`sample_loop`, D250) and never reach
+//! their end. A stroke without loop points (SFZ / WAV banks without `loop_start`, `loop_end`) ends
+//! at its last frame, where the voice is freed; library notes fall 40 dB in 3.7 to 5.8 s
+//! (`docs/research/piano-decay-attack.md`), so that end is audible as a sudden cut.
 //!
 //! ASSUMED: fade length 0.25 s and the raised-cosine shape. Chosen to hide the cut without
-//! audibly shortening the note; the hardware behaviour at the sample end is unmeasured (OQ20,
-//! `docs/research/piano-decay-attack.md` s6). A hardware clip of a 10 s held note would confirm.
+//! audibly shortening the note; there is no hardware behaviour to copy for such a stroke. A looped
+//! stroke needs no fade.
 
 /// Fade length in seconds. ASSUMED (see the module note).
 pub const TAIL_FADE_S: f64 = 0.25;

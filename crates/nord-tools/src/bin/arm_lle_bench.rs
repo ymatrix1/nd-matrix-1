@@ -8,23 +8,37 @@
 //!     cargo run --release -p nord-tools --bin arm-lle-bench -- \
 //!         <bank0_CODE.bin> <bank0_SRAM.bin> <eeprom_image_256k.bin>
 //!
-//! Environment: `PHASE_SCALE` (percent of the tick counts, default 100), `NO_FULL=1` skips the
-//! full-execution comparison, `NO_RESERVE=1` skips the arena reservation.
+//! Environment: `TICK_INSNS` (instructions per tick, default 200000), `BOOT_ONLY=1` (boot, print
+//! the rate, stop), `PHASE_SCALE` (percent of the tick counts, default 100), `NO_FULL=1` skips the
+//! full-execution comparison, `NO_RESERVE=1` skips the arena reservation. `PREDECODE=0` runs the
+//! whole benchmark on the plain `Cpu::step` path. The "full" comparison above clones the machine,
+//! so it checks idle skipping against full execution on ONE interpreter; to compare the old
+//! interpreter with the predecode cache, run once with `PREDECODE=0` and once without and diff the
+//! `digest` and `boot rate ... state hash` lines (same `TICK_INSNS`).
 
 use nord_arm::machine::idle::IdleStats;
+use nord_arm::machine::metrics::{
+    digest_messages, percentile, simulate_queue, tail, weighted_percentiles,
+};
+use nord_arm::machine::paced::{consume, produce, Flight};
 use nord_arm::machine::system::Message;
 use nord_arm::machine::uart::{note_off, note_on};
 use nord_arm::machine::{Machine, Stop};
 use std::time::Instant;
 
-/// ASSUMED: ARM instructions per 1 ms tick (`tools/arm_steady.py` INSNS_PER_TICK).
-const TICK: u64 = 200_000;
+/// ASSUMED: ARM instructions per 1 ms tick (`tools/arm_steady.py` INSNS_PER_TICK); the
+/// environment variable `TICK_INSNS` overrides it (budget sensitivity).
+const TICK_DEFAULT: u64 = 200_000;
+
+fn tick_insns() -> u64 {
+    std::env::var("TICK_INSNS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(TICK_DEFAULT)
+}
 const KEYS8: [u8; 8] = [60, 62, 64, 65, 67, 69, 71, 72];
 /// Arena pages reserved before the timed run (64 MB) so on-demand mapping never reallocates.
 const RESERVE_PAGES: usize = 16_384;
-
-/// Phase name, tick count, action run on its first tick.
-type PhasePlan<'a> = (&'static str, usize, &'a dyn Fn(&mut Machine));
 
 /// Per-tick measurements of one phase.
 struct Row {
@@ -34,29 +48,7 @@ struct Row {
     device_reads: Vec<u64>,
     arena_growth: Vec<usize>,
     msgs: Vec<Message>,
-}
-
-fn percentile(v: &[f64], p: f64) -> f64 {
-    let mut s = v.to_vec();
-    s.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    s[((s.len() - 1) as f64 * p) as usize]
-}
-
-/// Longest run of consecutive ticks over 1 ms, and the largest backlog (ms of work behind real
-/// time) if ticks were consumed at 1 per ms with leftover work carried over.
-fn tail(ms: &[f64]) -> (usize, f64) {
-    let (mut run, mut longest, mut backlog, mut worst) = (0usize, 0usize, 0.0f64, 0.0f64);
-    for t in ms {
-        if *t > 1.0 {
-            run += 1;
-            longest = longest.max(run);
-        } else {
-            run = 0;
-        }
-        backlog = (backlog + t - 1.0).max(0.0);
-        worst = worst.max(backlog);
-    }
-    (longest, worst)
+    msgs_per_tick: Vec<usize>,
 }
 
 fn run_phase(
@@ -73,6 +65,7 @@ fn run_phase(
         device_reads: Vec::new(),
         arena_growth: Vec::new(),
         msgs: Vec::new(),
+        msgs_per_tick: Vec::new(),
     };
     let mut buf: Vec<Message> = Vec::with_capacity(4096);
     let mut none = IdleStats::default();
@@ -84,7 +77,7 @@ fn run_phase(
         if i == 0 {
             action(m);
         }
-        let s = m.run_tick_idle(TICK, stats);
+        let s = m.run_tick_idle(tick_insns(), stats);
         m.drain_messages_into(&mut buf);
         row.ms.push(t.elapsed().as_secs_f64() * 1e3);
         assert!(
@@ -95,6 +88,7 @@ fn run_phase(
         row.executed.push(stats.executed - exec0);
         row.device_reads.push(m.bus.device_reads - dev0);
         row.arena_growth.push(m.bus.mem.arena_bytes() - arena0);
+        row.msgs_per_tick.push(buf.len());
         row.msgs.extend_from_slice(&buf);
     }
     row
@@ -114,6 +108,7 @@ fn run_phase_full(
         device_reads: Vec::new(),
         arena_growth: Vec::new(),
         msgs: Vec::new(),
+        msgs_per_tick: Vec::new(),
     };
     let mut buf = Vec::new();
     for i in 0..ticks {
@@ -122,13 +117,97 @@ fn run_phase_full(
         if i == 0 {
             action(m);
         }
-        let s = m.run_tick(TICK);
+        let s = m.run_tick(tick_insns());
         m.drain_messages_into(&mut buf);
         row.ms.push(t.elapsed().as_secs_f64() * 1e3);
         assert!(matches!(s, Stop::Budget), "{name} tick {i}: {s:?}");
+        row.msgs_per_tick.push(buf.len());
         row.msgs.extend_from_slice(&buf);
     }
     row
+}
+
+fn act_none(_: &mut Machine) {}
+fn act_on1(m: &mut Machine) {
+    m.send_midi(&note_on(KEYS8[0], 100, 0));
+}
+fn act_off1(m: &mut Machine) {
+    m.send_midi(&note_off(KEYS8[0], 0));
+}
+fn act_on8(m: &mut Machine) {
+    KEYS8.iter().for_each(|k| m.send_midi(&note_on(*k, 100, 0)));
+}
+fn act_off8(m: &mut Machine) {
+    KEYS8.iter().for_each(|k| m.send_midi(&note_off(*k, 0)));
+}
+
+type Action = fn(&mut Machine);
+
+/// The six phases (ticks scaled by `scale` percent) with the MIDI action sent at each phase start.
+fn plan(scale: usize) -> [(&'static str, usize, Action); 6] {
+    let n = |x: usize| (x * scale / 100).max(1);
+    [
+        ("load", n(800), act_none),
+        ("idle", n(300), act_none),
+        ("key1 on", n(200), act_on1),
+        ("key1 off", n(200), act_off1),
+        ("key8 on", n(200), act_on8),
+        ("key8 off", n(200), act_off8),
+    ]
+}
+
+/// `PACED=1`: the six phases on a producer thread at one tick per wall-clock ms, messages through
+/// a bounded queue (`PACED_CAP` ticks, default 64) to a consumer that drains once per ms.
+fn paced(m: Machine, scale: usize) {
+    let cap = std::env::var("PACED_CAP")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(64);
+    let plan = plan(scale);
+    let total: usize = plan.iter().map(|p| p.1).sum();
+    let (tx, rx) = std::sync::mpsc::sync_channel(cap);
+    let t0 = Instant::now() + std::time::Duration::from_millis(50);
+    let insns = tick_insns();
+    let flight = std::sync::Arc::new(Flight::default());
+    let producer_flight = flight.clone();
+    let h = std::thread::spawn(move || {
+        let (mut m, mut stats, mut first, mut blocked) = (m, IdleStats::default(), 0, 0.0);
+        for (_, ticks, action) in plan {
+            blocked += produce(
+                &mut m,
+                &mut stats,
+                t0,
+                first,
+                ticks,
+                insns,
+                action,
+                &tx,
+                &producer_flight,
+            );
+            first += ticks;
+        }
+        blocked
+    });
+    let rep = consume(&rx, t0, total, &flight);
+    let blocked = h.join().unwrap();
+    println!("paced run, queue capacity {cap} ticks: producer blocked {blocked:.2} ms, max queue {} msgs / {} ticks per drain loop, peak {} ticks in flight, {} out of order", rep.max_queue_msgs, rep.max_queue_ticks, rep.max_inflight, rep.out_of_order);
+    println!(
+        "phase      ticks  msg lateness ms: p50    p99    p99.9  max     late ticks (>0 / >1 ms)"
+    );
+    let mut from = 0;
+    for (name, ticks, _) in plan {
+        let sl = &rep.per_tick[from..from + ticks];
+        let p = weighted_percentiles(sl);
+        let late = sl.iter().filter(|x| x.0 > 1e-9).count();
+        let late1 = sl.iter().filter(|x| x.0 > 1.0).count();
+        println!("{name:<9} {ticks:>6}                  {:>5.2}  {:>5.2}  {:>5.2}  {:>5.2}   {late} / {late1}", p[0], p[1], p[2], p[3]);
+        from += ticks;
+    }
+    let p = weighted_percentiles(&rep.per_tick);
+    println!(
+        "all       {total:>6}                  {:>5.2}  {:>5.2}  {:>5.2}  {:>5.2}",
+        p[0], p[1], p[2], p[3]
+    );
 }
 
 fn phases(
@@ -136,25 +215,11 @@ fn phases(
     scale: usize,
     mut stats: Option<&mut IdleStats>,
 ) -> (Vec<Row>, Vec<u64>) {
-    let n = |x: usize| (x * scale / 100).max(1);
     let (mut rows, mut hashes) = (Vec::new(), Vec::new());
-    let none = |_: &mut Machine| {};
-    let on1 = |m: &mut Machine| m.send_midi(&note_on(KEYS8[0], 100, 0));
-    let off1 = |m: &mut Machine| m.send_midi(&note_off(KEYS8[0], 0));
-    let on8 = |m: &mut Machine| KEYS8.iter().for_each(|k| m.send_midi(&note_on(*k, 100, 0)));
-    let off8 = |m: &mut Machine| KEYS8.iter().for_each(|k| m.send_midi(&note_off(*k, 0)));
-    let plan: [PhasePlan; 6] = [
-        ("load", n(800), &none),
-        ("idle", n(300), &none),
-        ("key1 on", n(200), &on1),
-        ("key1 off", n(200), &off1),
-        ("key8 on", n(200), &on8),
-        ("key8 off", n(200), &off8),
-    ];
-    for (name, ticks, action) in plan {
+    for (name, ticks, action) in plan(scale) {
         let row = match stats.as_deref_mut() {
-            Some(s) => run_phase(m, name, ticks, Some(s), action),
-            None => run_phase_full(m, name, ticks, action),
+            Some(s) => run_phase(m, name, ticks, Some(s), &action),
+            None => run_phase_full(m, name, ticks, &action),
         };
         rows.push(row);
         hashes.push(m.state_hash());
@@ -176,12 +241,13 @@ fn report(rows: &[Row]) {
         let over = r.ms.iter().filter(|x| **x > 1.0).count();
         let (run, backlog) = tail(&r.ms);
         println!(
-            "{:<9} {:>6}  {:>7.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>3} ({:>4.1}%)  {:>4}  {:>10.2}  {:>14.0}  {:>6}",
+            "{:<9} {:>6}  {:>7.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>3} ({:>4.1}%)  {:>4}  {:>10.2}  {:>14.0}  {:>6}",
             r.name,
             r.ms.len(),
             mean,
             percentile(&r.ms, 0.5),
             percentile(&r.ms, 0.99),
+            percentile(&r.ms, 0.999),
             percentile(&r.ms, 1.0),
             over,
             100.0 * over as f64 / r.ms.len() as f64,
@@ -195,6 +261,28 @@ fn report(rows: &[Row]) {
     println!(
         "all phases back to back: longest over-1ms run {run} ticks, worst backlog {backlog:.2} ms"
     );
+    let per_tick: Vec<usize> = rows
+        .iter()
+        .flat_map(|r| r.msgs_per_tick.iter().copied())
+        .collect();
+    for (name, ms, n) in rows
+        .iter()
+        .map(|r| (r.name, r.ms.clone(), r.msgs_per_tick.clone()))
+        .chain([("all", all.clone(), per_tick)])
+    {
+        let q = simulate_queue(&ms, &n, 1.0);
+        println!(
+            "queue {name:<9} msg latency ms p50 {:.2} p99 {:.2} p99.9 {:.2} max {:.2}, late ticks {}, max queue {} msgs, max {} ticks per 1 ms drain",
+            q.latency[0], q.latency[1], q.latency[2], q.latency[3], q.late_ticks, q.max_queue, q.max_ticks_per_block
+        );
+    }
+    for r in rows.iter() {
+        println!(
+            "digest {:<9} messages {:016x}",
+            r.name,
+            digest_messages(&r.msgs)
+        );
+    }
     // what the over-1 ms ticks are: real instructions, device-window polling, or arena growth
     let mut heavy = Vec::new();
     for r in rows {
@@ -233,6 +321,9 @@ fn report(rows: &[Row]) {
 
 fn main() {
     let a: Vec<String> = std::env::args().collect();
+    if std::env::var("MICRO").is_ok() {
+        return nord_arm::machine::micro::print_dispatch_rates(50_000_000);
+    }
     let code = std::fs::read(&a[1]).expect("code");
     let sram = std::fs::read(&a[2]).expect("sram");
     let eeprom = std::fs::read(&a[3]).expect("eeprom image");
@@ -251,6 +342,13 @@ fn main() {
             m.cpu.pc(),
             m.null_call_count
         );
+        let mut by_lr = std::collections::BTreeMap::new();
+        for &(pc, lr) in &m.null_calls {
+            *by_lr.entry((pc, lr)).or_insert(0u32) += 1;
+        }
+        for ((pc, lr), k) in by_lr {
+            println!("null {pc:#x} {lr:#x} {k}");
+        }
         // the Python run checks its stop address once per 200k chunk and counts whole chunks:
         // run on to the next chunk boundary to compare like with like
         let more = m.run_chunked(None, 600_000, 200_000).0;
@@ -261,6 +359,15 @@ fn main() {
         return;
     }
     let mut m = Machine::new();
+    m.predecode = std::env::var("PREDECODE").map_or(true, |v| v != "0");
+    println!(
+        "predecode: {}",
+        if m.predecode {
+            "on"
+        } else {
+            "off (plain Cpu::step path)"
+        }
+    );
     let t = Instant::now();
     m.prepare_system(&code, &sram).expect("init array");
     m.bus.i2c.as_mut().unwrap().load_image(&eeprom);
@@ -273,6 +380,14 @@ fn main() {
         boot_stats.skipped,
         t.elapsed().as_secs_f64()
     );
+    println!(
+        "boot rate: {:.1} M executed insns/s, {boot_stats:?}, state hash {:016x}",
+        boot_stats.executed as f64 / t.elapsed().as_secs_f64() / 1e6,
+        m.state_hash()
+    );
+    if std::env::var("BOOT_ONLY").is_ok() {
+        return;
+    }
     m.install_dsp_ports();
     m.install_dsp_return();
     m.enable_real_timer();
@@ -288,10 +403,16 @@ fn main() {
         m.wfi,
         m.cpu.mode_changes
     );
+    if std::env::var("PACED").is_ok() {
+        return paced(m, scale);
+    }
     let mut full = m.clone();
     let mut stats = IdleStats::default();
     let (rows, h_idle) = phases(&mut m, scale, Some(&mut stats));
     report(&rows);
+    for (r, h) in rows.iter().zip(&h_idle) {
+        println!("digest {:<9} state {h:016x}", r.name);
+    }
     println!("idle stats: {stats:?}");
     println!(
         "after run: arena {} KB, heap_top {:#x}, auto-mapped pages {}, null calls {}, wfi {} (stats {}), irq injected with I bit set {}, dropped messages {}, pending words {}, DSP return reads {}",
@@ -330,19 +451,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn percentile_picks_sorted_rank() {
-        let v = [5.0, 1.0, 3.0, 2.0, 4.0];
-        assert_eq!(percentile(&v, 0.0), 1.0);
-        assert_eq!(percentile(&v, 0.5), 3.0);
-        assert_eq!(percentile(&v, 1.0), 5.0);
+    fn plan_scales_the_phase_lengths_and_keeps_every_phase() {
+        let full = plan(100);
+        assert_eq!(full.map(|p| p.1), [800, 300, 200, 200, 200, 200]);
+        let tiny = plan(1);
+        assert_eq!(tiny.map(|p| p.1), [8, 3, 2, 2, 2, 2]);
+        assert!(
+            plan(0).iter().all(|p| p.1 == 1),
+            "a phase never has zero ticks"
+        );
     }
 
     #[test]
-    fn tail_finds_the_longest_run_and_the_backlog() {
-        // 3.0, 3.0 over by 2 each: backlog 4, then two 0.2 ms ticks repay 0.8 each
-        let (run, backlog) = tail(&[0.2, 3.0, 3.0, 0.2, 0.2, 0.2]);
-        assert_eq!(run, 2);
-        assert!((backlog - 4.0).abs() < 1e-9, "{backlog}");
-        assert_eq!(tail(&[0.5, 0.9]), (0, 0.0));
+    fn tick_budget_defaults_to_the_assumed_200k() {
+        assert_eq!(TICK_DEFAULT, 200_000);
     }
 }
