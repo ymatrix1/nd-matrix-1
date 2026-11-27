@@ -33,22 +33,76 @@ fn held_looped_note_outlasts_its_sample() {
     );
 }
 
-/// Inside the loop the firmware rate word `F+6` makes every repetition quieter.
+/// Inside the loop the firmware rate word `F+6` makes every repetition quieter, and the voice is
+/// freed once its envelope is below `1e-4` (about 0.18 s here, so by frame 20,000 it is gone and
+/// what is left in the output is only the layer's filter tail).
 #[test]
 fn looped_note_decays_in_the_loop_and_is_freed_when_silent() {
     let mut piano = PianoLayer::new(48_000.0);
     piano.set_sound(Some(looped_sound(-20_000)));
     piano.note_on(60, 110);
-    let out: Vec<f32> = (0..60_000).map(|_| piano.render_frame()[0].abs()).collect();
-    let peak = |a: usize, b: usize| out[a..b].iter().cloned().fold(0.0f32, f32::max);
-    let early = peak(4_200, 5_200);
-    let late = peak(20_000, 21_000);
-    assert!(late < 0.5 * early, "loop must decay: {late} vs {early}");
-    assert!(late > 0.0);
+    let mut out = Vec::new();
+    for _ in 0..4_200 {
+        out.push(piano.render_frame()[0].abs());
+    }
+    assert!(
+        piano.voices.iter().any(|v| v.active),
+        "still sounding in the loop"
+    );
+    for _ in 4_200..20_000 {
+        out.push(piano.render_frame()[0].abs());
+    }
     assert!(
         piano.voices.iter().all(|v| !v.active),
-        "voice freed when decayed"
+        "voice must be freed once decayed, not merely quiet"
     );
+    let peak = |a: usize, b: usize| out[a..b].iter().cloned().fold(0.0f32, f32::max);
+    assert!(peak(19_000, 20_000) < 0.5 * peak(4_200, 5_200));
+}
+
+/// No decay is applied before the loop start: the envelope stays at its initial `1.0` over the
+/// whole first pass of the stroke (frames `0..=2048`, loop start 2048, root pitch, step 1).
+#[test]
+fn no_loop_decay_before_the_loop_start() {
+    let mut piano = PianoLayer::new(48_000.0);
+    piano.set_sound(Some(looped_sound(-20_000)));
+    piano.note_on(60, 110);
+    let env0 = piano.voices[0].env;
+    for _ in 0..2_000 {
+        piano.render_frame();
+        assert_eq!(piano.voices[0].env, env0, "decay before the loop start");
+    }
+    for _ in 0..200 {
+        piano.render_frame();
+    }
+    assert!(
+        piano.voices[0].env < env0,
+        "decay must start inside the loop"
+    );
+}
+
+/// The in-loop slope equals the firmware rate word `F+6`: for `loop_decay = -185` (the Astoria
+/// Grand word `0x3F7FFE8E`) the envelope loses `4.16 dB/s` (`sample_loop::tests::
+/// loop_decays_about_four_db_per_second`). Measured on the voice envelope over one second of
+/// looping, tolerance 0.05 dB (the f32 product of 48,000 per-frame factors).
+#[test]
+fn in_loop_decay_slope_matches_the_firmware_rate_word() {
+    let mut piano = PianoLayer::new(48_000.0);
+    piano.set_sound(Some(looped_sound(-185)));
+    piano.note_on(60, 110);
+    // Run to the first decayed frame, then measure exactly one second of looping.
+    while piano.voices[0].env == 1.0 {
+        piano.render_frame();
+    }
+    let start = piano.voices[0].env;
+    for _ in 0..48_000 {
+        piano.render_frame();
+    }
+    let db = 20.0 * (piano.voices[0].env / start).log10();
+    let expected =
+        20.0 * sample_loop::frame_factor(sample_loop::rate_x(-185), 48_000.0).log10() * 48_000.0;
+    assert!((db - expected).abs() < 0.05, "{db} dB vs {expected} dB");
+    assert!((-4.4..-4.0).contains(&db), "{db}");
 }
 
 /// Issue #640: a held note that outlasts its sample must fade out, not stop at full level.
