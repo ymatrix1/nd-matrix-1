@@ -20,7 +20,7 @@ use nord_arm::machine::idle::IdleStats;
 use nord_arm::machine::metrics::{
     digest_messages, percentile, simulate_queue, tail, weighted_percentiles,
 };
-use nord_arm::machine::paced::{consume, produce};
+use nord_arm::machine::paced::{consume, produce, Flight};
 use nord_arm::machine::system::Message;
 use nord_arm::machine::uart::{note_off, note_on};
 use nord_arm::machine::{Machine, Stop};
@@ -168,17 +168,29 @@ fn paced(m: Machine, scale: usize) {
     let (tx, rx) = std::sync::mpsc::sync_channel(cap);
     let t0 = Instant::now() + std::time::Duration::from_millis(50);
     let insns = tick_insns();
+    let flight = std::sync::Arc::new(Flight::default());
+    let producer_flight = flight.clone();
     let h = std::thread::spawn(move || {
         let (mut m, mut stats, mut first, mut blocked) = (m, IdleStats::default(), 0, 0.0);
         for (_, ticks, action) in plan {
-            blocked += produce(&mut m, &mut stats, t0, first, ticks, insns, action, &tx);
+            blocked += produce(
+                &mut m,
+                &mut stats,
+                t0,
+                first,
+                ticks,
+                insns,
+                action,
+                &tx,
+                &producer_flight,
+            );
             first += ticks;
         }
         blocked
     });
-    let rep = consume(&rx, t0, total);
+    let rep = consume(&rx, t0, total, &flight);
     let blocked = h.join().unwrap();
-    println!("paced run, queue capacity {cap} ticks: producer blocked {blocked:.2} ms, max queue {} msgs / {} ticks per drain", rep.max_queue_msgs, rep.max_queue_ticks);
+    println!("paced run, queue capacity {cap} ticks: producer blocked {blocked:.2} ms, max queue {} msgs / {} ticks per drain loop, peak {} ticks in flight, {} out of order", rep.max_queue_msgs, rep.max_queue_ticks, rep.max_inflight, rep.out_of_order);
     println!(
         "phase      ticks  msg lateness ms: p50    p99    p99.9  max     late ticks (>0 / >1 ms)"
     );
