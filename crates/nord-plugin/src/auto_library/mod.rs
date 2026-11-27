@@ -12,14 +12,15 @@
 //! this module runs after the host unloaded the plugin.
 
 mod archive;
+mod handled;
 #[cfg(test)]
 pub(crate) mod support;
 mod worker;
 
 use crate::loader::LoadSender;
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{bounded, Sender};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -60,10 +61,12 @@ impl LibrarySource {
 
 /// The plugin's end of the worker: sends wanted locations; dropping it stops the worker.
 pub struct LibraryLink {
-    tx: Option<Sender<i32>>,
-    /// Every request value the worker finished with (loaded, skipped or failed), for
-    /// [`LibraryLink::wait_handled`].
-    done_rx: Receiver<i32>,
+    /// Requests as `(generation, parameter value)`; generations count up from 1.
+    tx: Option<Sender<(u64, i32)>>,
+    /// Generation of the newest request that was queued (one producer: the audio thread).
+    sent: AtomicU64,
+    /// The newest request the worker finished with, for [`LibraryLink::wait_handled`].
+    handled: Arc<handled::Handled>,
     closed: Arc<AtomicBool>,
     thread: Option<JoinHandle<()>>,
 }
@@ -77,46 +80,45 @@ impl LibraryLink {
             return None;
         };
         let (tx, rx) = bounded(REQUEST_CAPACITY);
-        let (done_tx, done_rx) = bounded(REQUEST_CAPACITY);
+        let handled = Arc::new(handled::Handled::default());
         let closed = Arc::new(AtomicBool::new(false));
-        let worker = worker::Worker::new(path, loads, done_tx, Arc::clone(&closed));
+        let worker = worker::Worker::new(path, loads, Arc::clone(&handled), Arc::clone(&closed));
         let thread = std::thread::Builder::new()
             .name("ns4-library".into())
             .spawn(move || worker.run(rx))
             .ok()?;
         Some(Self {
             tx: Some(tx),
-            done_rx,
+            sent: AtomicU64::new(0),
+            handled,
             closed,
             thread: Some(thread),
         })
     }
 
-    /// Blocks until the worker has finished with a request for `program` (its jobs are queued, or
-    /// it was skipped or failed), at most `timeout`. For an offline render (a bounce), whose
-    /// first block comes right after `initialize`: the program must already be in. `false` on
-    /// timeout. Never call it from the audio thread.
+    /// Blocks until the worker has finished with the newest request queued so far, provided that
+    /// one asked for `program` (its jobs are queued, or it was skipped or failed), at most
+    /// `timeout`. For an offline render (a bounce), whose first block comes right after
+    /// `initialize`: the program must already be in. `false` on timeout, or when a request for
+    /// another value is the newest. Never call it from the audio thread.
     pub fn wait_handled(&self, program: i32, timeout: Duration) -> bool {
-        let deadline = Instant::now() + timeout;
-        loop {
-            let now = Instant::now();
-            if now >= deadline {
-                return false;
-            }
-            match self.done_rx.recv_timeout(deadline - now) {
-                Ok(v) if v == program => return true,
-                Ok(_) => continue,
-                Err(_) => return false,
-            }
-        }
+        let generation = self.sent.load(Ordering::SeqCst);
+        self.handled.wait(generation, program, timeout)
     }
 
-    /// Asks for parameter value `program` (0 = Off: nothing happens). Never blocks or allocates;
-    /// `false` when the request queue is full (the worker is behind; the next request wins).
+    /// Asks for parameter value `program` (0 = Off: the built-in engine state is restored).
+    /// Never blocks or allocates; `false` when the request queue is full (the worker is behind;
+    /// the next request wins).
     pub fn request(&self, program: i32) -> bool {
-        self.tx
+        let generation = self.sent.load(Ordering::SeqCst) + 1;
+        let queued = self
+            .tx
             .as_ref()
-            .is_some_and(|tx| tx.try_send(program).is_ok())
+            .is_some_and(|tx| tx.try_send((generation, program)).is_ok());
+        if queued {
+            self.sent.store(generation, Ordering::SeqCst);
+        }
+        queued
     }
 }
 
@@ -239,6 +241,45 @@ mod tests {
         // Off is handled too (nothing queued), so an offline render never waits on it.
         assert!(link.request(0));
         assert!(link.wait_handled(0, Duration::from_secs(10)));
+    }
+
+    #[test]
+    fn many_program_changes_do_not_make_a_later_wait_miss_its_signal() {
+        let path = two_program_backup("stale");
+        let (tx, rx) = load_queue(1024);
+        let link = LibraryLink::start(Some(path.clone()), tx).expect("worker");
+        // The reviewer's probe: ten changes nobody waited for, then the one a host waits on.
+        assert!(link.request(1));
+        assert!(link.wait_handled(1, Duration::from_secs(30)), "first load");
+        for _ in 0..9 {
+            assert!(link.request(1));
+            // Long enough for the worker to handle each one on its own (cached after the first).
+            std::thread::sleep(Duration::from_millis(250));
+        }
+        assert!(link.request(2));
+        // The worker finishes before anyone waits (a host calls `initialize` later).
+        std::thread::sleep(Duration::from_millis(1500));
+        let t = Instant::now();
+        assert!(link.wait_handled(2, Duration::from_secs(3)));
+        assert!(t.elapsed() < Duration::from_secs(3));
+        let _ = std::fs::remove_file(&path);
+        let jobs = drain_until(&rx, 1);
+        assert!(!jobs.is_empty());
+    }
+
+    #[test]
+    fn a_stale_equal_value_does_not_satisfy_a_newer_request() {
+        let path = two_program_backup("stale-eq");
+        let (tx, _rx) = load_queue(64);
+        let link = LibraryLink::start(Some(path.clone()), tx).expect("worker");
+        assert!(link.request(1));
+        assert!(link.wait_handled(1, Duration::from_secs(10)));
+        // A second request for program 1 is queued but may not be handled yet: a wait for it
+        // must not return on the first one's record unless the worker really got to the second.
+        assert!(link.request(2));
+        assert!(link.request(1));
+        assert!(link.wait_handled(1, Duration::from_secs(10)));
+        let _ = std::fs::remove_file(&path);
     }
 
     #[test]

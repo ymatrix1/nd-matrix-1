@@ -6,11 +6,12 @@
 use super::archive::{
     bank_key, decode_program, index, read_entry, short_name, wanted_sounds, Indexed,
 };
+use super::handled::Handled;
 use super::{report, QUEUE_WAIT, WAVE_TABLES_WAIT};
 use crate::library_select::{label, location};
 use crate::loader::{LoadJob, LoadSender, Refused};
 use crate::shared_sounds::Shared;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::Receiver;
 use nord_core::piano::NpnoSound;
 use nord_core::synth::SynthSampleSound;
 use std::collections::HashMap;
@@ -29,8 +30,8 @@ const CLOSING: &str = "the plugin instance is closing";
 pub(super) struct Worker {
     path: PathBuf,
     loads: LoadSender,
-    /// Reports each handled request value (`LibraryLink::wait_handled`).
-    done: Sender<i32>,
+    /// Records the newest handled request (`LibraryLink::wait_handled`).
+    done: Arc<Handled>,
     /// Set by the link's `Drop`: finish at once.
     closed: Arc<AtomicBool>,
     /// The library, indexed on the first request.
@@ -48,7 +49,7 @@ impl Worker {
     pub(super) fn new(
         path: PathBuf,
         loads: LoadSender,
-        done: Sender<i32>,
+        done: Arc<Handled>,
         closed: Arc<AtomicBool>,
     ) -> Self {
         Self {
@@ -64,10 +65,11 @@ impl Worker {
         }
     }
 
-    pub(super) fn run(mut self, rx: Receiver<i32>) {
-        while let Ok(mut want) = rx.recv() {
+    pub(super) fn run(mut self, rx: Receiver<(u64, i32)>) {
+        while let Ok((mut generation, mut want)) = rx.recv() {
             // Only the newest request matters when the host scrubbed through several.
-            while let Ok(later) = rx.try_recv() {
+            while let Ok((later_generation, later)) = rx.try_recv() {
+                generation = later_generation;
                 want = later;
             }
             if self.closing() {
@@ -79,8 +81,7 @@ impl Worker {
                     Err(e) => report(&format!("program {} not loaded ({e})", label(want))),
                 }
             }
-            // Nobody waiting (or a full report queue) is fine: the report is advisory.
-            let _ = self.done.try_send(want);
+            self.done.record(generation, want);
         }
     }
 
@@ -262,11 +263,9 @@ impl Worker {
 mod tests {
     use super::*;
     use crate::loader::load_queue;
-    use crossbeam_channel::bounded;
 
     fn worker(loads: LoadSender, closed: Arc<AtomicBool>) -> Worker {
-        let (done, _keep) = bounded(1);
-        std::mem::forget(_keep);
+        let done = Arc::new(Handled::default());
         Worker::new(PathBuf::from("unused.ns4b"), loads, done, closed)
     }
 
