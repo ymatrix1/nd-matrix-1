@@ -9,8 +9,14 @@
 //! uop that lowered. The skeleton handles no uop natively, so every trace is one `Generic` exit
 //! at its first instruction. A lowerer must return `Unsupported` before it emits anything, and a
 //! `PRED` whose body is not entirely lowerable is `Unsupported` itself (its `pc` is the first
-//! instruction of the body, so the state before it is exact); an instruction that lowers to
-//! several uops carries `n = 1` on the first and `n = 0` on the others.
+//! instruction of the body, so the state before it is exact; `NCtx::predicated` does the dry
+//! run); an instruction that lowers to several uops carries `n = 1` on the first and `n = 0` on
+//! the others.
+//!
+//! The walk tells the context where it is (`NCtx::begin`) before each lowerer, so a lowerer can
+//! read the trace (`NCtx::uops`, `index`, `rest`), and it continues after the uops a lowerer
+//! consumed (a `PRED` and its body). The walk is [`lower_range`], shared with the dry run and
+//! the predicated body.
 
 use super::emit::{NCtx, Unsupported};
 use super::{lower_dp, lower_flow, lower_mem};
@@ -18,6 +24,10 @@ use crate::machine::sb::uop::{k, Sb, Uop};
 use cranelift_codegen::ir::{types, AbiParam, Function, Signature, UserFuncName};
 use cranelift_codegen::isa::CallConv;
 use cranelift_frontend::FunctionBuilderContext;
+
+/// The lowerer of one uop. [`lower_uop`] is the registry; tests substitute a smaller one
+/// (`build_function_with`).
+pub type LowerFn = fn(&mut NCtx<'_>, &Uop) -> Result<(), Unsupported>;
 
 /// Lower one uop through the static family registry.
 pub fn lower_uop(cx: &mut NCtx<'_>, u: &Uop) -> Result<(), Unsupported> {
@@ -38,6 +48,35 @@ pub fn trace_signature(call_conv: CallConv, ptr: cranelift_codegen::ir::Type) ->
     sig
 }
 
+/// Lower `uops[from..end]` in order with the context's lowerer, skipping the uops a lowerer
+/// consumed and stopping quietly when a block gets terminated. `Err(i)` is the index of the
+/// first uop that was [`Unsupported`]: nothing was emitted for it and `retired` counts what
+/// came before it.
+pub fn lower_range(cx: &mut NCtx<'_>, from: usize, end: usize) -> Result<(), usize> {
+    let uops = cx.uops();
+    let lower = cx.lowerer();
+    let mut i = from;
+    while i < end && !cx.is_terminated() {
+        cx.begin(i);
+        let u = &uops[i];
+        if lower(cx, u).is_err() {
+            return Err(i);
+        }
+        cx.retired += u16::from(u.n);
+        i = cx.next_index();
+    }
+    Ok(())
+}
+
+/// [`lower_range`], and when a uop is unsupported the trace leaves there: `exit_generic` at its
+/// pc, with the state exact before it.
+pub fn lower_range_or_exit(cx: &mut NCtx<'_>, from: usize, end: usize) {
+    if let Err(i) = lower_range(cx, from, end) {
+        let pc = cx.uops()[i].pc;
+        cx.exit_generic(pc);
+    }
+}
+
 /// Build the Cranelift function of `sb` for a pointer type `ptr`, or `None` when the uops do not
 /// end in an exit (a trace-builder bug: the backend then leaves the trace on T2, which is
 /// exact). A lowerer returns [`Unsupported`] before it emits anything, so the exit at `u.pc`
@@ -48,22 +87,24 @@ pub fn build_function(
     call_conv: CallConv,
     ptr: cranelift_codegen::ir::Type,
 ) -> Option<Function> {
+    build_function_with(sb, call_conv, ptr, lower_uop)
+}
+
+/// [`build_function`] with another lowerer (the stand-ins of the tests of the walk).
+pub fn build_function_with(
+    sb: &Sb,
+    call_conv: CallConv,
+    ptr: cranelift_codegen::ir::Type,
+    lower: LowerFn,
+) -> Option<Function> {
     let mut func = Function::with_name_signature(
         UserFuncName::user(0, sb.entry),
         trace_signature(call_conv, ptr),
     );
     let mut fctx = FunctionBuilderContext::new();
     let mut cx = NCtx::new(&mut func, &mut fctx, sb);
-    for u in sb.uops.iter() {
-        if cx.is_terminated() {
-            break;
-        }
-        if lower_uop(&mut cx, u).is_err() {
-            cx.exit_generic(u.pc);
-            break;
-        }
-        cx.retired += u16::from(u.n);
-    }
+    cx.set_lowerer(lower);
+    lower_range_or_exit(&mut cx, 0, sb.uops.len());
     let terminated = cx.is_terminated();
     if terminated {
         cx.finish();
@@ -144,6 +185,41 @@ mod tests {
             let _ = lower_uop(&mut cx2, &Uop::new(200, 0));
         }));
         assert!(bad.is_err());
+    }
+
+    #[test]
+    fn the_walk_reports_the_first_unsupported_uop_counts_what_came_before_and_leaves_there() {
+        use super::super::emit::testing::toy_lower;
+        let add = |pc| {
+            let mut u = Uop::new(k::ADD_IMM, pc);
+            (u.rd, u.rn, u.imm) = (1, 1, 1);
+            u
+        };
+        let t = sb(vec![
+            add(0x1000),
+            add(0x1004),
+            Uop::new(k::LDR_IMM, 0x1008),
+            Uop::exit(0, 0x100C),
+        ]);
+        let mut func = Function::with_name_signature(
+            UserFuncName::user(0, 3),
+            trace_signature(CallConv::SystemV, types::I64),
+        );
+        let mut fctx = FunctionBuilderContext::new();
+        let mut cx = NCtx::new(&mut func, &mut fctx, &t);
+        cx.set_lowerer(toy_lower);
+        assert_eq!(lower_range(&mut cx, 0, 4), Err(2));
+        assert_eq!((cx.retired, cx.is_terminated()), (2, false));
+        assert_eq!(lower_range(&mut cx, 0, 2), Ok(()), "a range that lowers");
+        lower_range_or_exit(&mut cx, 2, 4);
+        assert!(
+            cx.is_terminated(),
+            "the unsupported uop became a generic exit"
+        );
+        cx.finish();
+        verify(&func);
+        let text = func.display().to_string();
+        assert!(text.contains("4104"), "r15 = 0x1008: {text}");
     }
 
     #[test]

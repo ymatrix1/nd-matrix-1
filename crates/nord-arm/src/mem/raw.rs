@@ -3,7 +3,9 @@
 //! Spec (design note 9, WP W1-NCORE): [`Mem::raw_parts`] returns the page table and the arena as
 //! raw pointers, which is safe to do (nothing is dereferenced here). The native code reads
 //! `table[addr >> 12]`; an entry is `flags | arena page index`, index 0 meaning unmapped, and the
-//! host address of a mapped byte is `arena - 4096 + (index << 12) + (addr & 0xFFF)`. Only Rust
+//! host address of a mapped byte is `arena - 4096 + (index << 12) + (addr & 0xFFF)` (VERIFIED:
+//! native loads and stores of this formula equal `Mem` on six page kinds and across an arena
+//! reallocation, `native::abi::native_access`). Only Rust
 //! code can map a page, which can move the arena, so the pointers are valid only until the next
 //! `&mut Mem` use: the driver calls `raw_parts` before every native entry and stores the result
 //! in `NativeCtl`. Native code never runs while another borrow of the `Mem` is live.
