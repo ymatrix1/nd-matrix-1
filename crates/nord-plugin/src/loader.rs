@@ -14,7 +14,6 @@
 
 use crate::params::Stage4Params;
 use crate::program_hold::Group;
-use crossbeam_channel::{bounded, Receiver, Sender, TrySendError};
 use nord_core::cbin::ProgramDecoded;
 use nord_core::engine::Stage4Engine;
 use nord_core::piano::NpnoSound;
@@ -22,6 +21,8 @@ use nord_core::render_opts::FirmwareOptions;
 use nord_core::synth::SynthSampleSound;
 use nord_gui::audio::garbage::{Bin, Garbage};
 use std::sync::Arc;
+
+pub use crate::load_queue::{load_queue, LoadReceiver, LoadSender, Refused};
 
 /// Jobs the queue holds before the editor reports the plugin busy.
 ///
@@ -57,54 +58,6 @@ pub enum LoadJob {
     /// engine back to the host parameters (D252). Allocates nothing; what it drops goes to the
     /// bin. Firmware options and the WAVE stage stay.
     Unload,
-}
-
-/// Producer end, owned by the editor.
-#[derive(Clone)]
-pub struct LoadSender(Sender<LoadJob>);
-
-/// Consumer end, owned by the plugin and drained at the start of every `process()` block.
-#[derive(Clone)]
-pub struct LoadReceiver(Receiver<LoadJob>);
-
-/// New queue with `capacity` slots.
-pub fn load_queue(capacity: usize) -> (LoadSender, LoadReceiver) {
-    let (tx, rx) = bounded(capacity);
-    (LoadSender(tx), LoadReceiver(rx))
-}
-
-/// Why [`LoadSender::push`] did not queue a job. The job travels back by value, like the
-/// queue's own slots hold it.
-#[derive(Debug)]
-#[allow(clippy::large_enum_variant)]
-pub enum Refused {
-    /// The queue is full: here is the job back, for once `process()` has drained some.
-    Full(LoadJob),
-    /// Nobody will ever drain the queue: the plugin instance that owned it is gone.
-    Closed,
-}
-
-impl LoadSender {
-    /// Queues one job; says why when it cannot.
-    #[allow(clippy::result_large_err)]
-    pub fn push(&self, job: LoadJob) -> Result<(), Refused> {
-        match self.0.try_send(job) {
-            Ok(()) => Ok(()),
-            Err(TrySendError::Full(j)) => Err(Refused::Full(j)),
-            Err(TrySendError::Disconnected(_)) => Err(Refused::Closed),
-        }
-    }
-}
-
-impl LoadReceiver {
-    /// Next pending job. Never blocks, never allocates.
-    pub fn pop(&self) -> Option<LoadJob> {
-        self.0.try_recv().ok()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
 }
 
 /// What has been loaded into the plugin, kept to restore a rebuilt engine.
@@ -256,34 +209,6 @@ mod tests {
         prog.organ.layer_a_level = level;
         prog.organ.drawbars_a = [8, 8, 8, 0, 0, 0, 0, 0, 0];
         Box::new(prog)
-    }
-
-    #[test]
-    fn the_queue_is_bounded_and_hands_a_rejected_job_back() {
-        let (tx, rx) = load_queue(2);
-        assert!(tx
-            .push(LoadJob::Firmware(FirmwareOptions::default()))
-            .is_ok());
-        assert!(tx
-            .push(LoadJob::Piano {
-                slot_b: false,
-                sound: None
-            })
-            .is_ok());
-        let back = tx.push(LoadJob::Sample {
-            layer: 0,
-            sound: None,
-        });
-        assert!(matches!(back, Err(Refused::Full(LoadJob::Sample { .. }))));
-        assert!(matches!(rx.pop(), Some(LoadJob::Firmware(_))));
-        assert!(matches!(rx.pop(), Some(LoadJob::Piano { .. })));
-        assert!(rx.pop().is_none() && rx.is_empty());
-        // A queue nobody drains any more says so, instead of handing the job back.
-        drop(rx);
-        assert!(matches!(
-            tx.push(LoadJob::WaveBank(true)),
-            Err(Refused::Closed)
-        ));
     }
 
     #[test]
