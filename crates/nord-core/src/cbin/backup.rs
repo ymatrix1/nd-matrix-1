@@ -308,6 +308,19 @@ impl Ns4BackupArchive {
             .map_err(|_| CbinError::BitstreamError("entry exceeds host usize".to_string()))?
             .min(max_len);
 
+        // The size comes from the (untrusted) zip header: an entry that claims more bytes than
+        // the file holds after its payload offset is an error, and never an allocation of that
+        // size (`NS4_LIBRARY` can point the plugin at any file).
+        let file_len = reader
+            .seek(SeekFrom::End(0))
+            .map_err(|e| CbinError::BitstreamError(format!("seek end failed: {e}")))?;
+        let available = file_len.saturating_sub(data_offset);
+        if size as u64 > available {
+            return Err(CbinError::BitstreamError(format!(
+                "entry '{}' claims {size} bytes but only {available} remain in the file",
+                entry.name
+            )));
+        }
         reader
             .seek(SeekFrom::Start(data_offset))
             .map_err(|e| CbinError::BitstreamError(format!("seek entry payload failed: {e}")))?;
@@ -546,6 +559,30 @@ mod tests {
             archive.read_entry_by_index(&mut r, 0).unwrap(),
             b"0123456789"
         );
+    }
+
+    #[test]
+    fn test_an_entry_claiming_more_bytes_than_the_file_holds_is_an_error_not_an_allocation() {
+        let mut zip_bytes =
+            build_synthetic_zip(&[("Piano/Grand/a.npno", ZIP_METHOD_STORED, b"0123456789")]);
+        let mut archive = Ns4BackupArchive::from_bytes(&zip_bytes).unwrap();
+        // A hostile header: 3.9 GB claimed uncompressed size for a 10-byte payload.
+        archive.entries[0].uncompressed_size = 0xF000_0000;
+        let mut r = std::io::Cursor::new(&zip_bytes);
+        let err = archive.read_entry_by_index(&mut r, 0).unwrap_err();
+        assert!(err.to_string().contains("remain in the file"), "{err}");
+        // A prefix read that stays inside the file still works, and one past the end fails.
+        assert_eq!(
+            archive.read_entry_prefix_by_index(&mut r, 0, 4).unwrap(),
+            b"0123"
+        );
+        assert!(archive
+            .read_entry_prefix_by_index(&mut r, 0, usize::MAX)
+            .is_err());
+        // A payload offset past the end of a truncated file is the same error.
+        zip_bytes.truncate(40);
+        let mut r = std::io::Cursor::new(&zip_bytes);
+        assert!(archive.read_entry_by_index(&mut r, 0).is_err());
     }
 
     #[test]
