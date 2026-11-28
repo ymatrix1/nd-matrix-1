@@ -27,9 +27,10 @@
 //!   part in `testgen/comparator.rs`). This is the helper of the lowering and
 //!   executor work packages (W1-DP, W1-MEM, W1-XALU, W1-XMEM, W2-XCORE) and of L0 in `difftest`.
 //!   The `_run` forms also count what the oracle did into a `DiffRun`.
-//! * [`drive_traces`]: the tier stack without a cache, as a copy of the outer loop of
-//!   `Machine::run` that builds a trace per pc and runs it (the skeleton proof that the
-//!   always-correct baseline equals the interpreter).
+//! * [`drive_traces`] (`testgen/drive.rs`): the tier stack without a cache, as a copy of the outer
+//!   loop of `Machine::run` that builds a trace per pc and runs it under the driver's side of the
+//!   contract (I7 entry test, code pages marked, stale drain): the proof that the always-correct
+//!   baseline equals the interpreter.
 //!
 //! `#![allow(dead_code)]`: consumed by the tests of the work packages named above.
 
@@ -41,6 +42,7 @@ mod blocks;
 mod comparator;
 #[cfg(test)]
 mod coverage;
+mod drive;
 mod faults;
 mod mixed;
 mod parts;
@@ -53,14 +55,15 @@ use super::config::SbConfig;
 use super::decode::{decode, lower_or_generic, LowerCtx};
 use super::exec::run_sb;
 use super::lower_flow::{lower_flow, Flow, FlowCtx};
+use super::testkit::logbus::kind;
 use super::testkit::oracle::oracle_trace_on;
 use super::testkit::{CpuSnap, DiffRun, LogBus, TraceRun};
-use super::trace::{build, BuildOpts};
+use super::trace::BuildOpts;
 use super::uop::{k, Exit, ExitKind, Sb, Uop};
 use crate::cpu::{Cpu, Fault};
-use crate::machine::{Machine, Stop};
-use crate::mem::HOOK_X;
+use crate::machine::Machine;
 
+pub(crate) use drive::drive_traces;
 pub(crate) use mixed::{random_program, random_word, tiny_loop};
 pub(crate) use program::{machine_from, structured_program, Program};
 pub(crate) use schedule::{random_schedule, schedule_vs_oracle, SchedStats, Schedule};
@@ -79,11 +82,14 @@ pub(crate) fn machine_with(words: &[u32], seed: u64, predecode: bool) -> Machine
 
 /// Lower the one instruction `word` at `pc` into a complete trace, the way the trace builder
 /// does for a one-instruction trace: control flow through `lower_flow`, everything else through
-/// the static registry with the early exits allocated. `peek` serves literal folding.
+/// the static registry with the early exits allocated. `peek` serves literal folding; like the
+/// builder, the trace lists each folded literal word in `Sb::words` after the instruction itself
+/// (I1: the trace depends on it), which is how [`uops_vs_step_run`] knows the load it replaced.
 pub(crate) fn lower_single(word: u32, pc: u32, peek: &dyn Fn(u32) -> u32) -> Sb {
     let insn = decode(pc, word);
     let opts = BuildOpts::from(&SbConfig::on());
     let (mut uops, mut exits): (Vec<Uop>, Vec<Exit>) = (Vec::new(), Vec::new());
+    let mut words = vec![(pc, word)];
     let next = if insn.is_ender() {
         let (mut depth, mut rets) = (0u8, Vec::new());
         let can_follow = |_: u32| false;
@@ -103,7 +109,13 @@ pub(crate) fn lower_single(word: u32, pc: u32, peek: &dyn Fn(u32) -> u32) -> Sb 
             Flow::Follow(next) => Some(next),
         }
     } else {
-        let mut fold = |a: u32| Some(peek(a));
+        let mut fold = |a: u32| {
+            let literal = peek(a);
+            if !words.contains(&(a, literal)) {
+                words.push((a, literal));
+            }
+            Some(literal)
+        };
         lower_or_generic(&mut LowerCtx {
             insn,
             out: &mut uops,
@@ -122,7 +134,7 @@ pub(crate) fn lower_single(word: u32, pc: u32, peek: &dyn Fn(u32) -> u32) -> Sb 
         exits.push(Exit::new(ExitKind::Direct, 1, pc, next));
         uops.push(Uop::exit(exits.len() as u8 - 1, pc));
     }
-    Sb::from_parts(pc, 1, uops, exits, vec![(pc, word)]).expect("a one-instruction trace fits")
+    Sb::from_parts(pc, 1, uops, exits, words).expect("a one-instruction trace fits")
 }
 
 /// Run `sb` (a trace of the one instruction `word` at `cpu.r[15]`) and `Cpu::step` on equal
@@ -147,10 +159,28 @@ pub(crate) fn uops_vs_step_run(
     run.note(cpu, &t);
     let (mut cb, mut bb) = (cpu.clone(), LogBus::new(seed as u32));
     bb.poke32(pc, word);
+    // `watch`: a trace that loops back to its head (`b .`) leaves after one lap instead of
+    // re-entering while the budget of 4 lasts, so one instruction retires on both sides.
     let mut left = 4u64;
-    run_sb(&mut cb, &mut bb, sb, &mut left, false);
+    run_sb(&mut cb, &mut bb, sb, &mut left, true);
     let rb = cb.fault.take();
+    let t = without_folded_loads(t, sb);
     compare_outcome(word, &t, &cb, rb, &bb, left)
+}
+
+/// The oracle's run `t` without the loads the trace `sb` replaced by a constant: a literal load
+/// folds to `MOV_IMM` (design note 4.2), so the trace performs no bus access for it, while the
+/// interpreter reads the word. The folded words are `sb.words` after the instruction itself
+/// ([`lower_single`]); a load is dropped when its word is one of them. Everything else stays in
+/// the log, so a trace that skips a real access is still caught.
+fn without_folded_loads(mut t: TraceRun, sb: &Sb) -> TraceRun {
+    let folded: Vec<u32> = sb.words.iter().skip(1).map(|w| w.0 & !3).collect();
+    if !folded.is_empty() {
+        t.bus
+            .log
+            .retain(|e| kind::is_store(e.0) || !folded.contains(&(e.1 & !3)));
+    }
+    t
 }
 
 /// The comparison of [`uops_vs_step_run`], on what the executor left behind: its CPU `cb` and
@@ -199,55 +229,10 @@ pub(crate) fn lowered_vs_step_run(
     seed: u64,
     run: &mut DiffRun,
 ) -> Result<(), String> {
-    let probe = LogBus::new(seed as u32);
+    let mut probe = LogBus::new(seed as u32);
+    probe.poke32(cpu.r[15], word); // the memory the oracle runs on: a literal may be the word itself
     let sb = lower_single(word, cpu.r[15], &|a| probe.peek32(a));
     uops_vs_step_run(word, &sb, cpu, seed, run)
-}
-
-/// `Machine::run` with the tier stack and no cache: at every pc build a trace (`trace::build`) and
-/// run it (`exec::run_sb`); Thumb, hooked, misaligned and unmapped pcs take one step of the real
-/// `Machine::run`. Same contract and result as `Machine::run`.
-pub(crate) fn drive_traces(
-    m: &mut Machine,
-    max: u64,
-    until: u32,
-    stop_pc: Option<u32>,
-) -> (u64, Stop) {
-    let start = m.cpu.insns;
-    let limit = start + max;
-    let stop = stop_pc.unwrap_or(u32::MAX);
-    let opts = BuildOpts::from(&SbConfig::on());
-    let reason = loop {
-        if m.cpu.insns >= limit {
-            break Stop::Budget;
-        }
-        let pc = m.cpu.r[15];
-        if pc == until {
-            break Stop::Until;
-        }
-        if pc == stop {
-            break Stop::StopPc;
-        }
-        let sb = if m.cpu.thumb || m.bus.mem.flags(pc) & HOOK_X != 0 {
-            None
-        } else {
-            build(&mut m.bus.mem, pc, &opts)
-        };
-        match sb {
-            Some(sb) => {
-                let mut left = limit - m.cpu.insns;
-                run_sb(&mut m.cpu, &mut m.bus, &sb, &mut left, false);
-                if let Some(f) = m.cpu.fault.take() {
-                    break Stop::Fault(f);
-                }
-            }
-            None => match m.run(1, until, stop_pc) {
-                (_, Stop::Budget) => {}
-                (_, other) => break other,
-            },
-        }
-    };
-    (m.cpu.insns - start, reason)
 }
 
 #[cfg(test)]

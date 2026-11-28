@@ -36,7 +36,10 @@ pub(super) fn single(rng: &mut Rng, load: bool, byte: bool, reg: bool) -> (u32, 
     ];
     let (p, u, w) = (rng.chance(2), rng.chance(2), rng.chance(2));
     let (rn, rd, rm) = (rng.below(15), rng.below(15), rng.below(15));
-    let (ty, amount, off) = (rng.below(4), rng.below(32), offset(rng, 12));
+    let (ty, mut amount, off) = (rng.below(4), rng.below(32), offset(rng, 12));
+    if ty == 3 && amount == 0 {
+        amount = 1 + rng.below(31); // ROR #0 is RRX: not lowered (see `rrx_register_offsets_stay_generic`)
+    }
     let low = if reg { amount << 7 | ty << 5 | rm } else { off };
     let word = cond(rng)
         | 1 << 26

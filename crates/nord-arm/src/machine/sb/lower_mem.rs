@@ -17,7 +17,10 @@
 //!   (the interpreter's `wb`), plain `W` for `ldm/stm` (the interpreter's `w`). The executor
 //!   still skips it for a load with `rn == rd` (and for `ldm` with `rn` in the list).
 //! * The shift of a register offset stays raw: `alu::shift(type, amount, r[rm], C, imm = true)`
-//!   resolves `LSR/ASR #0 = 32` and `ROR #0 = RRX` at execution time, like the interpreter.
+//!   resolves `LSR/ASR #0 = 32` at execution time, like the interpreter. `ROR #0` (RRX) needs the
+//!   carry flag, which the memory arms (`exec_mem::reg_offset`) do not have and refuse with a
+//!   panic, so the register forms with `ROR #0` stay `Generic` (the interpreter's own handler runs
+//!   them).
 //! * `uop.cond` is left 0: the trace builder stores the index of the early exit of a store there
 //!   (I6); `wrap_pred` adds the `PRED` of a conditional instruction.
 //! * A load into `pc` ends the block and never reaches this file (`lower_flow`); the same
@@ -27,8 +30,8 @@
 //! Rule for `r15` (I2): a uop never names `r15`. `rn == 15` is a literal load (module `literal`:
 //! folded through `cx.fold`, or `LDR_ABS`) or `Generic`; `rd == 15` of a store, `rm == 15`,
 //! `r15` in an `STM` list and `rd >= 14` of `ldrd`/`strd` are `Generic`. Also `Generic` (the
-//! interpreter's own handler runs them): an odd `Rd` of `ldrd`/`strd`, the S bit of `ldm/stm`
-//! and an empty register list. `decode::lower_or_generic` overrules any uop that still names
+//! interpreter's own handler runs them): an odd `Rd` of `ldrd`/`strd`, the S bit of `ldm/stm`,
+//! an empty register list and a register offset shifted by `ROR #0` (RRX). `decode::lower_or_generic` overrules any uop that still names
 //! `r15` (`decode::touches_r15`), but that is a backstop: [`lower_mem`] never needs it (test
 //! `decisions::lower_mem_itself_never_emits_a_uop_that_names_r15`).
 //!
@@ -99,6 +102,9 @@ fn word_byte(i: &Insn) -> Option<Uop> {
     let (reg, load, byte) = (w >> 25 & 1 != 0, w >> 20 & 1 != 0, w >> 22 & 1 != 0);
     if i.rd() == 15 || (reg && i.rm() == 15) {
         return None;
+    }
+    if reg && w >> 5 & 3 == 3 && w >> 7 & 0x1F == 0 {
+        return None; // ROR #0 is RRX: it reads the carry, which the memory arm cannot
     }
     let (load, byte) = (load ^ m(104), byte ^ m(103));
     let first = if reg { k::LDR_REG } else { k::LDR_IMM }; // LDR, LDRB, STR, STRB follow in order

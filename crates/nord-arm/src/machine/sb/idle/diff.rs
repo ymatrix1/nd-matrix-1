@@ -36,8 +36,12 @@ pub(super) fn tick_both(m: &Machine, budget: u64, what: &str) -> Pair {
     } else {
         None
     };
-    let d = snapshot(&v1, fault).diff(&snapshot(&v2, fault));
-    assert_eq!(d, None, "{what}: final state");
+    let (mut s_v1, mut s_v2) = (snapshot(&v1, fault), snapshot(&v2, fault));
+    // `bus.impure` is the probe's scratch flag: every probe clears it first and nothing reads it
+    // outside a probe, so which probe ran last (the two schedules differ in that) is no state.
+    // The probe-level comparison (`probe_pair`) still requires it to be equal after one probe.
+    (s_v1.impure, s_v2.impure) = (false, false);
+    assert_eq!(s_v1.diff(&s_v2), None, "{what}: final state");
     assert!(
         !v2.bus.probing && !v1.bus.probing,
         "{what}: probe flag left on"

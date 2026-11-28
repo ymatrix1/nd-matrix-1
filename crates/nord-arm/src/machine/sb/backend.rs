@@ -89,8 +89,14 @@ mod tests {
     fn the_tier2_backend_runs_a_compiled_trace_and_forgets_a_released_one() {
         let mut m = Machine::new();
         m.bus.mem.write32(0xC000_0000, 0xE3A0_002A); // mov r0,#42
+        m.bus.mem.write32(0xC000_0004, 0xE12F_FF1E); // bx lr: ends the trace after 2 instructions
         m.cpu.r[15] = 0xC000_0000;
+        m.cpu.r[14] = 0xC000_0100;
         let sb = build(&mut m.bus.mem, 0xC000_0000, &BuildOpts::default()).unwrap();
+        assert_eq!(
+            sb.n_guest, 2,
+            "the budget below covers the whole trace (I7)"
+        );
         let mut be = Tier2Backend::default();
         let id = be.compile(&sb).unwrap();
         assert_eq!(be.name(), "tier2");
@@ -98,9 +104,9 @@ mod tests {
         let out = be.run(id, &mut m.cpu, &mut m.bus, &mut left);
         assert_eq!(
             (m.cpu.r[0], m.cpu.r[15], m.cpu.insns, left),
-            (42, 0xC000_0004, 1, 9)
+            (42, 0xC000_0100, 2, 8)
         );
-        assert_eq!(out.target, 0xC000_0004);
+        assert_eq!(out.target, 0xC000_0100);
         be.release(id);
         assert!(be.traces[id as usize].is_none());
     }

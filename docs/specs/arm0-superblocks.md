@@ -87,7 +87,7 @@ Operand layout:
 |---|---|---|---|---|---|---|
 | DP generic | dest | first operand | Rm (forms 1, 2) | Rs (form 2) | form 1: `type<<5 \| amount (0..31)`, special encodings (LSR/ASR #0 = 32, ROR #0 = RRX) resolved by `alu::shift(.., imm = true)`; form 2: `type<<5`; form 0: bit 0 = 1 when rot == 0 (shifter carry = C) | form 0: rotated immediate |
 | DP specialised | dest | first | Rm | | | immediate |
-| `LDR/LDRB/STR/STRB` (`_IMM`, `_REG`) | Rd | Rn | Rm (reg offset) | flags: b0 U (add), b1 P (pre), b2 WB (`!P \|\| W`) | reg offset: `type<<5 \| amount` | 12-bit offset |
+| `LDR/LDRB/STR/STRB` (`_IMM`, `_REG`; a register offset shifted by `ROR #0` = RRX stays `GENERIC`) | Rd | Rn | Rm (reg offset) | flags: b0 U (add), b1 P (pre), b2 WB (`!P \|\| W`) | reg offset: `type<<5 \| amount` | 12-bit offset |
 | `LDRH LDRSH LDRSB STRH LDRD STRD` | Rd | Rn | Rm | flags as above plus b3 REG | | 8-bit offset |
 | `LDM`, `STM` (S bit and empty list stay `GENERIC`) | | Rn | | flags | popcount | register list |
 | `LDR_ABS` (literal on an unfolded page) | Rd | | | | | absolute address |
@@ -181,7 +181,7 @@ loop:
 | End | An indirect branch (`EXIT_REG`, `EXIT_REG_ARM`), a generic ender (`GENERIC_END`), an unmapped or `HOOK_X` page, or a cap (128 uops, 6 guards, 4 pages). |
 | Loops | Returning to the start pc emits `LOOP_BACK`; returning to another pc already in the trace ends with an `EXIT` (no inner loops). Conditional `BL` is `GENERIC`. |
 | Literals | A pc-relative load folds to `MOV_IMM` when the literal's page is mapped, unhooked and added to the page list; the word goes to `words`. |
-| Faulting forms | Odd `Rd` for `ldrd`/`strd` and `r14` pairs stay `GENERIC`. |
+| Faulting forms | Odd `Rd` for `ldrd`/`strd` and `r14` pairs stay `GENERIC`. So does a register offset shifted by `ROR #0` (RRX): it reads the carry flag, which the memory arms do not have, and `exec_mem::reg_offset` panics on it. |
 | After each instruction | The builder allocates the early exit of every store uop and every `GENERIC` (static `done`, `last_pc`) and stores its index with `Uop::set_exit_idx`. |
 | Passes | `fuse::run`, `flagopt::run`, `pred::run`, in this order, each gated by its `BuildOpts` flag. Each preserves state against the unpassed trace and never changes the `done` or `last_pc` of an exit. |
 

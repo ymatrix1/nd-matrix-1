@@ -171,6 +171,35 @@ fn forms_the_interpreter_must_run_stay_generic_and_push_nothing() {
 }
 
 #[test]
+fn rrx_register_offsets_stay_generic_and_every_other_rotate_lowers() {
+    // `ror #0` is RRX: it reads the carry flag, which the memory arm cannot, so the interpreter
+    // runs it. `exec_mem::reg_offset` panics on such a uop; this is the other half of that contract.
+    for (word, why) in [
+        (0xE791_0062, "ldr r0,[r1,r2,rrx]"),
+        (0xE781_0062, "str r0,[r1,r2,rrx]"),
+        (0xE7D1_0062, "ldrb r0,[r1,r2,rrx]"),
+        (0xE7C1_0062, "strb r0,[r1,r2,rrx]"),
+        (0xE7B1_0062, "ldr r0,[r1,r2,rrx]!"),
+        (0xE691_0062, "ldr r0,[r1],r2,rrx"),
+        (0xE711_0062, "ldr r0,[r1,-r2,rrx]"),
+    ] {
+        assert_eq!(lower(word), (Lowered::Generic, vec![]), "{why}");
+    }
+    // the neighbours are not RRX: ror #1, ror #31, lsl #0, lsr #0 (= 32), asr #0 (= 32)
+    for word in [
+        0xE791_00E2,
+        0xE791_0FE2,
+        0xE791_0002,
+        0xE791_0022,
+        0xE791_0042,
+    ] {
+        let (r, out) = lower(word);
+        assert_eq!((r, out.len()), (Lowered::Done, 1), "{word:#010x}");
+        assert_eq!(out[0].kind, k::LDR_REG, "{word:#010x}");
+    }
+}
+
+#[test]
 fn lower_mem_itself_never_emits_a_uop_that_names_r15() {
     // 40 000 words with every register field free: the backstop of `lower_or_generic` is not needed.
     let (mut rng, mut done, mut generic) = (Rng::new(0x55), 0, 0);
