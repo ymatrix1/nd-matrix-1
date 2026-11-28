@@ -17,13 +17,23 @@
 //! * an empty answer is "this range is not translatable" (the worker answers a failed translation
 //!   with an empty `TransDone`): nothing is installed and nothing is queued, so the range stays
 //!   with the interpreter and is not retried until a write to it drops a block again. No loop;
+//! * a block that holds the live stop pc as an interior uop is NOT installed (P7): the worker's
+//!   stop pc is fixed at spawn, so a stop pc learnt later reaches it never, and `uop_begin_pass` /
+//!   `uop_set_stop_pc` repair only the blocks that exist when they run. The code of such a block
+//!   is current (its hash matched), so its exact range `(pc, end_pc)` is translated on the live
+//!   core with the live stop pc, once for both PEy modes, and nothing is queued: no round trip
+//!   that would bring the same block back;
 //! * a block that starts where a live block with the same code already starts is not installed
 //!   again (an answer that arrives after a synchronous `uop_maintain` of the same range);
-//! * a malformed answer (a block whose uops are not inside `done.uops`) loses that block only.
+//! * a malformed answer (a block whose uops are not inside `done.uops`) loses that block only;
+//! * every installed block marks its code pages (`Core::uop_install_marked`), like the
+//!   synchronous retranslation of `uop_maintain` and of the ISA-mode branch of
+//!   `uop_submit_dropped`.
 use crate::core::uop::hot::UopHot;
-use crate::core::uop::invalidate::maintain::take_merged;
+use crate::core::uop::invalidate::maintain::{merge, take_merged};
 use crate::core::uop::lower::decode::code_hash;
 use crate::core::uop::service::{Service, TransDone, TransReq};
+use crate::core::uop::types::NONE;
 use crate::core::Core;
 
 impl Core {
@@ -56,12 +66,7 @@ impl Core {
                     Err(_) => hot.dropped.push((lo, hi)),
                 },
                 None => {
-                    if let Ok((blocks, uops)) =
-                        crate::core::uop::lower::translate_range(self, &cfg, lo, hi)
-                    {
-                        self.uop_run.stats.translations += blocks.len() as u64;
-                        hot.install(blocks, uops);
-                    }
+                    self.uop_translate_now(&mut hot, &cfg, lo, hi);
                 }
             }
         }
@@ -90,7 +95,9 @@ impl Core {
     }
 
     fn uop_install_checked(&mut self, hot: &mut UopHot, done: TransDone) -> usize {
+        let stop = self.uop_run.stop_pc;
         let (mut blocks, mut uops) = (Vec::new(), Vec::new());
+        let mut split = Vec::new();
         for mut b in done.blocks {
             let span = b.first as usize..b.first as usize + b.len as usize;
             let Some(src) = done.uops.get(span).filter(|s| !s.is_empty()) else {
@@ -98,6 +105,14 @@ impl Core {
             };
             if code_hash(self, b.pc, b.end_pc) != b.code_hash {
                 hot.dropped.push((b.pc, b.last_pc + 3));
+                continue;
+            }
+            if stop != NONE && b.pc < stop && stop <= b.last_pc {
+                // built with another stop pc than the live one (the worker's is fixed at spawn):
+                // the idle pc is an interior uop, so the pass would run past where the
+                // interpreter's ends (P7). The code is current, so the range is translated here
+                // with the live stop pc, once for both modes
+                split.push((b.pc, b.end_pc));
                 continue;
             }
             let twin = hot.pcmap(b.simd).get(b.pc).is_some_and(|(id, idx)| {
@@ -111,11 +126,14 @@ impl Core {
             }
             b.first = uops.len() as u32;
             uops.extend_from_slice(src);
-            self.uop_run.code_pages.set_range(b.pc, b.last_pc + 3);
             blocks.push(b);
         }
-        self.uop_run.stats.translations += blocks.len() as u64;
-        hot.install(blocks, uops).0 as usize
+        let mut installed = self.uop_install_marked(hot, blocks, uops);
+        let cfg = self.uop_run.cfg.clone();
+        for (lo, hi) in merge(&mut split) {
+            installed += self.uop_translate_now(hot, &cfg, lo, hi);
+        }
+        installed
     }
 }
 
@@ -124,7 +142,7 @@ mod tests {
     use super::*;
     use crate::core::support::{load, CODE};
     use crate::core::uop::config::{UopConfig, UopError};
-    use crate::core::uop::drive::fixture::nop_core;
+    use crate::core::uop::drive::fixture::{nop_core, pages_unmarked};
     use crate::core::uop::service::worker::Scratch;
 
     /// The three parcels of `R3 = R1 + R2`.
@@ -215,6 +233,84 @@ mod tests {
         load(&mut want, CODE + 8, &ADD);
         assert_eq!((want.run(10), c.run_uop(10)), (None, None));
         assert_eq!(want.state_mismatch(&c), None);
+    }
+
+    #[test]
+    fn a_block_built_without_the_live_stop_pc_is_split_there_and_not_asked_for_again() {
+        // the worker translates with no stop pc (`Scratch::new(None)`, fixed at spawn); the pass
+        // idle pc is learnt afterwards, `uop_set_stop_pc` drops the blocks that hold it, and the
+        // answer for their range holds it as an interior uop again (design P7)
+        let (mut c, mut svc, mut scratch) = rig();
+        c.uop_set_stop_pc(Some(CODE + 12));
+        assert!(c.uop_needs_maintenance());
+        let installed = round(&mut c, &mut svc, &mut scratch);
+        assert!(
+            installed >= 4,
+            "two blocks per mode, translated here: {installed}"
+        );
+        let hot = c.uop.as_ref().unwrap();
+        for simd in [false, true] {
+            let (id, idx) = hot.pcmap(simd).get(CODE + 12).expect("mapped");
+            assert_eq!(
+                (idx, hot.blocks[id as usize].pc),
+                (0, CODE + 12),
+                "the stop pc is a block start (mode {simd})"
+            );
+            let (before, _) = hot.pcmap(simd).get(CODE + 11).expect("mapped");
+            assert_eq!(hot.blocks[before as usize].end_pc, CODE + 12, "mode {simd}");
+        }
+        let interior =
+            |b: &&crate::core::uop::types::Block| b.pc < CODE + 12 && CODE + 12 <= b.last_pc;
+        assert_eq!(
+            hot.blocks
+                .iter()
+                .filter(|b| b.len != 0)
+                .filter(interior)
+                .count(),
+            0
+        );
+        assert_eq!(pages_unmarked(&c), [] as [u32; 0]);
+        // nothing was queued: no round trip that brings the same block back
+        assert!(!c.uop_needs_maintenance());
+        assert_eq!((c.uop_maintain_async(&mut svc), svc.in_flight()), (0, 0));
+        // and the pass ends where the interpreter's does
+        let mut want = nop_core(24);
+        assert_eq!(want.run(12), None);
+        assert!(c.uop_try(100));
+        assert_eq!((c.pc, c.steps), (CODE + 12, 12));
+        assert_eq!(want.state_mismatch(&c), None);
+    }
+
+    #[test]
+    fn an_answer_that_matches_the_live_stop_pc_is_installed_as_it_is() {
+        let (mut c, mut svc, _) = rig();
+        c.uop_set_stop_pc(Some(CODE + 12));
+        let mut scratch = Scratch::new(Some(CODE + 12));
+        let before = c.uop_stats().translations;
+        let installed = round(&mut c, &mut svc, &mut scratch);
+        assert_eq!(installed, 4);
+        assert_eq!(c.uop_stats().translations, before + 4);
+        let hot = c.uop.as_ref().unwrap();
+        assert_eq!(hot.pcmap(true).get(CODE + 12).map(|e| e.1), Some(0));
+        assert_eq!(pages_unmarked(&c), [] as [u32; 0]);
+    }
+
+    #[test]
+    fn a_block_from_an_answer_marks_the_pages_it_reaches_past_the_armed_range() {
+        let mut c = nop_core(0x110);
+        c.enable_uop(UopConfig::default(), &[(CODE, CODE + 0x100)])
+            .unwrap();
+        let (mut svc, mut scratch) = (Service::new(), Scratch::new(None));
+        alias(&mut c, CODE + 0xF8, &[0xc8be]);
+        assert!(round(&mut c, &mut svc, &mut scratch) > 0);
+        assert!(c
+            .uop
+            .as_ref()
+            .unwrap()
+            .pcmap(false)
+            .get(CODE + 0x100)
+            .is_some());
+        assert_eq!(pages_unmarked(&c), [] as [u32; 0]);
     }
 
     #[test]

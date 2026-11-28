@@ -13,7 +13,7 @@
 //!   a program per overlay load). Compaction renumbers the blocks, so the pc maps, the page lists
 //!   and the links are rebuilt from the live blocks and the epoch moves.
 use crate::core::uop::hot::UopHot;
-use crate::core::uop::lower::{self, pcmap};
+use crate::core::uop::lower::pcmap;
 use crate::core::uop::run::CodePages;
 use crate::core::uop::types::Link;
 use crate::core::Core;
@@ -24,7 +24,7 @@ use crate::core::Core;
 const COMPACT_MIN_DEAD: usize = 8;
 
 /// Merges overlapping or touching ranges, ascending. Sorts `v` in place.
-fn merge(v: &mut [(u32, u32)]) -> Vec<(u32, u32)> {
+pub(super) fn merge(v: &mut [(u32, u32)]) -> Vec<(u32, u32)> {
     v.sort_unstable();
     let mut out: Vec<(u32, u32)> = Vec::with_capacity(v.len());
     for &(lo, hi) in v.iter() {
@@ -112,10 +112,7 @@ impl Core {
         let cfg = self.uop_run.cfg.clone();
         let mut added = 0;
         for (lo, hi) in take_merged(&mut hot) {
-            if let Ok((blocks, uops)) = lower::translate_range(self, &cfg, lo, hi) {
-                self.uop_run.stats.translations += blocks.len() as u64;
-                added += hot.install(blocks, uops).0 as usize;
-            }
+            added += self.uop_translate_now(&mut hot, &cfg, lo, hi);
         }
         compact(&mut hot);
         self.uop = Some(hot);

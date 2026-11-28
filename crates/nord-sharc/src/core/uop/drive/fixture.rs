@@ -15,7 +15,7 @@ use crate::core::uop::lower::builder::BlockBuilder;
 use crate::core::uop::lower::decode::{code_hash, decode_at};
 use crate::core::uop::lower::LowerCtx;
 use crate::core::uop::run::CodePages;
-use crate::core::uop::types::{GuardClass, Handler, Uop, UopKind};
+use crate::core::uop::types::{Block, GuardClass, Handler, Uop, UopKind};
 use crate::core::uop::verify::compare::{exact_diff, ExactDiff};
 use crate::core::{Core, Fault};
 use std::rc::Rc;
@@ -112,6 +112,21 @@ pub(crate) fn interp_block(n: u32) -> (UopHot, Core) {
     let mut hot = UopHot::new();
     hot.install(vec![block], uops);
     (hot, core)
+}
+
+/// The pcs of the live blocks with a parcel of `pc..end_pc` (what `code_hash` covers) on a page
+/// `code_pages` does not mark. A write to such a page sets no dirty bit, so the block would never
+/// be revalidated: every install path must leave this empty.
+pub(crate) fn pages_unmarked(core: &Core) -> Vec<u32> {
+    let hot = core.uop.as_ref().expect("armed");
+    let unmarked = |b: &&Block| {
+        let end = b.end_pc.max(b.last_pc + 1);
+        // code outside the short-word window (ISA mode) has no page
+        let pages = CodePages::page_of(b.pc).zip(CodePages::page_of(end - 1));
+        pages.is_some_and(|(p0, p1)| !(p0..=p1).all(|p| core.uop_run.code_pages.test(p)))
+    };
+    let live = hot.blocks.iter().filter(|b| b.len != 0);
+    live.filter(unmarked).map(|b| b.pc).collect()
 }
 
 /// A change applied to every core a [`Setup`] makes.
@@ -276,6 +291,11 @@ fn the_fixture_arms_what_it_says_and_compares_what_it_runs() {
     let r = run_both(&s, 6);
     assert_eq!(r.diff, None, "{r:?}");
     assert!(r.exercised(), "{r:?}");
+    // every page of a block is marked after arming; unmarking one is seen
+    assert_eq!(pages_unmarked(&a), [] as [u32; 0]);
+    let mut unmarked = s.armed();
+    unmarked.uop_run.code_pages.clear();
+    assert_eq!(pages_unmarked(&unmarked), [CODE, CODE + 4, CODE, CODE + 4]);
     // a scenario the engine cannot have run is not "exercised"
     let none = Setup::nops(8).ranges(&[(CODE + 20, CODE + 24)]);
     let r = run_both(&none, 6);

@@ -3,13 +3,18 @@
 //! OWNER: W2-DRIVE. `enable_uop` translates the given short-word ranges and arms the write hooks;
 //! `chain.rs` holds `uop_try`, the analogue of `aot_try`; `pass.rs` the stop pc and the start of a
 //! pass. Nothing here is called unless a caller enables the engine; with it off, `uop_try` is one
-//! byte load and a branch.
+//! byte load and a branch. `entry.rs` (tests) pins the block entry: the pc map of `core.simd()`
+//! (design P4: the wrong map is still exact, the `Simd` row sends the step to `Core::step`, so
+//! only a test that looks at which block runs sees it), the mode check on a cached link and the
+//! guard row count.
 //!
 //! `enable_uop` keeps `uop_run.stop_pc`: the translator reads it to make the pass idle pc a block
 //! start (design P7), and `disable_uop` (which resets the run state) used to run in between, so a
 //! block could run past the pc the pass ends on. The fix is the two lines in `uop_arm_with`; test
 //! `a_stop_pc_set_before_enable_makes_it_a_block_start`.
 mod chain;
+#[cfg(test)]
+mod entry;
 #[cfg(test)]
 mod equiv;
 #[cfg(test)]

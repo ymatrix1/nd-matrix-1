@@ -12,7 +12,8 @@
 //! |---|---|
 //! | `revalidate.rs` | `uop_revalidate_dirty`: walk the blocks of the dirty pages, keep those whose `code_hash` still matches (P6), drop the others (P14: no allocation) |
 //! | `maintain.rs` | `uop_maintain`: revalidate, retranslate the dropped ranges, compact the tombstones |
-//! | `install.rs` | `uop_maintain_async` and `uop_install_done`: the same through the translation service, hash-checked against the live core before a worker-built block is installed |
+//! | `install.rs` | `uop_maintain_async` and `uop_install_done`: the same through the translation service, hash-checked against the live core and checked against the live stop pc (P7) before a worker-built block is installed |
+//! | `mod.rs` | `uop_install_marked`, the one way a block is installed after `enable_uop` (it marks the code pages of the block), and `uop_translate_now` |
 //! | `smc.rs` (tests) | the self-modifying-code rows: own block, other block, page of another block, alias write |
 mod install;
 mod maintain;
@@ -20,10 +21,55 @@ mod revalidate;
 #[cfg(test)]
 mod smc;
 
+use super::config::UopConfig;
+use super::hot::UopHot;
+use super::lower;
 use super::run::RF_SMC;
+use super::types::{Block, Uop};
 use crate::core::Core;
 
 impl Core {
+    /// The one place a retranslated or worker-built block enters the table after `enable_uop`:
+    /// marks the code pages the blocks sit on, counts them as translations and installs them.
+    /// Returns the blocks installed.
+    ///
+    /// A retranslated range is the dropped range `(pc, last_pc + 3)`, which may reach two parcels
+    /// past the range `enable_uop` marked, so a block can start on a page nobody marked; a write
+    /// there would then not set `dirty` and the stale block would never be revalidated. The pages
+    /// marked are those of the parcels the block's `code_hash` covers, `pc..end_pc`: a write to any
+    /// of them can make the block stale, a write past it cannot (`pages_unmarked` of the fixture
+    /// checks the invariant).
+    pub(super) fn uop_install_marked(
+        &mut self,
+        hot: &mut UopHot,
+        blocks: Vec<Block>,
+        uops: Vec<Uop>,
+    ) -> usize {
+        for b in &blocks {
+            self.uop_run
+                .code_pages
+                .set_range(b.pc, b.end_pc.max(b.last_pc + 1));
+        }
+        self.uop_run.stats.translations += blocks.len() as u64;
+        hot.install(blocks, uops).0 as usize
+    }
+
+    /// Translates `[lo, hi)` on the live core (with the stop pc it has now) and installs the
+    /// blocks ([`Core::uop_install_marked`]). Returns the blocks installed; a range the
+    /// translator refuses installs nothing.
+    pub(super) fn uop_translate_now(
+        &mut self,
+        hot: &mut UopHot,
+        cfg: &UopConfig,
+        lo: u32,
+        hi: u32,
+    ) -> usize {
+        match lower::translate_range(self, cfg, lo, hi) {
+            Ok((blocks, uops)) => self.uop_install_marked(hot, blocks, uops),
+            Err(_) => 0,
+        }
+    }
+
     /// A write of `count` short words at `first_short` happened: marks the code pages it touches
     /// as dirty and raises the self-modifying-code flag that store handlers test.
     #[inline]
@@ -67,7 +113,8 @@ mod tests {
     use super::*;
     use crate::core::support::{core_with, CODE};
     use crate::core::uop::config::UopConfig;
-    use crate::core::uop::drive::fixture::{arm_interp, nop_core};
+    use crate::core::uop::drive::fixture::{arm_interp, nop_core, pages_unmarked};
+    use crate::core::uop::run::CodePages;
 
     #[test]
     fn a_write_into_a_marked_page_sets_dirty_and_the_smc_flag_and_other_writes_do_not() {
@@ -118,6 +165,40 @@ mod tests {
         );
         c.disable_uop();
         assert_eq!((c.uop_dirty(), c.uop_run.flags), (0, 0));
+    }
+
+    #[test]
+    fn a_retranslated_block_that_reaches_past_the_armed_range_marks_its_pages() {
+        // the armed range ends at a page boundary; the dropped range of its last block is
+        // `(pc, last_pc + 3)`, two parcels past it, and the NOPs there are translated too
+        let mut c = nop_core(0x110);
+        c.enable_uop(UopConfig::default(), &[(CODE, CODE + 0x100)])
+            .unwrap();
+        let next_page = CodePages::page_of(CODE + 0x100).unwrap();
+        assert!(
+            !c.uop_run.code_pages.test(next_page),
+            "armed up to the boundary"
+        );
+        assert_eq!(pages_unmarked(&c), [] as [u32; 0]);
+        c.dm_write(CODE + 0xF8, 0xc8be).unwrap();
+        assert!(c.uop_maintain() > 0);
+        assert!(
+            c.uop
+                .as_ref()
+                .unwrap()
+                .pcmap(false)
+                .get(CODE + 0x100)
+                .is_some(),
+            "the retranslation reached the next page"
+        );
+        assert_eq!(pages_unmarked(&c), [] as [u32; 0]);
+        assert!(c.uop_run.code_pages.test(next_page));
+        // so a write there is seen: the block is revalidated instead of staying stale
+        assert!(!c.uop_needs_maintenance());
+        c.dm_write(CODE + 0x100, 0xc8be).unwrap();
+        assert!(c.uop_needs_maintenance());
+        assert!(c.uop_maintain() > 0);
+        assert_eq!(pages_unmarked(&c), [] as [u32; 0]);
     }
 
     #[test]
