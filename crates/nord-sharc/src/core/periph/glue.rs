@@ -153,7 +153,7 @@ impl Core {
     /// Whether a model or the census looks at `addr`: the system range, plus the IOP window when
     /// the range-transfer model or the census is on.
     #[inline]
-    fn periph_claims(&self, addr: u32) -> bool {
+    pub(in crate::core) fn periph_claims(&self, addr: u32) -> bool {
         Self::periph_range(addr)
             || self.flash_claims(addr)
             || (addr < 0x4_0000
