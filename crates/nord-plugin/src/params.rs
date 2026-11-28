@@ -171,6 +171,11 @@ pub struct Stage4Params {
     /// persisted, not a host parameter; inert until `bind` ran (the plugin does that).
     pub program_hold: crate::program_hold::ProgramHold,
 
+    /// Library path, identity and the edits armed over the program, saved with the project
+    /// (D261). Not a host parameter.
+    #[persist = "library-state"]
+    pub library_state: std::sync::Arc<crate::library_state::LibraryPersist>,
+
     /// Editor window size, persisted with the plugin state (not a host parameter).
     #[persist = "editor-state"]
     pub editor_state: std::sync::Arc<nih_plug_egui::EguiState>,
@@ -330,6 +335,8 @@ pub struct Stage4Params {
 
 impl Default for Stage4Params {
     fn default() -> Self {
+        let hold = crate::program_hold::ProgramHold::default();
+        let overrides = crate::program_overrides::ProgramOverrides::default();
         Self {
             midi_mode: EnumParam::new("MIDI Mode", MidiRoutingMode::OmniSplit),
             library_program: crate::library_select::new_param(),
@@ -414,8 +421,12 @@ impl Default for Stage4Params {
             layer_fx_extra: crate::fx_extra_params::LayerFxExtraBank::default(),
             layer_fx_sharing: crate::fx_sharing_params::LayerFxSharingBank::default(),
             firmware: crate::firmware_params::FirmwareFlagParams::default(),
-            program_overrides: crate::program_overrides::ProgramOverrides::default(),
-            program_hold: crate::program_hold::ProgramHold::default(),
+            library_state: {
+                let (hold, overrides) = (hold.armed_handle(), overrides.armed_handle());
+                std::sync::Arc::new(crate::library_state::LibraryPersist::new(hold, overrides))
+            },
+            program_overrides: overrides,
+            program_hold: hold,
             editor_state: crate::editor::default_editor_state(),
             layer_fx_variation: crate::fx_variation_params::LayerFxVariationBank::default(),
             aftertouch: FloatParam::new(

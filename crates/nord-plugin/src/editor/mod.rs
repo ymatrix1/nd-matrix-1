@@ -28,6 +28,7 @@ pub mod draw;
 pub mod index;
 #[cfg(test)]
 mod library_open_tests;
+mod library_sync;
 pub mod map;
 mod map_area;
 mod map_fx;
@@ -73,8 +74,13 @@ pub fn create(
     // as the editor (and therefore the index) exists.
     // The index also tells the panel which groups a loaded program owns (`program_hold.rs`).
     let index = Arc::new(ParamIndex::new(params.as_ref()).with_program_hold(params.clone()));
+    // The project's library first (D261), else the user's saved one.
+    let library = params
+        .library_state
+        .path()
+        .or_else(crate::auto_library::saved_library);
     let keep_alive = params;
-    let st = EditorState::new(index, notes, loads, telemetry);
+    let st = EditorState::with_library(index, notes, loads, telemetry, library);
     let size_state = egui_state.clone();
     create_egui_editor(
         egui_state,
@@ -87,6 +93,7 @@ pub fn create(
                 index: &index,
             };
             draw_editor(ctx, &size_state, &mut st.0, writer);
+            library_sync::sync(&mut st.0.library, &st.1, setter);
         },
     )
 }

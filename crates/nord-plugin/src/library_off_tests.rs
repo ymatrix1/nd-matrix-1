@@ -10,7 +10,7 @@ use std::mem::MaybeUninit;
 use std::sync::Arc;
 use std::time::Duration;
 
-struct Init;
+pub(crate) struct Init;
 impl InitContext<NdMatrix1Plugin> for Init {
     fn plugin_api(&self) -> PluginApi {
         PluginApi::Clap
@@ -20,8 +20,8 @@ impl InitContext<NdMatrix1Plugin> for Init {
     fn set_current_voice_capacity(&self, _capacity: u32) {}
 }
 
-struct Ctx {
-    transport: Transport,
+pub(crate) struct Ctx {
+    pub(crate) transport: Transport,
 }
 impl ProcessContext<NdMatrix1Plugin> for Ctx {
     fn plugin_api(&self) -> PluginApi {
@@ -42,7 +42,7 @@ impl ProcessContext<NdMatrix1Plugin> for Ctx {
 
 /// What a host project load does: replaces the stored value (`set_plain_value` is crate-private
 /// in nih-plug, so the param object is replaced by one whose current value is the new one).
-fn set_program(plugin: &mut NdMatrix1Plugin, value: i32) {
+pub(crate) fn set_program(plugin: &mut NdMatrix1Plugin, value: i32) {
     let p = Arc::get_mut(&mut plugin.params).expect("no editor holds the params in this test");
     p.library_program = IntParam::new(
         "Program",
@@ -54,7 +54,7 @@ fn set_program(plugin: &mut NdMatrix1Plugin, value: i32) {
     );
 }
 
-fn initialize(plugin: &mut NdMatrix1Plugin) {
+pub(crate) fn initialize(plugin: &mut NdMatrix1Plugin) {
     let cfg = BufferConfig {
         sample_rate: 48000.0,
         min_buffer_size: None,
@@ -64,7 +64,7 @@ fn initialize(plugin: &mut NdMatrix1Plugin) {
     assert!(plugin.initialize(&NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0], &cfg, &mut Init));
 }
 
-fn block(plugin: &mut NdMatrix1Plugin) {
+pub(crate) fn block(plugin: &mut NdMatrix1Plugin) {
     let mut l = [0.0f32; 64];
     let mut r = [0.0f32; 64];
     let slices: Vec<&mut [f32]> = vec![&mut l[..], &mut r[..]];
@@ -83,7 +83,7 @@ fn block(plugin: &mut NdMatrix1Plugin) {
     plugin.process(&mut buffer, &mut aux, &mut ctx);
 }
 
-fn program_name(plugin: &NdMatrix1Plugin) -> Option<String> {
+pub(crate) fn program_name(plugin: &NdMatrix1Plugin) -> Option<String> {
     plugin.loaded.program.as_ref().map(|p| p.name.clone())
 }
 

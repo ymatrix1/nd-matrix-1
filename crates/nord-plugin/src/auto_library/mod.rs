@@ -12,6 +12,8 @@
 //! this module runs after the host unloaded the plugin.
 
 mod archive;
+#[cfg(test)]
+mod follow_tests;
 mod handled;
 #[cfg(test)]
 pub(crate) mod support;
@@ -46,6 +48,12 @@ pub enum LibrarySource {
     Saved,
     None,
     Path(PathBuf),
+    /// The project's saved path, else `user`, without reading `NS4_LIBRARY` or the settings
+    /// file (tests of the project state, D261).
+    #[cfg(test)]
+    Project {
+        user: Option<PathBuf>,
+    },
 }
 
 impl LibrarySource {
@@ -55,6 +63,8 @@ impl LibrarySource {
             Self::Saved => saved_library(),
             Self::None => None,
             Self::Path(p) => Some(p.clone()),
+            #[cfg(test)]
+            Self::Project { user } => user.clone(),
         }
     }
 }
@@ -75,6 +85,16 @@ impl LibraryLink {
     /// Starts the worker for the library at `path`, or returns `None` when there is none (or the
     /// thread cannot start). Nothing is read until the first request.
     pub fn start(path: Option<PathBuf>, loads: LoadSender) -> Option<Self> {
+        Self::start_with(path, loads, None)
+    }
+
+    /// [`Self::start`] with the project's library reference: the worker follows its path and
+    /// reports a missing file there (D261).
+    pub fn start_with(
+        path: Option<PathBuf>,
+        loads: LoadSender,
+        state: Option<Arc<crate::library_state::LibraryPersist>>,
+    ) -> Option<Self> {
         let Some(path) = path else {
             report("no sound library set (ns4 library set <backup.ns4b>)");
             return None;
@@ -82,7 +102,13 @@ impl LibraryLink {
         let (tx, rx) = bounded(REQUEST_CAPACITY);
         let handled = Arc::new(handled::Handled::default());
         let closed = Arc::new(AtomicBool::new(false));
-        let worker = worker::Worker::new(path, loads, Arc::clone(&handled), Arc::clone(&closed));
+        let worker = worker::Worker::new(
+            path,
+            loads,
+            Arc::clone(&handled),
+            Arc::clone(&closed),
+            state,
+        );
         let thread = std::thread::Builder::new()
             .name("ns4-library".into())
             .spawn(move || worker.run(rx))

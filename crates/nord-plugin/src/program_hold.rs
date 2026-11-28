@@ -22,7 +22,7 @@
 use crate::params::Stage4Params;
 use nih_plug::prelude::{ParamPtr, Params};
 use std::sync::atomic::{AtomicU32, Ordering::Relaxed};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 /// A set of host parameters that the block sync writes together.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -152,7 +152,7 @@ pub struct ProgramHold {
     /// Groups the program owns (bit per [`Group`]).
     held: AtomicU32,
     /// Held groups whose parameters moved since the load: the host writes them again.
-    armed: AtomicU32,
+    armed: Arc<AtomicU32>,
     table: OnceLock<Box<[Entry]>>,
     /// Host values the tests set: the NIH-plug parameter setters are crate-private.
     #[cfg(test)]
@@ -253,6 +253,17 @@ impl ProgramHold {
         !self.runs(group)
     }
 
+    /// The armed mask, shared with the project state (`library_state.rs`) so a save sees the edits.
+    pub fn armed_handle(&self) -> Arc<AtomicU32> {
+        Arc::clone(&self.armed)
+    }
+
+    /// Arms the held groups in `mask` again: a restored project's edits win over the program the
+    /// library just loaded (D261). Call after [`Self::hold`].
+    pub fn arm(&self, mask: u32) {
+        self.armed.fetch_or(mask & self.held.load(Relaxed), Relaxed);
+    }
+
     /// Releases the groups in `mask`: the host parameters drive them again from the next sync.
     pub fn release(&self, mask: u32) {
         self.held.fetch_and(!mask, Relaxed);
@@ -313,6 +324,23 @@ mod tests {
         assert_eq!(Group::PROGRAM & Group::Firmware.bit(), 0);
         assert_ne!(Group::PROGRAM & Group::Organ.bit(), 0);
         assert_ne!(Group::PROGRAM & Group::LayerFx.bit(), 0);
+    }
+
+    #[test]
+    fn arm_after_a_load_restores_the_hosts_edits_but_only_for_held_groups() {
+        let p = bound();
+        p.program_hold.hold(Group::PROGRAM);
+        assert!(p.program_hold.owned_by_program(Group::Synth));
+        p.program_hold.arm(Group::Synth.bit() | Group::Live.bit());
+        assert!(p.program_hold.runs(Group::Synth), "the edit wins again");
+        assert!(
+            p.program_hold.owned_by_program(Group::Organ),
+            "others stay the program's"
+        );
+        assert_eq!(
+            p.program_hold.armed_handle().load(Relaxed),
+            Group::Synth.bit()
+        );
     }
 
     #[test]

@@ -23,6 +23,9 @@ pub mod library_host;
 #[cfg(test)]
 mod library_off_tests;
 pub mod library_select;
+pub mod library_state;
+#[cfg(test)]
+mod library_state_tests;
 pub mod load_queue;
 pub mod loader;
 pub mod menu_extra_params;
@@ -199,7 +202,8 @@ impl Plugin for NdMatrix1Plugin {
         wave_tables::install_saved_in_background();
         // The saved sound library: the wanted program is decoded off-thread, queued, and
         // applied before the first block (the host may render at once).
-        if self.start_library(self.library_source.path()) {
+        let library = self.resolve_library();
+        if self.start_library(library) {
             auto_library::report(&format!(
                 "initialize: {:?} at {} Hz, loading program {}",
                 buffer_config.process_mode,

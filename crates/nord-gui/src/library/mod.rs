@@ -94,6 +94,9 @@ pub struct BackupLibraryState {
     pub export_path: String,
     /// `(flat location, entry path)` of every program of the opened backup, from the entry headers.
     program_slots: Vec<(u16, String)>,
+    /// Flat location of the program entry loaded last from the primary backup, until the host
+    /// plugin takes it (`take_loaded_slot`): the plugin saves it as its `library_program`.
+    loaded_slot: Option<u16>,
     /// The same for the Preset Library: `(section, flat location, entry path)`.
     preset_slots: Vec<(PresetSection, u16, String)>,
     /// Banks merged after the primary one (`banks.rs`).
@@ -147,6 +150,7 @@ impl BackupLibraryState {
             error_message: None,
             export_path: String::new(),
             program_slots: Vec::new(),
+            loaded_slot: None,
             preset_slots: Vec::new(),
             extra_banks: Vec::new(),
             origin: HashMap::new(),
