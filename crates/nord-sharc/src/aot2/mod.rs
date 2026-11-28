@@ -3,6 +3,7 @@
 //! needs on top of it, in small files with their own tests. It is a child module of `core` (see
 //! the `#[path]` in `core/mod.rs`) so it can use the core's private state.
 pub(super) mod emit_ev;
+mod ev_blocks;
 pub(super) mod events;
 
 #[cfg(test)]

@@ -403,6 +403,23 @@ mod tests {
     }
 
     #[test]
+    fn item_spans_tile_the_block_and_a_batch_spans_all_its_instructions() {
+        let mut p = Vec::new();
+        for _ in 0..3 {
+            p.extend_from_slice(&ADD);
+        }
+        p.extend_from_slice(&[0x083e, 0x043f]); // JUMP (M8, I8) (DB)
+        p.extend_from_slice(&[0x0001, 0x0001]);
+        let c = core_with(&p);
+        let ex = executed(&c, 6);
+        let b = &c.lower_whole_pass(&ex, &[]).unwrap()[0];
+        assert_eq!(b.spans.len(), b.items.len());
+        assert_eq!(b.spans[0], (c.pc, c.pc + 9), "the batch of three ADDs");
+        assert!(b.spans.windows(2).all(|w| w[0].1 == w[1].0), "contiguous");
+        assert_eq!(b.spans.last().unwrap().1, b.exit);
+    }
+
+    #[test]
     fn straight_line_code_is_one_block_with_a_static_exit() {
         let mut p = Vec::new();
         for _ in 0..4 {

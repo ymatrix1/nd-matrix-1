@@ -12,7 +12,9 @@ use crate::core::{Core, Fault};
 
 /// Returned by an event item that must end the block (an interrupt was taken, the pc is not the
 /// next instruction). `aot_hot.rs` treats it as an early exit, never as a fault: real pcs are
-/// never `u32::MAX`.
+/// never `u32::MAX`. ASSUMED: the parcels `0xA07E` mean nothing (a sentinel, never decoded); what
+/// would confirm it is that no fetch can return `pc == u32::MAX`, which the SRAM window makes
+/// impossible.
 pub(in crate::core) const SPLIT: Fault = Fault::Unimplemented {
     pc: u32::MAX,
     parcels: [0xA07E; 3],
@@ -27,6 +29,10 @@ impl Core {
     #[inline(never)]
     pub(in crate::core) fn aot_ev_step(&mut self, pc: u32, next: u32) -> Result<(), Fault> {
         let taken = self.irq.taken;
+        self.aot_ev_steps += 1;
+        // the step may have been a store through the data bus (`dm_write`), which does not set the
+        // flag the native stores set: make the block re-check its signature after this item
+        self.aot_slow = true;
         self.pc = pc;
         self.step()?;
         if self.irq.taken != taken || self.pc != next {
@@ -54,6 +60,7 @@ impl Core {
         next: u32,
     ) -> Result<bool, Fault> {
         let taken = self.irq.taken;
+        self.aot_ev_steps += u64::from(self.steps >= self.irq.due);
         self.pc = pc;
         self.step()?;
         Ok(self.irq.taken != taken || self.pc != next || self.aot_sig_changed_ev(sig))
@@ -65,7 +72,11 @@ impl Core {
     #[inline(never)]
     pub(in crate::core) fn aot_ev_span(&mut self, pc: u32, n: u32, next: u32) -> Result<(), Fault> {
         let taken = self.irq.taken;
+        self.aot_ev_steps += u64::from(n);
+        self.aot_slow = true;
         self.pc = pc;
+        // after a taken interrupt the remaining steps run the vector code, not the batch: on
+        // purpose, these are the interpreter's own `n` steps
         for _ in 0..n {
             self.step()?;
         }
@@ -101,6 +112,10 @@ mod tests {
         assert_eq!(a.aot_ev_step(pc, pc + 1), Ok(()));
         b.step().unwrap();
         assert_eq!((a.pc, a.steps, a.irq.due), (b.pc, b.steps, b.irq.due));
+        assert!(
+            a.aot_slow,
+            "the item may have been a store: the block re-checks its signature"
+        );
         assert_eq!(a.aot_step_ev(a.pc, a.pc + 1), Ok(()), "event due or not");
     }
 

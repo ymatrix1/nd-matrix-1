@@ -244,6 +244,8 @@ pub struct Core {
     /// Set when a lowered AOT store left the internal SRAM (`aot_mem.rs`); the generated block
     /// then re-checks its guard signature.
     aot_slow: bool,
+    /// Steps run by the event paths of event-aware AOT blocks (`aot2/events.rs`).
+    aot_ev_steps: u64,
     /// Optional Level-2 Cranelift JIT engine (allocated lazily on first `run_jit`).
     #[cfg(feature = "jit")]
     jit: Option<Box<jit::JitEngine>>,

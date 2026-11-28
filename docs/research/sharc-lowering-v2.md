@@ -111,6 +111,6 @@ Three sessions share one host and build concurrently, so:
 
 - Stage A measured (2026-11-24): ORG Core2 x4.57 to x4.13, 1:1 holds; see "Lowering v2 stages". Stage B next.
 - Stage B measured (2026-11-24): ORG Core2 x4.10 to x3.5 by cold-path outlining; native locals and lazy flags not built, reasons in "Stage B" of the research note.
-- Stage D1 built (2026-11-27, D252): event-aware blocks, 14 refusals and 255 interpreter steps per pass removed, 1:1 holds; D2 and C1 to C3 not built (below noise, see "Stages C and D" in the research note).
+- Stage D1 built (2026-11-28, D258): event-aware blocks, 14 refusals and 255 interpreter steps per pass removed, 1:1 holds; D2 and C1 to C3 not built (below noise, see "Stages C and D" in the research note).
 - Stage reports append to [sharc-lle-realtime](sharc-lle-realtime.md) section "Lowering v2 stages" with the tables above filled in.
 - A decision entry once stage B is measured.

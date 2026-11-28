@@ -50,6 +50,15 @@ pub struct AotHotStats {
     pub misses: u64,
     /// Calls that left a block early because an interpreter item changed guarded state.
     pub bails: u64,
+    /// Steps run on the interpreter by the event paths of event-aware blocks (`aot2/events.rs`):
+    /// a due event, and the whole batch an event falls into. These are inside `native_steps` (the
+    /// block's static count), so `native_steps - ev_steps` is what really ran natively.
+    pub ev_steps: u64,
+    /// Calls of event-aware blocks that ended early through `SPLIT` (an interrupt was taken or the
+    /// pc left the straight line at an event). Also counted in `bails`.
+    pub splits: u64,
+    /// Interrupts taken by the core (`irq.taken`, whole life of the core).
+    pub taken: u64,
 }
 
 impl AotHotStats {
@@ -61,6 +70,9 @@ impl AotHotStats {
             native_steps: self.native_steps - earlier.native_steps,
             misses: self.misses - earlier.misses,
             bails: self.bails - earlier.bails,
+            ev_steps: self.ev_steps - earlier.ev_steps,
+            splits: self.splits - earlier.splits,
+            taken: self.taken - earlier.taken,
         }
     }
 }
@@ -129,8 +141,14 @@ impl Core {
         (b.start..b.last).contains(&end) || (end == b.last && !b.dynamic)
     }
 
+    /// The entry guard alone, for the tests of `aot2/ev_blocks.rs`.
+    #[cfg(test)]
+    pub(super) fn aot_try_ready_for_test(&self, b: &AotBlock) -> bool {
+        self.aot_ready(b)
+    }
+
     /// Installs `blocks` (any order) as the enabled set and builds the entry bitmap.
-    fn aot_install(&mut self, mut blocks: Vec<AotBlock>) {
+    pub(super) fn aot_install(&mut self, mut blocks: Vec<AotBlock>) {
         blocks.sort_by_key(|b| b.start);
         blocks.dedup_by_key(|b| b.start);
         let (lo, hi) = match (blocks.first(), blocks.last()) {
@@ -231,7 +249,14 @@ impl Core {
 
     /// Counters summed over the enabled blocks.
     pub fn aot_hot_stats(&self) -> AotHotStats {
-        self.aot_hot.as_deref().map(|h| h.total).unwrap_or_default()
+        self.aot_hot
+            .as_deref()
+            .map(|h| AotHotStats {
+                ev_steps: self.aot_ev_steps,
+                taken: self.irq.taken,
+                ..h.total
+            })
+            .unwrap_or_default()
     }
 
     /// `(start, last, steps, native steps, counters)` of each enabled block.
@@ -286,8 +311,12 @@ impl Core {
         }
         let s0 = self.steps;
         let t = super::aot_prof::aot_prof_on().then(super::aot_prof::tsc);
+        let mut split = false;
         let res = match (b.run)(self) {
-            Err(f) if f == super::aot2::events::SPLIT => Ok(()),
+            Err(f) if f == super::aot2::events::SPLIT => {
+                split = true;
+                Ok(())
+            }
             r => r,
         };
         if let Some(t) = t {
@@ -301,6 +330,7 @@ impl Core {
                 st.steps += done;
                 st.native_steps += if bailed { 0 } else { u64::from(b.native) };
                 st.bails += u64::from(bailed);
+                st.splits += u64::from(split);
             }
             h.fault = res.err();
         }
@@ -434,6 +464,7 @@ mod tests {
             native_steps: 40,
             misses: 3,
             bails: 1,
+            ..AotHotStats::default()
         };
         let b = AotHotStats {
             calls: 2,
@@ -441,6 +472,7 @@ mod tests {
             native_steps: 10,
             misses: 1,
             bails: 0,
+            ..AotHotStats::default()
         };
         let d = a.since(&b);
         assert_eq!(

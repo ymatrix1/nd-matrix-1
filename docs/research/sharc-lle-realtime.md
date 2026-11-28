@@ -347,7 +347,16 @@ Question: do event-split blocks (D1), then superblocks (D2) and static analysis 
 | diff coverage of audio passes | 95.62% | 99.97% | 93.69% | 100.00% |
 | diff block misses (all passes) | 4 206 | 5 | 4 201 | 0 |
 
-The 15 extra generic steps are the 15 steps of the former interpreted tails that are generic forms. Interrupt-controller pokes (`due = 0`) and timer expiry no longer cost a block.
+The 15 extra generic steps are the 15 steps of the former interpreted tails that are generic forms. The "native steps" row is the static bookkeeping of `aot_enter` (each call adds the block's compiled native count), so it counts steps that an event path ran on the interpreter as native; the real figure is the new counter `ev_steps` (steps run by the event paths): **4 807 over boot + 300 passes for both ORG2E and PNO2E (at most 16 per pass, against 255 interpreter steps per pass in v1)**.
+
+Strengthened diff (review of #688): the strict state compared every 20 000 steps now also covers `imask`, `irq.taken`, `irq.stall`, `irq.idle`, `irq.window_len` and `pending` (`irq.due` is not compared: it is derived from the next event cycle and the lowered-op unit tests do not step the controller). `AOT DIFF OK` holds for ORG2, ORG2E, PNO2, PNO2E. **The real passes take no interrupt: 0 interrupts taken and 0 splits in all four runs** (the events are timer and controller pokes), so the `SPLIT` path (an interrupt taken at an event) is exercised only by `aot2/ev_blocks.rs` (hand-built blocks equal to the interpreter with the event at every position on a delayed branch and a loop end, and with a scheduled interrupt), not by the firmware run. Generated source: ORG2 672 584 B, ORG2E 714 465 B (+6.2%); PNO2 628 160 B, PNO2E 666 164 B (+6.0%). 
+
+| Single-module `sharc_jit_diff` build (release, loaded host, 2 builds each, seconds) | ORG2 | ORG2E |
+|---|---:|---:|
+| `cargo build` wall time | 105, 135 | 106, 107 |
+| executable size | 1 400 320 B | 1 446 912 B (+46 592 B, +3.3%) |
+
+Compile time is not measurably different (bands overlap, host loaded). Code bytes grew 3.3% of the executable (+6% of generated source): one `steps >= irq.due` compare per handler and per generic step, and one pre-check per batch.
 
 ### Wall-clock: not separable from noise
 
@@ -358,7 +367,7 @@ Every round ran on a saturated host (`LoadPercentage` 88 to 100%, 5 to 17 cargo/
 | ORG Core2 exact | 282.3 (266.9..297.2) | 268.5 (231.7..307.7) | within noise (bands overlap) |
 | PNO Core2 exact | 210.2 (165.4..224.4) | 184.8 (163.6..203.3) | within noise (bands overlap) |
 
-Mean-us runs (9 rounds, ORG2 341.8 (319.1..427.9), ORG2E 321.5 (283.5..440.3)) agree in direction and are also within noise. D1 is kept on the deterministic counters; no wall-clock gain is claimed.
+Mean-us runs (9 rounds, ORG2 341.8 (319.1..427.9), ORG2E 321.5 (283.5..440.3)) agree in direction and are also within noise. D1 is kept on the deterministic counters (refusals and interpreter steps after a refusal fall, `ev_steps` is small); wall-clock is **not shown to regress and not shown to help**: with these bands a 10 to 15% regression cannot be excluded. A quiet-host re-measure is needed before the `perf` claim is made.
 
 ### Why D2 and C1 to C3 were not built
 
