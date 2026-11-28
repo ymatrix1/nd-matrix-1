@@ -42,7 +42,7 @@ mod tests {
             .contains(&usize::from(UopKind::BAIL.0)));
         assert_eq!(
             t[usize::from(UopKind::BAIL.0)] as usize,
-            bail_handler as usize
+            bail_handler as *const () as usize
         );
     }
 }
