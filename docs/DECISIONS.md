@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D259](#d259-dev-and-test-builds-run-the-emulator-crates-at-opt-level-1-benchmarks-time-thread-cpu-and-an-interleaved-ab-driver-replaces-hand-run-rounds) | 2026-11-28 | Dev/test builds run the emulator crates at opt-level 1; benchmarks time thread CPU and an interleaved A/B driver replaces hand-run rounds | accepted |
 | [D252](#d252-the-plugins-library_program-defaults-to-a11-initialize-waits-up-to-15-s-for-it-and-the-parameter-id-is-appended-to-the-snapshot) | 2026-11-23 | The plugin's `library_program` defaults to `A:11`, `initialize` waits up to 15 s for it, and the parameter id is appended to the snapshot | accepted |
 | [D251](#d251-original-slate-matrix-panel-identity-replaces-the-red-chassis-look-the-old-red-theme-is-deleted-not-kept-as-an-option-ns4-80xe) | 2026-11-24 | Original "Slate Matrix" panel identity replaces the red chassis look; the old red theme is deleted, not kept as an option | accepted |
 | [D250](#d250-arm0-interpreter-gets-a-predecode-cache-with-page-invalidation-the-1-ms-criterion-stays-open-the-tick-budget-is-bounded-not-measured) | 2026-11-24 | ARM0 interpreter gets a predecode cache with page invalidation; the 1 ms criterion stays open; the tick budget is bounded, not measured | proposed |
@@ -2717,6 +2718,15 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Threaded dispatch only (rejected: per-instruction decode was not the dominant cost after the cache); host-code translation or superblocks (deferred: needs a design of its own, the tail is already bounded for a decoupled design); tick the criterion with a "mostly" qualifier (rejected); change the 200,000 budget to 300 k (rejected: no evidence either way).
 - **Limits:** About 2.0x, not 5x (interleaved A/B medians 93.5 to 187 M insns/s). Latency numbers come from a simulation driven by measured tick costs; the real-thread run on the shared machine is scheduling noise. The null-call cause is not isolated; the per-target message split is not recomputed. One firmware image, one program, one machine.
 - **Impact:** `crates/nord-arm` (`cpu/predecode.rs`, `cpu/arm_cached.rs`, `machine/{fastrun,metrics,paced,micro,probe}.rs`, changes in `mem.rs`, `cpu/arm*.rs`, `machine/{mod,idle,sysbus}.rs`), `crates/nord-tools/src/bin/arm_lle_bench.rs`, [specs/arm0-runtime.md](specs/arm0-runtime.md), [research/arm0-rust-runtime.md](research/arm0-rust-runtime.md), bean `ns4-lle2`. No change to the audio engine or default behaviour.
+
+### D259. Dev and test builds run the emulator crates at opt-level 1; benchmarks time thread CPU and an interleaved A/B driver replaces hand-run rounds
+
+- **Status:** accepted. **Decided by:** project owner brief "reduce benchmark times so we can implement and code faster" (2026-11-28).
+- **Context:** the emulator crates ran tests at opt-level 0 (76 s for three crates), every benchmark A/B needed 7 to 9 hand-run rounds on a quiet host, and seven sessions share one machine.
+- **Decision:** `[profile.dev.package.{nord-core,nord-sharc,nord-arm}] opt-level = 1` and `debug = "line-tables-only"`; `nord_sharc::cpu_clock::ThreadClock` times per-core passes, ARM ticks and kernels; `tools/bench_ab.py` runs interleaved A/B rounds with a band verdict and a compiler-load note.
+- **Why:** measured in `docs/research/build-bench-speed.md`: tests 76.5 s to 19.8 s, rebuild times unchanged. CPU time drops the noise from descheduling, so fewer rounds suffice (EMPIRICAL claim, to be confirmed by use).
+- **Alternatives:** a `codegen-units = 32` AOT profile (no gain, 94.9 s vs 91.3 s, not adopted); `sccache` as a global `RUSTC_WRAPPER` (changes every session's build, left to the owner); `opt-level = 2` or 3 (slower rebuilds, not measured); CI changes (out of scope, cost-neutral rule).
+- **Impact:** overflow checks and debug assertions stay on, so a test that relied on opt-level 0 timing is the only risk (none failed). Wall-clock rules for real-time budget claims are unchanged (quiet host, 7 to 9 rounds); the AOT compile time is unchanged.
 
 ### D252. The plugin's `library_program` defaults to `A:11`, `initialize` waits up to 15 s for it, and the parameter id is appended to the snapshot
 

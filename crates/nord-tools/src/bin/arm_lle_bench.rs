@@ -24,6 +24,7 @@ use nord_arm::machine::paced::{consume, produce, Flight};
 use nord_arm::machine::system::Message;
 use nord_arm::machine::uart::{note_off, note_on};
 use nord_arm::machine::{Machine, Stop};
+use nord_sharc::cpu_clock::ThreadClock;
 use std::time::Instant;
 
 /// ASSUMED: ARM instructions per 1 ms tick (`tools/arm_steady.py` INSNS_PER_TICK); the
@@ -73,13 +74,13 @@ fn run_phase(
     for i in 0..ticks {
         let (dev0, arena0, exec0) = (m.bus.device_reads, m.bus.mem.arena_bytes(), stats.executed);
         buf.clear();
-        let t = Instant::now();
+        let t = ThreadClock::start();
         if i == 0 {
             action(m);
         }
         let s = m.run_tick_idle(tick_insns(), stats);
         m.drain_messages_into(&mut buf);
-        row.ms.push(t.elapsed().as_secs_f64() * 1e3);
+        row.ms.push(t.elapsed_ms());
         assert!(
             matches!(s, Stop::Budget),
             "{name} tick {i}: {s:?} pc={:#x}",
@@ -113,13 +114,13 @@ fn run_phase_full(
     let mut buf = Vec::new();
     for i in 0..ticks {
         buf.clear();
-        let t = Instant::now();
+        let t = ThreadClock::start();
         if i == 0 {
             action(m);
         }
         let s = m.run_tick(tick_insns());
         m.drain_messages_into(&mut buf);
-        row.ms.push(t.elapsed().as_secs_f64() * 1e3);
+        row.ms.push(t.elapsed_ms());
         assert!(matches!(s, Stop::Budget), "{name} tick {i}: {s:?}");
         row.msgs_per_tick.push(buf.len());
         row.msgs.extend_from_slice(&buf);

@@ -13,6 +13,7 @@ use super::msg::{self, Msg};
 use super::pass::PassConfig;
 use super::system::{lean_pass, refresh_inputs, set_ping_pong};
 use crate::core::Core;
+use crate::cpu_clock::ThreadClock;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
@@ -194,9 +195,11 @@ pub fn run_ticks(jobs: Vec<PassJob>, warmup: u32, ticks: u32) -> Result<SchedRep
                 if job.before_pass(p, &mut next_msg).is_err() {
                     series.all_idle = false;
                 }
-                let t0 = Instant::now();
+                // thread CPU time of the pass: a descheduled thread (other builds on the host) does
+                // not inflate the per-core figure; the barrier tick below stays wall time
+                let t0 = ThreadClock::start();
                 let (steps, idle) = job.run_pass();
-                let ns = t0.elapsed().as_nanos() as u64;
+                let ns = t0.elapsed_ns();
                 series.steps.push(steps);
                 series.ns.push(ns);
                 series.all_idle &= idle;
