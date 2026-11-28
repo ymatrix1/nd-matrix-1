@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest an improvement or a missing behaviour
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not attach or paste firmware, `.ns4b` banks, samples, or vendor material ([docs/LEGAL.md](https://github.com/ymatrix1/nd-matrix-1/blob/main/docs/LEGAL.md)).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What can you not do today, or what gets in your way?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should change?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other ways to solve it, or workarounds you use now.
+    validations:
+      required: false
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware behaviour reference
+      description: "If this is about matching the Nord Stage 4, give the manual page or section and what the hardware does. Use your own words and measurements."
+    validations:
+      required: false

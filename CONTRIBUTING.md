@@ -21,6 +21,7 @@ Thank you for your interest in contributing to **ND Matrix 1** (`nord-stage-4-em
 - **Do not submit** firmware bytes, disassembly listings of vendor code, samples, factory presets, or vendor art (logos, photos, textures, traced or sampled images). Only derived values, closed-form equations and your own measurements belong in the repository: see [D20](docs/DECISIONS.md#d20-derived-values-only-no-firmware-bytes-in-the-repository) and [D128](docs/DECISIONS.md#d128-raw-firmware-artifacts-are-never-tracked-derived-data-is-classified-a-to-d-b-and-c-move-to-runtime-loading).
 - CI runs `python tools/check_dco.py` on pull requests and fails if a commit lacks a `Signed-off-by:` trailer (merge commits are exempt). Fix a missed one with `git rebase --signoff <base>` and a force push to your branch.
 - The legal posture and the rights-holder contact process are in [docs/LEGAL.md](docs/LEGAL.md).
+- **Reporting a problem:** use the [bug report](https://github.com/ymatrix1/nd-matrix-1/issues/new?template=bug.yml) or [feature request](https://github.com/ymatrix1/nd-matrix-1/issues/new?template=feature.yml) form, and never attach firmware, banks or samples.
 
 ---
 

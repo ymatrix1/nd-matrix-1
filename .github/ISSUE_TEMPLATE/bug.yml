@@ -1,0 +1,87 @@
+name: Bug report
+description: Something crashes, sounds wrong, or does not work
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Read this first
+        **Do not attach or paste firmware, `.ns4b` banks, samples, or any other vendor material.** See [docs/LEGAL.md](https://github.com/ymatrix1/nd-matrix-1/blob/main/docs/LEGAL.md) (decisions D20 and D128). For a bank, give only its **file name and size**.
+        Remove personal paths from anything you paste (for example `C:\Users\<name>\` or `/home/<name>/`).
+  - type: input
+    id: version
+    attributes:
+      label: App version or commit
+      description: "Release tag or the file name you downloaded (for example 0.1.7). In a DAW, the plugin version is in the host's plugin list. If you built from source, give the commit hash (`git rev-parse --short HEAD`)."
+      placeholder: "0.1.7 or a1b2c3d"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and CPU
+      placeholder: "Windows 11 x64, AMD Ryzen 5 5600 / macOS 14 arm64 (M2) / Ubuntu 24.04 x64"
+    validations:
+      required: true
+  - type: dropdown
+    id: usage
+    attributes:
+      label: How are you using it?
+      options:
+        - Standalone app
+        - CLAP plugin
+        - VST3 plugin
+        - AU plugin
+        - ns4 command line
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Host name and version
+      description: "Plugin formats only. Write n/a for the standalone app or the CLI."
+      placeholder: "Reaper 7.20, Ableton Live 12.1, Bitwig 5.2"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What did you do?
+      description: Numbered steps, starting from a fresh launch if you can.
+      placeholder: |
+        1. Open the plugin on a new track
+        2. Load program ...
+        3. Play a note
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: "What happened instead? For a plugin crash, paste the host's crash dialog text, or the Windows exception address with module and offset (for example `0xC0000005 at nd_matrix_1.dll+0x1a2b3c`)."
+    validations:
+      required: true
+  - type: textarea
+    id: bank
+    attributes:
+      label: Banks or files involved
+      description: "Names and sizes only, never the contents. Example: `Stage4.ns4b, 3.14 GB`."
+    validations:
+      required: false
+  # TODO: a local crash/diagnostic report file is being designed in a separate
+  # task. When that command or file exists, name it in the description below.
+  # Do not document a command here until it ships.
+  - type: textarea
+    id: report
+    attributes:
+      label: Diagnostic or crash report (optional)
+      description: "If you have a crash or diagnostic report file, paste its text or drag it in. Check it for personal paths and anything from a vendor bank first."
+    validations:
+      required: false
