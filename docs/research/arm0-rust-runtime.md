@@ -139,6 +139,75 @@ The two numbers count different things:
 * `WFI` has one semantic in both run paths (the instruction completes, the rest of the budget is skipped); `Machine::wfi` counts it.
 * Unbounded logs are capped (`null_calls`, `auto_mapped`, `I2cBus::log`, bus messages), `DspReturn::read` and the drain no longer allocate per call.
 
+## Tail follow-up 2 (2026-11-28): where the heavy ticks go, the rate they need, a decoupled thread
+
+Tools: `arm-tail-bench` (per-tick tail at four budgets, 7 interleaved runs, `PROFILE=1` pc histogram), `arm-rt-bench` (producer thread, [producer.rs](../../crates/nord-arm/src/machine/producer.rs)), shared code in `nord_tools::arm_bench`. Counters are `Machine::stats` ([RunStats](../../crates/nord-arm/src/machine/runstats.rs)): block-granular `u64` increments, always on, no timing.
+
+**Host load.** The machine was shared and busy: 65 to 100 % CPU (Windows `LoadPercentage`) during every measurement here, 32 logical processors, AMD Zen 3 class. Wall clock and even thread cycles ranged 1.6x between runs of the same binary (heavy-tick rate 107 to 198 M insns/s). Rules used: work counted in executed instructions and counters (deterministic, asserted equal across runs), wall clock reported as median [min .. max] over 7 interleaved runs, a gain called real only outside the min-max band.
+
+### 1. The heavy ticks are one long computation, not idle, not hooks
+
+Per budget (deterministic, identical in all 7 runs; the digests below are equal between the 7 runs, `PREDECODE=0` and the single-thread reference):
+
+| budget insns/ms | ticks with exec = budget | total executed (1,900 ticks) | message digest | counters (all budgets alike) |
+|---|---|---|---|---|
+| 150 k | 44 | 13.64 M | `3efde38f525cfbd1` | cached entries 29.9 k, blocks 1.71 M (7.8 insns/block), B/BL enders 1.32 M, other enders 0.38 M, stale exits 3.8 k, page follows 304 k, plain steps 257 k (1.9 %), hook runs 1,516 |
+| 200 k | 33 | 13.71 M | `3efde38f525cfbd1` | same within 0.3 % |
+| 300 k | 21 | 13.66 M | `a3aab7d387c3f514` | same within 0.3 % |
+| 456 k | 14 | 13.71 M | `a3aab7d387c3f514` | same within 0.3 % |
+
+* Every over-budget tick executes **exactly the whole budget**: one stretch of about 6.5 M instructions (44 x 150 k = 6.6 M, 33 x 200 k = 6.6 M, 21 x 300 k = 6.3 M, 14 x 456 k = 6.4 M) in the load phase is real, non-idle, non-polling work, cut into ticks by the budget. The rest of the 1,900 ticks execute a median of 4.3 k instructions (idle skipping).
+* **Where:** a pc histogram of the 35 heavy ticks at 200 k (plain interpreter, 7.0 M instructions counted, `PROFILE=1`): 75 % of them lie in 2 KB at `0xC025C700..0xC025CE80` (top 64-byte buckets `0xC025C740` 10.8 %, `0xC025C7C0` 9.7 %, `0xC025CB00` 9.4 %, `0xC025C780` 8.3 %, `0xC025CB40` 7.0 %, `0xC025CB80` 5.9 %); the code there is conditional register arithmetic, `clz` and shifts by register (it looks like software floating point on a core without an FPU); the rest is spread thin (no other 64-byte bucket above 0.6 %). The routine is identified by its instruction mix only, not by name (no disassembly is committed, D20).
+* Not the cause: store-induced invalidations (3.8 k exits in 13.7 M instructions, 0.03 %), hooked pages (1,516 hook runs, 1.9 % plain steps, not attributed further), device reads (earlier run: 0 to 106 per heavy tick, arena growth 0).
+* The cached loop covers 98.1 % of instructions; blocks are short (7.8), so one block ender per 6 instructions.
+
+### 2. Per-instruction cost: no candidate outside the noise
+
+| quantity | value |
+|---|---|
+| dispatch ceiling, `add r0,r0,#1` x15 + `b`, predecode on (`MICRO=1`) | 375 M insns/s |
+| ldr/str/add mix | 230 M insns/s |
+| add + cmp + bne + bl loop | 205 M insns/s |
+| firmware heavy ticks, least disturbed run | 185 to 198 M insns/s, 16.6 to 17.8 thread cycles/insn |
+| firmware heavy ticks, median of 7 runs on the loaded host | 124 to 129 M insns/s, 25 to 26 thread cycles/insn |
+
+The firmware loop sits at 50 to 85 % of the synthetic ceiling that already includes block ends and loads. Candidates tried:
+
+| candidate | result | decision |
+|---|---|---|
+| per-instruction `bus.pc` store moved into the memory handlers (`Bus::set_pc`) | A/B alternating, 9 pairs, 3 runs each, thread cycles per insn on heavy ticks: parent 31.06 [19.84 .. 31.91], change 31.43 [21.23 .. 33.37] (median +1 %, bands overlap) | not outside the noise band: reverted (the test `device_store_records_the_instruction_pc_with_and_without_the_cache` stays) |
+| block chaining, inline flag handling, pair fusion, RAM fast path, loop specialisation, flat address path | not started | the measurement above cannot resolve a gain below about 25 % at 65 to 100 % host load; a change that small would be unprovable here. Each needs a quiet machine for its A/B (follow-up) |
+
+Idle-loop specialisation beyond WFI has nothing to act on: the heavy stretch is not a wait loop (registers change every iteration, the probe finds no period).
+
+### 3. The tail at the four budgets (7 interleaved runs, median [min .. max], host load 76 to 84 %)
+
+| budget | ticks over 1 ms | longest run | worst backlog ms | p99.9 ms | max ms | rate needed for every tick under 1 ms |
+|---|---|---|---|---|---|---|
+| 150 k | 41 [7 .. 46] | 11 [1 .. 32] | 5.4 [0.3 .. 7.3] | 1.64 [1.17 .. 1.77] | 1.80 [1.30 .. 2.07] | 150 M insns/s |
+| 200 k | 37 [10 .. 38] | 24 [2 .. 32] | 16.6 [0.7 .. 18.2] | 1.83 [1.30 .. 2.05] | 2.20 [1.58 .. 2.77] | 200 M insns/s |
+| 300 k | 26 [23 .. 28] | 22 [21 .. 22] | 27.3 [10.1 .. 28.6] | 2.53 [1.73 .. 2.64] | 2.81 [2.10 .. 2.95] | 300 M insns/s |
+| 456 k | 20 [17 .. 20] | 14 [14 .. 14] | 32.8 [16.2 .. 35.5] | 3.60 [2.32 .. 3.80] | 3.86 [2.38 .. 4.32] | 456 M insns/s |
+
+(the min column is the least disturbed run, the max the most disturbed; p50 is 0.08 to 0.10 ms and the mean 0.09 to 0.13 ms at every budget). In executed-instruction units: p50 4.3 k, p99 = budget (150 k, 200 k, 300 k) or 33 k (456 k), p99.9 and max = budget.
+
+**Verdict for "every tick under 1 ms":** it holds at none of the four budgets on this interpreter. The criterion needs a rate of at least the budget in insns/ms, the best observed rate is 185 to 198 M/s, and the heavy ticks vary in cost: even in the least disturbed run at 150 k, 7 ticks exceed 1 ms (max 1.30 ms, backlog 0.3 ms). So "holds at 200 k, not at 456 k" is not the result; it is "not met at 150 k either, closest at 150 k (best run 7 ticks, 0.3 ms), 2.4x short at 456 k". `ns4-lle2` stays unticked.
+
+### 4. A decoupled thread makes the criterion about the backlog, not the tick
+
+`producer.rs`: ARM0 runs on a thread ahead of virtual time, one `TickMsgs` per tick through a bounded queue. Queue size from the deterministic instruction series and a stated rate (`queue_ticks_for(exec_i / rate)` = `ceil(1.5 x backlog) + 2`, rate 110 M insns/s = the lowest heavy-tick rate seen), `arm-rt-bench`, 5 real-time runs per budget plus a 1-tick queue for contrast, host load 68 to 90 %:
+
+| budget | queue (ticks = ms of lead) | deterministic runs (2) vs single-thread reference | real-time underruns, derived queue | real-time underruns, 1-tick queue | producer waited on a full queue |
+|---|---|---|---|---|---|
+| 150 k | 25 | digest and state hash equal (`3efde38f525cfbd1` / `2eb2fd59fb12078e`) | 0 of 1,900 in 5 runs | 11 (0.6 %), max 0.74 ms late | 74 times |
+| 200 k | 42 | equal (`.../6be2c14282a84986`) | 0 in 5 runs | 49 (2.6 %), max 14.6 ms | 45 times |
+| 300 k | 57 | equal (`a3aab7d387c3f514` / `7cc1638d7d84d519`) | 0 in 5 runs | 89 (4.7 %), max 26.9 ms | 33 times |
+| 456 k | 69 | equal (`.../8aeb29f222e09e35`) | 0 in 5 runs | 50 (2.6 %), max 31.1 ms | 27 times |
+
+* A queue sized from ONE lucky single-thread timing run underran: 3 ticks at 150 k gave 0 to 42 underruns over 5 runs, 30 ticks from the worst of three runs was fine at 200 k. The sizing therefore uses the deterministic instruction series and a conservative rate; the margin 1.5 and slack 2 are ASSUMED.
+* The cost of the lead: while the queue is full the producer is up to `queue` ticks ahead, so live MIDI input is applied up to that many ms after it arrived (25 to 69 ms at the derived sizes). Only the program-load stretch (about 6.5 M instructions) needs the big queue; key phases run at 0.07 to 0.17 ms per tick. A cap on the lead outside heavy stretches is a follow-up (needs the producer to know when it can stop running ahead).
+* Determinism: the two threaded runs equal the single-thread reference in message digest and state hash (table above); the real-time runs were not compared; test `two_runs_produce_identical_message_streams_whatever_the_queue_or_the_consumer` (queue 1, 64 and 2 with a slow consumer: identical streams and state hash).
+
 ## Not verified
 
 * `INSNS_PER_TICK = 200000` is ASSUMED; bounded above by clock x IPC (300 k to 456 k), not measured.
@@ -161,3 +230,10 @@ The two numbers count different things:
 * Pin the instruction budget: calibrate against a firmware delay loop with a known wall-clock duration, or measure the PLL setup the boot loader writes.
 * Chip/core routing in `nord-arm` and a per-target comparison with the 7,340 count (`ns4-lle3`).
 * Port the live-chip and initial-image return layers (`ns4-lle5`).
+
+## Follow-ups after tail follow-up 2
+
+* Quiet machine: repeat the A/B of the block-chaining, flag-inlining, pair-fusion, RAM-fast-path and flat-address candidates with the host idle; none could be resolved at 65 to 100 % load (below about 25 % is unprovable here).
+* Lead cap: let the producer stay only 1 to 3 ticks ahead outside heavy stretches, so live MIDI is not delayed by the program-load queue (25 to 69 ms).
+* The 150 k to 456 k budgets are still ASSUMED to bracket the real one; the heavy stretch is a fixed 6.5 M instructions, so the budget decides only how many ticks it spans.
+* The real-time consumer here is a spin loop on one core; a real audio callback adds its own jitter.
