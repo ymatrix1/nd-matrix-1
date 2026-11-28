@@ -239,6 +239,63 @@ fn conditional_branches_and_indirect_jumps_follow_the_flags_and_the_registers() 
     }
 }
 
+/// `DO (PC, end) UNTIL LCE, LCNTR = ureg` entered after `lead` NOPs of the same block, on a core
+/// that already ran `entry` steps, so the pc and the step count the handler sees are not the ones
+/// of the block entry. Returns the rig after one block.
+fn count_from_register_after(ureg: u8, lead: usize, entry: u64) -> Rig {
+    let mut a = Asm::default();
+    a.nops(lead);
+    a.put(&enc::do_reg(ureg, 5));
+    a.nops(8);
+    let mut rig = Rig::new(&a.0, |c| {
+        c.steps = entry;
+        // a running timer whose count falls one per step, so TCOUNT depends on the step count
+        c.write_ureg(0x6F, 1000);
+        c.write_ureg(0x6E, 5000);
+        c.write_ureg(0x74, crate::core::timer::TIMEN);
+        c.irq.due = u64::MAX;
+    });
+    rig.advance()
+        .unwrap_or_else(|e| panic!("ureg {ureg:#x}: {e}"));
+    rig
+}
+
+#[test]
+fn a_loop_count_read_from_a_register_that_sees_the_pc_or_the_steps_is_the_interpreters_value() {
+    // (register, steps before the block, the count the interpreter reads at the DO): the DO is
+    // the sixth instruction, so the interpreter's pc is CODE + 5 and it has run 5 steps more
+    let lead = 5;
+    let cases = [
+        (0x60u8, 10u64, u64::from(CODE) + 5), // FADDR
+        (0x61, 10, u64::from(CODE) + 5),      // DADDR
+        (0x63, 10, u64::from(CODE) + 5),      // PC
+        (0x69, 10, 10 + 5),                   // EMUCLK: the cycle clock, low word
+        (0x6A, (1 << 32) - 2, 1),             // EMUCLK2: carries into the high word in the block
+        (0x6F, 10, 1000 - 3),                 // TCOUNT: running since the cycle 12, read at 15
+    ];
+    for (ureg, entry, want) in cases {
+        let rig = count_from_register_after(ureg, lead, entry);
+        let frame = rig
+            .a
+            .loops
+            .last()
+            .copied()
+            .expect("the oracle pushed a loop");
+        assert_eq!(u64::from(frame.remaining), want, "ureg {ureg:#x}: oracle");
+        assert_eq!(
+            rig.b.loops.last().map(|f| f.remaining),
+            Some(frame.remaining),
+            "ureg {ureg:#x}: engine"
+        );
+        assert_eq!(
+            (rig.tally.calls(DO_COUNT), rig.tally.exit(Exit::Fault)),
+            (1, 0),
+            "ureg {ureg:#x}: the handler ran and did not bail: {:?}",
+            rig.tally
+        );
+    }
+}
+
 #[test]
 fn a_mutated_uop_stream_is_caught_by_the_chain_comparison() {
     let (sub, end) = (CODE + 10, CODE + 20);

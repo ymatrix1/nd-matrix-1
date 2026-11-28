@@ -3,8 +3,8 @@
 //! OWNER: W2-FLOW. One file per concern (design P11): `pack` (operand layout), `branch` (jump,
 //! call, return), `loops` (`DO`), `misc` (`IDLE`, system-register load); `enc` (encodings),
 //! `harness` (stand-in dispatch loop), `rig` (two cores side by side), `diff` (one instruction on
-//! random states), `diff_chain` (loops, calls, delayed branches) and `diff_events` (`IDLE`,
-//! interrupts, random programs) are test-only.
+//! random states), `diff_chain` (loops, calls, delayed branches), `diff_events` (`IDLE`,
+//! interrupts, random programs) and `allocs` (allocation counts) are test-only.
 //!
 //! | Kind | Instruction | Exits |
 //! |---|---|---|
@@ -33,8 +33,21 @@
 //!   `done` for `Ok`, `Jump` and `Smc` and materializes at every exit (`exit::materialize`). A
 //!   handler that needs the interpreter's view (timers, the interrupt controller and the system
 //!   registers read `steps` and `pc`) materializes first, exactly as `INTERP` does.
+//! * Handlers that read a system register through `Core::read_ureg` materialize first: `SYS_LOAD`
+//!   (the write), `RTI` and `DO_COUNT` with a register count (`FADDR`, `DADDR`, `PC`, `EMUCLK`,
+//!   `EMUCLK2` and `TCOUNT` read `pc` or `steps`; `diff_chain.rs` covers each of them).
 //! * A handler that returns `Fault` or `Slow` has changed nothing; the driver replays the
 //!   instruction through `Core::step`, which raises the real fault.
+//! * Allocation (design 9.3, P14): a steady-state call of every handler allocates nothing except
+//!   `DO_UNTIL`. KNOWN LIMITATION, inherited from v1: it runs `Core::exec_do_until`, whose
+//!   `refresh_check` (`arith_loop.rs`, not a W2-FLOW file) collects the addresses of the loop
+//!   body in a `Vec`, so a `DO_UNTIL` handler allocates once per capacity doubling of that walk
+//!   (measured by `allocs.rs`: 1 for a body of 1 instruction, 2 for 5, 5 for 38), as the
+//!   interpreter and the `Interp` fallback do. It happens once per entry of an arithmetic loop,
+//!   not per pass. G2's "no allocation in a steady pass" does not hold for a pass that enters
+//!   such a loop until `refresh_check` walks the body twice (count, then index) instead of
+//!   collecting it; `allocs.rs` pins the handler to exactly the allocations of that walk, so
+//!   nothing else can creep in.
 //! * A taken branch that pokes the interrupt controller (`RTI`, a call onto a nearly full PC
 //!   stack, a loop stack overflow) is a block end, so the next block entry sees `irq.due == 0`
 //!   (`Steps` row of the guard) and the interpreter's prologue runs before anything else. The
@@ -76,6 +89,8 @@ pub(in crate::core) mod harness;
 #[cfg(test)]
 pub(in crate::core) mod rig;
 
+#[cfg(test)]
+mod allocs;
 #[cfg(test)]
 mod diff;
 #[cfg(test)]

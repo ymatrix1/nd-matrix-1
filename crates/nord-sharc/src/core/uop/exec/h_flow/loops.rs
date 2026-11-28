@@ -7,9 +7,19 @@
 //! word in the uop, because its walk of the body (`body_len`, `refresh_check`) reads code and
 //! flags and is exact only when it is the interpreter's own function. The frame is pushed through
 //! `Core::push_loop`, so the loop stack overflow bit and its interrupt are the interpreter's.
+//!
+//! KNOWN LIMITATION (allocation): `exec_do_until` allocates. Its `refresh_check` collects the
+//! body addresses in a `Vec` (`arith_loop.rs`, v1 code outside this package), so the `DO_UNTIL`
+//! handler allocates on the audio path, once per entry of an arithmetic loop (measured by
+//! `allocs.rs`: 1 allocation for a body of 1 instruction, 2 for 5, 5 for 38). `DO_COUNT` and
+//! every other flow handler allocate nothing. `allocs.rs` pins the count to the interpreter's
+//! own, so it is the walk and nothing in this file. Removing it is a change of `refresh_check` to
+//! a count-then-index walk (two passes over the body, no `Vec`); `allocs.rs` then still passes
+//! and this note goes.
 use super::end_step;
 use super::pack::FROM_REG;
 use crate::core::exec::Decoded;
+use crate::core::uop::exec::exit::materialize;
 use crate::core::uop::types::{Exit, Uop, UopCtx};
 use crate::core::{Core, LoopFrame};
 use crate::visa::{bits, Insn, Kind};
@@ -21,9 +31,17 @@ pub(in crate::core) const DO_LEN: u32 = 3;
 
 /// `DO (pc, end) UNTIL LCE` with the counter in `b` (immediate, or `FROM_REG | register code`).
 /// A count of 0 faults in the interpreter before anything changed.
+///
+/// A count read from a register is read through `Core::read_ureg`, whose system registers see the
+/// interpreter's view of the machine: `FADDR`, `DADDR` and `PC` read `pc`, `EMUCLK`, `EMUCLK2` and
+/// `TCOUNT` read the cycle clock (`steps`). Inside a block those are the block entry's values, so
+/// the handler materializes first, like `SYS_LOAD` (`misc.rs`) and `INTERP`; an immediate count
+/// reads nothing and does not. Checked by `diff_chain.rs` (a non-zero entry step count and a DO
+/// after other instructions of its block, for every register that reads `pc` or `steps`).
 pub(super) fn do_count(core: &mut Core, ctx: &mut UopCtx, u: &Uop) -> Exit {
     let next = u.pc.wrapping_add(DO_LEN);
     let count = if u.b & FROM_REG != 0 {
+        materialize(core, ctx, u.pc);
         core.read_ureg((u.b & 0x7F) as u8)
     } else {
         u.b
@@ -112,6 +130,28 @@ mod tests {
         assert_eq!((exit, c.loops.len()), (Exit::Fault, 0));
         let (exit, _) = run(&mut c, DO_COUNT, CODE + 5, 0);
         assert_eq!((exit, c.loops.len()), (Exit::Fault, 0));
+    }
+
+    #[test]
+    fn a_count_register_that_reads_the_pc_or_the_cycle_clock_sees_the_materialized_core() {
+        // entry step count 10, 3 steps done before the DO at CODE + 9: PC reads CODE + 9 and
+        // EMUCLK reads 13, not the block entry's pc and 10
+        for (ureg, want) in [(0x63u32, CODE + 9), (0x69, 13)] {
+            let mut c = core_with(&[0x0001; 8]);
+            c.steps = 10;
+            let mut ctx = UopCtx::new(&mut c as *mut Core, 10, 8);
+            ctx.done = 3;
+            let u = Uop::new(DO_COUNT, 1, CODE + 9, CODE + 14, FROM_REG | ureg);
+            let table = crate::core::uop::hot::UopHot::handler_table();
+            // SAFETY: `ctx.core` points to `c`, which outlives the call and is not used meanwhile.
+            let r = unsafe { table[usize::from(DO_COUNT.0)](&mut ctx, &u) };
+            assert_eq!(r, Exit::Ok as u32, "ureg {ureg:#x}");
+            assert_eq!(
+                c.loops.last().map(|f| f.remaining),
+                Some(want),
+                "ureg {ureg:#x}"
+            );
+        }
     }
 
     #[test]
