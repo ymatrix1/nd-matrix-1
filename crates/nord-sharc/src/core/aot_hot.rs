@@ -464,7 +464,9 @@ mod tests {
             native_steps: 40,
             misses: 3,
             bails: 1,
-            ..AotHotStats::default()
+            ev_steps: 7,
+            splits: 2,
+            taken: 5,
         };
         let b = AotHotStats {
             calls: 2,
@@ -472,12 +474,19 @@ mod tests {
             native_steps: 10,
             misses: 1,
             bails: 0,
-            ..AotHotStats::default()
+            ev_steps: 3,
+            splits: 1,
+            taken: 4,
         };
         let d = a.since(&b);
         assert_eq!(
             (d.calls, d.steps, d.native_steps, d.misses, d.bails),
             (3, 30, 30, 2, 1)
+        );
+        assert_eq!(
+            (d.ev_steps, d.splits, d.taken),
+            (4, 1, 1),
+            "the three event counters subtract too"
         );
     }
 
