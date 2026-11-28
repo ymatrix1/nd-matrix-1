@@ -108,7 +108,9 @@ pub use fw_super2::tables as boot_tables;
 pub use fw_velocity::{
     amp_gain as fw_amp_velocity_gain, filter_factor as fw_filter_velocity_factor,
 };
-pub use fw_wave::{install_wave_tables, prepare_wave_bank, wave_table, WaveBankState};
+pub use fw_wave::{
+    install_wave_tables, prepare_wave_bank, wave_table, wave_tables_installed, WaveBankState,
+};
 pub use fw_wave_tables::{tables_from_code, tables_from_file, WAVE_TABLES};
 pub use gain_dezip::{
     gain_pole_for, CONTROL_TICK_HZ, LEGACY_CONTROL_TICK_HZ, SY_FRAME_RATE_HZ, SY_GAIN_POLE,

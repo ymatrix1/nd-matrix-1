@@ -14,7 +14,6 @@
 
 use crate::params::Stage4Params;
 use crate::program_hold::Group;
-use crossbeam_channel::{bounded, Receiver, Sender, TrySendError};
 use nord_core::cbin::ProgramDecoded;
 use nord_core::engine::Stage4Engine;
 use nord_core::piano::NpnoSound;
@@ -22,6 +21,8 @@ use nord_core::render_opts::FirmwareOptions;
 use nord_core::synth::SynthSampleSound;
 use nord_gui::audio::garbage::{Bin, Garbage};
 use std::sync::Arc;
+
+pub use crate::load_queue::{load_queue, LoadReceiver, LoadSender, Refused};
 
 /// Jobs the queue holds before the editor reports the plugin busy.
 ///
@@ -50,42 +51,13 @@ pub enum LoadJob {
     },
     /// Every opt-in firmware path at once (`AudioCommand::SetFirmwareOptions`).
     Firmware(FirmwareOptions),
-}
-
-/// Producer end, owned by the editor.
-#[derive(Clone)]
-pub struct LoadSender(Sender<LoadJob>);
-
-/// Consumer end, owned by the plugin and drained at the start of every `process()` block.
-#[derive(Clone)]
-pub struct LoadReceiver(Receiver<LoadJob>);
-
-/// New queue with `capacity` slots.
-pub fn load_queue(capacity: usize) -> (LoadSender, LoadReceiver) {
-    let (tx, rx) = bounded(capacity);
-    (LoadSender(tx), LoadReceiver(rx))
-}
-
-impl LoadSender {
-    /// Queues one job; gives it back when the queue is full.
-    #[allow(clippy::result_large_err)]
-    pub fn push(&self, job: LoadJob) -> Result<(), LoadJob> {
-        match self.0.try_send(job) {
-            Ok(()) => Ok(()),
-            Err(TrySendError::Full(j) | TrySendError::Disconnected(j)) => Err(j),
-        }
-    }
-}
-
-impl LoadReceiver {
-    /// Next pending job. Never blocks, never allocates.
-    pub fn pop(&self) -> Option<LoadJob> {
-        self.0.try_recv().ok()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
+    /// The WAVE stage of the three synth layers on or off (`SynthLayer::wave_bank`), set by the
+    /// library worker once the OS update tables are installed. Holds no parameter group.
+    WaveBank(bool),
+    /// `library_program` went to Off: drop the program and both sound banks sets and hand the
+    /// engine back to the host parameters (D252). Allocates nothing; what it drops goes to the
+    /// bin. Firmware options and the WAVE stage stay.
+    Unload,
 }
 
 /// What has been loaded into the plugin, kept to restore a rebuilt engine.
@@ -95,6 +67,8 @@ pub struct Loaded {
     pub pianos: [Option<Arc<NpnoSound>>; 2],
     pub samples: [Option<Arc<SynthSampleSound>>; 3],
     pub firmware: Option<FirmwareOptions>,
+    /// `LoadJob::WaveBank`: the WAVE stage switch, re-applied after the firmware options.
+    pub wave_bank: Option<bool>,
 }
 
 impl Loaded {
@@ -148,6 +122,35 @@ impl Loaded {
                 opts.apply_exact(engine);
                 params.program_hold.hold(Group::FIRMWARE);
                 self.firmware = Some(opts);
+                if let Some(on) = self.wave_bank {
+                    set_wave_bank(engine, on);
+                }
+            }
+            LoadJob::WaveBank(on) => {
+                set_wave_bank(engine, on);
+                self.wave_bank = Some(on);
+            }
+            LoadJob::Unload => {
+                for slot_b in [false, true] {
+                    self.apply(
+                        LoadJob::Piano {
+                            slot_b,
+                            sound: None,
+                        },
+                        engine,
+                        params,
+                        bin,
+                    );
+                }
+                for layer in 0..self.samples.len() {
+                    self.apply(LoadJob::Sample { layer, sound: None }, engine, params, bin);
+                }
+                if let Some(old) = self.program.take() {
+                    bin.put(Garbage::Program(old));
+                }
+                // The next block's sync writes every host parameter group again; the firmware
+                // switches stay the firmware panel's.
+                params.program_hold.release(Group::PROGRAM);
             }
         }
     }
@@ -167,7 +170,18 @@ impl Loaded {
         if let Some(opts) = &self.firmware {
             opts.apply_exact(engine);
         }
+        if let Some(on) = self.wave_bank {
+            set_wave_bank(engine, on);
+        }
     }
+}
+
+/// The WAVE stage switch of the three synth layers (what `FirmwareOptions::synth_wave_bank`
+/// sets; the tables themselves are process-global, `wave_tables.rs`).
+fn set_wave_bank(engine: &mut Stage4Engine, on: bool) {
+    engine.synth_a.wave_bank = on;
+    engine.synth_b.wave_bank = on;
+    engine.synth_c.wave_bank = on;
 }
 
 #[cfg(test)]
@@ -195,28 +209,6 @@ mod tests {
         prog.organ.layer_a_level = level;
         prog.organ.drawbars_a = [8, 8, 8, 0, 0, 0, 0, 0, 0];
         Box::new(prog)
-    }
-
-    #[test]
-    fn the_queue_is_bounded_and_hands_a_rejected_job_back() {
-        let (tx, rx) = load_queue(2);
-        assert!(tx
-            .push(LoadJob::Firmware(FirmwareOptions::default()))
-            .is_ok());
-        assert!(tx
-            .push(LoadJob::Piano {
-                slot_b: false,
-                sound: None
-            })
-            .is_ok());
-        let back = tx.push(LoadJob::Sample {
-            layer: 0,
-            sound: None,
-        });
-        assert!(matches!(back, Err(LoadJob::Sample { .. })));
-        assert!(matches!(rx.pop(), Some(LoadJob::Firmware(_))));
-        assert!(matches!(rx.pop(), Some(LoadJob::Piano { .. })));
-        assert!(rx.pop().is_none() && rx.is_empty());
     }
 
     #[test]
@@ -279,6 +271,35 @@ mod tests {
             matches!(&got[0], Garbage::Program(old) if (old.organ.layer_a_level - 0.3).abs() < 1e-6)
         );
         assert!((loaded.program.as_ref().unwrap().organ.layer_a_level - 0.6).abs() < 1e-6);
+    }
+
+    #[test]
+    fn an_unload_job_drops_the_program_and_banks_and_releases_the_hold() {
+        let p = params();
+        let mut e = Stage4Engine::new(48_000.0);
+        let mut loaded = Loaded::default();
+        let (bin, reaper) = garbage::channel();
+        loaded.apply(LoadJob::Program(program(0.3)), &mut e, &p, &bin);
+        loaded.apply(
+            LoadJob::Piano {
+                slot_b: false,
+                sound: Some(piano("Grand")),
+            },
+            &mut e,
+            &p,
+            &bin,
+        );
+        assert!(p.program_hold.owned_by_program(Group::Synth));
+        let _ = reaper.try_iter().count();
+        loaded.apply(LoadJob::Unload, &mut e, &p, &bin);
+        assert!(loaded.program.is_none());
+        assert!(loaded.pianos.iter().all(Option::is_none));
+        assert!(loaded.samples.iter().all(Option::is_none));
+        assert!(p.program_hold.runs(Group::Synth));
+        assert!(
+            reaper.try_iter().count() >= 2,
+            "program and bank are binned"
+        );
     }
 
     #[test]
@@ -351,6 +372,30 @@ mod tests {
         assert_eq!(loaded.firmware, Some(opts));
         assert!(p.program_hold.owned_by_program(Group::Firmware));
         assert!(p.program_hold.runs(Group::Organ));
+    }
+
+    #[test]
+    fn a_wave_bank_job_switches_the_stage_holds_nothing_and_survives_firmware_and_rebuild() {
+        let p = params();
+        let mut e = Stage4Engine::new(48_000.0);
+        let mut loaded = Loaded::default();
+        assert!(!e.synth_a.wave_bank);
+        loaded.apply(LoadJob::WaveBank(true), &mut e, &p, &Bin::inline());
+        assert!(e.synth_a.wave_bank && e.synth_b.wave_bank && e.synth_c.wave_bank);
+        assert!(p.program_hold.runs(Group::Firmware), "no group is held");
+        // Firmware options with the stage off do not undo the switch.
+        loaded.apply(
+            LoadJob::Firmware(FirmwareOptions::default()),
+            &mut e,
+            &p,
+            &Bin::inline(),
+        );
+        assert!(e.synth_c.wave_bank);
+        let mut fresh = Stage4Engine::new(96_000.0);
+        loaded.restore(&mut fresh);
+        assert!(fresh.synth_b.wave_bank);
+        loaded.apply(LoadJob::WaveBank(false), &mut e, &p, &Bin::inline());
+        assert!(!e.synth_a.wave_bank);
     }
 
     #[test]

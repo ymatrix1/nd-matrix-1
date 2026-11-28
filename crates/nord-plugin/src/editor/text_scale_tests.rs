@@ -33,7 +33,7 @@ fn editor(percent: u32) -> EditorState {
     let index = Arc::new(ParamIndex::new(params.as_ref()).with_program_hold(params));
     let (tx, _notes) = note_queue(8);
     let (load_tx, _load_rx) = load_queue(8);
-    let mut st = EditorState::new(index, tx, load_tx, Default::default());
+    let mut st = EditorState::with_library(index, tx, load_tx, Default::default(), None);
     st.text_scale = TextScale::new(percent);
     st
 }

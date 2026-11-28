@@ -74,11 +74,30 @@ pub struct EditorState {
 }
 
 impl EditorState {
+    /// The editor of a plugin in a host: its Library tab opens on the user's saved library.
     pub fn new(
         index: Arc<ParamIndex>,
         notes: NoteSender,
         loads: LoadSender,
         telemetry: Arc<TelemetryCell>,
+    ) -> Self {
+        Self::with_library(
+            index,
+            notes,
+            loads,
+            telemetry,
+            crate::auto_library::saved_library(),
+        )
+    }
+
+    /// Like [`Self::new`] with the library to open given (tests and tools: `None` for an empty
+    /// tab, whatever the user saved).
+    pub fn with_library(
+        index: Arc<ParamIndex>,
+        notes: NoteSender,
+        loads: LoadSender,
+        telemetry: Arc<TelemetryCell>,
+        library: Option<std::path::PathBuf>,
     ) -> Self {
         let (mut handle, rx) = AudioHandle::new();
         // The plugin's engine publishes into this cell: the panel LEDs and lit keys read it.
@@ -101,7 +120,7 @@ impl EditorState {
             unmapped: 0,
             bar_click: None,
             loads,
-            library: plugin_library(),
+            library: plugin_library(library),
             firmware: FirmwarePanelState::new(Default::default()),
             os_update: None,
             debug_dialog: DebugDialogState::default(),
@@ -134,11 +153,20 @@ impl EditorState {
     }
 }
 
-/// A library that starts empty: the standalone pre-fills the path with a `.ns4b` found in the
-/// working directory, which in a DAW is an arbitrary folder.
-fn plugin_library() -> BackupLibraryState {
+/// The Library & Backup tab starts on the saved sound library (`ns4 library set`, the backup
+/// the audio thread loads `Program` from, `auto_library.rs`), so the DAW user sees the same
+/// programs and sounds the plugin plays. Without one it starts empty: the standalone pre-fills
+/// the path with a `.ns4b` found in the working directory, which in a DAW is an arbitrary
+/// folder. A library that fails to open is reported in the tab, like a failed Browse.
+pub(super) fn plugin_library(saved: Option<std::path::PathBuf>) -> BackupLibraryState {
     let mut library = BackupLibraryState::new();
     library.path_input.clear();
+    if let Some(path) = saved {
+        match library.open_backup_path(&path) {
+            Ok(()) => library.path_input = path.display().to_string(),
+            Err(err) => library.error_message = Some(err),
+        }
+    }
     library
 }
 
@@ -311,7 +339,7 @@ mod tests {
         std::mem::forget(load_rx); // keep the queue connected; these tests do not read it
         (
             params,
-            EditorState::new(index, tx, load_tx, Default::default()),
+            EditorState::with_library(index, tx, load_tx, Default::default(), None),
             rx,
         )
     }
@@ -348,6 +376,27 @@ mod tests {
 
     fn default_size_vec() -> Vec2 {
         Vec2::new(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32)
+    }
+
+    #[test]
+    fn the_library_tab_starts_on_the_saved_library_or_empty() {
+        let none = plugin_library(None);
+        assert!(none.path_input.is_empty() && none.programs.is_empty());
+        assert_eq!(none.error_message, None);
+
+        let path = crate::auto_library::support::two_program_backup("editor");
+        let saved = plugin_library(Some(path.clone()));
+        assert_eq!(saved.path_input, path.display().to_string());
+        assert_eq!(saved.programs.len(), 2);
+        assert_eq!(saved.error_message, None);
+        std::fs::remove_file(&path).ok();
+
+        let missing = plugin_library(Some(path));
+        assert!(missing.programs.is_empty());
+        assert!(
+            missing.error_message.is_some(),
+            "a missing library is reported"
+        );
     }
 
     #[test]
