@@ -3,7 +3,7 @@
 //! The SMP state machine (`docs/research/smp-slew.md` s3, VERIFIED runs) wraps the stream counter
 //! by the loop length `F-7` once it reaches the loop end `F-8`, and frees a voice only at
 //! `F-9` (the end of a non-looping stream). `.npno` strokes carry the loop (`NpnoStroke`):
-//! a held note therefore never reaches the stream end, it repeats the last third of its sample
+//! a held note therefore never reaches the stream end, it repeats the stroke's loop region
 //! until the key-up. Inside the loop region (counter above `F-8 - F-7`) the slew rate word is
 //! `F+6` instead of `F+7`, a steeper decay: each repetition is quieter
 //! (`docs/research/piano-sample-end.md`, issue #640).
@@ -41,6 +41,15 @@ pub fn in_loop(pos: f64, loop_start: usize) -> bool {
 #[inline]
 pub fn rate_x(decay: i16) -> f32 {
     2.0 * f32::from(decay.min(0).unsigned_abs()) / TWO_POW_24
+}
+
+/// In-loop rate `x` of a voice playing `stroke` at read position `pos`: `0.0` outside the loop
+/// region (before the loop start, no loop, no stroke) and for strokes without decay.
+#[inline]
+pub fn voice_rate_x(stroke: Option<&super::LoadedPianoStroke>, pos: f64) -> f32 {
+    stroke
+        .filter(|st| st.loop_start.is_some_and(|ls| in_loop(pos, ls)))
+        .map_or(0.0, |st| rate_x(st.loop_decay))
 }
 
 /// Gain factor per output frame at `sample_rate_hz` for a rate word `1 - x` applied once per
@@ -88,6 +97,22 @@ mod tests {
         assert!((1.0 - x - f32::from_bits(0x3F7F_FE8E)).abs() < 1e-9);
         assert_eq!(rate_x(0), 0.0);
         assert_eq!(rate_x(37), 0.0);
+    }
+
+    #[test]
+    fn voice_rate_is_zero_outside_the_loop_region() {
+        let mut st = super::super::NpnoSound::new_synthetic("t", 60, &[0.1; 64], 48_000.0).strokes
+            [0]
+        .clone();
+        st.loop_start = Some(32);
+        st.loop_end = Some(64);
+        st.loop_decay = -185;
+        assert_eq!(voice_rate_x(Some(&st), 10.0), 0.0);
+        assert_eq!(voice_rate_x(Some(&st), 32.0), 0.0);
+        assert_eq!(voice_rate_x(Some(&st), 40.0), rate_x(-185));
+        assert_eq!(voice_rate_x(None, 40.0), 0.0);
+        st.loop_start = None;
+        assert_eq!(voice_rate_x(Some(&st), 40.0), 0.0);
     }
 
     #[test]
