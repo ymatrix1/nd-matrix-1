@@ -284,7 +284,7 @@ Recognized chunks and layout:
 
 ### 5.4 `.ns4b` Backup Archive Reader (`crates/nord-core/src/cbin/backup.rs`)
 
-`.ns4b` archives are standard PKZIP files whose entries use method `0` (`ZIP_STORED`). `Ns4BackupArchive` parses ZIP central-directory/local-header records without external runtime dependencies so users can list and load `.npno`, `.nsmp4`, and `.ns4p` entries directly from a legally owned `.ns4b` archive or extracted folder.
+`.ns4b` archives are standard PKZIP files whose entries use method `0` (`ZIP_STORED`). `Ns4BackupArchive` parses ZIP central-directory/local-header records without external runtime dependencies so users can list and load `.npno`, `.nsmp4`, and `.ns4p` entries directly from a legally owned `.ns4b` archive or extracted folder. Entry sizes come from the zip header, which a hostile file controls (`NS4_LIBRARY` can name any file): `read_entry_by_index` and `read_entry_prefix_by_index` compare the size to read with the bytes left in the file after the payload offset and return `CbinError::BitstreamError` before allocating when the entry runs past the end. Test: `test_an_entry_claiming_more_bytes_than_the_file_holds_is_an_error_not_an_allocation` (`backup.rs`).
 
 ### 5.5 `.ns4b` Backup Writer (`cbin/backup_writer.rs`, `cbin/backup_store.rs`, `cbin/crc32.rs`)
 
