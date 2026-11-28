@@ -12,7 +12,8 @@
 //! Ids are reserved per work package so the sites can be written in parallel without a clash:
 //! `0..=99` W1-DP, `100..=199` W1-MEM, `200..=299` W1-FLOW, `300..=399` W1-XALU and W1-XMEM,
 //! `400..=499` W2-XCORE, `500..=599` W2-PEEP, `600..=699` W2-DRV and W1-CACHE, `700..=799` the
-//! comparator, `800..=899` the native lowerers. A site uses `is_active(<its id>)`; W3-VERIF
+//! comparator, `800..=899` the native lowerers, `900..=949` W2-MUL (`lower_mul.rs`; the dispatch site in
+//! `exec_alu.rs` is 317 of the W1-XALU block). A site uses `is_active(<its id>)`; W3-VERIF
 //! registers the `(id, name)` pairs in [`MUTANTS`] after the lowerers and executors land (an edit
 //! of this file owned by W3-VERIF) and checks that every registered id has a site.
 

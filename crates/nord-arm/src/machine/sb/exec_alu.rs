@@ -1,6 +1,6 @@
 //! OWNER: W1-XALU. Executor arms of the data-processing uops, tier 2 (safe Rust).
 //!
-//! Spec (design note 3.1 and 4.3, WP W1-XALU): [`exec_dp`] runs one uop of kind `0..=107` on the
+//! Spec (design note 3.1 and 4.3, WP W1-XALU): [`exec_dp`] runs one uop of kind `0..=111` on the
 //! register file `r` and the flag nibble `f` (`n << 3 | z << 2 | c << 1 | v`, I4); `cpu` is not
 //! touched, the executor loop unpacks `f` at every exit. Semantics are those of `Cpu::dp_exec`:
 //!
@@ -16,13 +16,12 @@
 //!   reads `rm`, `MOV_IMM`/`MVN_IMM` read `imm`, `ADD_IMM`/`SUB_IMM`/`ORR_IMM` read `rn` and `imm`,
 //!   `ADD_REG`/`SUB_REG` read `rn` and `rm` (lsl #0), the compares and tests (always S) read `rn`
 //!   and `imm` or `rm`; `TST_IMM` follows the form-0 `sh` bit 0 convention, `TST_REG` leaves C;
+//! * the multiply ids `108..=111` (`k::mul(acc, s)` = `MUL + acc * 2 + s`, WP W2-MUL) run
+//!   [`exec_mul_with`] (child module `mul`): `rd = rm * rs (+ rn)` modulo 2^32, N and Z from the
+//!   result when S, C and V untouched (the `0 | 1` case of `Cpu::arm_mul`). The lowerer
+//!   (`lower_mul.rs`) stores the destination in `rd` (instruction bits 19..16), the accumulator
+//!   in `rn` (15..12, 0 for `MUL`), `rs` (11..8) and `rm` (3..0).
 //! * `r15` is never read or written (I2): every register field is `0..=14` (`debug_assert!`).
-//!
-//! `exec_mul` / `exec_mul_with` (child module `mul`) are the MUL/MLA arm. No kind id exists for
-//! it (the frozen contract keeps multiplies `GENERIC`, ids `108..=111` are reserved), so
-//! `exec_dp` does not dispatch to it and it is not reachable from `run_sb`: that takes edits to
-//! files this package does not own, listed in `mul.rs`. The arm is complete and tested so that
-//! allocating the ids later is one call.
 //!
 //! Registered statically in `exec::run_sb` (family `k::Family::Dp`). The signature is frozen.
 //!
@@ -35,7 +34,7 @@
 //! itself matches the AM1705 core stays ASSUMED, as in `cpu/`.
 //!
 //! Mutation sites (layer L5, `cfg(test)` only): ids `300..=349` are this file's (W1-XMEM takes
-//! `350..=399` of the block shared by the two packages); `MUTANTS` lists them for W3-VERIF, and
+//! `350..=399` of the block shared by the two packages; 317 is the multiply dispatch of W2-MUL); `MUTANTS` lists them for W3-VERIF, and
 //! `kill.rs` proves each one is killed by this file's differential suite.
 
 use super::uop::{k, Uop};
@@ -86,6 +85,7 @@ pub(crate) const MUTANTS: &[(u32, &str)] = &[
     (314, "mla_drops_accumulator"),
     (315, "muls_flags_not_written"),
     (316, "mul_with_swaps_acc_and_s"),
+    (317, "mul_id_dispatch_ignores_the_acc_bit"),
 ];
 
 /// Register `i` (`0..=14`).
@@ -237,6 +237,11 @@ pub fn exec_dp(r: &mut [u32; 16], f: &mut u8, u: &Uop) {
     match u.kind {
         0..=95 => generic_arms!(r, f, u; 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15),
         96..=107 => special(r, f, u),
+        k::MUL..=k::MLAS => {
+            let id = u.kind - k::MUL;
+            let acc = id & 2 != 0 && !mutant(317);
+            exec_mul_with(r, f, u, acc, id & 1 != 0);
+        }
         kind => unreachable!(
             "uop kind {kind} is not a data-processing uop (family {:?})",
             k::family(kind)
@@ -258,8 +263,11 @@ mod tests {
                 ran += 1;
             }
         }
-        assert_eq!(ran, 108, "96 generic ids + 12 specialised ids");
-        for kind in [108u8, 111, 112, 144, 160, 255] {
+        assert_eq!(
+            ran, 112,
+            "96 generic ids + 12 specialised ids + 4 multiplies"
+        );
+        for kind in [112u8, 128, 129, 144, 160, 255] {
             let caught = std::panic::catch_unwind(|| {
                 exec_dp(&mut [0; 16], &mut 0, &Uop::new(kind, 0x1000));
             });

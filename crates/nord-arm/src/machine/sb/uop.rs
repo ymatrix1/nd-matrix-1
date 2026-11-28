@@ -32,9 +32,12 @@
 //!   new pc, and the driver reads `sb.exits[exit].kind` to decide what happens next. No uop but
 //!   `GENERIC*`/`EXIT*` touches `r15` (I2), so the target of a non-dynamic exit is static.
 //! * Page numbers in `Sb::pages` are `addr >> 12` (the unit of `Mem::stale_code`).
-//! * No kind id exists for `MUL`/`MLA`/long multiplies and the other `SLOW` classes: they stay
-//!   `GENERIC` until a design review allocates ids (the gaps 108..=111, 129..=143, 155..=159 are
-//!   reserved, not allocated).
+//! * `MUL`, `MULS`, `MLA`, `MLAS` (ids 108..=111, `k::mul(acc, s)`, family `Dp`, WP W2-MUL) have
+//!   the operand layout `rd` = destination (instruction bits 19..16), `rn` = accumulator (bits
+//!   15..12; 0 for `MUL`), `rs` = bits 11..8, `rm` = bits 3..0, every register `0..=14` (I2); no
+//!   other field is read. The long multiplies, the halfword multiplies and the other `SLOW`
+//!   classes have no kind id and stay `GENERIC` (the gaps 129..=143, 155..=159 are reserved, not
+//!   allocated).
 
 use crate::cpu::predecode::COND_MASK;
 use crate::cpu::Cpu;

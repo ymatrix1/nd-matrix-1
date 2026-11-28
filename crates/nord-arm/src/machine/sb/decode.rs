@@ -3,13 +3,14 @@
 //! its lowering family.
 //!
 //! Registration is static: [`Insn::lower_family`] decides, [`lower_insn`] calls the owner's
-//! function (`lower_dp::lower_dp`, `lower_mem::lower_mem`), [`lower_or_generic`] adds the
+//! function (`lower_dp::lower_dp`, `lower_mem::lower_mem`, `lower_mul::lower_mul`), [`lower_or_generic`] adds the
 //! predicate wrap and the `GENERIC` fallback. Control flow (every block ender: branches, `mov
 //! pc,rm`, loads into `pc`, the `SLOW` classes) goes to `lower_flow` through `FlowCtx`, which the
 //! trace builder drives. A work package that lands a family changes only its own file.
 
 use super::lower_dp::lower_dp;
 use super::lower_mem::lower_mem;
+use super::lower_mul::lower_mul;
 use super::trace::BuildOpts;
 use super::uop::{k, Uop};
 use crate::cpu::predecode::{decode_arm, ends_block, op, Entry, MASK_ALWAYS};
@@ -41,7 +42,10 @@ pub enum LowerFamily {
     Mem,
     /// Data processing that cannot end a block.
     Dp,
-    /// No uop kind exists (multiplies): `GENERIC`.
+    /// `MUL`, `MLA` and the long multiplies (`op::MUL` class that cannot end a block):
+    /// `lower_mul` lowers the 32-bit forms and declines the rest.
+    Mul,
+    /// No lowerer takes it: `GENERIC`.
     Generic,
 }
 
@@ -101,6 +105,7 @@ impl Insn {
         }
         match self.entry.op {
             op::LDR | op::LDRB | op::STR | op::STRB | op::LDM | op::HALF => LowerFamily::Mem,
+            op::MUL => LowerFamily::Mul,
             id if id >= op::DP_BASE => LowerFamily::Dp,
             _ => LowerFamily::Generic,
         }
@@ -132,6 +137,7 @@ pub fn lower_insn(cx: &mut LowerCtx<'_>) -> Lowered {
     match cx.insn.lower_family() {
         LowerFamily::Mem => lower_mem(cx),
         LowerFamily::Dp => lower_dp(cx),
+        LowerFamily::Mul => lower_mul(cx),
         LowerFamily::Flow | LowerFamily::Generic => Lowered::Generic,
     }
 }
@@ -237,7 +243,9 @@ mod tests {
         assert_eq!(fam(0xE1A0_F00E), LowerFamily::Flow); // mov pc,lr
         assert_eq!(fam(0xE591_F000), LowerFamily::Flow); // ldr pc,[r1]
         assert_eq!(fam(0xE10F_3000), LowerFamily::Flow); // mrs r3,cpsr (SLOW class)
-        assert_eq!(fam(0xE001_0092), LowerFamily::Generic); // mul r1,r2,r0: no kind id
+        assert_eq!(fam(0xE001_0092), LowerFamily::Mul); // mul r1,r2,r0
+        assert_eq!(fam(0xE0C2_1093), LowerFamily::Mul); // smull (declined by lower_mul)
+        assert_eq!(fam(0xE001_F092), LowerFamily::Flow); // mul with pc in the SBZ field: an ender
     }
 
     #[test]
@@ -246,14 +254,14 @@ mod tests {
         let mut out = vec![Uop::new(k::MOV_IMM, 0x0FFC)];
         let mut fold = |_: u32| None;
         let mut cx = LowerCtx {
-            insn: at(0x1000, 0xE001_0092), // mul r1,r2,r0: no kind id exists, so no lowerer takes it
+            insn: at(0x1000, 0xE0C2_1093), // smull r1,r2,r3,r0: no kind id exists, no lowerer takes it
             out: &mut out,
             fold: &mut fold,
             opts: &opts,
         };
         assert_eq!(lower_or_generic(&mut cx), Lowered::Generic);
         assert_eq!(out.len(), 2);
-        assert_eq!(out[1], Uop::generic(0xE001_0092, 0x1000, 0));
+        assert_eq!(out[1], Uop::generic(0xE0C2_1093, 0x1000, 0));
     }
 
     #[test]

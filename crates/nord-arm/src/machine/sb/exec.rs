@@ -7,14 +7,14 @@
 //!
 //! | Family | Arm |
 //! |---|---|
-//! | `Dp` (`0..=107`) | `exec_alu::exec_dp` on `cpu.r` and `f` |
+//! | `Dp` (`0..=111`) | `exec_alu::exec_dp` on `cpu.r` and `f` (`108..=111`: `MUL`, `MULS`, `MLA`, `MLAS`) |
 //! | `Mem` (`112..=128`) | `exec_mem::exec_mem`; after a store `bus.stale()` ends the trace through the uop's early exit (I6) |
 //! | `Flow`, `Fused` | `exec_flow::exec_flow` (`PRED`, `GUARD*`, `LOOP_BACK`, `EXIT*`, `GENERIC*`, `MRS`, `MSR_C`, the fused kinds) |
 //! | anything else | `unreachable!`: a guest cannot produce it, only a lowerer bug can |
 //!
 //! `kinds.rs` runs one uop of every defined id (no arm may reach `unreachable!`) and checks that
-//! every other id does. The multiply kinds (ids `108..=111`) are not allocated yet: `MUL`/`MLA`
-//! stay `GENERIC` (`exec_alu::exec_mul` is complete and waits for the ids).
+//! every other id does. The long multiplies and the halfword multiplies have no kind id and stay
+//! `GENERIC`.
 //!
 //! # Applying the exit ([`finish`])
 //!
@@ -204,7 +204,7 @@ mod tests {
             };
             per_family[slot] += 1;
         }
-        assert_eq!(per_family, [108, 17, 11, 5, 256 - k::DEFINED]);
+        assert_eq!(per_family, [112, 17, 11, 5, 256 - k::DEFINED]);
     }
 
     #[test]
