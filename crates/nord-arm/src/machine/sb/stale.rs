@@ -32,8 +32,7 @@ impl SbState {
     /// Forward the pages recorded by the placeholder in `slot` to `self`, then forget them.
     /// Allocation-free; the driver calls it before every drain and before `put_back`.
     pub fn absorb_pending(&mut self, slot: &mut SbState, mem: &mut Mem) {
-        for i in 0..slot.pending.len() {
-            let page = slot.pending[i];
+        for &page in &slot.pending {
             self.on_stale(page, mem);
         }
         slot.pending.clear();

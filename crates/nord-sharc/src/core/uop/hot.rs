@@ -168,8 +168,8 @@ impl UopHot {
             let first = CodePages::page_of(b.pc);
             let last = CodePages::page_of(b.last_pc + 2).or(first);
             if let (Some(p0), Some(p1)) = (first, last) {
-                for p in p0..=p1 {
-                    self.page_blocks[p].push(id);
+                for blocks in &mut self.page_blocks[p0..=p1] {
+                    blocks.push(id);
                 }
             }
             self.blocks.push(b);
