@@ -107,7 +107,7 @@ pub(crate) fn random_cpu(rng: &mut Rng, pc: u32) -> Cpu {
 }
 
 /// A bus with an infinite deterministic memory (every byte has a value derived from its
-/// address and `salt`, stores overwrite it) that logs every data access as
+/// address and `fill`, stores overwrite it) that logs every data access as
 /// `(kind, addr, value, pc)`; kinds 0 to 2 are loads of 1, 2, 4 bytes and 3 to 5 the stores.
 /// Instruction fetches are not logged. `stale` models "a store made decoded code stale".
 #[derive(Clone, Default)]
@@ -118,13 +118,13 @@ pub(crate) struct LogBus {
     pub stale: bool,
     /// A store into `[lo, hi)` sets `stale`.
     pub stale_range: Option<(u32, u32)>,
-    salt: u32,
+    fill: u32,
 }
 
 impl LogBus {
-    pub fn new(salt: u32) -> Self {
+    pub fn new(fill: u32) -> Self {
         Self {
-            salt,
+            fill,
             ..Self::default()
         }
     }
@@ -133,7 +133,7 @@ impl LogBus {
         self.written
             .get(&a)
             .copied()
-            .unwrap_or(((a ^ self.salt).wrapping_mul(0x9E37_79B1) >> 24) as u8)
+            .unwrap_or(((a ^ self.fill).wrapping_mul(0x9E37_79B1) >> 24) as u8)
     }
 
     pub fn peek32(&self, a: u32) -> u32 {
