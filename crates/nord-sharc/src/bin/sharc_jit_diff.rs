@@ -556,7 +556,7 @@ fn run_aot(o: &Opts, image: &[u8], ranges: &[(u32, u32)]) -> ExitCode {
         Ok(rep) => {
             let p = rep.aot_passes;
             println!(
-                "AOT DIFF OK: {} blocks, boot {} steps + {} passes ({} steps) matched 1:1 (strict state + SRAM every {} steps); block calls={} steps={} misses={} bails={}; audio passes: {:.2}% of steps covered ({:.2}% native), calls={} misses={} bails={}",
+                "AOT DIFF OK: {} blocks, boot {} steps + {} passes ({} steps) matched 1:1 (strict state + SRAM every {} steps); block calls={} steps={} misses={} bails={}; audio passes: {:.2}% of steps covered ({:.2}% native), calls={} misses={} bails={}; event paths: {} steps run by the interpreter, {} splits, {} interrupts taken",
                 ranges.len(),
                 rep.boot_steps,
                 rep.passes,
@@ -570,7 +570,10 @@ fn run_aot(o: &Opts, image: &[u8], ranges: &[(u32, u32)]) -> ExitCode {
                 100.0 * p.native_steps as f64 / rep.pass_steps.max(1) as f64,
                 p.calls,
                 p.misses,
-                p.bails
+                p.bails,
+                rep.aot.ev_steps,
+                rep.aot.splits,
+                rep.aot.taken
             );
             if o.aot_detail {
                 for (start, last, steps, native, st) in &rep.blocks {

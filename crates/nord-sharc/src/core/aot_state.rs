@@ -42,6 +42,12 @@ impl Core {
         same!("stky", self.sys.stky, other.sys.stky);
         same!("irptl", self.irq.irptl, other.irq.irptl);
         same!("lirptl", self.irq.lirptl, other.irq.lirptl);
+        same!("imask", self.imask, other.imask);
+        same!("irq taken", self.irq.taken, other.irq.taken);
+        same!("irq stall", self.irq.stall, other.irq.stall);
+        same!("irq idle", self.irq.idle, other.irq.idle);
+        same!("irq window", self.irq.window_len, other.irq.window_len);
+        same!("pending", self.pending.is_some(), other.pending.is_some());
         same!("loops", self.loops.len(), other.loops.len());
         same!("call depth", self.call_stack.len(), other.call_stack.len());
         None

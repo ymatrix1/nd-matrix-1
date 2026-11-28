@@ -24,6 +24,7 @@ fn run_cli(args: &[String]) -> Result<Option<String>, String> {
     let mut out_path: Option<String> = None;
     let mut ops = false;
     let mut hot = false;
+    let mut ev = false;
     let mut tier = AotTier::Pe;
     let mut ranges: Option<String> = None;
     let mut whole: Option<String> = None;
@@ -34,6 +35,7 @@ fn run_cli(args: &[String]) -> Result<Option<String>, String> {
             "--fast-float" => opts.fast_float = true,
             "--ops" => ops = true,
             "--hot" => hot = true,
+            "--ev" => ev = true,
             "--whole-pass" => whole = Some(it.next().ok_or("--whole-pass needs PCS_FILE")?.clone()),
             "--force" => forced.push(
                 parse_number(it.next().ok_or("--force needs PC")?).ok_or("bad --force PC")? as u32,
@@ -72,7 +74,7 @@ fn run_cli(args: &[String]) -> Result<Option<String>, String> {
             })
             .collect();
         let data = std::fs::read(image).map_err(|e| format!("{image}: {e}"))?;
-        let src = Core::new(&data).emit_whole_pass_rust(&executed, &forced, tier)?;
+        let src = Core::new(&data).emit_whole_pass_rust_ev(&executed, &forced, tier, ev)?;
         return match out_path {
             Some(path) => std::fs::write(&path, &src)
                 .map(|()| None)
