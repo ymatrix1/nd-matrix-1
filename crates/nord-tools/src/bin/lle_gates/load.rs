@@ -20,6 +20,7 @@ pub fn busy_pct(a: (u64, u64), b: (u64, u64)) -> Option<f64> {
     Some(100.0 * (total - idle) as f64 / total as f64)
 }
 
+#[cfg(any(target_os = "linux", test))]
 /// `(idle, total)` of the aggregate `cpu` line of `/proc/stat` (idle counts `idle + iowait`).
 pub fn parse_proc_stat(text: &str) -> Option<(u64, u64)> {
     let line = text.lines().find(|l| l.starts_with("cpu "))?;
