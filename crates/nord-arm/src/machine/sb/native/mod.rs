@@ -146,9 +146,11 @@ mod tests {
                 "an unproven target keeps chaining v1"
             );
         }
-        assert!(
-            !spike::TAIL_TARGET_PROVEN || NATIVE_TARGET_PROVEN,
-            "a target proven for tail calls is proven for native code first"
-        );
+        const {
+            assert!(
+                !spike::TAIL_TARGET_PROVEN || NATIVE_TARGET_PROVEN,
+                "a target proven for tail calls is proven for native code first"
+            );
+        }
     }
 }

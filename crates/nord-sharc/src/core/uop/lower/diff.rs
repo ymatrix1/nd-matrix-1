@@ -287,7 +287,8 @@ fn every_block_of_a_random_program_is_well_formed_and_the_two_modes_agree() {
     let mut checked = 0;
     for _ in 0..200 {
         let program = random_program(&mut rng);
-        let stop = Some(CODE + rng.below(program.len() as u32)).filter(|_| rng.below(2) == 0);
+        let at = CODE + rng.below(program.len() as u32);
+        let stop = (rng.below(2) == 0).then_some(at);
         let (core, built) = build(&program, &UopConfig::default(), stop, lower_insn);
         let shape = |simd| {
             built

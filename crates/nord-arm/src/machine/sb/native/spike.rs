@@ -358,7 +358,9 @@ mod tests {
         }
         let cc = Jit::new().unwrap().call_conv();
         let Some(calls) = spike(Chain::Calls(cc), 1000) else {
-            assert!(!TAIL_TARGET_PROVEN, "a proven target must run the control");
+            if TAIL_TARGET_PROVEN {
+                panic!("a proven target must run the control");
+            }
             return;
         };
         // everything but the stack is as in a tail chain ...
@@ -383,7 +385,9 @@ mod tests {
         let want = [(1, 1, 0), (2, 1, 1), (3, 2, 1), (0, 1, 0)];
         for (n, a, b) in want {
             let Some(r) = spike(Chain::Tail, n) else {
-                assert!(!TAIL_TARGET_PROVEN, "a proven target must run the spike");
+                if TAIL_TARGET_PROVEN {
+                    panic!("a proven target must run the spike");
+                }
                 return;
             };
             assert!(r.is_clean(), "{r:?}");

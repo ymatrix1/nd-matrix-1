@@ -245,8 +245,10 @@ mod tests {
         assert_eq!(mem_diff(&m.bus.mem, &m.bus.mem, 4), Vec::new());
         let tr: TraceRun = oracle_trace(&cpu, &[0xE1A0_0000], 1, 1);
         assert_eq!(tr.executed, 1);
-        let (mut d, _): (DiffRun, Need) = (DiffRun::default(), Need::default());
+        let (mut d, need): (DiffRun, Need) = (DiffRun::default(), Need::default());
         d.cases += 1;
+        assert_eq!(d.cases, 1);
+        let _ = need;
         let _: (CpuSnap, LogBus) = (snap.cpu.clone(), LogBus::new(0));
         assert_eq!(snapshot_run(&m, &run.why).stop, Some(run.why));
     }

@@ -37,7 +37,7 @@ impl World {
 
     /// Hand every queued page to `on_stale`, then empty the queue.
     pub(super) fn drain(&mut self) {
-        let queue: Vec<u32> = self.mem.stale_code.drain(..).collect();
+        let queue: Vec<u32> = std::mem::take(&mut self.mem.stale_code);
         for page in queue {
             self.st.on_stale(page, &mut self.mem);
         }

@@ -70,7 +70,8 @@ const CORE: &[(&str, Cover)] = &[
     ("decode_cache", Skip(CACHE)), ("code_gen", Skip(CACHE)), ("sram_code_nw_lo", Skip(CACHE)),
     ("sram_code_nw_hi", Skip(CACHE)), ("aot_hot", Skip(CACHE)), ("aot_lo", Skip(CACHE)),
     ("aot_span", Skip(CACHE)), ("aot_bits", Skip(CACHE)), ("aot_slow", Skip(CACHE)),
-    ("uop", Skip(CACHE)), ("uop_run", Skip(CACHE)), ("jit", Skip(CACHE)),
+    ("uop", Skip(CACHE)), ("uop_run", Skip(CACHE)), ("aot_ev_steps", Skip(DIAG)),
+    ("jit", Skip(CACHE)),
 ];
 
 /// Field names of `pub struct NAME {` in `src` (rustfmt layout: one field per line, four spaces).
