@@ -218,7 +218,7 @@ fn profile(base: &Machine, budget: u64, scale: usize) {
     }
     let total: u64 = hist.values().sum();
     let mut v: Vec<_> = hist.into_iter().collect();
-    v.sort_by(|a, b| b.1.cmp(&a.1));
+    v.sort_by_key(|a| std::cmp::Reverse(a.1));
     println!(
         "heavy ticks: {}, executed pcs counted: {total}",
         heavy.iter().filter(|h| **h).count()
