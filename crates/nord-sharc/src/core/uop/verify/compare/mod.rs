@@ -5,14 +5,32 @@
 //! delayed branch, the interrupt controller, the timer, the inactive register banks, the bit FIFO
 //! on its own, the float extension of stale registers or the memory). Design 4.6.
 //!
-//! Not compared (not reachable through a handler, or too costly): the sparse device store and
-//! the peripheral models (their traffic is compared through the read and write counters), the
-//! diagnostic logs (`watch_hits`, `trace_log`, `skipped_pcs`), the decode and uop caches.
+//! Compared memory (`memory.rs`): SRAM with the short-word alias window, the IOP window, the
+//! dense SDRAM delay-line window, the sparse device store and the ISA-mode word image.
 //!
-//! Skeleton: complete for every field listed in [`FIELDS`]; W1-VERIFY adds the generated
-//! "perturb every field" coverage test over future `Core` fields.
+//! Not compared, with the reason (the list is the `Skip` rows of `coverage.rs`, which fails when a
+//! `Core` field is neither compared nor listed): configuration no instruction writes (`lenient`,
+//! `fast_float`, `sharc_plus`, the scripted `preset` reads), diagnostic logs (`watch_*`,
+//! `rwatch_*`, `trace_*`, `skipped_pcs`, `site_hits`), caches and engines (`decode_cache`,
+//! `code_gen`, `aot_*`, `uop*`, `jit`) and the peripheral models, whose observable traffic is
+//! compared through `device_io`. A core under comparison must be configured alike.
+//!
+//! Tests: `perturb.rs` perturbs every name of `FIELDS`; `coverage.rs` reads the `Core` source,
+//! lists every field of `Core` and of the structs `exact_diff` opens, and perturbs each of them.
 use crate::core::Core;
+use memory::{device_diff, sdram_diff, slice_diff};
 use std::fmt;
+
+#[cfg(test)]
+mod coverage;
+mod memory;
+#[cfg(test)]
+mod perturb;
+
+#[cfg(test)]
+pub(in crate::core) use coverage::{nested_rows, prepared_filled};
+#[cfg(test)]
+pub(in crate::core) use perturb::{perturbations, Perturbation};
 
 /// The first field in which two cores differ and its two values.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -31,7 +49,8 @@ impl fmt::Display for ExactDiff {
     }
 }
 
-/// Every field name [`exact_diff`] can report, in comparison order.
+/// Every field name [`exact_diff`] can report, in comparison order (cheap fields first, the memory
+/// images last).
 pub const FIELDS: &[&str] = &[
     "pc",
     "steps",
@@ -83,6 +102,9 @@ pub const FIELDS: &[&str] = &[
     "device_io",
     "sdram_io",
     "iop",
+    "isa_code",
+    "device",
+    "sdram",
     "sram",
 ];
 
@@ -111,16 +133,6 @@ fn timer_of(c: &Core) -> (u32, u32, bool, u64, u32, u64) {
         t.base_count,
         t.seen,
     )
-}
-
-/// Index and values of the first differing byte of two equal-length images.
-fn first_byte_diff(a: &[u8], b: &[u8]) -> Option<ExactDiff> {
-    let k = a.iter().zip(b).position(|(x, y)| x != y)?;
-    Some(ExactDiff {
-        field: "sram",
-        a: format!("[{k:#x}] = {:#04x}", a[k]),
-        b: format!("[{k:#x}] = {:#04x}", b[k]),
-    })
 }
 
 /// Compares `a` and `b` field by field and returns the first difference, or `None` when the two
@@ -212,102 +224,12 @@ pub fn exact_diff(a: &Core, b: &Core) -> Option<ExactDiff> {
         (a.sdram_reads, a.sdram_writes),
         (b.sdram_reads, b.sdram_writes)
     );
-    if a.iop != b.iop {
-        let k = a.iop.iter().zip(b.iop.iter()).position(|(x, y)| x != y)?;
-        return Some(ExactDiff {
-            field: "iop",
-            a: format!("[{k:#x}] = {:#x}", a.iop[k]),
-            b: format!("[{k:#x}] = {:#x}", b.iop[k]),
-        });
-    }
-    if a.sram != b.sram {
-        return first_byte_diff(&a.sram, &b.sram);
-    }
-    None
-}
-
-/// A named mutation of one compared field.
-#[cfg(test)]
-pub(in crate::core) type Perturbation = (&'static str, fn(&mut Core));
-
-/// One perturbation per compared field, for the field-coverage tests of this file and of
-/// `snap.rs`: applying entry `k` to a fresh core must make [`exact_diff`] report exactly the
-/// named field.
-#[cfg(test)]
-pub(in crate::core) fn perturbations() -> Vec<Perturbation> {
-    use crate::core::interrupts::Serviced;
-    use crate::core::types::{LoopFrame, Pending};
-    let table: &[Perturbation] = &[
-        ("pc", |c| c.pc ^= 1),
-        ("steps", |c| c.steps += 1),
-        ("r", |c| c.r[3] ^= 1),
-        ("s", |c| c.s[3] ^= 1),
-        ("i", |c| c.i[3] ^= 1),
-        ("m", |c| c.m[3] ^= 1),
-        ("l", |c| c.l[3] ^= 1),
-        ("b", |c| c.b[3] ^= 1),
-        ("f40_x", |c| {
-            c.fx.tag[2] = c.r[2];
-            c.fx.lo[2] = 1;
-        }),
-        ("f40_y", |c| {
-            c.fx_y.tag[2] = c.s[2];
-            c.fx_y.lo[2] = 1;
-        }),
-        ("mr", |c| c.mr[1] += 1),
-        ("mr_y", |c| c.mr_y[0] -= 1),
-        ("fifo", |c| c.flags.fifo.bff ^= 1),
-        ("fifo_y", |c| c.flags_y.fifo.wrp = 3),
-        ("flags", |c| c.flags.az = true),
-        ("flags_y", |c| c.flags_y.tf = true),
-        ("mode1", |c| c.mode1 ^= 1 << 3),
-        ("mode2", |c| c.mode2 ^= 1),
-        ("ustat", |c| c.ustat[1] ^= 1),
-        ("imask", |c| c.imask ^= 1),
-        ("mmask", |c| c.mmask ^= 1),
-        ("astat_extra", |c| c.sys.astat_extra[1] ^= 1),
-        ("stky", |c| c.sys.stky[0] ^= 1),
-        ("sys_status", |c| c.sys.status.push([1, 2, 3])),
-        ("pc_overflow", |c| c.sys.pc_overflow = true),
-        ("flags_reg", |c| c.sys.flags_reg ^= 1),
-        ("flag_pins", |c| c.sys.flag_pins ^= 1),
-        ("px", |c| c.sys.px ^= 1),
-        ("cb_wrap", |c| c.cb_wrap.set(c.cb_wrap.get() ^ 1)),
-        ("call_stack", |c| c.call_stack.push(7)),
-        ("loops", |c| c.loops.push(LoopFrame::default())),
-        ("pending", |c| {
-            c.pending = Some(Pending {
-                slots: 3,
-                target: 5,
-                call: false,
-            });
-        }),
-        ("irptl", |c| c.irq.irptl ^= 1),
-        ("lirptl", |c| c.irq.lirptl ^= 1),
-        ("irq_idle", |c| c.irq.idle = true),
-        ("irq_ivt_base", |c| c.irq.ivt_base ^= 0x100),
-        ("irq_window_lo", |c| c.irq.window_lo ^= 1),
-        ("irq_window_len", |c| c.irq.window_len ^= 1),
-        ("irq_stall", |c| c.irq.stall += 1),
-        ("irq_due", |c| c.irq.due += 1),
-        ("irq_taken", |c| c.irq.taken += 1),
-        ("irq_serviced", |c| {
-            c.irq.serviced.push(Serviced {
-                vector: 3,
-                status_pushed: false,
-            });
-        }),
-        ("irq_scheduled", |c| c.irq.scheduled.push((5, 1))),
-        ("irq_wake_at", |c| c.irq.wake_at ^= 1),
-        ("timer", |c| c.timer.tcount ^= 1),
-        ("banks", |c| c.banks.m[0] ^= 1),
-        ("skipped", |c| c.skipped += 1),
-        ("device_io", |c| c.device_writes += 1),
-        ("sdram_io", |c| c.sdram_reads += 1),
-        ("iop", |c| c.iop[5] ^= 1),
-        ("sram", |c| c.sram[10] ^= 1),
-    ];
-    table.to_vec()
+    // the memory images, cheapest first and only when everything before them matched
+    slice_diff("iop", &a.iop, &b.iop)
+        .or_else(|| slice_diff("isa_code", &a.isa_code, &b.isa_code))
+        .or_else(|| device_diff(&a.device, &b.device))
+        .or_else(|| sdram_diff(&a.sdram, &b.sdram))
+        .or_else(|| slice_diff("sram", &a.sram, &b.sram))
 }
 
 #[cfg(test)]
@@ -320,18 +242,12 @@ mod tests {
     }
 
     #[test]
-    fn every_compared_field_is_perturbed_and_detected_under_its_own_name() {
-        let table = perturbations();
-        let names: Vec<_> = table.iter().map(|(n, _)| *n).collect();
-        assert_eq!(names, FIELDS, "the perturbation table follows FIELDS");
-        for (name, perturb) in table {
-            let (mut a, b) = (Core::new(&[]), Core::new(&[]));
-            perturb(&mut a);
-            let d = exact_diff(&a, &b).unwrap_or_else(|| panic!("{name} not detected"));
-            assert_eq!(d.field, name, "{d}");
-            let d = exact_diff(&b, &a).unwrap_or_else(|| panic!("{name} not detected"));
-            assert_eq!(d.field, name, "{d}");
-        }
+    fn fields_are_listed_in_the_order_exact_diff_reports_them_and_are_unique() {
+        let mut names = FIELDS.to_vec();
+        names.sort_unstable();
+        names.dedup();
+        assert_eq!(names.len(), FIELDS.len());
+        assert_eq!((FIELDS[0], FIELDS[FIELDS.len() - 1]), ("pc", "sram"));
     }
 
     #[test]
@@ -344,14 +260,5 @@ mod tests {
         assert_eq!(exact_diff(&a, &b2), None, "stale lo reads as zero in both");
         a.fx.tag[4] = 5;
         assert_eq!(exact_diff(&a, &b2).map(|d| d.field), Some("f40_x"));
-    }
-
-    #[test]
-    fn the_report_names_the_first_differing_memory_byte() {
-        let (mut a, b) = (Core::new(&[]), Core::new(&[]));
-        a.sram[0x1234] = 0xAB;
-        let d = exact_diff(&a, &b).unwrap();
-        assert_eq!((d.field, d.a.as_str()), ("sram", "[0x1234] = 0xab"));
-        assert!(d.to_string().starts_with("sram: [0x1234]"));
     }
 }
