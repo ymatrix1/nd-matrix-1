@@ -7,7 +7,7 @@
 //! egui code so it is unit-tested without a context.
 
 use super::view::{section_px, ViewState, FOCUSABLE, PANEL_SIZE};
-use crate::style::{CHASSIS_DARK, CHASSIS_RED, LED_AMBER, MODULE_SLATE};
+use crate::style::{CHASSIS_BASE, CHASSIS_DARK, LED_AMBER, MODULE_SLATE};
 use egui::{pos2, vec2, Context, Key, Pos2, Rect, Sense, Stroke, StrokeKind, Ui, Vec2};
 
 /// Logical height of the strip (it scales with the zoom like the rest of the view).
@@ -171,7 +171,7 @@ pub fn show_strip(ui: &mut Ui, strip: Rect, view: &mut ViewState) {
     }
     let vp = view.panorama.unwrap_or(vp);
     let painter = ui.painter();
-    painter.rect_filled(strip, 3.0_f32, CHASSIS_RED);
+    painter.rect_filled(strip, 3.0_f32, CHASSIS_BASE);
     for s in FOCUSABLE {
         let r = rect_to_strip(strip, section_px(s, Pos2::ZERO));
         painter.rect_filled(r, 1.0_f32, MODULE_SLATE);

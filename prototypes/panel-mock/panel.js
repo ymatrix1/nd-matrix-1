@@ -1,12 +1,12 @@
 /* ==========================================================================
-   Nord Stage 4 HA88 — 1:1 Hardware Panel Prototype Builder & Interactivity
+   ND Matrix 1 panel prototype builder and interactivity (Slate Matrix identity)
    ========================================================================== */
 
 (function () {
   "use strict";
 
   // ------------------------------------------------------------------------
-  // Reusable Hardware Widget Builders (1:1 visual parity with reference photos)
+  // Reusable widget builders (original ND Matrix 1 design)
   // ------------------------------------------------------------------------
 
   function makeKnob({
@@ -117,7 +117,7 @@
       // Red arc from -100 to +100 with 1, 2, 3, 4
       const [ax1, ay1] = polar(-105, rTick + 1);
       const [ax2, ay2] = polar(105, rTick + 1);
-      items += `<path d="M ${ax1.toFixed(1)} ${ay1.toFixed(1)} A ${rTick + 1} ${rTick + 1} 0 1 1 ${ax2.toFixed(1)} ${ay2.toFixed(1)}" fill="none" stroke="#b9262d" stroke-width="6.5" stroke-linecap="round"/>`;
+      items += `<path d="M ${ax1.toFixed(1)} ${ay1.toFixed(1)} A ${rTick + 1} ${rTick + 1} 0 1 1 ${ax2.toFixed(1)} ${ay2.toFixed(1)}" fill="none" stroke="#17727a" stroke-width="6.5" stroke-linecap="round"/>`;
       const rNums = [{ v: -95, t: "1" }, { v: -32, t: "2" }, { v: 32, t: "3" }, { v: 95, t: "4" }];
       for (const { v, t } of rNums) {
         const [tx, ty] = polar(v, rTick + 1);
@@ -175,7 +175,7 @@
     let leds = "";
     for (let n = 1; n <= 8; n++) {
       nums += `<span>${n <= maxNum ? n : ""}</span>`;
-      leds += `<div class="led-seg ${n <= val ? "on red" : ""}"></div>`;
+      leds += `<div class="led-seg ${n <= val ? "on accent" : ""}"></div>`;
     }
     // Cap top position: val 0 -> 6px, val 8 -> 84px
     const capTop = 6 + (val / 8) * 78;
@@ -200,23 +200,21 @@
   }
 
   // ------------------------------------------------------------------------
-  // Smooth Rounded S-Curve Stepped Header SVG (real red chassis shows through)
+  // Chamfered stepped header SVG (the chassis shows through the stepped-down notch)
   // ------------------------------------------------------------------------
   function makeHeaderStepSvg(totalW, notchW, id) {
     const h = 30;
     const stepY = 15;
+    const c = 10;
     const xStep = totalW - notchW;
-    const r = 6;
-    // Uniform radius (r=6) across all corners so left/step/right radii match identically
+    // 45 degree chamfers instead of rounded corners; dark plate with a section-accent underline.
     const d = [
-      `M 0 ${r}`,
-      `A ${r} ${r} 0 0 1 ${r} 0`,
-      `L ${xStep - r} 0`,
-      `A ${r} ${r} 0 0 1 ${xStep} ${r}`,
-      `L ${xStep} ${stepY - r}`,
-      `A ${r} ${r} 0 0 0 ${xStep + r} ${stepY}`,
-      `L ${totalW - r} ${stepY}`,
-      `A ${r} ${r} 0 0 1 ${totalW} ${stepY + r}`,
+      `M 0 ${c}`,
+      `L ${c} 0`,
+      `L ${xStep - 8} 0`,
+      `L ${xStep} 8`,
+      `L ${xStep} ${stepY}`,
+      `L ${totalW} ${stepY}`,
       `L ${totalW} ${h}`,
       `L 0 ${h}`,
       `Z`
@@ -225,23 +223,23 @@
       <svg class="bay-header-svg" viewBox="0 0 ${totalW} ${h}" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id="hdr-grad-${id}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#bec8d3"/>
-            <stop offset="55%" stop-color="#aab6c2"/>
-            <stop offset="100%" stop-color="#9ca8b4"/>
+            <stop offset="0%" stop-color="#121926"/>
+            <stop offset="100%" stop-color="#0c111a"/>
           </linearGradient>
         </defs>
         <path d="${d}" fill="url(#hdr-grad-${id})"/>
+        <rect x="0" y="${h - 3}" width="${totalW}" height="3" style="fill: var(--acc, var(--accent));"/>
       </svg>
     `;
   }
 
   // ------------------------------------------------------------------------
-  // Build All 6 Hardware Bays
+  // Build all 6 panel bays
   // ------------------------------------------------------------------------
 
   function buildMasterBay() {
     return `
-      <section class="bay bay-red bay-master" id="bay-master">
+      <section class="bay bay-deck bay-master" id="bay-master">
         <div class="col" style="gap:2px;">
           <span class="lbl">MASTER LEVEL</span>
           ${makeKnob({ scale: "master", value: 0.72, size: "md" })}
@@ -254,7 +252,7 @@
               <span></span>
               <div class="row" style="gap:3px;">
                 <span class="lbl lbl-xs">ON</span>
-                <span class="led on red" data-led="rotary-on"></span>
+                <span class="led on accent" data-led="rotary-on"></span>
               </div>
             </div>
             ${makeKnob({ label: "DRIVE", scale: "0-10", value: 0.25, size: "sm" })}
@@ -313,12 +311,11 @@
           <div class="header-on-solo">
             <div class="header-on-col">
               <span class="lbl lbl-dark lbl-xs">ON</span>
-              <span class="led on red" data-led="org-on"></span>
+              <span class="led on accent" data-led="org-on"></span>
             </div>
             <button class="pill-btn" data-toggle-led="org-on"></button>
             <span class="lbl lbl-dark lbl-xs">SOLO ▾</span>
           </div>
-          <div class="header-red-notch" style="width: 248px;"></div>
         </div>
 
         <div class="organ-body">
@@ -395,7 +392,7 @@
                   </div>
                 </div>
                 <div class="row" style="gap:4px;">
-                  <div class="col" style="gap:1px;"><span class="lbl lbl-xs">ON</span><span class="led on red" data-led="org-vib-on"></span></div>
+                  <div class="col" style="gap:1px;"><span class="lbl lbl-xs">ON</span><span class="led on accent" data-led="org-vib-on"></span></div>
                   <button class="pill-btn grey" data-toggle-led="org-vib-on"></button>
                 </div>
               </div>
@@ -411,12 +408,12 @@
                   </div>
                   <div class="col" style="gap:2px;">
                     <span class="lbl lbl-xs">DECAY</span>
-                    <div class="row"><span class="led sm on red" data-led="perc-fast"></span><span class="lbl lbl-xs">FAST</span></div>
+                    <div class="row"><span class="led sm on accent" data-led="perc-fast"></span><span class="lbl lbl-xs">FAST</span></div>
                     <button class="pill-btn" data-toggle-led="perc-fast"></button>
                   </div>
                   <div class="col" style="gap:2px;">
                     <span class="lbl lbl-xs">HARMONIC</span>
-                    <div class="row"><span class="led sm on red" data-led="perc-third"></span><span class="lbl lbl-xs">THIRD</span></div>
+                    <div class="row"><span class="led sm on accent" data-led="perc-third"></span><span class="lbl lbl-xs">THIRD</span></div>
                     <button class="pill-btn" data-toggle-led="perc-third"></button>
                   </div>
                 </div>
@@ -455,7 +452,7 @@
           <div class="header-on-solo">
             <div class="header-on-col">
               <span class="lbl lbl-dark lbl-xs">ON</span>
-              <span class="led on red" data-led="pno-on"></span>
+              <span class="led on accent" data-led="pno-on"></span>
             </div>
             <button class="pill-btn sm" data-toggle-led="pno-on"></button>
             <span class="lbl lbl-dark lbl-xs">SOLO ▾</span>
@@ -475,7 +472,7 @@
                 <div class="row" style="gap:2px;"><span class="lbl lbl-sm">A</span><span class="lbl lbl-xs">AUX KB</span><span class="led sm"></span></div>
                 <span class="lbl-pill-white"><span class="led sm on green" data-led="pno-a"></span>ON/OFF▾</span>
                 <button class="pill-btn grey sm" data-toggle-led="pno-a"></button>
-                <div class="row"><span class="led sm on red"></span><span class="lbl lbl-xs">SUSTPED</span></div>
+                <div class="row"><span class="led sm on accent"></span><span class="lbl lbl-xs">SUSTPED</span></div>
               </div>
               <div class="layer-btn-col">
                 <div class="row" style="gap:2px;"><span class="lbl lbl-sm">B</span><span class="lbl lbl-xs">AUX KB</span><span class="led sm"></span></div>
@@ -527,10 +524,10 @@
                 <span class="lbl lbl-xs">ACOUSTICS</span>
                 <div class="col" style="align-items:flex-start; gap:2px;">
                   <div class="row"><span class="led sm" data-led="pno-softrel"></span><span class="lbl lbl-xs">SOFT REL</span></div>
-                  <div class="row"><span class="led sm on red" data-led="pno-strres"></span><span class="lbl lbl-xs">STRING RES</span></div>
+                  <div class="row"><span class="led sm on accent" data-led="pno-strres"></span><span class="lbl lbl-xs">STRING RES</span></div>
                 </div>
                 <button class="pill-btn sm" data-cycle-leds="pno-softrel,pno-strres,pno-pednoise" data-allow-off="1"></button>
-                <div class="row"><span class="led sm on red" data-led="pno-pednoise"></span><span class="lbl lbl-xs">PED NOISE ▽</span></div>
+                <div class="row"><span class="led sm on accent" data-led="pno-pednoise"></span><span class="lbl lbl-xs">PED NOISE ▽</span></div>
               </div>
 
               <div class="piano-ctrl-cell">
@@ -549,7 +546,7 @@
                 <span class="lbl lbl-xs">KB TOUCH</span>
                 <div class="row" style="gap:3px;">
                   <div class="col" style="align-items:flex-end; gap:2px;">
-                    <div class="row"><span class="lbl lbl-xs">MED</span><span class="led sm on red" data-led="pno-touch-m"></span></div>
+                    <div class="row"><span class="lbl lbl-xs">MED</span><span class="led sm on accent" data-led="pno-touch-m"></span></div>
                     <div class="row"><span class="lbl lbl-xs">HEAVY</span><span class="led sm" data-led="pno-touch-h"></span></div>
                   </div>
                   <span class="lbl lbl-xs">LIGHT</span>
@@ -592,7 +589,7 @@
     const slotBot = ["OUTPUT", "PEDAL", "MIDI", "EXTERN"];
 
     return `
-      <section class="bay bay-red bay-program" id="bay-program">
+      <section class="bay bay-deck bay-program" id="bay-program">
         <!-- Top Row: MORPH ASSIGN, SPLIT, MST CLK, TRANSP -->
         <div class="prog-top-row">
           <div class="morph-box">
@@ -612,7 +609,7 @@
 
           <div class="prog-top-mini">
             <span class="lbl-pill-white">SPLIT</span>
-            <div class="row" style="gap:2px;" data-split-leds="1"><span class="led sm on red"></span><span class="led sm"></span><span class="led sm"></span></div>
+            <div class="row" style="gap:2px;" data-split-leds="1"><span class="led sm on accent"></span><span class="led sm"></span><span class="led sm"></span></div>
             <span class="lbl lbl-xs">ON/SET ▽</span>
             <button class="pill-btn sm" data-split-btn="1"></button>
             <span class="lbl lbl-xs">SET KEY</span>
@@ -639,7 +636,7 @@
           <div class="prog-col-left">
             <div class="col" style="gap:2px;">
               <div class="row"><span class="led sm" data-led="store-led"></span><span class="lbl lbl-xs">STORE</span></div>
-              <button class="pill-btn red" data-toggle-led="store-led"></button>
+              <button class="pill-btn accent" data-toggle-led="store-led"></button>
               <span class="lbl lbl-xs">STORE AS...</span>
               <span class="lbl lbl-xs lbl-muted">PAGE NAME</span>
             </div>
@@ -715,7 +712,7 @@
               <div class="program-bank-grid">
                 ${[1, 2, 3, 4].map((n, i) => `
                   <div class="prog-slot-cell">
-                    <div class="row" style="gap:2px;"><span class="led sm ${n === 1 ? "on red" : ""}" data-prog-led="${n}"></span><span class="lbl lbl-xs">${n}</span></div>
+                    <div class="row" style="gap:2px;"><span class="led sm ${n === 1 ? "on accent" : ""}" data-prog-led="${n}"></span><span class="lbl lbl-xs">${n}</span></div>
                     <button class="pill-btn sm" data-prog-btn="${n}"></button>
                     <span class="lbl" style="font-size:5.8px;">${slotTop[i]}</span>
                   </div>
@@ -784,12 +781,11 @@
           <div class="header-on-solo">
             <div class="header-on-col">
               <span class="lbl lbl-dark lbl-xs">ON</span>
-              <span class="led on red" data-led="syn-on"></span>
+              <span class="led on accent" data-led="syn-on"></span>
             </div>
             <button class="pill-btn" data-toggle-led="syn-on"></button>
             <span class="lbl lbl-dark lbl-xs">SOLO ▾</span>
           </div>
-          <div class="header-red-notch" style="width: 396px;"></div>
         </div>
 
         <div class="synth-body">
@@ -806,13 +802,13 @@
                 <div class="row" style="gap:1px;"><span class="lbl lbl-xs">A</span><span class="lbl" style="font-size:5.8px;">AUX KB</span><span class="led sm"></span></div>
                 <span class="lbl-pill-white" style="padding:1px 2px; font-size:5.8px;"><span class="led sm on amber" data-led="syn-a"></span>ON/OFF▾</span>
                 <button class="pill-btn grey sm" data-toggle-led="syn-a"></button>
-                <div class="row"><span class="led sm on red"></span><span class="lbl" style="font-size:5.8px;">SUSTPED</span></div>
+                <div class="row"><span class="led sm on accent"></span><span class="lbl" style="font-size:5.8px;">SUSTPED</span></div>
               </div>
               <div class="layer-btn-col">
                 <div class="row" style="gap:1px;"><span class="lbl lbl-xs">B</span><span class="lbl" style="font-size:5.8px;">AUX KB</span><span class="led sm"></span></div>
                 <span class="lbl-pill-white" style="padding:1px 2px; font-size:5.8px;"><span class="led sm on amber" data-led="syn-b"></span>ON/OFF▾</span>
                 <button class="pill-btn grey sm" data-toggle-led="syn-b"></button>
-                <div class="row"><span class="led sm on red"></span><span class="lbl" style="font-size:5.5px;">PSTICK/RNG▽</span></div>
+                <div class="row"><span class="led sm on accent"></span><span class="lbl" style="font-size:5.5px;">PSTICK/RNG▽</span></div>
               </div>
               <div class="layer-btn-col">
                 <div class="row" style="gap:1px;"><span class="lbl lbl-xs">C</span><span class="lbl" style="font-size:5.8px;">AUX KB</span><span class="led sm"></span></div>
@@ -824,13 +820,13 @@
 
             <div class="row around w-full">
               <div class="col" style="gap:2px;">
-                <span class="lbl-pill-red"><span class="led sm" data-led="kb-hold"></span>KB HOLD</span>
+                <span class="lbl-pill-accent"><span class="led sm" data-led="kb-hold"></span>KB HOLD</span>
                 <button class="pill-btn sm" data-toggle-led="kb-hold"></button>
                 <div class="row"><span class="led sm"></span><span class="lbl" style="font-size:6px;">EXCLUDE ▽</span></div>
               </div>
               <div class="col" style="gap:2px;">
                 <div class="row"><span class="led sm" data-led="arp-run"></span><span class="lbl lbl-xs">ARP RUN</span></div>
-                <button class="pill-btn red sm" data-toggle-led="arp-run"></button>
+                <button class="pill-btn accent sm" data-toggle-led="arp-run"></button>
                 <div class="row"><span class="led sm"></span><span class="lbl" style="font-size:6px;">KB SYNC ▽</span></div>
               </div>
             </div>
@@ -896,7 +892,7 @@
                   <span class="lbl lbl-dark">MODE</span>
                   <div class="col" style="align-items:flex-start; gap:3px;">
                     <div class="row"><span class="led sm" data-led="syn-mode-smp"></span><span class="lbl lbl-dark" style="font-size:6.5px;">SAMPLES</span></div>
-                    <div class="row"><span class="led sm on red" data-led="syn-mode-ana"></span><span class="lbl lbl-dark" style="font-size:6.5px;">ANALOG</span></div>
+                    <div class="row"><span class="led sm on accent" data-led="syn-mode-ana"></span><span class="lbl lbl-dark" style="font-size:6.5px;">ANALOG</span></div>
                   </div>
                   <button class="pill-btn sm" data-toggle-pair="syn-mode-ana,syn-mode-smp"></button>
                   <div class="row"><span class="led sm"></span><span class="lbl lbl-dark" style="font-size:6.5px;">EXTERN</span></div>
@@ -904,8 +900,8 @@
 
                 <div class="col" style="gap:3px;">
                   <span class="lbl lbl-xs">WAVEFORM</span>
-                  <div class="row"><span class="led sm on red" data-led="syn-keep"></span><span class="lbl" style="font-size:5.8px;">KEEP EDITS▽</span></div>
-                  <button class="pill-btn vert red-frame" data-toggle-led="syn-keep"></button>
+                  <div class="row"><span class="led sm on accent" data-led="syn-keep"></span><span class="lbl" style="font-size:5.8px;">KEEP EDITS▽</span></div>
+                  <button class="pill-btn vert accent-frame" data-toggle-led="syn-keep"></button>
                   <span class="lbl lbl-xs" style="text-align:center;">SOUND<br/>INIT</span>
                 </div>
               </div>
@@ -920,13 +916,13 @@
                     value: 0.62,
                     size: "sm",
                     morphLed: true,
-                    extraBottom: `<span class="lbl-pill-red mt-2"><span class="led sm on red"></span>MST CLK</span>`
+                    extraBottom: `<span class="lbl-pill-accent mt-2"><span class="led sm on accent"></span>MST CLK</span>`
                   })}
                   <div class="col" style="gap:4px;">
                     <div class="row" style="gap:4px;">
                       <div class="col" style="align-items:flex-end; gap:3px;">
                         <div class="row"><span class="lbl lbl-xs">POLY</span><span class="led sm"></span></div>
-                        <div class="row"><span class="lbl lbl-xs">ARP</span><span class="led sm on red" data-led="arp-mode"></span></div>
+                        <div class="row"><span class="lbl lbl-xs">ARP</span><span class="led sm on accent" data-led="arp-mode"></span></div>
                       </div>
                       <span class="lbl-pill-blue">GATE</span>
                     </div>
@@ -943,7 +939,7 @@
                   })}
                   <div class="col" style="gap:3px;">
                     <div class="row"><span class="led sm"></span><span class="lbl lbl-xs">MENU</span></div>
-                    <button class="pill-btn vert red-frame"></button>
+                    <button class="pill-btn vert accent-frame"></button>
                     <div class="row"><span class="led sm"></span><span class="lbl lbl-xs">GROUP▽</span></div>
                   </div>
                 </div>
@@ -980,7 +976,7 @@
                     </div>
                     <div class="col" style="gap:3px;">
                       <div class="row"><span class="led sm" data-led="vib-menu"></span><span class="lbl lbl-xs">MENU</span></div>
-                      <button class="pill-btn vert red-frame" data-toggle-led="vib-menu"></button>
+                      <button class="pill-btn vert accent-frame" data-toggle-led="vib-menu"></button>
                     </div>
                   </div>
                 </div>
@@ -995,7 +991,7 @@
                 <div class="row between w-full synth-sub-top">
                   <div class="col" style="gap:2px;">
                     <div class="row"><span class="led sm" data-led="lfo-wf"></span><span class="lbl lbl-dark" style="font-size:6.2px;">WAVEFORM</span></div>
-                    <button class="pill-btn sm red-frame" data-toggle-led="lfo-wf"></button>
+                    <button class="pill-btn sm accent-frame" data-toggle-led="lfo-wf"></button>
                     <div class="row"><span class="led sm"></span><span class="lbl lbl-dark" style="font-size:6px;">GROUP ▽</span></div>
                   </div>
                   ${makeKnob({ label: "MOD AMT", scale: "0-10", value: 0.58, size: "sm", morphLed: true })}
@@ -1007,7 +1003,7 @@
                     value: 0.25,
                     size: "sm",
                     morphLed: true,
-                    extraBottom: `<span class="lbl-pill-red mt-2"><span class="led sm"></span>MST CLK</span>`
+                    extraBottom: `<span class="lbl-pill-accent mt-2"><span class="led sm"></span>MST CLK</span>`
                   })}
                   <div class="col" style="gap:3px; align-items:flex-end;">
                     <div class="row" style="gap:4px;">
@@ -1028,12 +1024,12 @@
                 <div class="row around w-full synth-sub-top">
                   <div class="col" style="gap:2px;">
                     <div class="row"><span class="led sm" data-led="osc-p"></span><span class="lbl lbl-dark" style="font-size:6px;">PITCH/SMP</span></div>
-                    <button class="pill-btn sm red-frame" data-toggle-led="osc-p"></button>
+                    <button class="pill-btn sm accent-frame" data-toggle-led="osc-p"></button>
                     <div class="row"><span class="led sm"></span><span class="lbl lbl-dark" style="font-size:5.5px;">ENV TO PITCH▽</span></div>
                   </div>
                   <div class="col" style="gap:2px;">
                     <div class="row"><span class="led sm" data-led="osc-e"></span><span class="lbl lbl-dark" style="font-size:6px;">ENVELOPE</span></div>
-                    <button class="pill-btn sm red-frame" data-toggle-led="osc-e"></button>
+                    <button class="pill-btn sm accent-frame" data-toggle-led="osc-e"></button>
                     <div class="row"><span class="led sm"></span><span class="lbl lbl-dark" style="font-size:5.5px;">VELOCITY ▽</span></div>
                   </div>
                 </div>
@@ -1049,12 +1045,12 @@
                 <div class="row between w-full synth-sub-top">
                   <div class="col" style="gap:2px;">
                     <div class="row"><span class="led sm" data-led="flt-t"></span><span class="lbl lbl-dark" style="font-size:6px;">TYPE</span></div>
-                    <button class="pill-btn sm red-frame" data-toggle-led="flt-t"></button>
+                    <button class="pill-btn sm accent-frame" data-toggle-led="flt-t"></button>
                     <div class="row"><span class="led sm"></span><span class="lbl lbl-dark" style="font-size:5.8px;">GROUP ▽</span></div>
                   </div>
                   <div class="col" style="gap:2px;">
                     <div class="row"><span class="led sm" data-led="flt-e"></span><span class="lbl lbl-dark" style="font-size:6px;">ENVELOPE</span></div>
-                    <button class="pill-btn sm red-frame" data-toggle-led="flt-e"></button>
+                    <button class="pill-btn sm accent-frame" data-toggle-led="flt-e"></button>
                     <div class="row"><span class="led sm"></span><span class="lbl lbl-dark" style="font-size:5.8px;">VELOCITY ▽</span></div>
                   </div>
                   ${makeKnob({ label: "ENV AMT", scale: "0-10", value: 0.45, size: "sm", morphLed: true })}
@@ -1063,7 +1059,7 @@
                   ${makeKnob({ label: "FREQ", scale: "0-10", value: 0.38, size: "sm", darkInlay: true, morphLed: true })}
                   ${makeKnob({ label: "RES/FREQ HP", scale: "0-10", value: 0.52, size: "sm", darkInlay: true, morphLed: true })}
                   <div class="col" style="gap:2px;">
-                    <div class="row"><span class="led sm on red" data-led="flt-on"></span><span class="lbl lbl-dark" style="font-size:5.8px;">FILTER<br/>ON</span></div>
+                    <div class="row"><span class="led sm on accent" data-led="flt-on"></span><span class="lbl lbl-dark" style="font-size:5.8px;">FILTER<br/>ON</span></div>
                     <button class="pill-btn vert" data-toggle-led="flt-on"></button>
                   </div>
                 </div>
@@ -1074,15 +1070,15 @@
                 <div class="silver-subpanel col w-full" style="padding:13px 3px 4px; flex:1; justify-content:center; gap:3px;">
                   <span class="synth-sub-title">AMP</span>
                   <div class="row" style="gap:2px;"><span class="led sm" data-led="amp-env-led"></span><span class="lbl lbl-dark" style="font-size:5.5px;">ENVELOPE</span></div>
-                  <button class="pill-btn sm red-frame" data-cycle-3="amp-v1,amp-v2"></button>
+                  <button class="pill-btn sm accent-frame" data-cycle-3="amp-v1,amp-v2"></button>
                   <span class="lbl lbl-dark" style="font-size:5.5px;">VELOCITY▽</span>
-                  <div class="row" style="gap:2px;"><span class="lbl lbl-dark" style="font-size:5.5px;">1</span><span class="led sm" data-led="amp-v1"></span><span class="lbl lbl-dark" style="font-size:5.5px;">2</span><span class="led sm on red" data-led="amp-v2"></span></div>
+                  <div class="row" style="gap:2px;"><span class="lbl lbl-dark" style="font-size:5.5px;">1</span><span class="led sm" data-led="amp-v1"></span><span class="lbl lbl-dark" style="font-size:5.5px;">2</span><span class="led sm on accent" data-led="amp-v2"></span></div>
                 </div>
                 <div class="group-box col w-full" style="padding:9px 3px 5px; height:54px; justify-content:center; gap:5px;">
                   <span class="group-box-title">UNISON</span>
                   <div class="row" style="gap:3px;">
                     <div class="col" style="gap:2px;">
-                      <div class="row"><span class="lbl lbl-xs">2</span><span class="led sm on red" data-led="syn-uni-2"></span></div>
+                      <div class="row"><span class="lbl lbl-xs">2</span><span class="led sm on accent" data-led="syn-uni-2"></span></div>
                       <div class="row"><span class="lbl lbl-xs">1</span><span class="led sm" data-led="syn-uni-1"></span></div>
                     </div>
                     <span class="lbl lbl-xs">3</span>
@@ -1109,11 +1105,10 @@
           <div class="header-on-solo" style="margin-left:18px;">
             <div class="header-on-col">
               <span class="lbl lbl-dark lbl-xs">ON</span>
-              <span class="led on red" data-led="fx-master-on"></span>
+              <span class="led on accent" data-led="fx-master-on"></span>
             </div>
             <button class="pill-btn" data-toggle-led="fx-master-on"></button>
           </div>
-          <div class="header-red-notch" style="width: 320px;"></div>
         </div>
 
         <div class="fx-wrapper">
@@ -1164,7 +1159,7 @@
                   value: 0.22,
                   size: "sm",
                   morphLed: true,
-                  extraBottom: `<span class="lbl-pill-red mt-2"><span class="led sm on red"></span>MST CLK</span>`
+                  extraBottom: `<span class="lbl-pill-accent mt-2"><span class="led sm on accent"></span>MST CLK</span>`
                 })}
                 ${makeKnob({ label: "AMOUNT", scale: "0-10", value: 0.62, size: "sm", morphLed: true })}
                 <div class="col" style="gap:3px;">
@@ -1173,7 +1168,7 @@
                   <div class="row" style="gap:2px;"><span class="led sm"></span><span class="lbl" style="font-size:6px;">VARIATION <span class="lbl-pill-blue">PED</span>▽</span></div>
                 </div>
                 <div class="col" style="gap:3px;">
-                  <div class="row"><span class="lbl lbl-xs">ON</span><span class="led sm on red" data-led="mod1-on"></span></div>
+                  <div class="row"><span class="lbl lbl-xs">ON</span><span class="led sm on accent" data-led="mod1-on"></span></div>
                   <button class="pill-btn grey vert" data-toggle-led="mod1-on"></button>
                 </div>
               </div>
@@ -1186,10 +1181,10 @@
                 <div class="col" style="gap:3px;">
                   ${makeTriMatrix(["CHOR", "FLANG", "PHAS"], ["VIBE", "ENS", "SPIN"], 0, "fx-mod2")}
                   <button class="pill-btn sm" data-cycle-btn="fx-mod2"></button>
-                  <div class="row"><span class="led sm on red"></span><span class="lbl" style="font-size:6px;">VARIATION ▽</span></div>
+                  <div class="row"><span class="led sm on accent"></span><span class="lbl" style="font-size:6px;">VARIATION ▽</span></div>
                 </div>
                 <div class="col" style="gap:3px;">
-                  <div class="row"><span class="lbl lbl-xs">ON</span><span class="led sm on red" data-led="mod2-on"></span></div>
+                  <div class="row"><span class="lbl lbl-xs">ON</span><span class="led sm on accent" data-led="mod2-on"></span></div>
                   <button class="pill-btn grey vert" data-toggle-led="mod2-on"></button>
                 </div>
               </div>
@@ -1199,12 +1194,12 @@
                 <span class="group-box-title">AMP SIM / EQ</span>
                 <div class="row between w-full">
                   <div class="col" style="align-items:flex-start;">
-                    <div class="row"><span class="lbl lbl-xs">ON</span><span class="led sm on red" data-led="amp-drive-on"></span></div>
+                    <div class="row"><span class="lbl lbl-xs">ON</span><span class="led sm on accent" data-led="amp-drive-on"></span></div>
                     ${makeKnob({ label: "DRIVE", scale: "0-10", value: 0.25, size: "sm", morphLed: true })}
                   </div>
                   ${makeKnob({ label: "FREQ", badge: `<span class="lbl-pill-blue">FREQ</span>`, scale: "freq", value: 0.54, size: "md" })}
                   <div class="col" style="gap:3px;">
-                    ${makeTriMatrix(["SMALL", "JC", "TWIN"], ["<span class='lbl-pill-red'>TO ROTARY</span>", "<span class='lbl-pill-blue'>LP FILTER</span>", "<span class='lbl-pill-blue'>HP FILTER</span>"], 2, "fx-amp")}
+                    ${makeTriMatrix(["SMALL", "JC", "TWIN"], ["<span class='lbl-pill-accent'>TO ROTARY</span>", "<span class='lbl-pill-blue'>LP FILTER</span>", "<span class='lbl-pill-blue'>HP FILTER</span>"], 2, "fx-amp")}
                     <button class="pill-btn sm" data-cycle-btn="fx-amp"></button>
                     <div class="row" style="gap:2px;"><span class="led sm"></span><span class="lbl" style="font-size:6px;">VARIATION ▽</span></div>
                   </div>
@@ -1215,7 +1210,7 @@
                   ${makeKnob({ label: "MID", badge: `<span class="lbl-pill-blue">RES</span>`, scale: "bipolar15", value: 0.65, size: "sm" })}
                   ${makeKnob({ label: "TREBLE", scale: "bipolar15", value: 0.5, size: "sm" })}
                   <div class="col" style="gap:3px;">
-                    <div class="row"><span class="lbl lbl-xs">ON</span><span class="led sm on red" data-led="amp-on"></span></div>
+                    <div class="row"><span class="lbl lbl-xs">ON</span><span class="led sm on accent" data-led="amp-on"></span></div>
                     <button class="pill-btn grey vert" data-toggle-led="amp-on"></button>
                   </div>
                 </div>
@@ -1234,15 +1229,15 @@
                     value: 0.28,
                     size: "sm",
                     morphLed: true,
-                    extraBottom: `<span class="lbl-pill-red mt-2"><span class="led sm on red"></span>MST CLK</span>`
+                    extraBottom: `<span class="lbl-pill-accent mt-2"><span class="led sm on accent"></span>MST CLK</span>`
                   })}
                   <div class="col" style="gap:2px;">
                     <span class="lbl lbl-xs">EFFECTS</span>
                     <div class="row" style="gap:3px;">
                       <div class="col" style="align-items:flex-end; gap:2px;">
                         <div class="row"><span class="lbl" style="font-size:6px;">CHOR</span><span class="led sm" data-led="dly-fx1"></span></div>
-                        <div class="row"><span class="lbl" style="font-size:6px;">VIBE</span><span class="led sm on red" data-led="dly-fx2"></span></div>
-                        <div class="row"><span class="lbl" style="font-size:6px;">ENS</span><span class="led sm on red" data-led="dly-fx3"></span></div>
+                        <div class="row"><span class="lbl" style="font-size:6px;">VIBE</span><span class="led sm on accent" data-led="dly-fx2"></span></div>
+                        <div class="row"><span class="lbl" style="font-size:6px;">ENS</span><span class="led sm on accent" data-led="dly-fx3"></span></div>
                       </div>
                       <div class="col" style="align-items:flex-start; gap:3px;">
                         <span class="lbl" style="font-size:6px;">FLAM</span>
@@ -1277,10 +1272,10 @@
                 </div>
 
                 <div class="row" style="justify-content:flex-end; width:100%; gap:4px;">
-                  <div class="col" style="gap:1px;"><span class="lbl lbl-xs">ON</span><span class="led sm on red" data-led="dly-on"></span></div>
+                  <div class="col" style="gap:1px;"><span class="lbl lbl-xs">ON</span><span class="led sm on accent" data-led="dly-on"></span></div>
                   <div class="col" style="gap:2px;">
                     <button class="pill-btn grey sm" data-toggle-led="dly-on"></button>
-                    <span class="lbl-pill-red"><span class="led sm"></span>GLOBAL▽</span>
+                    <span class="lbl-pill-accent"><span class="led sm"></span>GLOBAL▽</span>
                   </div>
                 </div>
               </div>
@@ -1296,7 +1291,7 @@
                     <div class="col" style="gap:1px;"><span class="lbl" style="font-size:6px;">ON</span><span class="led sm" data-led="comp-on"></span></div>
                     <div class="col" style="gap:2px;">
                       <button class="pill-btn grey sm" data-toggle-led="comp-on"></button>
-                      <span class="lbl-pill-red"><span class="led sm"></span>GLOBAL▽</span>
+                      <span class="lbl-pill-accent"><span class="led sm"></span>GLOBAL▽</span>
                     </div>
                   </div>
                 </div>
@@ -1312,16 +1307,16 @@
                     <div class="col" style="gap:2px;">
                       ${makeTriMatrix(["ROOM", "BOOTH", "SPRING"], ["STAGE", "HALL", "CATH"], 5, "fx-rev")}
                       <button class="pill-btn sm" data-cycle-btn="fx-rev"></button>
-                      <div class="row" style="gap:2px;"><span class="lbl" style="font-size:5.8px;">VAR|CHORALE▽</span><span class="led sm on red"></span></div>
+                      <div class="row" style="gap:2px;"><span class="lbl" style="font-size:5.8px;">VAR|CHORALE▽</span><span class="led sm on accent"></span></div>
                     </div>
                   </div>
                   <div class="row between w-full">
                     ${makeKnob({ label: "DRY  WET", scale: "0-10", value: 0.62, size: "sm", morphLed: true })}
                     <div class="row" style="gap:3px;">
-                      <div class="col" style="gap:1px;"><span class="lbl lbl-xs">ON</span><span class="led sm on red" data-led="rev-on"></span></div>
+                      <div class="col" style="gap:1px;"><span class="lbl lbl-xs">ON</span><span class="led sm on accent" data-led="rev-on"></span></div>
                       <div class="col" style="gap:2px;">
                         <button class="pill-btn grey sm" data-toggle-led="rev-on"></button>
-                        <span class="lbl-pill-red"><span class="led sm"></span>GLOBAL▽</span>
+                        <span class="lbl-pill-accent"><span class="led sm"></span>GLOBAL▽</span>
                       </div>
                     </div>
                   </div>
@@ -1377,8 +1372,8 @@
         const id = btn.getAttribute("data-toggle-led");
         const led = document.querySelector(`[data-led="${id}"]`);
         if (led) {
-          const hasColor = led.classList.contains("green") || led.classList.contains("amber") || led.classList.contains("red");
-          if (!hasColor) led.classList.add("red");
+          const hasColor = led.classList.contains("green") || led.classList.contains("amber") || led.classList.contains("accent");
+          if (!hasColor) led.classList.add("accent");
           led.classList.toggle("on");
         }
       });
@@ -1394,7 +1389,7 @@
           const aOn = a.classList.contains("on");
           a.classList.toggle("on", !aOn);
           b.classList.toggle("on", aOn);
-          if (!b.classList.contains("green") && !b.classList.contains("amber")) b.classList.add("red");
+          if (!b.classList.contains("green") && !b.classList.contains("amber")) b.classList.add("accent");
         }
       });
     });
@@ -1430,7 +1425,7 @@
         const n = Number(btn.getAttribute("data-prog-btn"));
         document.querySelectorAll("[data-prog-led]").forEach((l) => {
           l.classList.toggle("on", Number(l.getAttribute("data-prog-led")) === n);
-          l.classList.add("red");
+          l.classList.add("accent");
         });
         const p = progPresets[n];
         if (p) {
@@ -1511,7 +1506,7 @@
         segs.forEach((s, i) => {
           const on = i < step;
           s.classList.toggle("on", on);
-          s.classList.toggle("red", on);
+          s.classList.toggle("accent", on);
         });
       };
 
@@ -1580,7 +1575,7 @@
         let next = cur + 1;
         if (next >= leds.length) next = allowOff ? -1 : 0;
         leds.forEach((l, i) => {
-          l.classList.add("red");
+          l.classList.add("accent");
           l.classList.toggle("on", i === next);
         });
       });
@@ -1593,8 +1588,8 @@
         state = (state + 1) % 4;
         const l1 = document.querySelector(`[data-led="${id1}"]`);
         const l2 = document.querySelector(`[data-led="${id2}"]`);
-        if (l1) { l1.classList.add("red"); l1.classList.toggle("on", state === 1 || state === 3); }
-        if (l2) { l2.classList.add("red"); l2.classList.toggle("on", state === 2 || state === 3); }
+        if (l1) { l1.classList.add("accent"); l1.classList.toggle("on", state === 1 || state === 3); }
+        if (l2) { l2.classList.add("accent"); l2.classList.toggle("on", state === 2 || state === 3); }
       });
     });
 
@@ -1603,7 +1598,7 @@
       btn.addEventListener("click", () => {
         const l = document.querySelector(`[data-led="${id}"]`);
         if (!l) return;
-        l.classList.add("on", "red");
+        l.classList.add("on", "accent");
         setTimeout(() => l.classList.remove("on"), 220);
       });
     });
@@ -1613,7 +1608,7 @@
       btn.addEventListener("click", () => {
         splitCount = (splitCount + 1) % 4;
         const leds = document.querySelectorAll("[data-split-leds] .led");
-        leds.forEach((l, i) => { l.classList.add("red"); l.classList.toggle("on", i < splitCount); });
+        leds.forEach((l, i) => { l.classList.add("accent"); l.classList.toggle("on", i < splitCount); });
         document.querySelectorAll(".split-led").forEach((sl, i) => {
           sl.style.opacity = i < splitCount ? "1" : "0.18";
         });
@@ -1648,7 +1643,7 @@
       const target = btn.getAttribute("data-fx-focus");
       btn.addEventListener("click", () => {
         const groups = {
-          organ: { hdr: "org-fx-focus", strip: ["fxf-org-a", "fxf-org-b"], color: "red" },
+          organ: { hdr: "org-fx-focus", strip: ["fxf-org-a", "fxf-org-b"], color: "accent" },
           piano: { hdr: "pno-fx-focus", strip: ["fxf-pno-a", "fxf-pno-b"], color: "green" },
           synth: { hdr: "syn-fx-focus", strip: ["fxf-syn-a", "fxf-syn-b", "fxf-syn-c"], color: "amber" }
         };
@@ -1764,7 +1759,7 @@
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", d);
       path.setAttribute("fill", "none");
-      path.setAttribute("stroke", "#9da9b5");
+      path.setAttribute("stroke", "#7f97ba");
       path.setAttribute("stroke-width", "1");
       svg.appendChild(path);
       box.insertBefore(svg, box.firstChild);
@@ -1848,8 +1843,8 @@
       index: i,
       variant: el.classList.contains("grey")
         ? "grey"
-        : el.classList.contains("red")
-          ? "red"
+        : el.classList.contains("accent")
+          ? "accent"
           : "black",
       vertical: el.classList.contains("vert"),
       toggle_led: el.getAttribute("data-toggle-led") || null,
@@ -1885,7 +1880,7 @@
         ? "green"
         : el.classList.contains("amber")
           ? "amber"
-          : "red",
+          : "accent",
       prog_led: el.getAttribute("data-prog-led") ? Number(el.getAttribute("data-prog-led")) : null,
       split: el.classList.contains("split-led"),
       ...norm(el)
@@ -1954,8 +1949,8 @@
       btn_black_down: `<button class="pill-btn pressed"></button>`,
       btn_grey_up: `<button class="pill-btn grey"></button>`,
       btn_grey_down: `<button class="pill-btn grey pressed"></button>`,
-      btn_red_up: `<button class="pill-btn red"></button>`,
-      btn_red_down: `<button class="pill-btn red pressed"></button>`,
+      btn_accent_up: `<button class="pill-btn accent"></button>`,
+      btn_accent_down: `<button class="pill-btn accent pressed"></button>`,
       knob_pot_cap: `<div class="knob-body" style="transform:rotate(0deg);"><div class="knob-pointer"></div></div>`,
       knob_encoder_cap: `<div class="knob-body encoder"></div>`,
       fader_cap: `<div style="position:relative;width:30px;height:24px;"><div class="fader-cap" style="top:50%;"></div></div>`,

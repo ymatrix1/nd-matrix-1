@@ -5,7 +5,7 @@
 //! and the section frames with [`section_rect`]. No toolkit types here.
 //!
 //! Coordinates: origin at the top-left corner of the instrument body, `x`
-//! to the right, `y` down, millimetres. The control area (red panel) spans
+//! to the right, `y` down, millimetres. The control area (control panel) spans
 //! `y = 0 ..` [`PANEL_HEIGHT_MM`]; the keybed follows below it.
 //!
 //! ASSUMED: every rectangle was read by eye from one 2000 px product photo
