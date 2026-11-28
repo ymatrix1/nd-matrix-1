@@ -94,7 +94,8 @@ pub fn group_of(id: &str) -> Option<Group> {
     let tail = |suffix: &str| id.ends_with(suffix);
     Some(match family {
         "master" if id == "master_level" || id == "master_compressor" => Group::Levels,
-        "master" | "midi" | "mod" | "control" | "aftertouch" => Group::Live,
+        // `library_program` picks the program itself: a load must not re-arm anything.
+        "master" | "midi" | "mod" | "control" | "aftertouch" | "library" => Group::Live,
         "split" | "layer" => Group::Layers,
         "organ" | "piano" | "synth" if tail("_enabled") => Group::Layers,
         "organ" | "piano" | "synth" if tail("_level") => Group::Levels,
@@ -252,6 +253,12 @@ impl ProgramHold {
         !self.runs(group)
     }
 
+    /// Releases the groups in `mask`: the host parameters drive them again from the next sync.
+    pub fn release(&self, mask: u32) {
+        self.held.fetch_and(!mask, Relaxed);
+        self.armed.fetch_and(!mask, Relaxed);
+    }
+
     /// Releases every group (tests, and the plugin when the program is cleared).
     pub fn release_all(&self) {
         self.held.store(0, Relaxed);
@@ -359,5 +366,19 @@ mod tests {
         assert!(h.runs(Group::Organ));
         h.release_all();
         assert!(h.runs(Group::Firmware));
+    }
+
+    #[test]
+    fn releasing_the_program_groups_keeps_the_firmware_hold() {
+        let p = bound();
+        let h = &p.program_hold;
+        h.hold(Group::PROGRAM | Group::FIRMWARE);
+        assert!(h.owned_by_program(Group::Synth) && h.owned_by_program(Group::Firmware));
+        h.release(Group::PROGRAM);
+        assert!(
+            h.runs(Group::Synth),
+            "program groups run from the host again"
+        );
+        assert!(h.owned_by_program(Group::Firmware), "firmware stays held");
     }
 }

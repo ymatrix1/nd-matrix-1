@@ -24,6 +24,11 @@ pub struct Stage4Params {
     #[id = "midi_mode"]
     pub midi_mode: EnumParam<MidiRoutingMode>,
 
+    /// Program of the user's saved `.ns4b` sound library to load (Off, A:11..H:88): read by
+    /// `process()` and served by the library worker (`auto_library.rs`); saved with the project.
+    #[id = "library_program"]
+    pub library_program: IntParam,
+
     // ==========================================
     // Master Bus & Global Controls
     // ==========================================
@@ -327,6 +332,7 @@ impl Default for Stage4Params {
     fn default() -> Self {
         Self {
             midi_mode: EnumParam::new("MIDI Mode", MidiRoutingMode::OmniSplit),
+            library_program: crate::library_select::new_param(),
 
             // Master Bus
             master_level: FloatParam::new(

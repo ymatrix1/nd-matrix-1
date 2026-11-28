@@ -21,6 +21,12 @@ fn run_cli(args: &[String]) -> Result<String, String> {
              Routing: 7 Independent Per-Layer FX Racks + 4 Split Zones + 3-Source Morph Matrix"
                 .to_string(),
         ),
+        "library" => nord_core::library_setting::run(
+            &args[2.min(args.len())..],
+            &nord_core::user_config::default_config_path()
+                .ok_or("no per-user config directory on this system")?,
+            env::var("NS4_LIBRARY").ok().as_deref(),
+        ),
         "firmware" => nord_core::firmware_setting::run(
             &args[2.min(args.len())..],
             &nord_core::user_config::default_config_path()
@@ -484,7 +490,7 @@ Wrote {wav_path} ({} bytes, 32-bit float stereo)", wav.len()));
         "backup-store" => nord_core::store_cli::backup_store(&args[2..]),
         "preset-check" => nord_core::preset_cli::preset_check(&args[2..]),
         other => Err(format!(
-            "unknown command '{other}' (expected: info | inspect <path> [--json] [--verify] [--unpack <dir>] | backup <path.ns4b> [...] | convert <path> ... | store-program <base> <out> | export-live <dir> <slots...> | backup-store <in.ns4b> <out.ns4b> [--program ...] [--live ...] | preset-check <backup.ns4b> [--bits] | render-demo | bench [--blocks N] [--warmup N] [--stereo] [--scenario worst|typical|idle|worst-fw-chorus|worst-fw-spin] [--breakdown] | bench --gui [--layers 3|7] [--keys N] [--frames N] [--churn N] [--breakdown] [firmware flags] | render-patch <path>)"
+            "unknown command '{other}' (expected: info | inspect <path> [--json] [--verify] [--unpack <dir>] | backup <path.ns4b> [...] | firmware set <os update> | status | clear | library set <backup.ns4b> | status | clear | convert <path> ... | store-program <base> <out> | export-live <dir> <slots...> | backup-store <in.ns4b> <out.ns4b> [--program ...] [--live ...] | preset-check <backup.ns4b> [--bits] | render-demo | bench [--blocks N] [--warmup N] [--stereo] [--scenario worst|typical|idle|worst-fw-chorus|worst-fw-spin] [--breakdown] | bench --gui [--layers 3|7] [--keys N] [--frames N] [--churn N] [--breakdown] [firmware flags] | render-patch <path>)"
         )),
     }
 }
