@@ -4,14 +4,29 @@
 //!
 //! Spec (design note 8, WP W1-VGEN): `cfg(test)` support only.
 //!
-//! * [`random_program`]: the L1 generator. Mirrors the private `word()` of the `fastrun.rs` test
-//!   (those test items cannot be reused without editing a file the skeleton may not touch);
-//!   W1-VGEN extends it with `bl`/`bx lr` pairs, literal loads, stores into the own, next and
-//!   literal page, hooks between slices, a Thumb entry and undefined words.
+//! * [`random_program`], [`random_word`], [`tiny_loop`] (`testgen/mixed.rs`): the scaffold's flat
+//!   generators, streams unchanged.
+//! * [`structured_program`] (`testgen/program.rs`, constructs in `blocks.rs` and `parts.rs`): the
+//!   L1 generator of design note 8: loops, `bl`/`bx lr` pairs, conditional runs, literal loads,
+//!   stores into the own page, the next word and a literal the code loaded, device accesses,
+//!   Thumb entry, and words that fault (undefined, `swi`, `wfi`: `testgen/faults.rs`, as a body
+//!   construct, inside a callee, or as a patch word a store copies over the program). A
+//!   [`Program`] becomes a machine with [`machine_from`].
+//! * [`random_of`] / [`Family`] (`testgen/words.rs`): one word of each instruction family, with
+//!   the shift amounts, addressing modes and register aliasing of design note 8, L0.
+//! * [`Schedule`] / [`schedule_vs_oracle`] (`testgen/schedule.rs`): slices with budgets,
+//!   `until`/`stop_pc` addresses and hooks added between them, compared with the oracle slice
+//!   by slice.
+//! * [`budget_sweep`] / [`sweep_vs_oracle`] (`testgen/sweep.rs`): every budget of a range as a
+//!   two-slice schedule, so the budget expires at every instruction position (design note 8:
+//!   "budgets 1..7 and 1..400").
+//! * [`asm`]: the encoders the generators build on.
 //! * [`lowered_vs_step`] / [`uops_vs_step`]: one instruction (or a hand-built trace for it)
 //!   through the lowering and the T2 executor against `Cpu::step`, with registers, flags, fault,
-//!   the ordered bus access log and `bus.pc` compared. This is the helper of the lowering and
+//!   the ordered bus access log and `bus.pc` compared ([`compare_outcome`], itself tested part by
+//!   part in `testgen/comparator.rs`). This is the helper of the lowering and
 //!   executor work packages (W1-DP, W1-MEM, W1-XALU, W1-XMEM, W2-XCORE) and of L0 in `difftest`.
+//!   The `_run` forms also count what the oracle did into a `DiffRun`.
 //! * [`drive_traces`]: the tier stack without a cache, as a copy of the outer loop of
 //!   `Machine::run` that builds a trace per pc and runs it (the skeleton proof that the
 //!   always-correct baseline equals the interpreter).
@@ -20,115 +35,46 @@
 
 #![allow(dead_code)]
 
+pub(crate) mod asm;
+mod blocks;
+#[cfg(test)]
+mod comparator;
+#[cfg(test)]
+mod coverage;
+mod faults;
+mod mixed;
+mod parts;
+pub(crate) mod program;
+pub(crate) mod schedule;
+pub(crate) mod sweep;
+pub(crate) mod words;
+
 use super::config::SbConfig;
 use super::decode::{decode, lower_or_generic, LowerCtx};
 use super::exec::run_sb;
 use super::lower_flow::{lower_flow, Flow, FlowCtx};
-use super::testkit::{CpuSnap, LogBus, Rng};
+use super::testkit::oracle::oracle_trace_on;
+use super::testkit::{CpuSnap, DiffRun, LogBus, TraceRun};
 use super::trace::{build, BuildOpts};
 use super::uop::{k, Exit, ExitKind, Sb, Uop};
-use crate::cpu::Cpu;
+use crate::cpu::{Cpu, Fault};
 use crate::machine::{Machine, Stop};
 use crate::mem::HOOK_X;
+
+pub(crate) use mixed::{random_program, random_word, tiny_loop};
+pub(crate) use program::{machine_from, structured_program, Program};
+pub(crate) use schedule::{random_schedule, schedule_vs_oracle, SchedStats, Schedule};
+pub(crate) use sweep::{budget_sweep, sweep_vs_oracle};
+pub(crate) use words::{random_of, Family};
 
 /// Base address of generated programs.
 pub(crate) const CODE: u32 = 0xC000_0000;
 
-/// A small hand-written program: `r1 = 5; r0 = 0; loop { bl sub; r1 -= 1; str r0,[r8]; bne }`
-/// then `b .`, with `sub { r0 += r1 << 1; r2 = [r8]; r0 += r2; bx lr }`. Needs `r8` to point at
-/// writable data; leaves `r0 = 258`, `r1 = 0` and spins at word 6.
-pub(crate) fn tiny_loop() -> Vec<u32> {
-    vec![
-        0xE3A0_1005, // 0  mov r1,#5
-        0xE3A0_0000, // 1  mov r0,#0
-        0xEB00_0003, // 2  bl sub
-        0xE251_1001, // 3  subs r1,r1,#1
-        0xE588_0000, // 4  str r0,[r8]
-        0x1AFF_FFFB, // 5  bne 2
-        0xEAFF_FFFE, // 6  b .
-        0xE080_0081, // 7  sub: add r0,r0,r1,lsl #1
-        0xE598_2000, // 8  ldr r2,[r8]
-        0xE080_0002, // 9  add r0,r0,r2
-        0xE12F_FF1E, // 10 bx lr
-    ]
-}
-
-/// One random word from a mix that stays inside a region of `n` words at [`CODE`]: data
-/// processing on r0..r7, loads and stores through r8 (data) and r10 (the code itself:
-/// self-modifying code), block transfers on r9, short branches, a few generic and garbage words.
-/// `at` is the index of the word (branch offsets are relative to it).
-pub(crate) fn random_word(rng: &mut Rng, at: usize, n: usize) -> u32 {
-    let cond = if rng.chance(4) { rng.below(14) } else { 14 } << 28;
-    let rd = if rng.chance(12) { 15 } else { rng.below(8) }; // sometimes writes pc
-    let (rn, rm) = (rng.below(8), rng.below(8));
-    cond | match rng.below(28) {
-        20 => 0x050F_0004 | rd << 12 | rng.below(2) << 20, // str/ldr rd,[pc,#-4]: the next word
-        21 => {
-            0x01C0_00B0
-                | 10 << 16
-                | rd << 12
-                | rng.below(2) << 20
-                | rng.below(2) << 8
-                | rng.below(16)
-        } // strh/ldrh [r10,#imm]
-        22 => 0x038F_C001,                                 // orr r12,pc,#1 (Thumb target)
-        23 => 0x012F_FF1C,                                 // bx r12 (enter Thumb state)
-        24 => 0x0890_800F | rng.below(2) << 20 | rng.below(2) << 24 | rng.below(2) << 23 | 9 << 16, // ldm/stm with pc
-        25..=27 => rng.next() & 0x0FFF_FFFF,
-        0..=8 => {
-            let (op, s) = (rng.below(16), rng.below(2));
-            let s = if (8..=11).contains(&op) { 1 } else { s };
-            let operand = match rng.below(3) {
-                0 => 1 << 25 | rng.below(0x1000),
-                1 => rm | rng.below(0x100) << 4 & !0x10,
-                _ => rm | 1 << 4 | rng.below(8) << 8 | rng.below(4) << 5,
-            };
-            op << 21 | s << 20 | rn << 16 | rd << 12 | operand
-        }
-        9..=11 => {
-            let (l, b, base) = (
-                rng.below(2),
-                rng.below(2),
-                if rng.chance(5) { 10 } else { 8 },
-            );
-            0x0580_0000 | b << 22 | l << 20 | base << 16 | rd << 12 | (rng.below(0x40) * 4)
-        }
-        12 => 0x0890_000F | rng.below(2) << 20 | rng.below(2) << 24 | rng.below(2) << 23 | 9 << 16,
-        13..=14 => {
-            let target = rng.below(n as u32) as i64;
-            let off = (target - at as i64 - 2) as u32 & 0x00FF_FFFF;
-            0x0A00_0000 | rng.below(2) << 24 | off
-        }
-        15 => 0x0000_0090 | rd << 16 | rm << 8 | rn, // mul
-        16 => 0x012F_FF10 | 14,                      // bx lr
-        17 => 0x0100_0090 | rm | rd << 12 | rn << 16, // swp
-        _ => rng.next() & 0x0FFF_FFFF,
-    }
-}
-
-/// `n` random words (see [`random_word`]).
-pub(crate) fn random_program(rng: &mut Rng, n: usize) -> Vec<u32> {
-    (0..n).map(|i| random_word(rng, i, n)).collect()
-}
-
 /// A machine with `words` at [`CODE`], random `r0..r7` from `seed`, `r8`/`r9` pointing at data,
 /// `r10` into the code itself, a stack, and `pc = CODE`; `predecode` selects tier 1 or the plain
-/// interpreter.
+/// interpreter. (The flat image of [`Program::flat`].)
 pub(crate) fn machine_with(words: &[u32], seed: u64, predecode: bool) -> Machine {
-    let mut rng = Rng::new(seed);
-    let mut m = Machine::new();
-    m.predecode = predecode;
-    for (i, w) in words.iter().enumerate() {
-        m.bus.mem.write32(CODE + 4 * i as u32, *w);
-    }
-    for reg in m.cpu.r.iter_mut().take(8) {
-        *reg = rng.next();
-    }
-    (m.cpu.r[8], m.cpu.r[9], m.cpu.r[10], m.cpu.r[13]) =
-        (0x9000_0000, 0x9000_1000, CODE + 0x100, 0x9000_2000);
-    m.cpu.r[14] = CODE;
-    m.cpu.r[15] = CODE;
-    m
+    machine_from(&Program::flat(words, seed), predecode)
 }
 
 /// Lower the one instruction `word` at `pc` into a complete trace, the way the trace builder
@@ -182,30 +128,59 @@ pub(crate) fn lower_single(word: u32, pc: u32, peek: &dyn Fn(u32) -> u32) -> Sb 
 /// Run `sb` (a trace of the one instruction `word` at `cpu.r[15]`) and `Cpu::step` on equal
 /// states; `Err` names the first difference in registers, flags, fault, bus access log or `pc`.
 pub(crate) fn uops_vs_step(word: u32, sb: &Sb, cpu: &Cpu, seed: u64) -> Result<(), String> {
+    uops_vs_step_run(word, sb, cpu, seed, &mut DiffRun::default())
+}
+
+/// [`uops_vs_step`] that also counts what the oracle did into `run` (even when the comparison
+/// fails), so the test can end with `run.assert_exercised(..)`.
+pub(crate) fn uops_vs_step_run(
+    word: u32,
+    sb: &Sb,
+    cpu: &Cpu,
+    seed: u64,
+    run: &mut DiffRun,
+) -> Result<(), String> {
     let pc = cpu.r[15];
-    let (mut ca, mut ba) = (cpu.clone(), LogBus::new(seed as u32));
-    let (mut cb, mut bb) = (cpu.clone(), LogBus::new(seed as u32));
+    let mut ba = LogBus::new(seed as u32);
     ba.poke32(pc, word);
+    let t = oracle_trace_on(cpu, ba, 1);
+    run.note(cpu, &t);
+    let (mut cb, mut bb) = (cpu.clone(), LogBus::new(seed as u32));
     bb.poke32(pc, word);
-    ba.pc = pc;
-    let ra = ca.step(&mut ba).err();
     let mut left = 4u64;
     run_sb(&mut cb, &mut bb, sb, &mut left, false);
     let rb = cb.fault.take();
-    let (sa, sbn) = (CpuSnap::of(&ca, ra), CpuSnap::of(&cb, rb));
+    compare_outcome(word, &t, &cb, rb, &bb, left)
+}
+
+/// The comparison of [`uops_vs_step_run`], on what the executor left behind: its CPU `cb` and
+/// fault `rb`, its bus `bb` and the budget `left` of the 4 instructions it was given, against the
+/// oracle's trace `t` of the one instruction `word`. `Err` names the first difference: the CPU
+/// state, then the ordered access log (kind, address, value and `pc` of every access), then
+/// `bus.pc` and `left` (one instruction retired). Separate from the run so that a test can
+/// perturb each part of an outcome on its own (`testgen/comparator.rs`).
+pub(crate) fn compare_outcome(
+    word: u32,
+    t: &TraceRun,
+    cb: &Cpu,
+    rb: Option<Fault>,
+    bb: &LogBus,
+    left: u64,
+) -> Result<(), String> {
+    let pc = t.bus.pc;
+    let (sa, sbn) = (CpuSnap::of(&t.cpu, t.fault), CpuSnap::of(cb, rb));
     if let Some(d) = sa.diff(&sbn) {
         return Err(format!("word {word:#010x} at {pc:#x}: {d}"));
     }
-    if ba.log != bb.log {
+    if let Some(d) = t.bus.diff(bb) {
         return Err(format!(
-            "word {word:#010x}: access logs differ\n step: {:x?}\n sb:   {:x?}",
-            ba.log, bb.log
+            "word {word:#010x} at {pc:#x}: access logs differ: {d}"
         ));
     }
-    if (ba.pc, left) != (bb.pc, 3) {
+    if (t.bus.pc, left) != (bb.pc, 3) {
         return Err(format!(
-            "word {word:#010x}: bus.pc {:#x} vs {:#x}, left {left}",
-            ba.pc, bb.pc
+            "word {word:#010x} at {pc:#x}: bus.pc {:#x} vs {:#x}, left {left}",
+            t.bus.pc, bb.pc
         ));
     }
     Ok(())
@@ -214,9 +189,19 @@ pub(crate) fn uops_vs_step(word: u32, sb: &Sb, cpu: &Cpu, seed: u64) -> Result<(
 /// The lowering of `word` at `cpu.r[15]` against the interpreter ([`lower_single`] then
 /// [`uops_vs_step`]). The helper of every lowering work package.
 pub(crate) fn lowered_vs_step(word: u32, cpu: &Cpu, seed: u64) -> Result<(), String> {
+    lowered_vs_step_run(word, cpu, seed, &mut DiffRun::default())
+}
+
+/// [`lowered_vs_step`] counting what the oracle did into `run`.
+pub(crate) fn lowered_vs_step_run(
+    word: u32,
+    cpu: &Cpu,
+    seed: u64,
+    run: &mut DiffRun,
+) -> Result<(), String> {
     let probe = LogBus::new(seed as u32);
     let sb = lower_single(word, cpu.r[15], &|a| probe.peek32(a));
-    uops_vs_step(word, &sb, cpu, seed)
+    uops_vs_step_run(word, &sb, cpu, seed, run)
 }
 
 /// `Machine::run` with the tier stack and no cache: at every pc build a trace (`trace::build`) and
@@ -268,43 +253,7 @@ pub(crate) fn drive_traces(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cpu::predecode::{decode_arm, op};
-    use crate::machine::sb::testkit::random_cpu;
-
-    #[test]
-    fn the_tiny_loop_computes_what_its_comment_says() {
-        let mut m = machine_with(&tiny_loop(), 1, false);
-        assert_eq!(m.run(100, 0, None), (100, Stop::Budget));
-        assert_eq!((m.cpu.r[0], m.cpu.r[1], m.cpu.r[15]), (258, 0, CODE + 24));
-        assert_eq!(m.bus.mem.read32(0x9000_0000), 258);
-    }
-
-    #[test]
-    fn programs_are_deterministic_per_seed_and_cover_every_construct_class() {
-        let a = random_program(&mut Rng::new(3), 2000);
-        assert_eq!(a, random_program(&mut Rng::new(3), 2000));
-        assert_ne!(a, random_program(&mut Rng::new(4), 2000));
-        let mut seen = std::collections::BTreeSet::new();
-        for w in &a {
-            seen.insert(decode_arm(*w).op.min(op::DP_BASE));
-        }
-        for class in [
-            op::B,
-            op::BL,
-            op::BX,
-            op::LDR,
-            op::LDRB,
-            op::STR,
-            op::STRB,
-            op::LDM,
-            op::HALF,
-            op::MUL,
-            op::SLOW,
-            op::DP_BASE,
-        ] {
-            assert!(seen.contains(&class), "class {class} never generated");
-        }
-    }
+    use crate::machine::sb::testkit::{random_cpu, Need, Rng};
 
     #[test]
     fn a_machine_starts_at_the_code_with_data_pointers_and_is_reproducible() {
@@ -321,6 +270,7 @@ mod tests {
     #[test]
     fn the_skeleton_lowering_equals_the_interpreter_on_random_words_and_states() {
         let mut rng = Rng::new(0xA11CE);
+        let mut run = DiffRun::default();
         for i in 0..3000 {
             let word = random_word(&mut rng, 40, 400);
             let word = if i % 3 == 0 {
@@ -329,8 +279,50 @@ mod tests {
                 word
             };
             let cpu = random_cpu(&mut rng, 0x1000);
-            lowered_vs_step(word, &cpu, i).unwrap();
+            lowered_vs_step_run(word, &cpu, i, &mut run).unwrap();
         }
+        run.assert_exercised(
+            "skeleton lowering on random words",
+            &Need {
+                cases: 3000,
+                retired: 3000,
+                loads: 150,
+                stores: 150,
+                faults: 50,
+                jumps: 100,
+                reg_writes: 1500,
+                flag_changes: 300,
+                max_idle_pct: 20,
+            },
+        );
+    }
+
+    #[test]
+    fn the_skeleton_lowering_equals_the_interpreter_on_every_instruction_family() {
+        let mut rng = Rng::new(0xFA11);
+        let mut run = DiffRun::default();
+        for family in Family::ALL {
+            for i in 0..150 {
+                let word = random_of(&mut rng, family);
+                let cpu = random_cpu(&mut rng, 0x1000);
+                lowered_vs_step_run(word, &cpu, i, &mut run)
+                    .unwrap_or_else(|e| panic!("{family:?}: {e}"));
+            }
+        }
+        run.assert_exercised(
+            "skeleton lowering on every family",
+            &Need {
+                cases: 150 * Family::ALL.len() as u64,
+                loads: 500,
+                stores: 500,
+                faults: 100,
+                jumps: 200,
+                reg_writes: 1500,
+                flag_changes: 300,
+                max_idle_pct: 30,
+                ..Need::default()
+            },
+        );
     }
 
     #[test]
@@ -352,6 +344,26 @@ mod tests {
     }
 
     #[test]
+    fn a_comparison_that_fails_is_still_counted_and_an_idle_one_is_rejected() {
+        let cpu = random_cpu(&mut Rng::new(5), 0x1000);
+        let wrong = lower_single(0xE3A0_0006, 0x1000, &|_| 0);
+        let mut run = DiffRun::default();
+        assert!(uops_vs_step_run(0xE3A0_0005, &wrong, &cpu, 1, &mut run).is_err());
+        assert_eq!((run.cases, run.retired), (1, 1), "the oracle side counted");
+        let mut idle = DiffRun::default();
+        let mut c = cpu.clone();
+        c.set_cpsr(c.cpsr() & 0x0FFF_FFFF); // all flags clear: `moveq` does nothing
+        lowered_vs_step_run(0x03A0_0001, &c, 1, &mut idle).unwrap();
+        assert_eq!(idle.idle, 1);
+        assert!(idle
+            .require(&Need {
+                max_idle_pct: 50,
+                ..Need::default()
+            })
+            .is_err());
+    }
+
+    #[test]
     fn a_conditional_and_a_branch_lower_to_something_that_runs() {
         let mut rng = Rng::new(6);
         let cpu = random_cpu(&mut rng, 0x1000);
@@ -364,5 +376,23 @@ mod tests {
         ] {
             lowered_vs_step(word, &cpu, 3).unwrap();
         }
+    }
+
+    #[test]
+    fn the_hub_reexports_the_generators() {
+        let p = structured_program(&mut Rng::new(1), 30);
+        assert_eq!(machine_from(&p, true).cpu.r[15], CODE);
+        let m = machine_with(&tiny_loop(), 1, false);
+        let s = random_schedule(&mut Rng::new(2), &Program::flat(&tiny_loop(), 1), 3);
+        let run = schedule_vs_oracle(&m, &s, &mut |m, n, u, st| drive_traces(m, n, u, st)).unwrap();
+        assert!(run.stats.slices >= 1 && run.stats.slices <= 3);
+        let _: SchedStats = run.stats;
+        let _: Schedule = s;
+        assert_eq!(budget_sweep(1..=7, 9).len(), 7);
+        let swept = sweep_vs_oracle(&m, 1..=3, 20, || {
+            |m: &mut Machine, n, u, st| m.run(n, u, st)
+        })
+        .unwrap();
+        assert_eq!(swept.slices, 6);
     }
 }

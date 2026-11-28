@@ -1,22 +1,41 @@
-//! OWNER: W1-VGEN (scaffold written by S0; W1-VGEN extends it and keeps every signature).
-//! Differential-test kit shared by every work package: a deterministic RNG, biased random
-//! states, a logging bus, and full-state snapshots with a readable field diff.
+//! OWNER: W1-VGEN. Differential-test kit shared by every work package: a deterministic RNG,
+//! biased random states, a logging bus, an oracle runner, full-state snapshots with a readable
+//! field diff, and the [`DiffRun`] counters that prove a differential test exercised something.
 //!
 //! Spec (design note 8, WP W1-VGEN): `cfg(test)` support only. The generators and the
 //! "lowering versus interpreter" helpers that use this kit live in `testgen.rs`. The comparator
-//! must detect every field it claims to compare (one mutated field per test below).
+//! must detect every field it claims to compare (one mutated field per test in `snapshot`).
 //!
-//! `#![allow(dead_code)]`: the kit is consumed by the tests of the other work packages (named in
-//! each item's doc), not all by the skeleton's own tests.
+//! | Module | What |
+//! |---|---|
+//! | `state` | [`random_cpu`], [`random_cpu_flags`], [`edge_cpu`], [`random_machine`] |
+//! | `logbus` | [`LogBus`]: deterministic memory plus the ordered access log |
+//! | `oracle` | [`oracle_run`] (T0 on a clone), [`oracle_trace`] (1 to 3 instructions on a [`LogBus`]), [`compare_runs`] |
+//! | `snapshot` | [`snapshot`], [`snapshot_run`], [`Snapshot::diff`], [`mem_diff`] |
+//! | `diffrun` | [`DiffRun`], [`Need`]: the "exercised" rule |
+//!
+//! Every signature of the S0 scaffold is unchanged and the streams of `Rng::next`, `below`,
+//! `chance`, `pick`, `biased` and `random_cpu` are bit for bit the scaffold's: work packages that
+//! seeded their tests against the skeleton keep their cases. New behaviour is in new items.
+//!
+//! `#![allow(dead_code)]` (S0's, covers the child modules): the kit is consumed by the tests of
+//! the other work packages (named in each item's doc), not all by its own tests.
 
 #![allow(dead_code)]
 
-use super::bus::SbBus;
-use crate::cpu::{Bus, Cpu};
-use std::collections::BTreeMap;
+pub(crate) mod diffrun;
+pub(crate) mod logbus;
+pub(crate) mod oracle;
+pub(crate) mod snapshot;
+pub(crate) mod state;
 
-mod snapshot;
-pub(crate) use snapshot::{snapshot, CpuSnap, Snapshot};
+pub(crate) use diffrun::{DiffRun, Need};
+pub(crate) use logbus::LogBus;
+pub(crate) use oracle::{compare_machines, compare_runs, oracle_run, oracle_trace, Run, TraceRun};
+pub(crate) use snapshot::{mem_diff, snapshot, snapshot_run, CpuSnap, Snapshot};
+pub(crate) use state::{
+    edge_cpu, random_cpu, random_cpu_flags, random_machine, MachineSpec, SHIFT_AMOUNTS,
+};
 
 /// xorshift64* with a fixed seed: the same stream on every platform.
 #[derive(Clone, Debug)]
@@ -43,9 +62,19 @@ impl Rng {
         self.next() % n
     }
 
+    /// Uniform in `lo..hi` (`lo < hi`).
+    pub fn range(&mut self, lo: u32, hi: u32) -> u32 {
+        lo + self.below(hi - lo)
+    }
+
     /// True once in `n` on average.
     pub fn chance(&mut self, n: u32) -> bool {
         self.below(n) == 0
+    }
+
+    /// A fair coin.
+    pub fn flag(&mut self) -> bool {
+        self.next() & 1 != 0
     }
 
     pub fn pick<T: Copy>(&mut self, xs: &[T]) -> T {
@@ -73,6 +102,52 @@ impl Rng {
             _ => self.next(),
         }
     }
+
+    /// One of [`SHIFT_AMOUNTS`] (0, 1, 2, 30, 31, 32, 33, 63, 64, 255, 256).
+    pub fn shift_amount(&mut self) -> u32 {
+        self.pick(&SHIFT_AMOUNTS)
+    }
+
+    /// A wider boundary distribution than [`Rng::biased`], for sweeps of the shifter and of
+    /// address arithmetic: the shift amounts (two draws in ten), sign, carry and halfword
+    /// boundaries, words and unaligned addresses at the end of a data page, and plain randomness.
+    pub fn edge(&mut self) -> u32 {
+        const BOUNDS: [u32; 14] = [
+            0,
+            1,
+            0x7FFF_FFFF,
+            0x8000_0000,
+            0x8000_0001,
+            0xFFFF_FFFF,
+            0xFFFF_FFFE,
+            0xFF,
+            0x100,
+            0x7FFF,
+            0x8000,
+            0xFFFF,
+            0x1_0000,
+            0x4000_0000,
+        ];
+        let page = 0x9000_0000 + (self.below(3) << 12);
+        match self.below(10) {
+            0 | 1 => self.shift_amount(),
+            2 | 3 => self.pick(&BOUNDS),
+            4 => page + 0xFFC - 4 * self.below(2),
+            5 => page + 0xFFD + self.below(3),
+            6 => (page + self.below(0x1000)) | 3,
+            7 => page + self.below(0x400) * 4,
+            _ => self.next(),
+        }
+    }
+
+    /// A condition field value: always (14) three times in four, otherwise one of 0..=13.
+    pub fn cond(&mut self) -> u32 {
+        if self.chance(4) {
+            self.below(14)
+        } else {
+            14
+        }
+    }
 }
 
 /// An environment number (`NS4_FUZZ_CASES`, `NS4_FUZZ_SEED`: the knobs of the existing fuzz
@@ -94,109 +169,6 @@ pub(crate) fn fuzz_seed() -> u64 {
     env_u64("NS4_FUZZ_SEED", 0)
 }
 
-/// A CPU in ARM state at `pc` with biased registers, random flags and `q`, SVC mode.
-pub(crate) fn random_cpu(rng: &mut Rng, pc: u32) -> Cpu {
-    let mut cpu = Cpu::new();
-    for r in cpu.r.iter_mut().take(15) {
-        *r = rng.biased();
-    }
-    cpu.r[15] = pc;
-    cpu.set_cpsr(rng.next() & 0xF800_0000 | 0x13);
-    cpu.spsr = rng.next();
-    cpu
-}
-
-/// A bus with an infinite deterministic memory (every byte has a value derived from its
-/// address and `fill`, stores overwrite it) that logs every data access as
-/// `(kind, addr, value, pc)`; kinds 0 to 2 are loads of 1, 2, 4 bytes and 3 to 5 the stores.
-/// Instruction fetches are not logged. `stale` models "a store made decoded code stale".
-#[derive(Clone, Default)]
-pub(crate) struct LogBus {
-    written: BTreeMap<u32, u8>,
-    pub log: Vec<(u8, u32, u32, u32)>,
-    pub pc: u32,
-    pub stale: bool,
-    /// A store into `[lo, hi)` sets `stale`.
-    pub stale_range: Option<(u32, u32)>,
-    fill: u32,
-}
-
-impl LogBus {
-    pub fn new(fill: u32) -> Self {
-        Self {
-            fill,
-            ..Self::default()
-        }
-    }
-
-    pub fn peek8(&self, a: u32) -> u8 {
-        self.written
-            .get(&a)
-            .copied()
-            .unwrap_or(((a ^ self.fill).wrapping_mul(0x9E37_79B1) >> 24) as u8)
-    }
-
-    pub fn peek32(&self, a: u32) -> u32 {
-        u32::from_le_bytes([0, 1, 2, 3].map(|i| self.peek8(a.wrapping_add(i))))
-    }
-
-    /// Store without logging (test setup).
-    pub fn poke32(&mut self, a: u32, v: u32) {
-        for (i, b) in v.to_le_bytes().iter().enumerate() {
-            self.written.insert(a.wrapping_add(i as u32), *b);
-        }
-    }
-
-    fn store(&mut self, kind: u8, a: u32, v: u32, bytes: &[u8]) {
-        self.log.push((kind, a, v, self.pc));
-        for (i, b) in bytes.iter().enumerate() {
-            self.written.insert(a.wrapping_add(i as u32), *b);
-        }
-        if self
-            .stale_range
-            .is_some_and(|(lo, hi)| (lo..hi).contains(&a))
-        {
-            self.stale = true;
-        }
-    }
-}
-
-impl Bus for LogBus {
-    fn read8(&mut self, a: u32) -> u8 {
-        self.log.push((0, a, 0, self.pc));
-        self.peek8(a)
-    }
-    fn read16(&mut self, a: u32) -> u16 {
-        self.log.push((1, a, 0, self.pc));
-        u16::from_le_bytes([self.peek8(a), self.peek8(a.wrapping_add(1))])
-    }
-    fn read32(&mut self, a: u32) -> u32 {
-        self.log.push((2, a, 0, self.pc));
-        self.peek32(a)
-    }
-    fn write8(&mut self, a: u32, v: u8) {
-        self.store(3, a, v as u32, &[v]);
-    }
-    fn write16(&mut self, a: u32, v: u16) {
-        self.store(4, a, v as u32, &v.to_le_bytes());
-    }
-    fn write32(&mut self, a: u32, v: u32) {
-        self.store(5, a, v, &v.to_le_bytes());
-    }
-    fn fetch32(&mut self, a: u32) -> u32 {
-        self.peek32(a)
-    }
-}
-
-impl SbBus for LogBus {
-    fn set_pc(&mut self, pc: u32) {
-        self.pc = pc;
-    }
-    fn stale(&self) -> bool {
-        self.stale
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -211,39 +183,71 @@ mod tests {
         assert!((0..2000).any(|_| a.biased() == 0x8000_0000));
     }
 
+    /// The scaffold's stream is part of the contract: tests seeded against the skeleton must keep
+    /// their cases (a pinned prefix of the xorshift64* output for seed 1, and of `biased`).
     #[test]
-    fn a_random_cpu_is_arm_state_at_pc_in_svc_mode() {
-        let mut rng = Rng::new(1);
-        for _ in 0..50 {
-            let c = random_cpu(&mut rng, 0x1000);
-            assert_eq!((c.r[15], c.thumb, c.mode), (0x1000, false, 0x13));
-            assert_eq!(c.cpsr() & 0x07FF_FFFF, 0x13, "interrupts enabled, SVC");
+    fn the_scaffold_streams_are_pinned() {
+        let mut r = Rng::new(1);
+        let first: Vec<u32> = (0..4).map(|_| r.next()).collect();
+        assert_eq!(first, [0x7403_D1A2, 0xDD70_F339, 0x7D97_4833, 0x548F_4118]);
+        let mut b = Rng::new(1);
+        let biased: Vec<u32> = (0..6).map(|_| b.biased()).collect();
+        assert_eq!(biased, [0x20E4, 0x10, 0, 0xADD6_51FF, 0x2078, 0x2012]);
+    }
+
+    #[test]
+    fn the_new_draws_stay_in_range_and_cover_their_menu() {
+        let mut r = Rng::new(9);
+        assert!((0..500).all(|_| (10..13).contains(&r.range(10, 13))));
+        let flags: Vec<bool> = (0..64).map(|_| r.flag()).collect();
+        assert!(flags.contains(&true) && flags.contains(&false));
+        let shifts: std::collections::BTreeSet<u32> = (0..500).map(|_| r.shift_amount()).collect();
+        assert_eq!(shifts, SHIFT_AMOUNTS.into_iter().collect());
+        let conds: Vec<u32> = (0..2000).map(|_| r.cond()).collect();
+        assert!(conds.iter().all(|c| *c <= 14));
+        let al = conds.iter().filter(|c| **c == 14).count();
+        assert!((1300..1700).contains(&al), "about 3 in 4 are AL, got {al}");
+        assert!(
+            (0..14).all(|c| conds.contains(&c)),
+            "every other condition appears"
+        );
+        let edges: Vec<u32> = (0..3000).map(|_| r.edge()).collect();
+        for want in [0x8000_0000, 0xFFFF_FFFF, 256, 63, 0x9000_0FFC, 0x9000_1FFC] {
+            assert!(edges.contains(&want), "{want:#x} never drawn");
         }
     }
 
     #[test]
-    fn the_log_bus_serves_deterministic_bytes_logs_in_order_and_flags_stale_stores() {
-        let mut b = LogBus::new(5);
-        let first = b.read32(0x1000);
-        assert_eq!(first, LogBus::new(5).peek32(0x1000));
-        b.pc = 0xC000_0004;
-        b.write8(0x1001, 0xAB);
-        assert_eq!(b.read32(0x1000), first & 0xFFFF_00FF | 0xAB00);
-        assert_eq!(
-            b.log,
-            vec![
-                (2, 0x1000, 0, 0),
-                (3, 0x1001, 0xAB, 0xC000_0004),
-                (2, 0x1000, 0, 0xC000_0004)
-            ]
-        );
-        assert!(!b.stale);
-        b.stale_range = Some((0x2000, 0x3000));
-        b.write32(0x1FFC, 1);
-        assert!(!b.stale);
-        b.write16(0x2800, 1);
-        assert!(SbBus::stale(&b));
-        b.poke32(0x4000, 9);
-        assert_eq!((b.peek32(0x4000), b.log.len()), (9, 5), "poke does not log");
+    fn the_environment_knobs_default_when_unset_or_malformed() {
+        assert_eq!(env_u64("NS4_NO_SUCH_KNOB_FOR_VGEN", 17), 17);
+        std::env::set_var("NS4_VGEN_TEST_KNOB", "x1");
+        assert_eq!(env_u64("NS4_VGEN_TEST_KNOB", 5), 5);
+        std::env::set_var("NS4_VGEN_TEST_KNOB", "41");
+        assert_eq!(env_u64("NS4_VGEN_TEST_KNOB", 5), 41);
+        std::env::remove_var("NS4_VGEN_TEST_KNOB");
+        assert!(fuzz_cases(60) >= 1);
+        let _ = fuzz_seed();
+    }
+
+    /// Every item the hub re-exports is the one its module defines (the paths other work
+    /// packages import).
+    #[test]
+    fn the_hub_re_exports_the_kit() {
+        let mut rng = Rng::new(3);
+        let cpu = random_cpu_flags(&mut rng, 0x1000, 5);
+        let edge = edge_cpu(&mut rng, 0x1000);
+        assert_eq!((cpu.nzcv(), edge.r[15]), (5, 0x1000));
+        let m = random_machine(&mut rng, &[0xE1A0_0000], &MachineSpec::default());
+        let run: Run = oracle_run(&m, 1, 0, None);
+        let snap: Snapshot = snapshot(&m, None);
+        assert_eq!((run.n, snap.cpu.r[15]), (1, 0xC000_0000));
+        assert_eq!(compare_runs(&run, &run), Ok(()));
+        assert_eq!(mem_diff(&m.bus.mem, &m.bus.mem, 4), Vec::new());
+        let tr: TraceRun = oracle_trace(&cpu, &[0xE1A0_0000], 1, 1);
+        assert_eq!(tr.executed, 1);
+        let (mut d, _): (DiffRun, Need) = (DiffRun::default(), Need::default());
+        d.cases += 1;
+        let _: (CpuSnap, LogBus) = (snap.cpu.clone(), LogBus::new(0));
+        assert_eq!(snapshot_run(&m, &run.why).stop, Some(run.why));
     }
 }

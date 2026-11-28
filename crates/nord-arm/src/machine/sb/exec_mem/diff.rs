@@ -190,10 +190,10 @@ pub(super) fn diff_case(
     word: u32,
     u: &Uop,
     cpu: &Cpu,
-    salt: u32,
+    fill: u32,
     exec: Exec,
 ) -> Result<Ran, String> {
-    let (mut ba, mut bb) = (LogBus::new(salt), LogBus::new(salt));
+    let (mut ba, mut bb) = (LogBus::new(fill), LogBus::new(fill));
     let a = interpret(word, u.pc, cpu, &mut ba);
     let mut b = cpu.clone();
     bb.pc = NO_PC;
