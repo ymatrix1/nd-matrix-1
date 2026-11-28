@@ -6,6 +6,7 @@
 //! validation: `docs/research/arm-oled-render.md` section 3.
 
 mod install;
+mod locate;
 
 pub use install::{font, install_from_env, install_from_path, installed};
 
@@ -14,14 +15,14 @@ pub use install::{font, install_from_env, install_from_path, installed};
 /// VERIFIED: `bank0_CODE` load base `0xC0000000`, `docs/research/arm-oled-render.md` header; the
 /// pointer fields of the font objects are absolute addresses inside it.
 pub const LOAD_BASE: u32 = 0xC000_0000;
-/// Address of the array of UI font pointers.
+/// Address of the array of UI font pointers in OS v1.66 (`locate.rs` finds it in others).
 ///
 /// VERIFIED: `FONT_TABLE = 0xC029E5AC`, 17 entries, `tools/arm_oled.py` `font_table`
 /// (`python tools/arm_panel.py fonts target/fw_unpacked/bank0_CODE.bin`), 17 of 17 decode.
 pub const FONT_TABLE: u32 = 0xC029_E5AC;
 /// Number of entries of [`FONT_TABLE`] (VERIFIED, same command).
 pub const FONT_COUNT: usize = 17;
-/// Address of the drawbar bar font (9 px tall; its characters `0`..`8` are the brown / black
+/// Address of the drawbar bar font in OS v1.66 (9 px tall; its characters `0`..`8` are the brown / black
 /// drawbars at heights 1..9, `9`..`A` the white ones; `88AA09009` = `8 8 8 8 0 0 0 0 0`).
 ///
 /// VERIFIED: font object at `0xC02C3BA8`, 9 rows, glyph columns decoded by
@@ -167,11 +168,15 @@ pub fn parse_font(code: &[u8], addr: u32) -> Result<Font, String> {
 }
 
 /// The 17 UI fonts of `code` (index 0 = 13 px, index 3 = 8 px, see `arm-oled-render.md` s3).
+///
+/// The table is at [`FONT_TABLE`] in OS v1.66 and found by its layout in any other version.
 pub fn font_table(code: &[u8]) -> Result<Vec<Font>, String> {
-    let base = offset(FONT_TABLE)?;
-    (0..FONT_COUNT)
-        .map(|i| parse_font(code, u32_at(code, base + 4 * i)?))
-        .collect()
+    locate::find_table(code)
+}
+
+/// The drawbar bar font, at [`BAR_FONT`] in OS v1.66 and found by its signature otherwise.
+pub fn bar_font(code: &[u8]) -> Option<Font> {
+    locate::find_bar(code)
 }
 
 #[cfg(test)]

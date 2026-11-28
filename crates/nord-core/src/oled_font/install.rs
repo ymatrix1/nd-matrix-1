@@ -1,7 +1,7 @@
 //! Process-wide holder of the firmware fonts. Empty until an update file loads; callers fall back
 //! to their own text painter while [`installed`] is false.
 
-use super::{font_table, parse_font, Font, BAR_FONT};
+use super::{bar_font, font_table, Font};
 use crate::render_opts_wave::WAVE_TABLES_ENV;
 use std::path::Path;
 use std::sync::RwLock;
@@ -30,7 +30,7 @@ pub fn install_from_path(path: &Path) -> Result<usize, String> {
     };
     let mut fonts = font_table(&code).map_err(|e| format!("{}: {e}", path.display()))?;
     // The drawbar bar font follows the 17 UI fonts (index `BAR_FONT_INDEX`); optional.
-    if let Ok(bars) = parse_font(&code, BAR_FONT) {
+    if let Some(bars) = bar_font(&code) {
         fonts.push(bars);
     }
     let n = fonts.len();

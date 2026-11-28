@@ -23,6 +23,49 @@ fn hex(s: &str, line: &str) -> Result<u32, String> {
     u32::from_str_radix(s.trim(), 16).map_err(|_| format!("bad delta {line:?}"))
 }
 
+/// `bank0_CODE` byte offsets `[from, to)` that an OS version holds `delta` bytes later than the
+/// offsets of the delta `A` lines (written for v1.66).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Shift {
+    pub from: u32,
+    pub to: u32,
+    pub delta: i32,
+}
+
+/// Offset shifts of OS v1.68 against v1.66 for the rodata the `A` lines read: derived by finding
+/// each of the 53 `A` ranges of the Bass delta byte for byte in the v1.68 image, unique in every
+/// case (`docs/research/os-1-68-vs-1-66.md` s4). The constants themselves are unchanged, so the
+/// image fingerprint of the Bass image is the same; that guard is what accepts this table.
+///
+/// VERIFIED: `+0x368` for `0x270000..0x2B6000` (51 ranges), `+0x3A0` from `0x2D8644` on (2 ranges:
+/// `0x442E0C`, `0x444187`).
+pub const OS_V168: &[Shift] = &[
+    Shift {
+        from: 0x27_0000,
+        to: 0x2B_6000,
+        delta: 0x368,
+    },
+    Shift {
+        from: 0x2D_8644,
+        to: 0x60_0000,
+        delta: 0x3A0,
+    },
+];
+
+/// Every offset table to try, in order: the offsets as written (v1.66), then each later version.
+pub const KNOWN_SHIFTS: [&[Shift]; 2] = [&[], OS_V168];
+
+fn shifted(off: u32, shifts: &[Shift]) -> Result<u32, String> {
+    if shifts.is_empty() {
+        return Ok(off);
+    }
+    let s = shifts
+        .iter()
+        .find(|s| (s.from..s.to).contains(&off))
+        .ok_or_else(|| format!("offset {off:#x} is outside the known layout of this OS version"))?;
+    Ok((i64::from(off) + i64::from(s.delta)) as u32)
+}
+
 /// DM image text of the `keep` ranges `(base, words)` of the flat core `sram` image, after the
 /// install `delta` (words from `code`, the `bank0_CODE` bytes, for its `A` lines), and the number
 /// of non zero words.
@@ -31,6 +74,17 @@ pub fn dm_image_text(
     code: &[u8],
     keep: &[(u32, u32)],
     delta: &str,
+) -> Result<(String, usize), String> {
+    dm_image_text_shifted(sram, code, keep, delta, &[])
+}
+
+/// [`dm_image_text`] with the byte offsets of the `A` lines moved by `shifts` (none: as written).
+pub fn dm_image_text_shifted(
+    sram: &[u8],
+    code: &[u8],
+    keep: &[(u32, u32)],
+    delta: &str,
+    shifts: &[Shift],
 ) -> Result<(String, usize), String> {
     let mut words: BTreeMap<u32, u32> = BTreeMap::new();
     for &(base, n) in keep {
@@ -56,7 +110,7 @@ pub fn dm_image_text(
                 let (a, n, off) = (
                     hex(addr, line)?,
                     hex(count, line)? as usize,
-                    hex(offset, line)?,
+                    shifted(hex(offset, line)?, shifts)?,
                 );
                 let bytes = code
                     .get(off as usize..off as usize + 4 * n)
@@ -140,5 +194,53 @@ mod tests {
                 "{bad}"
             );
         }
+    }
+
+    #[test]
+    fn shifts_move_the_a_line_offsets_and_unknown_offsets_are_an_error() {
+        let mut code = vec![0u8; 0x40];
+        code[0x30..0x34].copy_from_slice(&[7, 0, 0, 0]);
+        let sh = [Shift {
+            from: 0x10,
+            to: 0x20,
+            delta: 0x20,
+        }];
+        let (text, _) = dm_image_text_shifted(
+            &sram(),
+            &code,
+            &KEEP,
+            "A,c27e0,1,10
+",
+            &sh,
+        )
+        .unwrap();
+        assert!(
+            text.contains(
+                "M,c27e0,7
+"
+            ),
+            "{text}"
+        );
+        let e = dm_image_text_shifted(
+            &sram(),
+            &code,
+            &KEEP,
+            "A,c27e0,1,28
+",
+            &sh,
+        )
+        .unwrap_err();
+        assert!(e.contains("outside the known layout"), "{e}");
+        assert_eq!(shifted(0x2A_7000, &[]).unwrap(), 0x2A_7000);
+    }
+
+    #[test]
+    fn the_v168_table_is_ordered_and_does_not_overlap() {
+        for w in OS_V168.windows(2) {
+            assert!(w[0].from < w[0].to && w[0].to <= w[1].from);
+        }
+        assert_eq!(shifted(0x2A_765C, OS_V168).unwrap(), 0x2A_79C4);
+        assert_eq!(shifted(0x44_4187, OS_V168).unwrap(), 0x44_4527);
+        assert_eq!(KNOWN_SHIFTS[0].len(), 0);
     }
 }

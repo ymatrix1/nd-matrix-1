@@ -29,6 +29,18 @@ pub fn calculate_checksum(bytes: &[u8]) -> u32 {
     0xFFFF_FFFFu32.wrapping_sub(sum)
 }
 
+/// OS version of a container as the number the firmware prints (`166` = v1.66), from the byte at
+/// `+0x21` of the image 0 sub-header, or `None` when `bytes` is too short.
+///
+/// VERIFIED: that byte is `0x90, 0x92, 0x98, 0x9A, 0xA0, 0xA2, 0xA4, 0xA6, 0xA8` in the nine
+/// updates v1.44, 1.46, 1.52, 1.54, 1.60, 1.62, 1.64, 1.66, 1.68 (`docs/research/os-1-68-vs-1-66.md`
+/// s2); the bytes around it (`00 xx 01 00`) are the same in all nine.
+pub fn os_version(bytes: &[u8]) -> Option<u32> {
+    bytes
+        .get(FIRMWARE_TOP_HEADER_SIZE + 1)
+        .map(|b| u32::from(*b))
+}
+
 /// Functional categorization of embedded DSP partitions and hardware coprocessor targets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DspEngineType {

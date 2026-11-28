@@ -204,3 +204,14 @@ fn test_extract_segment_respects_bank_base_offsets() {
         .unwrap()
         .verify_checksum(&out1));
 }
+
+#[test]
+fn os_version_reads_the_byte_after_the_top_header() {
+    let mut raw = build_synthetic_firmware();
+    assert_eq!(os_version(&raw), Some(0));
+    raw[0x20..0x24].copy_from_slice(&[0x00, 0xA8, 0x01, 0x00]);
+    assert_eq!(os_version(&raw), Some(168));
+    raw[0x21] = 0xA6;
+    assert_eq!(os_version(&raw), Some(166));
+    assert_eq!(os_version(&raw[..0x21]), None);
+}

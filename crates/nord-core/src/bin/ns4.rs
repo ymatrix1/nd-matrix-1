@@ -44,10 +44,13 @@ fn run_cli(args: &[String]) -> Result<String, String> {
                     .cloned();
                 let mut out = format!(
                     "Firmware Container: {path}\n\
+                     OS version: {}\n\
                      Header Size: {} B\n\
                      Image 0 Size: {} B (Segments: {})\n\
                      Image 1 Size: {} B @ 0x{:X} (Segments: {})\n\
                      Discovered DSP Partitions: {}\n",
+                    nord_core::firmware::os_version(&bytes)
+                        .map_or_else(|| "unknown".to_string(), |v| v.to_string()),
                     fw.header_size,
                     fw.image0_size,
                     fw.image0_segments.len(),
