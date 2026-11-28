@@ -23,6 +23,7 @@ pub mod library_host;
 #[cfg(test)]
 mod library_off_tests;
 pub mod library_select;
+pub mod lle_bridge;
 pub mod load_queue;
 pub mod loader;
 pub mod menu_extra_params;
@@ -86,6 +87,8 @@ pub struct NdMatrix1Plugin {
     last_library_program: i32,
     /// Where the library comes from: the user's saved one, or what a test or tool sets.
     pub library_source: auto_library::LibrarySource,
+    /// Opt-in live I/O bridge to the LLE layer (`lle_bridge`); off unless requested.
+    pub lle: lle_bridge::LleBridge,
 }
 
 impl Default for NdMatrix1Plugin {
@@ -112,6 +115,7 @@ impl Default for NdMatrix1Plugin {
             library: None,
             last_library_program: -1,
             library_source: auto_library::LibrarySource::Saved,
+            lle: lle_bridge::LleBridge::off(),
         }
     }
 }
@@ -209,6 +213,12 @@ impl Plugin for NdMatrix1Plugin {
             self.wait_for_library_program();
         }
         self.rebuild_engine();
+        // Opt-in LLE live I/O (`NS4_ENGINE=lle` or the saved engine setting); off otherwise.
+        self.lle = lle_bridge::LleBridge::from_process_settings();
+        self.lle.bind_params(&self.params);
+        if let Some(text) = self.lle.status_text() {
+            nih_log!("{text}");
+        }
         true
     }
 
@@ -247,6 +257,8 @@ impl Plugin for NdMatrix1Plugin {
         let mut next_event = context.next_event();
         let num_samples = buffer.samples();
         let mut sample_idx = 0;
+        // Params the host or editor moved since the last block (a no-op unless the bridge is on).
+        self.lle.scan_params();
 
         let channels = buffer.as_slice();
         let mut aux_channels = aux.outputs.first_mut().map(|b| b.as_slice());
@@ -255,6 +267,7 @@ impl Plugin for NdMatrix1Plugin {
             // Dispatch all events at the current sample offset
             while let Some(event) = next_event {
                 if event.timing() as usize <= sample_idx {
+                    self.lle.forward_host_event(&event);
                     midi::route_plugin_event(&mut self.engine, &self.params, mode, event);
                     next_event = context.next_event();
                 } else {
@@ -292,6 +305,7 @@ impl Plugin for NdMatrix1Plugin {
 
         // One snapshot per block for the editor (lock-free seqlock write, no allocation).
         self.engine.publish_telemetry();
+        self.lle.end_block();
 
         ProcessStatus::Normal
     }
