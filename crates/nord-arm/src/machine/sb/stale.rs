@@ -1,17 +1,55 @@
-//! OWNER: W1-CACHE. Invalidation of traces when code pages go stale (skeleton: drop every trace
-//! that read the page; always correct, never revalidates).
+//! OWNER: W1-CACHE. Invalidation of traces when code pages go stale, and the flush of the whole
+//! cache.
 //!
 //! Spec (design note 6, WP W1-CACHE): the placeholder protocol of `take_real`/`absorb_pending`/
-//! `put_back` and the first lines of `on_stale` stay as they are. `SbState::on_stale(page, mem)` is called for every page
-//! `Mem::stale_code` yields (a store to a `HOOK_C` page, or a new `HOOK_X`). Revalidate: compare
-//! each covering trace's `words` with memory; keep unchanged traces and re-mark `HOOK_C`
-//! (`Mem::mark_code`); drop changed ones, reset links to them and release their backend code. A
-//! page that now holds `HOOK_X` drops every trace. A page whose words really changed more than
-//! `cfg.volatile_after` times becomes volatile (tier 1 only, `SbCache::mark_volatile`).
+//! `put_back` and the first lines of `on_stale` are as the skeleton had them. `on_stale(page,
+//! mem)` is called for every page `Mem::stale_code` yields (a store to a `HOOK_C` page, or a new
+//! `HOOK_X`). Revalidation: each trace that read `page` is compared word by word with memory
+//! (`Sb::words`, only the words on that page); an unchanged trace stays and the page is flagged
+//! `HOOK_C` again (`Mem::mark_code`), a changed one is dropped, its entry count reset and every
+//! link to it cleared, and its backend code released. A page that now holds `HOOK_X` drops every
+//! trace and is not re-flagged. A page whose words really changed more than `cfg.volatile_after`
+//! times becomes volatile: it loses every trace and `SbCache::volatile` keeps the builder away
+//! (tier 1 only). Reading memory never maps a page (I9): an unmapped word counts as changed.
+//!
+//! Nothing here allocates after a page's first insert, except the first push to `pending` of a
+//! placeholder (design note, real-time rule).
 
-use super::uop::NO_SB;
+use super::uop::{SbId, NO_SB};
 use super::SbState;
-use crate::mem::Mem;
+use crate::mem::{Mem, HOOK_X};
+
+// Mutation sites of W1-CACHE (block 650..=659 of the shared 600..=699 of `mutants.rs`). A site is
+// `if is_active(<id>)`, a test-only branch that makes the code wrong; `mutants_are_killed` shows
+// a test fails for each one. Ids: 650 revalidation accepts a changed word; 651 a page that keeps
+// traces is not flagged `HOOK_C` again; 652 a hooked page keeps its unchanged traces; 653 the
+// volatile rule fires one change early; 654 a dropped trace keeps its dispatch count; 655
+// (cache.rs) a killed trace stays in the entry table.
+
+/// Whether the test-only mutant `id` is active (`mutants::is_active`); always false outside tests.
+#[cfg(test)]
+#[inline(always)]
+pub(super) fn is_active(id: u32) -> bool {
+    super::mutants::is_active(id)
+}
+
+#[cfg(not(test))]
+#[inline(always)]
+pub(super) const fn is_active(_id: u32) -> bool {
+    false
+}
+
+/// True when every word of `words` that lies on `page` still holds the value the trace was built
+/// from. A word on an unmapped page (or straddling into one) counts as changed; nothing is mapped.
+fn words_intact(mem: &mut Mem, words: &[(u32, u32)], page: u32) -> bool {
+    if is_active(650) {
+        return true;
+    }
+    words
+        .iter()
+        .filter(|(a, _)| a >> 12 == page)
+        .all(|&(a, w)| mem.is_mapped(a) && mem.is_mapped(a.wrapping_add(3)) && mem.read32(a) == w)
+}
 
 impl SbState {
     /// The inert state `Machine::sb` holds while the real one is taken out.
@@ -52,19 +90,112 @@ impl SbState {
             }
             return;
         }
-        let _ = mem; // the skeleton does not revalidate
-        for id in self.cache.covering(page) {
-            let native = self.cache.get(id).native;
-            if let Some(be) = self.backend.as_mut() {
-                if native != NO_SB {
-                    be.release(native);
-                }
+        let base = page << 12;
+        let hooked = mem.flags(base) & HOOK_X != 0 && !is_active(652);
+        let dropped_before = self.stats.dropped;
+        // Code that may have changed can be tried again where a build failed before.
+        self.hot.forget_failures(page);
+        // Walk the page's list from the back: dropping entry `i` only moves later entries.
+        let mut changed = false;
+        let mut i = self.cache.covering(page).len();
+        while i > 0 {
+            i -= 1;
+            let id = self.cache.covering(page)[i];
+            if hooked || !words_intact(mem, &self.cache.get(id).words, page) {
+                changed |= !hooked;
+                self.drop_one(id);
             }
-            self.cache.kill(id);
-            self.stats.dropped += 1;
+        }
+        if changed {
+            let early = u8::from(is_active(653));
+            if self.cache.note_change(page) > self.cfg.volatile_after.saturating_sub(early) {
+                self.cache.mark_volatile(page);
+            }
+        }
+        if self.cache.volatile(page) {
+            let mut i = self.cache.covering(page).len();
+            while i > 0 {
+                i -= 1;
+                let id = self.cache.covering(page)[i];
+                self.drop_one(id);
+            }
+        }
+        let kept = self.cache.covering(page).len();
+        if kept > 0 {
+            self.stats.revalidated += kept as u64;
+            if mem.is_mapped(base) && !is_active(651) {
+                mem.mark_code(base);
+            }
+        }
+        if self.stats.dropped != dropped_before {
+            self.cache.reset_dead_links();
         }
     }
+
+    /// Drop trace `id`: release its backend code, kill it, forget its entry count. Links to it
+    /// are left to `SbCache::reset_dead_links` (one pass for a batch). No-op for a dead id.
+    fn drop_one(&mut self, id: SbId) {
+        if !self.cache.is_live(id) {
+            return;
+        }
+        let (entry, native) = {
+            let sb = self.cache.get(id);
+            (sb.entry, sb.native)
+        };
+        if native != NO_SB {
+            if let Some(be) = self.backend.as_mut() {
+                be.release(native);
+            }
+            self.cache.get_mut(id).native = NO_SB;
+        }
+        self.cache.kill(id);
+        if !is_active(654) {
+            self.hot.reset(entry);
+        }
+        self.stats.dropped += 1;
+    }
+
+    /// Drop trace `id` (a quarantined or superseded one): [`SbState::on_stale`]'s drop, plus the
+    /// reset of every link to it.
+    pub fn drop_trace(&mut self, id: SbId) {
+        let before = self.stats.dropped;
+        self.drop_one(id);
+        if self.stats.dropped != before {
+            self.cache.reset_dead_links();
+        }
+    }
+
+    /// Drop every trace and release all backend code. Every `SbId` held anywhere is void
+    /// afterwards (`SbCache::epoch` changed). Hotness and failure marks stay: the code did not
+    /// change.
+    pub fn flush_all(&mut self) {
+        if let Some(be) = self.backend.as_mut() {
+            for (_, sb) in self.cache.iter_live() {
+                if sb.native != NO_SB {
+                    be.release(sb.native);
+                }
+            }
+        }
+        self.cache.flush();
+        self.stats.flushes += 1;
+    }
+
+    /// Flush when the cache is over `cfg.uop_cap` live uops (or holds too many dead slots);
+    /// true when it did, and the caller must then forget every trace id it holds.
+    pub fn flush_if_over_cap(&mut self) -> bool {
+        let over = self.cache.over_cap(self.cfg.uop_cap);
+        if over {
+            self.flush_all();
+        }
+        over
+    }
 }
+
+#[cfg(test)]
+mod lifecycle_tests;
+
+#[cfg(test)]
+mod revalidate_tests;
 
 #[cfg(test)]
 mod tests {
@@ -72,28 +203,6 @@ mod tests {
     use crate::machine::sb::cache::tiny_trace;
     use crate::machine::sb::SbConfig;
 
-    #[test]
-    fn every_trace_that_read_the_page_dies_and_the_others_live() {
-        let mut st = SbState::default();
-        let mut mem = Mem::new();
-        let a = st.cache.insert(tiny_trace(0x1000, &[(0x1000, 1)]));
-        let b = st
-            .cache
-            .insert(tiny_trace(0x2000, &[(0x2000, 1), (0x1008, 2)]));
-        let c = st.cache.insert(tiny_trace(0x3000, &[(0x3000, 1)]));
-        st.on_stale(1, &mut mem);
-        assert_eq!(
-            (
-                st.cache.is_live(a),
-                st.cache.is_live(b),
-                st.cache.is_live(c)
-            ),
-            (false, false, true)
-        );
-        assert_eq!(st.stats.dropped, 2);
-        st.on_stale(1, &mut mem); // nothing left to drop
-        assert_eq!(st.stats.dropped, 2);
-    }
     #[test]
     fn a_placeholder_records_pages_once_and_touches_nothing_else() {
         let mut ph = SbState::placeholder();
@@ -107,13 +216,15 @@ mod tests {
 
     #[test]
     fn pages_that_go_stale_while_the_state_is_out_reach_it_when_it_is_put_back() {
+        let mut mem = Mem::new();
+        mem.write32(0x1000, 1);
+        mem.write32(0x3000, 1);
         let mut slot = SbState {
             cfg: SbConfig::on(),
             ..SbState::default()
         };
-        let id = slot.cache.insert(tiny_trace(0x1000, &[(0x1000, 1)]));
+        let id = slot.cache.insert(tiny_trace(0x1000, &[(0x1000, 99)]));
         let keep = slot.cache.insert(tiny_trace(0x3000, &[(0x3000, 1)]));
-        let mut mem = Mem::new();
         let real = SbState::take_real(&mut slot);
         assert!(slot.placeholder && slot.cache.live_count() == 0 && real.cache.is_live(id));
         slot.on_stale(1, &mut mem); // a nested run drops stale code while the driver holds `real`
@@ -126,12 +237,25 @@ mod tests {
 
     #[test]
     fn absorb_pending_forwards_and_clears() {
-        let mut real = SbState::default();
-        let id = real.cache.insert(tiny_trace(0x2000, &[(0x2000, 1)]));
-        let mut ph = SbState::placeholder();
         let mut mem = Mem::new();
+        mem.write32(0x2000, 1);
+        let mut real = SbState::default();
+        let id = real.cache.insert(tiny_trace(0x2000, &[(0x2000, 7)]));
+        let mut ph = SbState::placeholder();
         ph.on_stale(2, &mut mem);
         real.absorb_pending(&mut ph, &mut mem);
         assert!(!real.cache.is_live(id) && ph.pending.is_empty());
+    }
+
+    #[test]
+    fn a_state_with_nothing_cached_ignores_a_stale_page() {
+        let mut st = SbState::default();
+        let mut mem = Mem::new();
+        st.on_stale(5, &mut mem);
+        assert_eq!(
+            (st.stats.dropped, st.stats.revalidated, st.pending.len()),
+            (0, 0, 0)
+        );
+        assert_eq!(mem.flags(0x5000), 0, "no page is flagged for nothing");
     }
 }
