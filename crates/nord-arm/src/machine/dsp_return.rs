@@ -4,16 +4,11 @@
 //! Layers, first hit wins: SY idle voice mask, the DM shadow of every word the ARM itself sent,
 //! then 0. The live-chip and initial-image layers of the Python module belong to `ns4-lle5`.
 
-use super::boot::COMM_TABLE;
 use super::grouper::Message;
 use super::Machine;
 use std::collections::HashMap;
 
-/// ASSUMED: entry points of the three SPI read routines, ported from `tools/arm_dsp_return.py`;
-/// confirm by disassembling `bank0_CODE.bin` at these addresses (`tools/arm_xref.py`).
-pub const SPI_READ4: u32 = 0xC001_19A4;
-pub const SPI_READ2: u32 = 0xC001_17E8;
-pub const SPI_READN: u32 = 0xC006_6E64;
+// Entry points of the three SPI read routines are in `layout.rs` (`spi_read4/2`, `spi_transfer`).
 /// ASSUMED: comm index of the SY chip (`PAD`/`COMM_TABLE` order of `tools/arm_emu.py`).
 const SY_CHIP: u32 = 3;
 /// ASSUMED: the decoded `SPI_READN` sites read 1 to 4 words; a larger count falls back.
@@ -137,7 +132,8 @@ impl Machine {
     /// Replace the three SPI read routines by answers from [`DspReturn`].
     pub fn install_dsp_return(&mut self) {
         self.dsp_return = Some(DspReturn::default());
-        for pc in [SPI_READ4, SPI_READ2, SPI_READN] {
+        let l = self.layout;
+        for pc in [l.spi_read4, l.spi_read2, l.spi_transfer] {
             self.add_hook(pc, super::Hook::DspRead);
         }
     }
@@ -147,16 +143,17 @@ impl Machine {
         let mut src = self.dsp_return.take().expect("installed");
         src.sync(&self.bus.messages);
         let r = self.cpu.r;
-        let (chip, address, count, dst) = if pc == SPI_READN {
+        let (read4, readn) = (self.layout.spi_read4, self.layout.spi_transfer);
+        let (chip, address, count, dst) = if pc == readn {
             let chip = (0..5u32)
-                .find(|c| self.bus.mem.read32(COMM_TABLE + 4 + 4 * c) == r[0])
+                .find(|c| self.bus.mem.read32(self.layout.comm_table + 4 + 4 * c) == r[0])
                 .unwrap_or(u32::MAX);
             let dst = self.bus.mem.read32(r[13]);
             (chip, r[2], r[3], dst)
         } else {
-            (r[1], r[2], if pc == SPI_READ4 { 4 } else { 2 }, r[3])
+            (r[1], r[2], if pc == read4 { 4 } else { 2 }, r[3])
         };
-        let ok = pc != SPI_READN
+        let ok = pc != readn
             || (chip < 5 && count > 0 && count <= READN_MAX && src.knows(chip, address));
         if ok {
             let mut words = [0u32; 4];
@@ -165,7 +162,7 @@ impl Machine {
             for (k, w) in words.iter().enumerate() {
                 self.bus.mem.write32(dst.wrapping_add(4 * k as u32), *w);
             }
-        } else if pc == SPI_READN && dst != 0 {
+        } else if pc == readn && dst != 0 {
             self.bus.mem.write32(dst, 0);
         }
         self.dsp_return = Some(src);
@@ -224,7 +221,7 @@ mod tests {
         m.cpu.r[2] = 0x2800_0000;
         m.cpu.r[3] = 0x2000;
         m.cpu.r[14] = 0xC000_0100;
-        m.cpu.r[15] = SPI_READ4;
+        m.cpu.r[15] = Machine::new().layout.spi_read4;
         m.run(1, 0xC000_0100, None);
         assert_eq!(m.cpu.r[15], 0xC000_0100);
         assert_eq!(m.bus.mem.read32(0x200C), 0);

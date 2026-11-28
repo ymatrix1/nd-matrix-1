@@ -30,5 +30,5 @@ The `.dmg` is an Apple UDIF image: 512-byte `koly` trailer, XML plist with `mish
 
 ## Follow-ups
 
-- Later OS versions: confirm the registry address (`0xC02FD4B0`) per version; add a table of versions if it moves.
+- Later OS versions: done (2026-11-27, [os-1-68-vs-1-66](os-1-68-vs-1-66.md)): the registry is found by its layout (v1.66 address first), so `ns4 firmware info` reports 46 WAVE tables for every update from v1.44 to v1.68. The first guess `0xC02FD4B0` is v1.66; v1.68 has it at `0xC02FD850`.
 - A native file dialog (`rfd`) if drag-and-drop proves awkward.

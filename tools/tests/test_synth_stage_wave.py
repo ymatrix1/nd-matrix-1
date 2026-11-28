@@ -140,3 +140,14 @@ def test_build_l2_handles_duplicate_rows_with_one_copy() -> None:
     rows, l2 = reg.build_l2(code, entry)
     assert all(rows[4 * b] == 0 for b in range(128))
     assert len(l2) == 4 + reg.GUARD - reg.TAIL_TRIM
+
+
+def test_find_registry_takes_the_v166_address_or_scans_for_the_layout(monkeypatch) -> None:
+    names = [f"w{k}" for k in range(reg.WAVE_COUNT)]
+    assert reg.find_registry(_registry_image(names)) == reg.REGISTRY
+    moved = reg.REGISTRY + 0x3A0
+    monkeypatch.setattr(reg, "REGISTRY", moved)
+    image = _registry_image(names)
+    monkeypatch.setattr(reg, "REGISTRY", moved - 0x3A0)
+    assert reg.find_registry(image) == moved
+    assert reg.find_registry(bytes(0x2000)) == reg.REGISTRY  # nothing found: the default

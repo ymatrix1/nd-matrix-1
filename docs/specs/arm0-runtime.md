@@ -2,7 +2,7 @@
 
 Status: v0.2 (2026-11-24), bean `ns4-lle2`, decisions [D245](../DECISIONS.md), [D250](../DECISIONS.md). Measurements: [arm0-rust-runtime](../research/arm0-rust-runtime.md).
 
-Native Rust ARM926EJ-S (ARMv5TE) interpreter that boots the user's OS v1.66 ARM0 image with the hardware the Python harness stubbed. Opt-in crate (no dependencies, not linked by the audio engine). Firmware bytes are never committed: the tests use synthetic in-memory code.
+Native Rust ARM926EJ-S (ARMv5TE) interpreter that boots the user's OS v1.66 or v1.68 ARM0 image with the hardware the Python harness stubbed. Opt-in crate (no dependencies, not linked by the audio engine). Firmware bytes are never committed: the tests use synthetic in-memory code.
 
 ## Layout
 
@@ -23,6 +23,10 @@ Native Rust ARM926EJ-S (ARMv5TE) interpreter that boots the user's OS v1.66 ARM0
 | `machine/fastrun.rs` | `CodeCache` (decoded pages), `run_cached` (block loop), `step_cached`, `drop_stale_code`. |
 | `machine/probe.rs` | `SysBus::probe_read/probe_write/probe_watch`: record whether a probe touched anything impure. |
 | `machine/{metrics,paced,micro}.rs` | Benchmark support: percentiles, backlog and queue simulation, message digest; producer/consumer threads; dispatch micro-benchmark. |
+
+## OS versions
+
+Firmware addresses (flow control, comm table, `operator new`, stubbed functions, init array, application thunk, main loop, AINTC table, SPI read routines, panel detect and wait ranges, board attach: 27 in all) live in `machine/layout.rs` as one `Layout` per OS version. `Machine::load_firmware` picks the layout whose `image_len` equals the `bank0_CODE` length (`Layout::detect`); an unknown length keeps the layout in force (v1.66 by default). Known: `V166` (5,499,504 B) and `V168` (5,500,432 B). A new version needs one more constant, found with `python tools/fw_addr_map.py OLD_CODE NEW_CODE <old addresses>` ([D257](../DECISIONS.md), [os-1-68-vs-1-66](../research/os-1-68-vs-1-66.md)). Check: `arm-lle-bench` on the v1.68 image boots to `0xC00A029C` after 232,822,685 virtual instructions with 25 null calls and the same message counts per phase as v1.66.
 
 ## Time model
 

@@ -15,10 +15,9 @@ const LSR_IDLE: u32 = 0x60;
 const LSR_READY: u32 = 0x61;
 const IIR_IDLE: u32 = 0x01;
 const IIR_RX: u32 = 0x04;
-/// EMPIRICAL: the board-present attach routine and the offset of the two "present" bytes in
-/// its configuration object (`docs/research/keydown-paths.md` s1); without them no key reaches
-/// the DSP ports in `arm-lle-bench`.
-pub const BOARD_ATTACH: u32 = 0xC024_DB74;
+/// EMPIRICAL: offset of the two "present" bytes in the configuration object of the board-present
+/// attach routine (`Layout::board_attach`, `docs/research/keydown-paths.md` s1); without them no
+/// key reaches the DSP ports in `arm-lle-bench`.
 pub const BOARD_PRESENT_OFFSET: u32 = 0x12;
 
 /// Byte queue behind `RBR`, `LSR`, `IIR`.
