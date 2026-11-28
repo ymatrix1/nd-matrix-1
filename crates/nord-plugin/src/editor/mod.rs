@@ -26,6 +26,8 @@ pub mod coverage;
 mod dialog_tests;
 pub mod draw;
 pub mod index;
+#[cfg(test)]
+mod library_open_tests;
 pub mod map;
 mod map_area;
 mod map_fx;
