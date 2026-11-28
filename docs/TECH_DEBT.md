@@ -29,6 +29,7 @@ This document tracks deliberate trade-offs, structural compromises, temporary wo
 | **TD-21** | `crates/nord-plugin/` (`program_overrides.rs`, `lib.rs`, `editor/readback.rs`) | Medium | Loader and per-group hold exist (D218); the loaded program is not mirrored into host parameters or persisted, and a touched group collapses to host values | Phase 7 | Partly resolved |
 | **TD-22** | `crates/nord-arm` (`cpu/predecode.rs` 440 lines, `mem.rs` 453, `machine/fastrun.rs` 407), `crates/nord-tools/src/bin/arm_lle_bench.rs` (453) | Low | Four files are over the 400-line rule ([code-structure](../.agents/rules/code-structure.md)); most of the excess is unit tests and the benchmark's report code | `ns4-lle3` (split with the next change to these files) | Open |
 | **TD-23** | `crates/nord-gui/src/main.rs` (1 029 lines), `crates/nord-plugin/src/editor/draw.rs` (731), `crates/nord-plugin/src/lib.rs` (507), `loader.rs` (421) | Low | Four plugin / app files are over the 400-line rule | next change that touches them | Open |
+| **TD-24** | `crates/nord-tools/src/bin/fast_vs_exact.rs` (554 lines) | Low | Over the 400-line rule ([code-structure](../.agents/rules/code-structure.md)); about 150 lines are unit tests, the rest is the comparison, the report text and the argument parser in one binary | `ns4-lle3` (split with the next change to this tool) | Open |
 
 ---
 
@@ -198,3 +199,9 @@ This document tracks deliberate trade-offs, structural compromises, temporary wo
 
 1. Every newly introduced structural compromise or temporary fallback must be logged here with a **TD-XX** identifier.
 2. When a roadmap phase or bean resolves a technical debt item, update its status to `Resolved` and link the corresponding commit/PR.
+
+### TD-24: `fast_vs_exact.rs` is over the 400-line rule
+
+- **What:** `fast_vs_exact.rs` is 554 lines (code plus tests): the word comparison (`Err1`, `compare`), the report and CSV text, the argument parser and `main`.
+- **Plan:** split into a `fast_vs_exact/` directory module: `err.rs` (`Err1`, domain rules, tests), `report.rs` (`report`, `row_text`, `csv`, tests), `args.rs`, with `main.rs` driving the passes; no behaviour change (the report text of the ORG and PNO Core2 runs stays identical).
+- **Risk:** none for behaviour; review cost only.
