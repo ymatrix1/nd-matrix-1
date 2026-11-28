@@ -75,10 +75,14 @@ pub fn fold_add(pairs: &[(u64, u64)], sub: bool, trunc: bool, r32: bool, k: Kern
         Kernel::Fast => pairs
             .iter()
             .for_each(|&(a, b)| acc = fold(acc, fast_add(a, b, sub, m))),
-        Kernel::Pair => pairs.chunks_exact(2).for_each(|c| {
-            let o = fast_add2([c[0].0, c[1].0], [c[0].1, c[1].1], sub, m);
-            acc = fold(fold(acc, o[0]), o[1]);
-        }),
+        Kernel::Pair => pairs
+            .iter()
+            .step_by(2)
+            .zip(pairs.iter().skip(1).step_by(2))
+            .for_each(|(p, q)| {
+                let o = fast_add2([p.0, q.0], [p.1, q.1], sub, m);
+                acc = fold(fold(acc, o[0]), o[1]);
+            }),
         Kernel::Reference => pairs
             .iter()
             .for_each(|&(a, b)| acc = fold(acc, float::add(a, b, sub, false, m))),
@@ -97,10 +101,14 @@ pub fn fold_mul(pairs: &[(u64, u64)], trunc: bool, r32: bool, k: Kernel) -> u64 
         Kernel::Fast => pairs
             .iter()
             .for_each(|&(a, b)| acc = fold(acc, fast_mul(a, b, m))),
-        Kernel::Pair => pairs.chunks_exact(2).for_each(|c| {
-            let o = fast_mul2([c[0].0, c[1].0], [c[0].1, c[1].1], m);
-            acc = fold(fold(acc, o[0]), o[1]);
-        }),
+        Kernel::Pair => pairs
+            .iter()
+            .step_by(2)
+            .zip(pairs.iter().skip(1).step_by(2))
+            .for_each(|(p, q)| {
+                let o = fast_mul2([p.0, q.0], [p.1, q.1], m);
+                acc = fold(fold(acc, o[0]), o[1]);
+            }),
         Kernel::Reference => pairs
             .iter()
             .for_each(|&(a, b)| acc = fold(acc, float::mul(a, b, m))),
