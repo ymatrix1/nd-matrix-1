@@ -12,9 +12,13 @@ objects. Gates (docs/research/sharc-compiler-design.md section 12):
       or native code); `Slow` exits <= 20 per pass; `maintain_calls == 0`; `smc == 0` (no store
       hit a translated code page in the measured passes: a hit means data shares a 256-word page
       with code, costs a revalidation per store and is answered by a smaller page, not ignored).
-  K3  modeled Tier 2 cycles per pass <= 1.4 x 207,360 = 290,304 (the 46.08 us budget at 4.5 GHz).
+  K3  modeled Tier 2 cycles per pass <= 290,000, the design's "1.4 x budget = 290k" (1.4 x 207,360
+      = 290,304, the 46.08 us budget at 4.5 GHz, rounded down). A Tier 1 report has no native
+      steps, so its Tier 2 model equals its Tier 1 model and K3 reads it as such.
 
-All thresholds are ASSUMED decision thresholds, not measurements. Exit code: 0 every selected gate
+All thresholds are ASSUMED decision thresholds, not measurements, and each is a row of design
+section 12: a check is added here only together with its design row (the test
+`test_the_checks_are_exactly_the_design_rows` pins the list). Exit code: 0 every selected gate
 passed on every report, 1 a gate failed, 2 unreadable or unsupported input.
 """
 
@@ -78,6 +82,11 @@ class Check:
         return f"{mark} {self.gate} {self.name} = {self.value:g} (limit {self.limit}) [{label}]"
 
 
+def is_count(x: object) -> bool:
+    """A non-negative integer that is not a bool (JSON `true` is an int in Python)."""
+    return isinstance(x, int) and not isinstance(x, bool) and x >= 0
+
+
 def validate(report: object) -> dict:
     """Return `report` when it is a well-formed schema 1 object, else raise `ReportError`."""
     if not isinstance(report, dict):
@@ -89,16 +98,14 @@ def validate(report: object) -> dict:
     if not isinstance(stats, dict) or not isinstance(model, dict):
         raise ReportError("missing stats or model object")
     for key in STATS_KEYS:
-        if not isinstance(stats.get(key), int) or stats[key] < 0:
+        if not is_count(stats.get(key)):
             raise ReportError(f"stats.{key} missing or not a count")
     for key, size in (("exits", EXIT_COUNT), ("guard_fail", GUARD_COUNT)):
         arr = stats.get(key)
-        if not (
-            isinstance(arr, list) and len(arr) == size and all(isinstance(x, int) for x in arr)
-        ):
+        if not (isinstance(arr, list) and len(arr) == size and all(is_count(x) for x in arr)):
             raise ReportError(f"stats.{key} is not a list of {size} counts")
     for key in ("tier1_cycles", "tier2_cycles"):
-        if not isinstance(model.get(key), int) or model[key] < 0:
+        if not is_count(model.get(key)):
             raise ReportError(f"model.{key} missing or not a count")
     return report
 
