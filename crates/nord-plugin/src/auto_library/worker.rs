@@ -446,6 +446,7 @@ mod tests {
             tx,
             Arc::clone(&done),
             Arc::new(AtomicBool::new(false)),
+            None,
         );
         // Program 1 is location 0 (A:11); the panic hits it, program 2 (A:12) loads normally.
         w.panic_on_load = location(1);
