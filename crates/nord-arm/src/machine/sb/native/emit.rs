@@ -9,12 +9,20 @@
 //! the trace (applies `insns += done` and `r15 = target`, stores state, returns the index),
 //! `exit_generic(pc)` leaves with the state exact before the instruction at `pc` (the driver runs
 //! one `Cpu::step` there) and `side_exit_generic_if(cond, pc)` is the conditional form a
-//! memory fast path uses. Registers are 32 bit, flags are `i32` holding 0 or 1.
+//! memory fast path uses. Registers are 32 bit, flags are `i32` holding exactly 0 or 1 (they are
+//! stored as the bytes of a `bool`, so any other value would be undefined behaviour of the
+//! `Cpu`).
+//!
+//! Register-target exits (design note 9): an `Indirect` exit (`bx`) stores
+//! `cpu.thumb = r[reg] & 1` and leaves with `r15 = ctl.target = r[reg] & !1` (Thumb) or `& !3`
+//! (ARM); an `IndirectArm` exit (`mov pc,rm`) leaves with `r[reg] & !3` and never touches
+//! `cpu.thumb`; both are what `exec::exit_target` does. A `Dynamic` exit stays driver-side: the
+//! `GENERIC_END` before it is never native (the trace leaves with `exit_generic` at that pc).
 //!
 //! Unsupported shapes return [`Unsupported`]; codegen then ends the native trace with
 //! `exit_generic`, so a missing native lowering costs speed, never exactness (I8).
 
-use super::abi::{CTL_EXIT, CTL_TARGET, EXIT_GENERIC, OFF_FLAG, OFF_INSNS, OFF_R};
+use super::abi::{CTL_EXIT, CTL_TARGET, EXIT_GENERIC, OFF_FLAG, OFF_INSNS, OFF_R, OFF_THUMB};
 use crate::machine::sb::uop::{Exit, ExitKind, Sb};
 use cranelift_codegen::ir::{types, Function, InstBuilder, MemFlags, Type, Value};
 use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext, Variable};
@@ -23,7 +31,17 @@ use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext, Variable};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Unsupported;
 
+/// Registers that are variables: `r0..r14` (`r15` is folded or leaves through an exit, I2).
 const NREGS: u8 = 15;
+
+/// What `exit(idx)` needs of one `Exit` of the trace.
+#[derive(Clone, Copy)]
+struct NExit {
+    kind: ExitKind,
+    reg: u8,
+    done: u16,
+    target: u32,
+}
 
 fn reg_var(n: u8) -> Variable {
     Variable::from_u32(u32::from(n))
@@ -46,7 +64,7 @@ pub struct NCtx<'a> {
     pub flags_def: u8,
     /// Guest instructions retired on the path emitted so far (static, I3).
     pub retired: u16,
-    exits: Vec<(ExitKind, u16, u32)>,
+    exits: Vec<NExit>,
 }
 
 impl<'a> NCtx<'a> {
@@ -77,7 +95,12 @@ impl<'a> NCtx<'a> {
         let exits = sb
             .exits
             .iter()
-            .map(|e: &Exit| (e.kind, e.done, e.target))
+            .map(|e: &Exit| NExit {
+                kind: e.kind,
+                reg: e.reg,
+                done: e.done,
+                target: e.target,
+            })
             .collect();
         Self {
             b,
@@ -140,8 +163,15 @@ impl<'a> NCtx<'a> {
         }
     }
 
-    /// Leave: state stored, `insns += done`, `r15 = target`, `ctl.exit/target` set, return `id`.
-    fn leave(&mut self, id: u32, done: u16, target: u32) {
+    /// An `i32` constant holding the bit pattern of `v` (the sign-extended form Cranelift takes
+    /// for every `u32`, guest addresses above `0x8000_0000` included).
+    pub fn const32(&mut self, v: u32) -> Value {
+        self.b.ins().iconst(types::I32, i64::from(v as i32))
+    }
+
+    /// Leave: state stored, `cpu.thumb` written when `thumb` is given, `insns += done`,
+    /// `r15 = ctl.target = target`, `ctl.exit = id`, return `id`.
+    fn leave(&mut self, id: u32, done: u16, target: Value, thumb: Option<Value>) {
         self.store_state();
         let flags = MemFlags::trusted();
         let insns = self
@@ -150,35 +180,65 @@ impl<'a> NCtx<'a> {
             .load(types::I64, flags, self.cpu, OFF_INSNS as i32);
         let insns = self.b.ins().iadd_imm(insns, i64::from(done));
         self.b.ins().store(flags, insns, self.cpu, OFF_INSNS as i32);
-        let t = self.b.ins().iconst(types::I32, i64::from(target));
-        self.b.ins().store(flags, t, self.cpu, (OFF_R + 60) as i32);
-        let e = self.b.ins().iconst(types::I32, i64::from(id));
+        if let Some(bit) = thumb {
+            self.b.ins().istore8(flags, bit, self.cpu, OFF_THUMB as i32);
+        }
+        self.b
+            .ins()
+            .store(flags, target, self.cpu, (OFF_R + 60) as i32);
+        let e = self.const32(id);
         self.b.ins().store(flags, e, self.ctl, CTL_EXIT as i32);
-        self.b.ins().store(flags, t, self.ctl, CTL_TARGET as i32);
+        self.b
+            .ins()
+            .store(flags, target, self.ctl, CTL_TARGET as i32);
         self.b.ins().return_(&[e]);
     }
 
-    /// Leave through exit `idx` of the trace. Only static targets are handled here; an
-    /// `Indirect*` or `Dynamic` exit is [`Unsupported`] until the native register-target work.
+    /// Leave through exit `idx` of the trace: a static target, or the register target of an
+    /// `Indirect` / `IndirectArm` exit. A `Dynamic` exit (its `GENERIC_END` is never native) and
+    /// an indirect exit through `r15` are [`Unsupported`], and nothing is emitted for them.
     pub fn exit(&mut self, idx: usize) -> Result<(), Unsupported> {
-        let (kind, done, target) = self.exits[idx];
+        let NExit {
+            kind,
+            reg,
+            done,
+            target,
+        } = self.exits[idx];
+        let id = idx as u32;
         match kind {
             ExitKind::Direct
             | ExitKind::Fault
             | ExitKind::Stale
             | ExitKind::LoopBack
             | ExitKind::Watch => {
-                self.leave(idx as u32, done, target);
-                Ok(())
+                let t = self.const32(target);
+                self.leave(id, done, t, None);
             }
-            ExitKind::Indirect | ExitKind::IndirectArm | ExitKind::Dynamic => Err(Unsupported),
+            ExitKind::Indirect if reg < NREGS => {
+                let v = self.reg(reg);
+                let bit0 = self.b.ins().band_imm(v, 1);
+                let bit1 = self.b.ins().ishl_imm(bit0, 1);
+                let mask = self.b.ins().bor_imm(bit1, -4);
+                let t = self.b.ins().band(v, mask);
+                self.leave(id, done, t, Some(bit0));
+            }
+            ExitKind::IndirectArm if reg < NREGS => {
+                let v = self.reg(reg);
+                let t = self.b.ins().band_imm(v, -4);
+                self.leave(id, done, t, None);
+            }
+            ExitKind::Indirect | ExitKind::IndirectArm | ExitKind::Dynamic => {
+                return Err(Unsupported)
+            }
         }
+        Ok(())
     }
 
     /// Leave with the state exact before the instruction at `pc`: the `retired` instructions
     /// before it are counted, `r15 = pc`, the driver runs one `Cpu::step` there.
     pub fn exit_generic(&mut self, pc: u32) {
-        self.leave(EXIT_GENERIC, self.retired, pc);
+        let t = self.const32(pc);
+        self.leave(EXIT_GENERIC, self.retired, t, None);
     }
 
     /// `if cond != 0 { exit_generic(pc) }`; emission continues in the fall-through block.
@@ -213,36 +273,7 @@ impl<'a> NCtx<'a> {
 }
 
 #[cfg(test)]
-pub(crate) mod testing {
-    use super::*;
-    use cranelift_codegen::ir::{AbiParam, Signature, UserFuncName};
-    use cranelift_codegen::isa::CallConv;
-    use cranelift_codegen::settings;
-    use cranelift_codegen::verify_function;
-
-    /// A function with the native signature `(i64, i64) -> i32`.
-    pub fn new_function() -> Function {
-        let mut sig = Signature::new(CallConv::SystemV);
-        sig.params.push(AbiParam::new(types::I64));
-        sig.params.push(AbiParam::new(types::I64));
-        sig.returns.push(AbiParam::new(types::I32));
-        Function::with_name_signature(UserFuncName::default(), sig)
-    }
-
-    /// Build a function for `sb` with `emit`, finish it and verify the IR (no executable memory).
-    pub fn build_and_verify(sb: &Sb, emit: impl FnOnce(&mut NCtx<'_>)) -> Function {
-        let mut func = new_function();
-        let mut fctx = FunctionBuilderContext::new();
-        let mut cx = NCtx::new(&mut func, &mut fctx, sb);
-        emit(&mut cx);
-        cx.finish();
-        let flags = settings::Flags::new(settings::builder());
-        if let Err(e) = verify_function(&func, &flags) {
-            panic!("{e}\n{func}");
-        }
-        func
-    }
-}
+pub(crate) mod testing;
 
 #[cfg(test)]
 mod tests {
@@ -295,15 +326,6 @@ mod tests {
             assert!(!cx.is_terminated(), "emission continues after a side exit");
             cx.exit(0).unwrap();
             assert!(cx.is_terminated());
-        });
-    }
-
-    #[test]
-    fn a_dynamic_exit_is_unsupported_until_the_register_target_work() {
-        let sb = trace();
-        build_and_verify(&sb, |cx| {
-            assert_eq!(cx.exit(1), Err(Unsupported));
-            cx.exit_generic(0x1000); // the function must still end in a terminator
         });
     }
 
