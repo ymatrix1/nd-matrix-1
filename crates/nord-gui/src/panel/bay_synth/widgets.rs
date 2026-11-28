@@ -103,7 +103,7 @@ pub(super) fn pad(ui: &mut Ui, p: &Painter, o: Pos2, sui: &mut SynthUi, b: Btn, 
         p.rect_stroke(
             rect.expand(2.0),
             3.0,
-            Stroke::new(1.4_f32, LED_RED),
+            Stroke::new(1.4_f32, LED_ACCENT),
             StrokeKind::Outside,
         );
     }
@@ -112,8 +112,8 @@ pub(super) fn pad(ui: &mut Ui, p: &Painter, o: Pos2, sui: &mut SynthUi, b: Btn, 
         p,
         pos2(rect.left() + 4.5, cy),
         sui.primary_lit(b),
-        LED_RED,
-        LED_RED_DIM,
+        LED_ACCENT,
+        LED_ACCENT_DIM,
     );
     let status = sui.status_text(b);
     if !status.is_empty() {

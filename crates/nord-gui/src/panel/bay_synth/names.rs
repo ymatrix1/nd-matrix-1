@@ -44,7 +44,7 @@ pub(super) fn led_pos(top_left: Pos2, i: usize, n: usize) -> Pos2 {
 fn paint_rows(p: &Painter, button: Rect, rows: &[Row]) {
     for (i, (name, lit)) in rows.iter().enumerate() {
         let c = led_pos(button.min, i, rows.len());
-        dot(p, c, *lit, LED_RED, LED_RED_DIM);
+        dot(p, c, *lit, LED_ACCENT, LED_ACCENT_DIM);
         let ink = if *lit { Color32::WHITE } else { LEGEND };
         tiny(p, pos2(c.x + NAME_DX, c.y), name, ink, Align2::LEFT_CENTER);
     }

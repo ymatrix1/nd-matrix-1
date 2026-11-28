@@ -23,7 +23,7 @@ const TITLE_COL: Color32 = Color32::from_gray(238);
 /// Colour of the panel behind a section (what a title breaks the border against).
 fn backdrop(section: Section) -> Color32 {
     match section {
-        Section::Program | Section::Master => PROGRAM_RED,
+        Section::Program | Section::Master => PROGRAM_PLATE,
         _ => MODULE_SLATE,
     }
 }

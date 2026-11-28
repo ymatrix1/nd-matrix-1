@@ -9,8 +9,7 @@ stitches and hashes them.
 
 ORIGINAL ART (D16): all geometry below is authored here from primitives; all materials are
 procedural. Nothing is imported, traced or sampled from any photo or model of the hardware.
-Photos were used only to measure proportions and to pick theme colours (tokens from
-docs/specs/visual-style-and-panel.md section 2).
+Theme colours are the project's own tokens (docs/specs/visual-style-and-panel.md section 2).
 
 One top-left light for the whole scene (D15): a sun at azimuth top-left, elevation ~55 deg.
 """
@@ -28,13 +27,13 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 import panel_assets as P  # noqa: E402  (shared constants, no bpy)
 
-# Theme tokens, sRGB hex. VERIFIED: copied from the spec token table
-# (docs/specs/visual-style-and-panel.md s2).
-RED = "#8E1B1F"  # chassis_red_primary
-SLATE = "#323D47"  # module_slate_bg
-CAP_GREY = "#8C9196"  # button_grey_layer, also the fader cap token in spec 4.1
-RUBBER = "#1C1F22"  # button_black_pill
-POINTER = "#ECEBE6"  # drawbar_white
+# Theme tokens, sRGB hex. ASSUMED design choices of the ND Matrix 1 "Slate Matrix" identity
+# (D134): same values as crates/nord-gui/src/style.rs and docs/specs/visual-style-and-panel.md s2.
+BASE = "#151C29"  # chassis_base (graphite navy)
+SLATE = "#243249"  # module_slate_bg
+CAP_GREY = "#CFC8B5"  # button_grey_layer (bone), also the fader cap token in spec 4.1
+RUBBER = "#1B2231"  # button_black (graphite)
+POINTER = "#35E0E8"  # accent
 
 # ASSUMED: light placement, plausible for a top-left key light; fixed by D15.
 SUN_DIR = Vector((-1.0, 1.0, 2.0))  # from scene origin toward the light
@@ -112,7 +111,7 @@ def material(
 
 def mats() -> dict[str, bpy.types.Material]:
     return {
-        "red": material("red_lacquer", RED, 0.5, coat=0.12, spec=0.08, bump=0.02, fleck=0.12),
+        "base": material("base_lacquer", BASE, 0.5, coat=0.12, spec=0.08, bump=0.02, fleck=0.12),
         "slate": material("dark_slate", SLATE, 0.5, metal=0.3, spec=0.1, bump=0.12, fleck=0.15),
         "rubber": material("rubber", RUBBER, 0.38, bump=0.08),
         "cap": material("matte_cap", CAP_GREY, 0.55, bump=0.05),
@@ -248,8 +247,8 @@ def plate_slot(m: dict, hidden_slot: bool = False):
     return [plate, floor]
 
 
-def plate_red(m: dict):
-    return [box("plate_red", (2.8, 2.8, PLATE_T), (0, 0, -PLATE_T / 2), m["red"])]
+def plate_base(m: dict):
+    return [box("plate_base", (2.8, 2.8, PLATE_T), (0, 0, -PLATE_T / 2), m["base"])]
 
 
 def setup_scene(scale: int, w_px: int, h_px: int) -> None:
@@ -308,7 +307,7 @@ def flags(objs, catcher=False, holdout=False, hide=False) -> None:
 def main(out: Path) -> None:
     for scale in P.SCALES:
         for name, make, size in (
-            ("plate_red", plate_red, P.PLATE_PX["plate_red"]),
+            ("plate_base", plate_base, P.PLATE_PX["plate_base"]),
             ("plate_slate_slot", plate_slot, P.PLATE_PX["plate_slate_slot"]),
         ):
             clear()
@@ -321,7 +320,7 @@ def main(out: Path) -> None:
         clear()
         m = mats()
         setup_scene(scale, P.KNOB_FRAME_PX, P.KNOB_FRAME_PX)
-        ground = plate_red(m)
+        ground = plate_base(m)
         flags(ground, catcher=True)
         parts = knob_cap(m, 0.0)
         for i in range(P.KNOB_FRAMES):

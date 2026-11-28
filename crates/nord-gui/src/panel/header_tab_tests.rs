@@ -1,6 +1,6 @@
 //! Header tabs (Organ, Piano, Synth, Layer Effects): every label and LED printed in a tab stays
 //! inside it, measured on the real painted text (no hard-coded widths). Regression for the ORGAN
-//! header screenshot: SOLO ran past the tab edge, the ON LED sat above the tab on the red panel.
+//! header screenshot: SOLO ran past the tab edge, the ON LED sat above the tab on the panel.
 
 use super::layout_px::to_px;
 use super::legibility_tests::audit_of;

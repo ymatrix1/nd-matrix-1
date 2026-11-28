@@ -336,7 +336,7 @@ mod tests {
     }
 
     /// Regression (owner screenshot, ORGAN header): the ON LED printed above the button, outside
-    /// the header tab on the red panel. SOLO's width is checked on the painted text in
+    /// the header tab on the panel. SOLO's width is checked on the painted text in
     /// `header_tab_tests`.
     #[test]
     fn on_button_led_stays_inside_the_header_tab() {

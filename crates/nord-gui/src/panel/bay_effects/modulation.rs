@@ -81,8 +81,8 @@ fn unit(f: &mut Fx, st: &mut Stage4PanelState, slot: usize, s: &Spec) {
         f.led_above(
             on_rect,
             *v.on,
-            crate::style::LED_RED,
-            crate::style::LED_RED_DIM,
+            crate::style::LED_ACCENT,
+            crate::style::LED_ACCENT_DIM,
         );
         let tip = format!("{} ON", s.title);
         if f.button(s.on, on_rect, *v.on, false, &tip).is_some() {

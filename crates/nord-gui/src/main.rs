@@ -329,7 +329,7 @@ impl eframe::App for Stage4App {
         if self.state.use_baked_plate && self.shot.is_none() {
             egui::Rgba::TRANSPARENT.to_array()
         } else {
-            egui::Rgba::from(nord_gui::style::CHASSIS_RED).to_array()
+            egui::Rgba::from(nord_gui::style::CHASSIS_BASE).to_array()
         }
     }
 
@@ -597,7 +597,7 @@ impl eframe::App for Stage4App {
         let bg_fill = if self.state.use_baked_plate {
             egui::Color32::TRANSPARENT
         } else {
-            nord_gui::style::CHASSIS_RED
+            nord_gui::style::CHASSIS_BASE
         };
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE.fill(bg_fill))
@@ -741,28 +741,28 @@ fn build_app_icon() -> egui::IconData {
                 continue;
             }
             let alpha = ((12.2 - dist).clamp(0.0, 1.0) * 255.0) as u8;
-            // Crimson chassis gradient
+            // Graphite-navy chassis gradient (ASSUMED, D251: same family as `style::CHASSIS_BASE`)
             let t = y as f32 / size as f32;
-            let mut r = (182.0 - t * 42.0) as u8;
-            let mut g = (30.0 - t * 10.0) as u8;
-            let mut b = (36.0 - t * 10.0) as u8;
+            let mut r = (36.0 - t * 18.0) as u8;
+            let mut g = (48.0 - t * 20.0) as u8;
+            let mut b = (70.0 - t * 26.0) as u8;
 
             // Top slate control strip (y 14..32, x 10..54)
             if (14..32).contains(&y) && (10..54).contains(&x) {
-                r = 48;
-                g = 58;
-                b = 68;
-                // Glowing red LED dots at y 19..22
+                r = 211;
+                g = 204;
+                b = 185;
+                // Glowing accent LED dots at y 19..22
                 if (19..23).contains(&y) && ((15..19).contains(&x) || (30..34).contains(&x)) {
-                    r = 255;
-                    g = 52;
-                    b = 52;
+                    r = 53;
+                    g = 224;
+                    b = 232;
                 }
-                // Glowing green LED dot at x 45..49
+                // Glowing mint LED dot at x 45..49
                 if (19..23).contains(&y) && (45..49).contains(&x) {
-                    r = 92;
-                    g = 230;
-                    b = 46;
+                    r = 61;
+                    g = 232;
+                    b = 168;
                 }
             }
             // Piano keybed along bottom (y 36..56, x 8..56)
@@ -780,9 +780,9 @@ fn build_app_icon() -> egui::IconData {
                     g = 162;
                     b = 155;
                 } else {
-                    r = 246;
-                    g = 244;
-                    b = 238;
+                    r = 247;
+                    g = 241;
+                    b = 224;
                 }
             }
             rgba[idx] = r;
@@ -939,9 +939,12 @@ mod tests {
         assert_eq!(icon.width, 64);
         assert_eq!(icon.height, 64);
         assert_eq!(icon.rgba.len(), 64 * 64 * 4);
-        // Center pixel is opaque crimson/slate, corner pixel is transparent.
+        // Center pixel is opaque navy/bone, corner pixel is transparent.
         assert_eq!(icon.rgba[3], 0);
         assert_eq!(icon.rgba[(32 * 64 + 32) * 4 + 3], 255);
+        // D251: the icon chassis is cool graphite-navy, never the old crimson (blue leads red).
+        let chassis = (8 * 64 + 6) * 4;
+        assert!(icon.rgba[chassis + 2] > icon.rgba[chassis]);
     }
 
     #[test]

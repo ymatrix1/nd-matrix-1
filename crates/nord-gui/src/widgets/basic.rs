@@ -162,7 +162,7 @@ mod tests {
                 Color32::WHITE,
                 Align2::LEFT_TOP,
             );
-            led(&p, pos2(20.0, 20.0), true, LED_RED, Color32::BLACK);
+            led(&p, pos2(20.0, 20.0), true, LED_ACCENT, Color32::BLACK);
             // fit-aware: a wide text shrinks to the minimum, never below it.
             let wide = "A RATHER LONG LEGEND";
             let fitted = fit_size(&p, wide, 12.0, 60.0);

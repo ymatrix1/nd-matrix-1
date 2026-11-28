@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline HTML/CSS-to-egui panel baker for the Nord Stage 4 / nd matrix 1 UI.
+"""Offline HTML/CSS-to-egui panel baker for the ND Matrix 1 UI ("Slate Matrix" identity, D251).
 
 Renders ``prototypes/panel-mock/`` in headless Chromium/Edge at 2x HiDPI and
 exports:
@@ -7,6 +7,10 @@ exports:
   - ``panel_sprites_2x.png`` + ``panel_sprites.json``: packed component atlas
   - ``panel_layout.json``: normalized ``(x, y, w, h)`` rects from DOM layout
   - ``panel_assets_manifest.json``: SHA-256 hashes & provenance (swap-ready for Blender)
+
+The silkscreen font stack in ``styles.css`` (``--font-silk``) resolves against the fonts installed
+on the baking machine (Cascadia Mono / Consolas on Windows). The committed PNGs are the source of
+truth; a re-bake on another OS can move text by a pixel or two.
 """
 
 from __future__ import annotations
@@ -43,8 +47,8 @@ SPRITE_NAMES: tuple[str, ...] = (
     "btn_black_down",
     "btn_grey_up",
     "btn_grey_down",
-    "btn_red_up",
-    "btn_red_down",
+    "btn_accent_up",
+    "btn_accent_down",
     "knob_pot_cap",
     "knob_encoder_cap",
     "fader_cap",

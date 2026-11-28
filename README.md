@@ -5,6 +5,10 @@
   <sub>Built for interoperability, research, preservation, and compatibility purposes.</sub>
 </p>
 
+<p align="center">
+  <img src="docs/img/gui/overview.png" alt="ND Matrix 1 front panel: graphite-navy chassis, bone sub-panels, cyan accents, hexagonal knobs" width="900">
+</p>
+
 ---
 
 The **Nord Stage 4** (`product_id=46`) is built around a **three-engine, 7-layer multitimbral DSP architecture** running across an **`ARM0`** host controller and parallel Analog Devices SHARC floating-point DSPs (**`DSPO`** Organ, **`DSPS`** Synth, **`DSPF`** Effects & Piano Resonance).
