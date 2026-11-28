@@ -21,7 +21,8 @@
 //! `NS4_WAVE_TABLES` set).
 
 use super::Row;
-use crate::dsp_image::{self, cache::ImageCache, dm_text::dm_image_text, ldr};
+use crate::dsp_image::dm_text::{dm_image_text_shifted, pick_shifts, Shift, KNOWN_SHIFTS};
+use crate::dsp_image::{self, cache::ImageCache, ldr};
 use crate::organ::sharc_rows::routine_rows;
 use crate::render_opts_wave::WAVE_TABLES_ENV;
 use std::path::Path;
@@ -112,7 +113,22 @@ impl BassImage {
         if !super::rows_valid(&gen) || !super::rows_valid(&proc) {
             return Err("the Bass routines do not decode into valid rows".into());
         }
-        let (csv, words) = dm_image_text(sram, code, &KEEP, delta)?;
+        // The `A` lines are written for v1.66; a later OS holds the same constants at moved
+        // offsets. The image fingerprint decides which offset table is the right one.
+        let tables: &[&[Shift]] = if guard {
+            &KNOWN_SHIFTS
+        } else {
+            &KNOWN_SHIFTS[..1]
+        };
+        let (csv, words) = pick_shifts(
+            tables,
+            |shifts| dm_image_text_shifted(sram, code, &KEEP, delta, shifts),
+            |(csv, words)| {
+                !guard
+                    || (*words == WORDS
+                        && crate::firmware_setting::fnv1a64(csv.as_bytes()) == IMAGE_FNV)
+            },
+        )?;
         if guard
             && ((gen.len(), proc.len()) != ROWS
                 || words != WORDS
@@ -120,7 +136,7 @@ impl BassImage {
         {
             return Err(format!(
                 "unsupported Nord OS version: the Bass routines have {} and {} rows and the image \
-                 {words} DM words, expected {} and {} rows and {WORDS} words (OS v1.66)",
+                 {words} DM words, expected {} and {} rows and {WORDS} words (OS v1.66 or v1.68)",
                 gen.len(),
                 proc.len(),
                 ROWS.0,
@@ -164,6 +180,7 @@ pub fn firmware_status() -> Result<bool, String> {
 #[cfg(test)]
 pub(in crate::organ) mod tests {
     use super::*;
+    use crate::dsp_image::dm_text::dm_image_text;
 
     /// Flat SRAM image with tiny routines at both entries: the generator is `rts`, the processor
     /// is `R8 = 1.0; DM(0xC00EA) = R8; nop; rts` (output word 0 of every call is 1.0). Generic

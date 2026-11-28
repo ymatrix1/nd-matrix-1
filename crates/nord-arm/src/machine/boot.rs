@@ -5,12 +5,13 @@
 //! `run_init_array`, `prepare`) and `tools/arm_steady.py` (`run_until`, `boot_to_main_loop`).
 //! Addresses are inherited from those scripts; each carries its own tag below.
 
+use super::layout::Layout;
 use super::sysbus::{COMM_COUNT, FAKE_BASE, PORT1_BASE, PORT2_BASE};
 use super::{Hook, Machine, Stop, LOW_MEMORY, SENTINEL, STACK_TOP};
 use crate::cpu::Bus;
 
 /// ASSUMED: ARM load address of `bank0_CODE.bin` (`tools/arm_emu.py` LOAD_BASE); the boot in
-/// `arm-lle-bench` reaches `MAIN_LOOP` from it, which would fail for a wrong base.
+/// `arm-lle-bench` reaches the main loop from it, which would fail for a wrong base.
 pub const LOAD_BASE: u32 = 0xC000_0000;
 /// ASSUMED: `bank0_SRAM.bin` image address (`tools/arm_emu.py`), same check as `LOAD_BASE`.
 pub const SRAM_BASE: u32 = 0x8000_0000;
@@ -18,43 +19,12 @@ pub const SRAM_BASE: u32 = 0x8000_0000;
 const RAM_SIZE: u32 = 0x0100_0000;
 /// ASSUMED: size of the fake DSP object/port region (`tools/arm_emu.py`).
 const FAKE_SIZE: u32 = 0x2_0000;
-/// ASSUMED: address of the DSP flow-control function stubbed to return 1 (`tools/arm_boot.py`);
-/// confirm by disassembling `bank0_CODE.bin` there.
-pub const FLOW_CONTROL: u32 = 0xC006_CA48;
-/// ASSUMED: pointer cell of the DSP port object (`tools/arm_emu.py`); same confirmation.
-pub const PORT_OBJECT_PTR: u32 = 0xC055_B150;
-/// ASSUMED: table of the five DSP comm objects (`tools/arm_emu.py`); same confirmation.
-pub const COMM_TABLE: u32 = 0xC053_F8A4;
 /// ASSUMED: the comm objects pad path 2 messages with a zero word for chips 0..=2 (FX, PNO, ORG).
 pub const PAD: [u8; 5] = [1, 1, 1, 0, 0];
-/// ASSUMED: `operator new` of the firmware (`tools/arm_emu.py` bump allocator); same confirmation.
-pub const OPERATOR_NEW: u32 = 0xC025_D56C;
-/// ASSUMED: the MMU-enable `mcr` skipped by the harness (`tools/arm_boot.py`).
-const MMU_ENABLE_MCR: u32 = 0xC002_4624;
-/// ASSUMED: DSP download, SPI block download, logger, board-config query, SPI transfer and SPI
-/// count check addresses stubbed by `tools/arm_boot.py` / `tools/arm_boot_full.py`.
-const DSP_DOWNLOAD: u32 = 0xC024_1C58;
-const SPI_DOWNLOAD_BLOCK: u32 = 0xC024_0548;
-const LOGGER: u32 = 0xC008_0314;
-const BOARD_CONFIG_QUERY: u32 = 0xC024_BF70;
-/// ASSUMED: display event insert and text measure functions (`tools/arm_boot_full.py`).
-const EVENT_INSERT: u32 = 0xC001_B67C;
-const TEXT_MEASURE: u32 = 0xC001_B9D0;
-const SPI_TRANSFER: u32 = 0xC006_6E64;
-const SPI_COUNT_CHECK: u32 = 0xC022_81F0;
+// The OS-version dependent addresses (flow control, comm table, `operator new`, the stubbed
+// functions, init array, application thunk, main loop, AINTC table) are in `layout.rs`.
 /// ASSUMED: high exception vector page mapped by the harness.
 const HIGH_PAGE: u32 = 0xFFFF_0000;
-/// ASSUMED: static initialiser entry points run before the application thunk
-/// (`tools/arm_boot_full.py`); the boot fails to reach `MAIN_LOOP` if one is wrong.
-const INIT_ARRAY: [u32; 4] = [0xC000_02A4, 0xC024_D1A0, 0xC024_DC64, 0xC025_DBBC];
-/// ASSUMED: application entry thunk the boot calls (`tools/arm_steady.py`).
-pub const APP_THUNK: u32 = 0xC025_D524;
-/// EMPIRICAL: first instruction of the main loop body (`docs/research/arm-organ-messages.md`
-/// s10); the boot of `arm-lle-bench` stops there after about 232 M instructions every run.
-pub const MAIN_LOOP: u32 = 0xC00A_0248;
-/// EMPIRICAL: AINTC handler table, indexed by system interrupt number (`tools/arm_steady.py`);
-/// injecting interrupt 22 ticks the firmware (`arm-lle-bench` message counts).
-pub const IRQ_TABLE: u32 = 0xC055_F674;
 /// EMPIRICAL (D130, `tools/arm_tick_probe.py timers`): system interrupt 22 is the 24 kHz timer.
 pub const TIMER_IRQ: u32 = 22;
 /// ASSUMED: base of the bump allocator heap (`tools/arm_emu.py`); unused address space.
@@ -73,6 +43,27 @@ impl Machine {
         m.write_bytes(SRAM_BASE, sram);
         m.map(STACK_TOP - 0x10_0000, 0x20_0000);
         m.map(FAKE_BASE, FAKE_SIZE);
+        match Layout::detect(code) {
+            Some(l) => {
+                self.layout = l;
+                self.layout_known = true;
+            }
+            None => {
+                self.layout_known = false;
+                // a real image (not a test stub) of an unknown OS: the v1.66 addresses would hit
+                // other code, so say so; callers can check `layout_known`
+                if code.len() >= 1 << 20 {
+                    eprintln!(
+                        concat!(
+                            "nord-arm: unknown bank0_CODE length {} (known: OS v1.66, v1.68); ",
+                            "using the v1.66 addresses, the boot will most likely fail. ",
+                            "Add a Layout with tools/fw_addr_map.py"
+                        ),
+                        code.len()
+                    );
+                }
+            }
+        }
         self.install_dsp_ports();
     }
 
@@ -85,32 +76,32 @@ impl Machine {
             let obj = FAKE_BASE + 0x1000 + 0x100 * c;
             self.write32(obj + 0x10, PORT1_BASE + 0x10 * c);
             self.write32(obj + 0x20, FAKE_BASE + 0x2000 + 0x40 * c);
-            self.write32(COMM_TABLE + 4 * (c + 1), obj);
+            self.write32(self.layout.comm_table + 4 * (c + 1), obj);
         }
-        self.write32(PORT_OBJECT_PTR, FAKE_BASE);
-        self.add_hook(FLOW_CONTROL, Hook::Return(1));
+        self.write32(self.layout.port_object_ptr, FAKE_BASE);
+        self.add_hook(self.layout.flow_control, Hook::Return(1));
     }
 
     /// `install_boot_stubs` + `install_ui_stubs(display_stubs=True)` of the Python harness.
     pub fn install_boot_stubs(&mut self) {
         self.guard_null_calls();
         self.heap_top = HEAP_BASE;
-        self.add_hook(OPERATOR_NEW, Hook::BumpNew);
-        self.add_hook(MMU_ENABLE_MCR, Hook::SkipInsn);
-        self.add_hook(DSP_DOWNLOAD, Hook::Return(0));
-        self.add_hook(SPI_DOWNLOAD_BLOCK, Hook::Return(0));
-        self.add_hook(LOGGER, Hook::Return(0));
-        self.add_hook(BOARD_CONFIG_QUERY, Hook::BoardConfig);
-        self.add_hook(EVENT_INSERT, Hook::Return(0));
-        self.add_hook(SPI_TRANSFER, Hook::SpiTransfer);
-        self.add_hook(SPI_COUNT_CHECK, Hook::ZeroR5);
-        self.add_hook(TEXT_MEASURE, Hook::Return(0));
+        self.add_hook(self.layout.operator_new, Hook::BumpNew);
+        self.add_hook(self.layout.mmu_enable_mcr, Hook::SkipInsn);
+        self.add_hook(self.layout.dsp_download, Hook::Return(0));
+        self.add_hook(self.layout.spi_download_block, Hook::Return(0));
+        self.add_hook(self.layout.logger, Hook::Return(0));
+        self.add_hook(self.layout.board_config_query, Hook::BoardConfig);
+        self.add_hook(self.layout.event_insert, Hook::Return(0));
+        self.add_hook(self.layout.spi_transfer, Hook::SpiTransfer);
+        self.add_hook(self.layout.spi_count_check, Hook::ZeroR5);
+        self.add_hook(self.layout.text_measure, Hook::Return(0));
         self.bus.mem.map(HIGH_PAGE, 0x1_0000);
     }
 
     /// Run the four static initialisers for real (`run_init_array`).
     pub fn run_init_array(&mut self) -> Result<(), Stop> {
-        for f in INIT_ARRAY {
+        for f in self.layout.init_array {
             let (_, stop) = self.call(f, &[], 300_000_000);
             if stop != Stop::Until {
                 return Err(stop);
@@ -149,8 +140,8 @@ impl Machine {
         self.cpu.r[13] = STACK_TOP - 0x1000;
         self.cpu.r[14] = SENTINEL;
         self.cpu.thumb = false;
-        self.cpu.r[15] = APP_THUNK;
-        self.run_chunked(Some(MAIN_LOOP), max, CHUNK)
+        self.cpu.r[15] = self.layout.app_thunk;
+        self.run_chunked(Some(self.layout.main_loop), max, CHUNK)
     }
 
     /// `arm_steady.enable_real_timer`: stop the +5000-per-read tick, the injected IRQ counts.
@@ -172,7 +163,7 @@ impl Machine {
         if self.cpu.irq_off {
             self.irq_while_masked += 1;
         }
-        let handler = self.bus.read32(IRQ_TABLE + 4 * irq);
+        let handler = self.bus.read32(self.layout.irq_table + 4 * irq);
         if handler != 0 {
             self.call_preserving(handler, &[], 2_000_000);
         }
@@ -197,8 +188,8 @@ mod tests {
         let mut m = tiny();
         assert_eq!(m.read32(LOAD_BASE), 0xE12F_FF1E);
         assert_eq!(m.read32(SRAM_BASE), 0x0403_0201);
-        assert_eq!(m.read32(PORT_OBJECT_PTR), FAKE_BASE);
-        let obj2 = m.read32(COMM_TABLE + 4 * 3);
+        assert_eq!(m.read32(Layout::V166.port_object_ptr), FAKE_BASE);
+        let obj2 = m.read32(Layout::V166.comm_table + 4 * 3);
         assert_eq!(obj2, FAKE_BASE + 0x1000 + 0x200);
         assert_eq!(m.read32(obj2 + 0x10), PORT1_BASE + 0x20);
         assert_eq!(m.read32(FAKE_BASE + 0x40 + 8), PORT2_BASE + 0x20);
@@ -210,8 +201,8 @@ mod tests {
         let mut m = tiny();
         m.install_boot_stubs();
         assert!(m.null_guard);
-        assert_eq!(m.hooks[&FLOW_CONTROL], Hook::Return(1));
-        assert_eq!(m.hooks[&SPI_TRANSFER], Hook::SpiTransfer);
+        assert_eq!(m.hooks[&Layout::V166.flow_control], Hook::Return(1));
+        assert_eq!(m.hooks[&Layout::V166.spi_transfer], Hook::SpiTransfer);
         assert_eq!(m.heap_top, HEAP_BASE);
     }
 
@@ -251,7 +242,7 @@ mod tests {
         // handler at 0xC0000100: add r4,r4,#1 ; bx lr   (r4 is callee-saved here: prove restore)
         m.bus.mem.write32(0xC000_0100, 0xE284_4001);
         m.bus.mem.write32(0xC000_0104, 0xE12F_FF1E);
-        m.write32(IRQ_TABLE + 4 * TIMER_IRQ, 0xC000_0100);
+        m.write32(Layout::V166.irq_table + 4 * TIMER_IRQ, 0xC000_0100);
         m.cpu.r = [0; 16];
         m.cpu.r[4] = 10;
         m.cpu.r[13] = 0x7000_8000;
@@ -262,5 +253,20 @@ mod tests {
             (10, 0x7000_8000, 0xC000_0000)
         );
         assert_eq!(m.cpu.insns, 2);
+    }
+
+    #[test]
+    fn load_firmware_picks_the_layout_of_the_image_version() {
+        let mut m = Machine::new();
+        m.load_firmware(&vec![0u8; Layout::V168.image_len], &[]);
+        assert_eq!(m.layout.version, 168);
+        assert!(m.layout_known);
+        assert_eq!(m.read32(Layout::V168.port_object_ptr), FAKE_BASE);
+        assert_eq!(m.hooks[&Layout::V168.flow_control], Hook::Return(1));
+        // an unknown image keeps the layout in force (v1.66 by default)
+        let mut m = Machine::new();
+        m.load_firmware(&[0u8; 16], &[]);
+        assert_eq!(m.layout.version, 166);
+        assert!(!m.layout_known);
     }
 }
