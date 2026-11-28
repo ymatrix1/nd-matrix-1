@@ -23,6 +23,10 @@ Tags follow `.agents/rules/provenance-in-code.md`. The ARM program-load run (abo
 2. D22 is still not met: the ARM note logic that holds a synth note on the pedal (the consumer of the `0xF8` flag) was not traced; the clip comparison is mixed (Grand Pad tail 6.7 to 10.9 s against 13.4 s, hold and release closer, but the spectral score 1.42 to 1.68 and width 0.46 to 0.40: the held pad piles up below 130 Hz). The default render stays unchanged; the opt-in now follows the program bit.
 3. The position evidence is consistency, not a firmware read: a wrong position would give a random bit, not 99 percent ones equal to the default.
 
+## 3. Load-path check on the real bank (2026-11-28, issue #678)
+
+`cargo test -p nord-core --release --test real_bank_sustped` (needs the factory backup in `.reference/` or `NS4_FACTORY_BACKUP`; skips cleanly without it) loads all 384 factory programs of `Nord Stage 4 Factory Restore RevK v1.66.ns4b` through `Stage4Engine::apply_program` with `synth_sustain_program` on. Result: `pedals.sustped[4..7]` equals the decoded program bit for every program; the counts are 381 / 383 / 383 set and the five exceptions above are the only zeros. `python tools/synth_sustped.py` on the same file gives the same counts. VERIFIED (run). The OS v1.68 update was downloaded too, but the ARM harness addresses are v1.66 ones (`os-update-input.md`), so the ARM hold trace (follow-up 1) is still open.
+
 ## Implications
 
 - `--synth-sustain-pedal` can be promoted once the ARM hold logic is traced and a second clip with the pedal and a synth layer agrees.
