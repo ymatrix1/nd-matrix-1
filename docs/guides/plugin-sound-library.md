@@ -17,11 +17,15 @@ Give the plugin the Nord OS update too (`ns4 firmware set`, see [Where to get th
 
 Every instance has a host parameter **Program**: `Off`, then `A:11` .. `H:88` (the locations the keyboard shows). A new instance starts at `A:11`, the first program of the library. Change it from the DAW's parameter list or an automation lane; the plugin decodes that program with its piano and sample banks on a worker thread and switches to it at the next audio block. Large pianos take a few seconds to decode.
 
-The value is saved with the project, so a reopened project loads the same program again. `Off` plays the panel / host parameters alone, as a plugin without a library does.
+The value is saved with the project, so a reopened project loads the same program again. Selecting `Off` releases the library program: the plugin drops it and its sound banks, and the host parameters drive the engine again, as in a plugin without a library. A project saved with `Off` reopens with `Off` (no `A:11` is loaded when the host restores the saved value before it activates the plugin; when it restores it after, the program that loaded in between is released at the next block). The panel keeps the last program's values for the settings no host parameter covers until the instance is reset or reloaded.
+
+**Projects saved before this parameter existed** store no value for it, so they open at the default `A:11` and load the library's first program over their own sound the first time the library is saved. To keep such a project as it was, set `Program` to `Off` and save it again, or do not save a library.
 
 ## What to expect
 
 - Adding the instrument, or opening a project, waits a few seconds while the program's banks decode (a factory grand piano is 218 MB); instances of the same program share one decode. The wait stops after 15 seconds and the program then arrives while the host runs. `NS4_LIBRARY=none` in the host's environment switches the library off for that run.
+- A library file replaced while the host runs (a new `ns4 library set` target at the same path, or a re-export) is read again at the next program request; the banks decoded from the old file are let go.
+- The editor opens the saved library's directory when its window is created, on the host's UI thread: 32 ms for a synthetic zip of 512 programs and 5 000 sound entries (debug build, `editor/library_open_tests.rs`). Sounds are not read until a program asks for them.
 
 - No library saved, or the file moved: the plugin starts and plays its built-in sounds; `ns4 library status` says why.
 - What the plugin loaded, and why a load failed, is appended to `plugin.log` next to the settings file (`%APPDATA%\ns4\plugin.log` on Windows); the file is emptied once it passes 1 MB.

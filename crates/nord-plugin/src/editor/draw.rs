@@ -158,7 +158,7 @@ impl EditorState {
 /// programs and sounds the plugin plays. Without one it starts empty: the standalone pre-fills
 /// the path with a `.ns4b` found in the working directory, which in a DAW is an arbitrary
 /// folder. A library that fails to open is reported in the tab, like a failed Browse.
-fn plugin_library(saved: Option<std::path::PathBuf>) -> BackupLibraryState {
+pub(super) fn plugin_library(saved: Option<std::path::PathBuf>) -> BackupLibraryState {
     let mut library = BackupLibraryState::new();
     library.path_input.clear();
     if let Some(path) = saved {
