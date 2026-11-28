@@ -275,7 +275,8 @@ mod tests {
     fn set_and_clear_keep_the_saved_engine_choice() {
         let c = cfg("keep-engine");
         user_config::update(&c, |u| u.engine = Some("lle".into())).unwrap();
-        let img = std::env::temp_dir().join(format!("ns4-fwset-keep-{}.bin", std::process::id()));
+        let img =
+            std::env::temp_dir().join(format!("ns4-fwset-keep-engine-{}.bin", std::process::id()));
         std::fs::write(&img, crate::synth::fw_wave_tables::tests::image()).unwrap();
         set(&img, &c).unwrap();
         assert_eq!(
@@ -285,6 +286,32 @@ mod tests {
         clear(&c).unwrap();
         let u = user_config::load(&c).unwrap();
         assert_eq!((u.os_update_path, u.engine.as_deref()), (None, Some("lle")));
+    }
+
+    /// The tests of this module run on parallel threads of one process, so a temp file keyed
+    /// only by the process id and a tag is shared by two tests that use the same tag: one
+    /// rewrites the image while the other reads it, and `set` sees a truncated file ("not a Nord
+    /// OS update"). This failed CI on `main` (`set_and_clear_keep_the_saved_engine_choice`).
+    #[test]
+    fn every_test_temp_file_tag_is_used_by_one_test_only() {
+        let prefix = format!("ns4-{}-", "fwset");
+        let src = include_str!("firmware_setting.rs");
+        let mut tags: Vec<&str> = src
+            .match_indices(prefix.as_str())
+            .filter_map(|(at, _)| {
+                let rest = &src[at + prefix.len()..];
+                let tag = &rest[..rest.find("-{}")?];
+                (!tag.contains('{') && !tag.contains('"')).then_some(tag)
+            })
+            .collect();
+        assert!(tags.len() >= 6, "the scan found {} tags", tags.len());
+        tags.sort_unstable();
+        let dup: Vec<&str> = tags
+            .windows(2)
+            .filter(|w| w[0] == w[1])
+            .map(|w| w[0])
+            .collect();
+        assert!(dup.is_empty(), "temp file tags used twice: {dup:?}");
     }
 
     #[test]
