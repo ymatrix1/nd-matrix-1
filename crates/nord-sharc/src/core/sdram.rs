@@ -27,7 +27,7 @@ pub const LOADER_BASE: u32 = 0x2000_0000;
 /// Dense word store of the window.
 #[derive(Default)]
 pub struct Sdram {
-    mem: Vec<u32>,
+    pub(super) mem: Vec<u32>,
 }
 
 impl Sdram {

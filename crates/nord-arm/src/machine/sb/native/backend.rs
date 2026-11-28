@@ -57,9 +57,8 @@ mod tests {
     use crate::machine::sb::cache::tiny_trace;
 
     #[test]
-    fn there_is_no_backend_while_native_code_is_unavailable() {
+    fn there_is_a_backend_exactly_when_native_code_is_available() {
         assert_eq!(NativeBackend::new().is_some(), available());
-        assert!(!available(), "the skeleton never claims native support");
     }
 
     #[test]

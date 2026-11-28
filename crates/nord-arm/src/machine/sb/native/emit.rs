@@ -9,20 +9,44 @@
 //! the trace (applies `insns += done` and `r15 = target`, stores state, returns the index),
 //! `exit_generic(pc)` leaves with the state exact before the instruction at `pc` (the driver runs
 //! one `Cpu::step` there) and `side_exit_generic_if(cond, pc)` is the conditional form a
-//! memory fast path uses. Registers are 32 bit, flags are `i32` holding 0 or 1.
+//! memory fast path uses. Registers are 32 bit, flags are `i32` holding exactly 0 or 1 (they are
+//! stored as the bytes of a `bool`, so any other value would be undefined behaviour of the
+//! `Cpu`).
+//!
+//! Register-target exits (design note 9): an `Indirect` exit (`bx`) stores
+//! `cpu.thumb = r[reg] & 1` and leaves with `r15 = ctl.target = r[reg] & !1` (Thumb) or `& !3`
+//! (ARM); an `IndirectArm` exit (`mov pc,rm`) leaves with `r[reg] & !3` and never touches
+//! `cpu.thumb`; both are what `exec::exit_target` does. A `Dynamic` exit stays driver-side: the
+//! `GENERIC_END` before it is never native (the trace leaves with `exit_generic` at that pc).
+//!
+//! Trace shape (what the control-flow lowerer needs, `body.rs` and `looping.rs`): `uops()`,
+//! `index()` and `rest()` show the lowerer the trace and its position; `predicated(len, cond)`
+//! emits the body of a `PRED` between a branch and its join block (the join block always keeps
+//! its skip edge, so it is never left empty and unterminated, risk R19) after `body_lowerable`
+//! dry-ran the body; `loop_back(idx)` is the native back-edge. A trace with a `LOOP_BACK` uop
+//! gets a loop header block and an `i64` iteration accumulator in `new`, and every exit of it
+//! stores all registers and flags.
 //!
 //! Unsupported shapes return [`Unsupported`]; codegen then ends the native trace with
-//! `exit_generic`, so a missing native lowering costs speed, never exactness (I8).
+//! `exit_generic`, so a missing native lowering costs speed, never exactness (I8). Whether a
+//! lowerer returns `Ok` or `Err` must depend only on the uop and the trace (never on what was
+//! emitted so far), because `body_lowerable` answers by lowering into a scratch function.
 
-use super::abi::{CTL_EXIT, CTL_TARGET, EXIT_GENERIC, OFF_FLAG, OFF_INSNS, OFF_R};
-use crate::machine::sb::uop::{Exit, ExitKind, Sb};
-use cranelift_codegen::ir::{types, Function, InstBuilder, MemFlags, Type, Value};
+use super::abi::{OFF_FLAG, OFF_R};
+use super::codegen::{lower_uop, LowerFn};
+use crate::machine::sb::uop::Sb;
+use cranelift_codegen::ir::{types, Block, Function, InstBuilder, MemFlags, Type, Value};
 use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext, Variable};
+
+mod body;
+mod exits;
+mod looping;
 
 /// A uop shape the native lowerer does not handle (the trace falls back to a `Generic` exit).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Unsupported;
 
+/// Registers that are variables: `r0..r14` (`r15` is folded or leaves through an exit, I2).
 const NREGS: u8 = 15;
 
 fn reg_var(n: u8) -> Variable {
@@ -33,6 +57,12 @@ fn flag_var(i: u8) -> Variable {
     Variable::from_u32(u32::from(NREGS) + u32::from(i))
 }
 
+/// The iteration accumulator of a trace with a loop: the absolute `cpu.insns` at the start of
+/// the current iteration (an `i64` variable, see `looping.rs`).
+fn acc_var() -> Variable {
+    Variable::from_u32(u32::from(NREGS) + 4)
+}
+
 /// Emission state of one trace.
 pub struct NCtx<'a> {
     pub b: FunctionBuilder<'a>,
@@ -40,19 +70,30 @@ pub struct NCtx<'a> {
     pub cpu: Value,
     /// The `*mut NativeCtl` argument.
     pub ctl: Value,
-    /// Bit `n` set: `r[n]` was written on the path emitted so far.
+    /// Bit `n` set: `r[n]` was written on the path emitted so far (all set in a trace with a
+    /// loop: an earlier iteration may have written what a later exit must store).
     pub dirty: u16,
-    /// Bit `i` set: flag `i` (nibble bit) was written.
+    /// Bit `i` set: flag `i` (nibble bit) was written (all set in a trace with a loop).
     pub flags_def: u8,
-    /// Guest instructions retired on the path emitted so far (static, I3).
+    /// Guest instructions retired on the path emitted so far (static, I3), counted from the
+    /// start of the current iteration.
     pub retired: u16,
-    exits: Vec<(ExitKind, u16, u32)>,
+    /// The trace being lowered: its uops, exits and `n_guest`.
+    sb: &'a Sb,
+    /// The lowerer of one uop: `codegen::lower_uop`, replaced only by tests.
+    lower: LowerFn,
+    /// Index of the uop being lowered, and how many uops after it that lowerer already took.
+    pos: usize,
+    consumed: usize,
+    /// The loop header block of a trace with a `LOOP_BACK` uop (`looping.rs`).
+    header: Option<Block>,
 }
 
 impl<'a> NCtx<'a> {
     /// Start the function of `sb` in `func`: entry block, the 15 registers and 4 flags loaded
-    /// into variables. `func` must have the signature `(ptr, ptr) -> i32`.
-    pub fn new(func: &'a mut Function, fctx: &'a mut FunctionBuilderContext, sb: &Sb) -> Self {
+    /// into variables, and, when `sb` has a `LOOP_BACK` uop, the loop header and accumulator.
+    /// `func` must have the signature `(ptr, ptr) -> i32`.
+    pub fn new(func: &'a mut Function, fctx: &'a mut FunctionBuilderContext, sb: &'a Sb) -> Self {
         let mut b = FunctionBuilder::new(func, fctx);
         let entry = b.create_block();
         b.append_block_params_for_function_params(entry);
@@ -74,20 +115,36 @@ impl<'a> NCtx<'a> {
                 .uload8(types::I32, flags, cpu, OFF_FLAG[i as usize] as i32);
             b.def_var(flag_var(i), v);
         }
-        let exits = sb
-            .exits
-            .iter()
-            .map(|e: &Exit| (e.kind, e.done, e.target))
-            .collect();
-        Self {
+        let mut cx = Self {
             b,
             cpu,
             ctl,
             dirty: 0,
             flags_def: 0,
             retired: 0,
-            exits,
-        }
+            sb,
+            lower: lower_uop,
+            pos: 0,
+            consumed: 0,
+            header: None,
+        };
+        cx.open_loop();
+        cx
+    }
+
+    /// The trace being lowered.
+    pub fn sb(&self) -> &'a Sb {
+        self.sb
+    }
+
+    /// The lowerer of one uop (`codegen::lower_uop` unless a test replaced it).
+    pub fn lowerer(&self) -> LowerFn {
+        self.lower
+    }
+
+    /// Replace the lowerer: for tests of the walk, which use a smaller one than the registry.
+    pub fn set_lowerer(&mut self, lower: LowerFn) {
+        self.lower = lower;
     }
 
     /// The pointer type of the function (the `cpu` argument's type).
@@ -119,77 +176,10 @@ impl<'a> NCtx<'a> {
         self.flags_def |= 1 << i;
     }
 
-    /// Store every dirty register and defined flag back into the `Cpu`.
-    fn store_state(&mut self) {
-        let flags = MemFlags::trusted();
-        for n in 0..NREGS {
-            if self.dirty >> n & 1 != 0 {
-                let v = self.b.use_var(reg_var(n));
-                self.b
-                    .ins()
-                    .store(flags, v, self.cpu, (OFF_R + 4 * n as usize) as i32);
-            }
-        }
-        for i in 0..4u8 {
-            if self.flags_def >> i & 1 != 0 {
-                let v = self.b.use_var(flag_var(i));
-                self.b
-                    .ins()
-                    .istore8(flags, v, self.cpu, OFF_FLAG[i as usize] as i32);
-            }
-        }
-    }
-
-    /// Leave: state stored, `insns += done`, `r15 = target`, `ctl.exit/target` set, return `id`.
-    fn leave(&mut self, id: u32, done: u16, target: u32) {
-        self.store_state();
-        let flags = MemFlags::trusted();
-        let insns = self
-            .b
-            .ins()
-            .load(types::I64, flags, self.cpu, OFF_INSNS as i32);
-        let insns = self.b.ins().iadd_imm(insns, i64::from(done));
-        self.b.ins().store(flags, insns, self.cpu, OFF_INSNS as i32);
-        let t = self.b.ins().iconst(types::I32, i64::from(target));
-        self.b.ins().store(flags, t, self.cpu, (OFF_R + 60) as i32);
-        let e = self.b.ins().iconst(types::I32, i64::from(id));
-        self.b.ins().store(flags, e, self.ctl, CTL_EXIT as i32);
-        self.b.ins().store(flags, t, self.ctl, CTL_TARGET as i32);
-        self.b.ins().return_(&[e]);
-    }
-
-    /// Leave through exit `idx` of the trace. Only static targets are handled here; an
-    /// `Indirect*` or `Dynamic` exit is [`Unsupported`] until the native register-target work.
-    pub fn exit(&mut self, idx: usize) -> Result<(), Unsupported> {
-        let (kind, done, target) = self.exits[idx];
-        match kind {
-            ExitKind::Direct
-            | ExitKind::Fault
-            | ExitKind::Stale
-            | ExitKind::LoopBack
-            | ExitKind::Watch => {
-                self.leave(idx as u32, done, target);
-                Ok(())
-            }
-            ExitKind::Indirect | ExitKind::IndirectArm | ExitKind::Dynamic => Err(Unsupported),
-        }
-    }
-
-    /// Leave with the state exact before the instruction at `pc`: the `retired` instructions
-    /// before it are counted, `r15 = pc`, the driver runs one `Cpu::step` there.
-    pub fn exit_generic(&mut self, pc: u32) {
-        self.leave(EXIT_GENERIC, self.retired, pc);
-    }
-
-    /// `if cond != 0 { exit_generic(pc) }`; emission continues in the fall-through block.
-    pub fn side_exit_generic_if(&mut self, cond: Value, pc: u32) {
-        let (side, cont) = (self.b.create_block(), self.b.create_block());
-        self.b.ins().brif(cond, side, &[], cont, &[]);
-        self.b.seal_block(side);
-        self.b.switch_to_block(side);
-        self.exit_generic(pc);
-        self.b.seal_block(cont);
-        self.b.switch_to_block(cont);
+    /// An `i32` constant holding the bit pattern of `v` (the sign-extended form Cranelift takes
+    /// for every `u32`, guest addresses above `0x8000_0000` included).
+    pub fn const32(&mut self, v: u32) -> Value {
+        self.b.ins().iconst(types::I32, i64::from(v as i32))
     }
 
     /// True when the current block already ends in a terminator (a lowered exit): nothing may be
@@ -213,42 +203,14 @@ impl<'a> NCtx<'a> {
 }
 
 #[cfg(test)]
-pub(crate) mod testing {
-    use super::*;
-    use cranelift_codegen::ir::{AbiParam, Signature, UserFuncName};
-    use cranelift_codegen::isa::CallConv;
-    use cranelift_codegen::settings;
-    use cranelift_codegen::verify_function;
-
-    /// A function with the native signature `(i64, i64) -> i32`.
-    pub fn new_function() -> Function {
-        let mut sig = Signature::new(CallConv::SystemV);
-        sig.params.push(AbiParam::new(types::I64));
-        sig.params.push(AbiParam::new(types::I64));
-        sig.returns.push(AbiParam::new(types::I32));
-        Function::with_name_signature(UserFuncName::default(), sig)
-    }
-
-    /// Build a function for `sb` with `emit`, finish it and verify the IR (no executable memory).
-    pub fn build_and_verify(sb: &Sb, emit: impl FnOnce(&mut NCtx<'_>)) -> Function {
-        let mut func = new_function();
-        let mut fctx = FunctionBuilderContext::new();
-        let mut cx = NCtx::new(&mut func, &mut fctx, sb);
-        emit(&mut cx);
-        cx.finish();
-        let flags = settings::Flags::new(settings::builder());
-        if let Err(e) = verify_function(&func, &flags) {
-            panic!("{e}\n{func}");
-        }
-        func
-    }
-}
+pub(crate) mod testing;
 
 #[cfg(test)]
 mod tests {
     use super::testing::build_and_verify;
     use super::*;
     use crate::machine::sb::cache::tiny_trace;
+    use crate::machine::sb::uop::{Exit, ExitKind};
 
     fn trace() -> Sb {
         let mut sb = tiny_trace(0x1000, &[(0x1000, 1)]);
@@ -295,15 +257,6 @@ mod tests {
             assert!(!cx.is_terminated(), "emission continues after a side exit");
             cx.exit(0).unwrap();
             assert!(cx.is_terminated());
-        });
-    }
-
-    #[test]
-    fn a_dynamic_exit_is_unsupported_until_the_register_target_work() {
-        let sb = trace();
-        build_and_verify(&sb, |cx| {
-            assert_eq!(cx.exit(1), Err(Unsupported));
-            cx.exit_generic(0x1000); // the function must still end in a terminator
         });
     }
 

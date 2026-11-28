@@ -82,21 +82,30 @@ impl Core {
         let Some(f) = self.loops.last().copied().filter(|f| f.term.is_some()) else {
             return;
         };
-        let mut body = Vec::new();
-        let mut pc = f.start;
-        while pc <= f.end && body.len() < WALK_LIMIT {
-            body.push(pc);
-            pc = pc.wrapping_add(self.fetch(pc).insn.len.max(1) as u32);
-        }
-        let n = body.len();
+        // two walks of the body instead of a list of its addresses: no allocation (the uop
+        // engine runs this from `DO UNTIL` on the audio path). First the instruction count, then
+        // the walk to index `(N - 4) mod N`.
+        let n = self.walk_body(f.start, f.end, WALK_LIMIT).1;
         let check = if n == 0 {
             u32::MAX
         } else {
-            body[(n as isize - 4).rem_euclid(n as isize) as usize] // index (N - 4) mod N
+            let index = (n as isize - 4).rem_euclid(n as isize) as usize; // (N - 4) mod N
+            self.walk_body(f.start, f.end, index).0
         };
         if let Some(top) = self.loops.last_mut() {
             top.check = check;
         }
+    }
+
+    /// Walks the body `start..=end` instruction by instruction for at most `limit` instructions:
+    /// the address after the last one walked and how many were walked (at most `limit`).
+    fn walk_body(&mut self, start: u32, end: u32, limit: usize) -> (u32, usize) {
+        let (mut pc, mut n) = (start, 0usize);
+        while pc <= end && n < limit {
+            pc = pc.wrapping_add(self.fetch(pc).insn.len.max(1) as u32);
+            n += 1;
+        }
+        (pc, n)
     }
 
     /// Whether the termination condition `code` holds on PEx (and PEy in SIMD mode).
@@ -142,7 +151,26 @@ impl Core {
 #[cfg(test)]
 mod tests {
     use super::super::support::core_at_zero;
-    use super::LoopFrame;
+    use super::{LoopFrame, WALK_LIMIT};
+    use crate::core::uop::verify::gen::Rng;
+    use crate::core::Core;
+
+    /// The check address as `refresh_check` computed it before it stopped allocating (it
+    /// collected the addresses of the body in a `Vec`): the reference of the equality test.
+    fn check_by_list(c: &mut Core, start: u32, end: u32) -> u32 {
+        let mut body = Vec::new();
+        let mut pc = start;
+        while pc <= end && body.len() < WALK_LIMIT {
+            body.push(pc);
+            pc = pc.wrapping_add(c.fetch(pc).insn.len.max(1) as u32);
+        }
+        let n = body.len();
+        if n == 0 {
+            u32::MAX
+        } else {
+            body[(n as isize - 4).rem_euclid(n as isize) as usize]
+        }
+    }
 
     /// ADI: `013e 0002 a000` is `r0=r0-1`, `0000 0000 0000` is `nop`.
     const DEC_R0: [u16; 3] = [0x013E, 0x0002, 0xA000];
@@ -243,5 +271,73 @@ mod tests {
             c.loops.is_empty(),
             "left three iterations after the pin rose"
         );
+    }
+
+    #[test]
+    fn the_check_address_equals_the_list_walk_on_random_bodies_and_does_not_allocate() {
+        use crate::core::uop::verify::count_alloc::allocs_in;
+        // bodies of one-, two- and three-parcel instructions (a NOP, a 17-bit load of a data
+        // register, a NOP with a full compute word) in random order, loop ends anywhere: on an
+        // instruction, inside a long one, before the start (an empty body) and past the code
+        let mut rng = Rng::new(0xa217_100b);
+        let (mut empty, mut long, mut addr) = (0, 0, 0);
+        for case in 0..400 {
+            let mut parcels = Vec::new();
+            for _ in 0..1 + rng.below(12) {
+                match rng.below(3) {
+                    0 => parcels.push(0x0001),
+                    1 => parcels.extend([0x0F81, rng.below(100) as u16]),
+                    _ => parcels.extend([0, 0, 0]),
+                }
+            }
+            let start = rng.below(parcels.len() as u32);
+            let end = match rng.below(6) {
+                0 => start.wrapping_sub(1 + rng.below(3)),
+                1 => parcels.len() as u32 + rng.below(8),
+                _ => start + rng.below(parcels.len() as u32 - start + 1),
+            };
+            let mut c = core_at_zero(&parcels);
+            let want = check_by_list(&mut c, start, end);
+            c.push_loop(LoopFrame {
+                start,
+                end,
+                term: Some(0),
+                ..LoopFrame::default()
+            });
+            c.refresh_check(); // warms the decode cache, as the first walk of a pass does
+            assert_eq!(
+                c.loops[0].check, want,
+                "case {case}: {parcels:04x?} {start}..={end}"
+            );
+            c.loops[0].check = 0xDEAD;
+            let ((), allocs) = allocs_in(|| c.refresh_check());
+            assert_eq!(allocs, 0, "case {case}: the walk allocates");
+            assert_eq!(c.loops[0].check, want, "case {case}: second walk");
+            empty += u32::from(want == u32::MAX);
+            long += u32::from(end >= start && end - start >= 8);
+            addr += u32::from(want != u32::MAX);
+        }
+        // the corpus has empty bodies and long bodies, and a result that is an address
+        assert!(
+            empty >= 20 && long >= 40 && addr >= 200,
+            "{empty} {long} {addr}"
+        );
+    }
+
+    #[test]
+    fn a_body_longer_than_the_walk_limit_is_cut_at_the_limit_like_the_list_walk() {
+        let parcels = vec![0x0001; WALK_LIMIT + 100];
+        let end = parcels.len() as u32 - 1;
+        let mut c = core_at_zero(&parcels);
+        let want = check_by_list(&mut c, 0, end);
+        assert_eq!(want, (WALK_LIMIT - 4) as u32, "N is capped at the limit");
+        c.push_loop(LoopFrame {
+            start: 0,
+            end,
+            term: Some(0),
+            ..LoopFrame::default()
+        });
+        c.refresh_check();
+        assert_eq!(c.loops[0].check, want);
     }
 }

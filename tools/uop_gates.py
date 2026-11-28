@@ -4,17 +4,35 @@
 Usage: python tools/uop_gates.py [--gate G2 --gate K3 ...] REPORT.json [REPORT.json ...]
        cargo run -q -p nord-tools --bin uop-report | python tools/uop_gates.py -
 
-Reads only the JSON that `uop-report` prints (schema 1, `runner/uop_report.rs`): counts, never
-times, so the verdict is the same on every machine. A report file holds one object or a list of
-objects. Gates (docs/research/sharc-compiler-design.md section 12):
+Reads only the JSON that `uop-report` and `lle_sharc_bench --uop-report` print (schema 1,
+`runner/uop_report/json.rs`): counts, never times, so the verdict is the same on every machine. A
+report file holds one object or a list of objects. Gates (docs/research/sharc-compiler-design.md
+section 12):
 
   G2  uops per step <= 1.35; `Interp` steps <= 6% of steps (so >= 90% of steps run as real uops
       or native code); `Slow` exits <= 20 per pass; `maintain_calls == 0`; `smc == 0` (no store
       hit a translated code page in the measured passes: a hit means data shares a 256-word page
       with code, costs a revalidation per store and is answered by a smaller page, not ignored).
-  K3  modeled Tier 2 cycles per pass <= 1.4 x 207,360 = 290,304 (the 46.08 us budget at 4.5 GHz).
+      Both are STEADY-STATE counters: they are evaluated only on a report whose `window` is
+      `measured` (the warm-up passes are not in the counters) or absent (a report written before
+      the member existed). A report with `window: "all"` includes the warm-up, where the first
+      translations and revalidations are expected, so the two checks fail on it, whatever their
+      value, and say why; the other checks read the same counters whichever the window.
+  K3  modeled Tier 2 cycles per pass <= 290,000, the design's "1.4 x budget = 290k" (1.4 x 207,360
+      = 290,304, the 46.08 us budget at 4.5 GHz, rounded down). A Tier 1 report has no native
+      steps, so its Tier 2 model equals its Tier 1 model and K3 reads it as such.
 
-All thresholds are ASSUMED decision thresholds, not measurements. Exit code: 0 every selected gate
+Counter contract: `steps_native` is a SUBSET of `steps_uop` (native blocks are one kind of uop
+step; `UopStats` in `core/uop/config.rs` is frozen, so the contract is documented here and in
+`runner/uop_report/model.rs`). The step total of a run is `steps_uop + steps_core_step`, never
+plus `steps_native`, and `validate` rejects a report with `steps_native > steps_uop`. Optional
+members `replay` (`checked`, `skipped` passes of the `uop-checked` engine) and `block_steps` (the
+block-length histogram of design 11.3) are shape-checked and gate nothing: a check is added only
+with its design row.
+
+All thresholds are ASSUMED decision thresholds, not measurements, and each is a row of design
+section 12: a check is added here only together with its design row (the test
+`test_the_checks_are_exactly_the_design_rows` pins the list). Exit code: 0 every selected gate
 passed on every report, 1 a gate failed, 2 unreadable or unsupported input.
 """
 
@@ -26,6 +44,8 @@ import sys
 from dataclasses import dataclass
 
 SCHEMA = 1
+#: What the counters cover: the measured passes only, or every pass the run made (warm-up too).
+WINDOWS = ("measured", "all")
 #: Index of `Exit::Slow` in the report's `exits` array (Ok, Jump, Fault, Guard, Smc, Slow).
 EXIT_SLOW = 5
 EXIT_COUNT = 6
@@ -59,6 +79,11 @@ STATS_KEYS = (
 )
 
 
+#: Members of the `replay` and `block_steps` objects.
+REPLAY_KEYS = ("checked", "skipped")
+BLOCK_STEPS_KEYS = ("entries", "steps", "chained", "empty")
+
+
 class ReportError(ValueError):
     """The input is not a schema 1 `uop-report` object."""
 
@@ -78,6 +103,39 @@ class Check:
         return f"{mark} {self.gate} {self.name} = {self.value:g} (limit {self.limit}) [{label}]"
 
 
+def is_count(x: object) -> bool:
+    """A non-negative integer that is not a bool (JSON `true` is an int in Python)."""
+    return isinstance(x, int) and not isinstance(x, bool) and x >= 0
+
+
+def validate_block_steps(hist: object, stats: dict) -> None:
+    """Check the shape and the arithmetic of a `block_steps` histogram against `stats`."""
+    if not isinstance(hist, dict):
+        raise ReportError("block_steps is not an object")
+    edges, counts = hist.get("edges"), hist.get("counts")
+    if not (isinstance(edges, list) and edges and all(is_count(e) and e > 0 for e in edges)):
+        raise ReportError("block_steps.edges is not a list of positive counts")
+    if any(a >= b for a, b in zip(edges, edges[1:])):
+        raise ReportError("block_steps.edges is not strictly increasing")
+    if not (
+        isinstance(counts, list) and len(counts) == len(edges) + 1 and all(map(is_count, counts))
+    ):
+        raise ReportError("block_steps.counts is not one count per edge plus an open bucket")
+    for key in BLOCK_STEPS_KEYS:
+        if not is_count(hist.get(key)):
+            raise ReportError(f"block_steps.{key} missing or not a count")
+    if sum(counts) != hist["entries"]:
+        raise ReportError("block_steps.counts do not add up to block_steps.entries")
+    if hist["steps"] < hist["entries"]:
+        raise ReportError("block_steps.steps is below block_steps.entries (each ran a step)")
+    # a chained entry ran two or more blocks, every other entry exactly one
+    blocks = hist["entries"] + hist["empty"] + 2 * hist["chained"]
+    if blocks > stats["blocks_run"]:
+        raise ReportError(
+            f"block_steps covers {blocks} blocks, stats.blocks_run is {stats['blocks_run']}"
+        )
+
+
 def validate(report: object) -> dict:
     """Return `report` when it is a well-formed schema 1 object, else raise `ReportError`."""
     if not isinstance(report, dict):
@@ -89,22 +147,41 @@ def validate(report: object) -> dict:
     if not isinstance(stats, dict) or not isinstance(model, dict):
         raise ReportError("missing stats or model object")
     for key in STATS_KEYS:
-        if not isinstance(stats.get(key), int) or stats[key] < 0:
+        if not is_count(stats.get(key)):
             raise ReportError(f"stats.{key} missing or not a count")
     for key, size in (("exits", EXIT_COUNT), ("guard_fail", GUARD_COUNT)):
         arr = stats.get(key)
-        if not (
-            isinstance(arr, list) and len(arr) == size and all(isinstance(x, int) for x in arr)
-        ):
+        if not (isinstance(arr, list) and len(arr) == size and all(is_count(x) for x in arr)):
             raise ReportError(f"stats.{key} is not a list of {size} counts")
     for key in ("tier1_cycles", "tier2_cycles"):
-        if not isinstance(model.get(key), int) or model[key] < 0:
+        if not is_count(model.get(key)):
             raise ReportError(f"model.{key} missing or not a count")
+    if stats["steps_native"] > stats["steps_uop"]:
+        raise ReportError(
+            "stats.steps_native exceeds stats.steps_uop: native steps are a subset of the uop steps"
+        )
+    window = report.get("window")
+    if window is not None and window not in WINDOWS:
+        raise ReportError(f"window {window!r} is not one of {', '.join(WINDOWS)}")
+    replay = report.get("replay")
+    if replay is not None and not (
+        isinstance(replay, dict) and all(is_count(replay.get(k)) for k in REPLAY_KEYS)
+    ):
+        raise ReportError("replay is not an object of checked and skipped counts")
+    if report.get("block_steps") is not None:
+        validate_block_steps(report["block_steps"], stats)
     return report
 
 
+def steady(report: dict) -> bool:
+    """Whether the counters are of the measured passes (or of a report that does not say)."""
+    return report.get("window") != "all"
+
+
 def steps_of(stats: dict) -> int:
-    """Interpreter-equivalent steps the run covered: engine steps plus `Core::step` gaps."""
+    """Interpreter-equivalent steps the run covered: engine steps plus `Core::step` gaps.
+
+    `steps_native` is a subset of `steps_uop` and is not added (see the module docstring)."""
     return stats["steps_uop"] + stats["steps_core_step"]
 
 
@@ -118,6 +195,9 @@ def gate_g2(report: dict) -> list[Check]:
     interp = s["steps_interp_uop"] + s["steps_core_step"]
     fast = max(s["steps_uop"] - s["steps_interp_uop"], 0)
     uops_per_step = s["uops"] / s["steps_uop"] if s["steps_uop"] else float("inf")
+    # the steady-state counters mean nothing over a window that includes the warm-up
+    ok_steady = steady(report)
+    why = "" if ok_steady else " (window all: includes the warm-up, not a steady state)"
     return [
         Check(
             "G2",
@@ -147,8 +227,14 @@ def gate_g2(report: dict) -> list[Check]:
             f"<= {MAX_SLOW_EXITS_PER_PASS}",
             s["exits"][EXIT_SLOW] / passes <= MAX_SLOW_EXITS_PER_PASS,
         ),
-        Check("G2", "maintain_calls", s["maintain_calls"], "== 0", s["maintain_calls"] == 0),
-        Check("G2", "smc", s["smc"], "== 0", s["smc"] == 0),
+        Check(
+            "G2",
+            "maintain_calls",
+            s["maintain_calls"],
+            "== 0" + why,
+            ok_steady and s["maintain_calls"] == 0,
+        ),
+        Check("G2", "smc", s["smc"], "== 0" + why, ok_steady and s["smc"] == 0),
     ]
 
 

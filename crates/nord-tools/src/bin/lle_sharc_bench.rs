@@ -3,7 +3,9 @@
 //!
 //! ```text
 //! cargo run --release -p nord-tools --bin lle_sharc_bench -- \
-//!   --core NAME=IMAGE,PRESET[,MSGFILE[,AOT_TAG]]  ...  [--passes 300] [--warmup 16] [--engine interp|aot]
+//!   --core NAME=IMAGE,PRESET[,MSGFILE[,AOT_TAG]]  ...  [--passes 300] [--warmup 16] \
+//!   [--engine interp|aot|uop|uop-checked|uop-native] [--uop-families BITS] [--uop-report FILE] \
+//!   [--uop-ranges extent|probe]
 //! ```
 //!
 //! `PRESET` is `pno` or `org` (`runner::live_presets`), `MSGFILE` a text of `--msg [PASS:]W1=W2`
@@ -11,89 +13,144 @@
 //! (`NORD_SHARC_AOT_HOT=TAG=file;...` at build time). With `--engine aot` only cores that have a
 //! tag run the AOT blocks; the others stay on the interpreter. Output: one row per core and the
 //! scheduler tick, all against the 46.08 us pass period (2 frames at 43 402.34 Hz).
-use nord_sharc::core::aot_prof::{aot_prof_enable, ProfReport, ProfRow};
-use nord_sharc::runner::live_presets::{boot_core, preset_named};
-use nord_sharc::runner::msg::parse_msg_text;
-use nord_sharc::runner::pass_sched::{run_ticks, summarize, Engine, PassJob};
-use nord_sharc::runner::periph_run::PeriphOpts;
+//!
+//! The uop engines (D260, `docs/specs/sharc-uop.md`) apply to every core: the booted core is
+//! armed with `runner::uop_pass::arm_for` (its code translated, the pass idle pc the stop pc)
+//! and each pass runs `lean_pass_uop`. `uop-checked` also replays every pass on the interpreter
+//! and panics on a difference: allocating, for exactness runs, not timing. `uop-native` needs
+//! `--features nord-sharc/uop-native`; `--uop-families` is its `native::FAM_*` bit set (default 0,
+//! call-threaded). `--uop-ranges` picks the code to translate: `extent` (default: the non-zero
+//! extent of the VISA window, data tables included, so stores into them count as `smc`) or `probe`
+//! (the pcs of `warmup + passes` interpreter passes on a second boot of the core: only code the
+//! passes run). After the table, one line of deterministic counters per core is printed and,
+//! with `--uop-report FILE`, the same counters are written as a JSON array that
+//! `python tools/uop_gates.py FILE` evaluates. The cores run on their own threads, so the
+//! scheduler cannot reset their counters between the warm-up and the measured passes: it
+//! snapshots them when the first measured pass is about to start (`CoreSeries::uop_at_warmup`)
+//! and the report holds the counters at the end minus that snapshot (`"window":"measured"`, the
+//! same window as `uop-report`), so the steady-state gates see the measured passes only. The
+//! scheduler cannot watch block entries either: the reports carry no `block_steps` histogram
+//! (`uop-report` prints it) and no `replay` counts (`uop-checked` panics on a difference).
+use nord_sharc::core::aot_prof::aot_prof_enable;
+use nord_sharc::runner::parse_number;
+use nord_sharc::runner::pass_sched::{run_ticks, summarize, Engine, PassJob, SchedReport};
 use nord_sharc::runner::system::{pass_period_s, FRAME_RATE};
+use nord_sharc::runner::uop_pass::{engine_named, uop_config, RangeMode};
+use nord_sharc::runner::uop_report::{counters_text, UopReport};
 use std::fmt::Write as _;
 
-struct CoreSpec {
-    name: String,
-    image: String,
-    preset: String,
-    msgs: Option<String>,
-    tag: Option<String>,
+// the AOT profile text lives next to the bench (a module of this binary, not a binary of its own)
+#[path = "lle_sharc_bench/profile.rs"]
+mod profile;
+// one core: its `--core` argument and its armed job
+#[path = "lle_sharc_bench/job.rs"]
+mod core_job;
+use core_job::{job, parse_core, Arming, CoreSpec};
+
+/// The command line.
+#[derive(Debug)]
+struct Opts {
+    specs: Vec<CoreSpec>,
+    passes: u32,
+    warmup: u32,
+    engine: Engine,
+    engine_name: String,
+    families: u32,
+    ranges: RangeMode,
+    uop_report: Option<String>,
+    profile: bool,
 }
 
-/// `NAME=IMAGE,PRESET[,MSGFILE[,TAG]]`.
-fn parse_core(s: &str) -> Result<CoreSpec, String> {
-    let bad = || format!("bad --core {s:?} (want NAME=IMAGE,PRESET[,MSGFILE[,TAG]])");
-    let (name, rest) = s.split_once('=').ok_or_else(bad)?;
-    let f: Vec<&str> = rest.split(',').collect();
-    if f.len() < 2 || f.len() > 4 {
-        return Err(bad());
-    }
-    let opt = |i: usize| f.get(i).filter(|v| !v.is_empty()).map(|v| v.to_string());
-    Ok(CoreSpec {
-        name: name.into(),
-        image: f[0].into(),
-        preset: f[1].into(),
-        msgs: opt(2),
-        tag: opt(3),
-    })
-}
-
-fn job(spec: &CoreSpec, engine: Engine) -> Result<PassJob, String> {
-    let data = std::fs::read(&spec.image).map_err(|e| format!("{}: {e}", spec.image))?;
-    let preset = preset_named(&spec.preset).ok_or_else(|| format!("preset {:?}", spec.preset))?;
-    let mut core = boot_core(&data, &preset, &PeriphOpts::default())?;
-    let mut engine = engine;
-    match (&spec.tag, engine) {
-        (Some(tag), Engine::Aot) => {
-            core.enable_aot_tag(tag)?;
-        }
-        _ => engine = Engine::Interp,
-    }
-    let msgs = match &spec.msgs {
-        Some(f) => parse_msg_text(&std::fs::read_to_string(f).map_err(|e| format!("{f}: {e}"))?)?,
-        None => Vec::new(),
+fn parse_args(args: impl Iterator<Item = String>) -> Result<Opts, String> {
+    let mut o = Opts {
+        specs: Vec::new(),
+        passes: 300,
+        warmup: 16,
+        engine: Engine::Interp,
+        engine_name: "interp".into(),
+        families: 0,
+        ranges: RangeMode::Extent,
+        uop_report: None,
+        profile: false,
     };
-    Ok(PassJob::from_preset(
-        &spec.name, core, &preset, msgs, engine,
-    ))
-}
-
-fn main() -> Result<(), String> {
-    let (mut specs, mut passes, mut warmup, mut engine) =
-        (Vec::new(), 300u32, 16u32, Engine::Interp);
-    let mut profile = false;
-    let mut args = std::env::args().skip(1);
+    let mut args = args;
     while let Some(a) = args.next() {
         let mut val = || args.next().ok_or(format!("{a} needs a value"));
         match a.as_str() {
-            "--core" => specs.push(parse_core(&val()?)?),
-            "--profile" => profile = true,
-            "--passes" => passes = val()?.parse().map_err(|e| format!("--passes: {e}"))?,
-            "--warmup" => warmup = val()?.parse().map_err(|e| format!("--warmup: {e}"))?,
+            "--core" => o.specs.push(parse_core(&val()?)?),
+            "--profile" => o.profile = true,
+            "--passes" => o.passes = val()?.parse().map_err(|e| format!("--passes: {e}"))?,
+            "--warmup" => o.warmup = val()?.parse().map_err(|e| format!("--warmup: {e}"))?,
             "--engine" => {
-                engine = match val()?.as_str() {
-                    "interp" => Engine::Interp,
-                    "aot" => Engine::Aot,
-                    o => return Err(format!("--engine {o:?}")),
-                }
+                let name = val()?;
+                o.engine = engine_named(&name).ok_or(format!("--engine {name:?}"))?;
+                o.engine_name = name;
             }
+            "--uop-families" => {
+                let v = val()?;
+                o.families = parse_number(&v).ok_or(format!("bad --uop-families {v}"))?;
+            }
+            "--uop-ranges" => {
+                let v = val()?;
+                o.ranges = RangeMode::named(&v)
+                    .ok_or(format!("--uop-ranges {v:?}: want extent or probe"))?;
+            }
+            "--uop-report" => o.uop_report = Some(val()?),
             _ => return Err(format!("unknown argument {a:?}")),
         }
     }
-    if specs.is_empty() {
+    if o.specs.is_empty() {
         return Err("usage: lle_sharc_bench --core NAME=IMAGE,PRESET[,MSGFILE[,TAG]] ...".into());
     }
-    let jobs = specs
+    if o.uop_report.is_some() && uop_config(o.engine, 0).is_none() {
+        return Err("--uop-report needs --engine uop, uop-checked or uop-native".into());
+    }
+    if o.ranges != RangeMode::Extent && uop_config(o.engine, 0).is_none() {
+        return Err("--uop-ranges probe needs --engine uop, uop-checked or uop-native".into());
+    }
+    Ok(o)
+}
+
+/// One report per core of a finished run: the engine counters at the end minus the snapshot taken
+/// when the first measured pass was about to start, so the warm-up is not in them (the window of
+/// the report is `measured`). `r.cores` and `r.jobs` are in the same order.
+fn measured_reports(r: &SchedReport, engine_name: &str) -> Vec<UopReport> {
+    r.cores
         .iter()
-        .map(|s| job(s, engine))
+        .zip(&r.jobs)
+        .map(|(c, j)| {
+            let label = format!("{} {engine_name}", j.name);
+            UopReport::measured(&label, &j.core.uop_stats(), &c.uop_at_warmup)
+        })
+        .collect()
+}
+
+fn main() -> Result<(), String> {
+    let Opts {
+        specs,
+        passes,
+        warmup,
+        engine,
+        engine_name,
+        families,
+        ranges,
+        uop_report,
+        profile,
+    } = parse_args(std::env::args().skip(1))?;
+    let arming = Arming {
+        families,
+        ranges,
+        probe_passes: warmup + passes,
+    };
+    let armed = specs
+        .iter()
+        .map(|s| job(s, engine, arming))
         .collect::<Result<Vec<_>, _>>()?;
+    let builds: Vec<_> = armed
+        .iter()
+        .map(|a| (a.job.name.clone(), a.build))
+        .collect();
+    let jobs: Vec<PassJob> = armed.into_iter().map(|a| a.job).collect();
     aot_prof_enable(profile);
     let r = run_ticks(jobs, warmup, passes)?;
     let budget_us = pass_period_s(FRAME_RATE) * 1e6;
@@ -136,124 +193,154 @@ fn main() -> Result<(), String> {
     );
     if profile {
         let steps = summarize(&r.cores[0].steps, warmup as usize).0;
-        out += &profile_text(&r.jobs[0].core.aot_prof_report(), steps);
+        out += &profile::profile_text(&r.jobs[0].core.aot_prof_report(), steps);
+    }
+    if uop_config(engine, 0).is_some() {
+        let reports = measured_reports(&r, &engine_name);
+        out += &counters_text(&builds, &reports, warmup, passes);
+        if let Some(path) = uop_report {
+            std::fs::write(&path, UopReport::list_json(&reports))
+                .map_err(|e| format!("{path}: {e}"))?;
+        }
     }
     print!("{out}");
     Ok(())
-}
-
-/// Text of the fallback profile of the first core: shares of the pass cycles by cause and the top
-/// instruction classes (`--profile`).
-fn profile_text(p: &ProfReport, steps_per_pass: f64) -> String {
-    let total = p.pass_cycles.max(1) as f64;
-    let pct = |c: u64| 100.0 * c as f64 / total;
-    let by_cause = |cause: &str| -> (u64, u64) {
-        p.rows
-            .iter()
-            .filter(|r| r.cause == cause)
-            .fold((0, 0), |a, r| (a.0 + r.steps, a.1 + r.cycles))
-    };
-    let mut out = String::new();
-    let n = p.passes.max(1) as f64;
-    let _ = writeln!(
-        out,
-        "profile of core 1: {} passes, {:.0} steps/pass, {:.0} cycles/pass",
-        p.passes,
-        steps_per_pass,
-        total / n
-    );
-    let (gs, gc) = by_cause("generic");
-    let (rs, rc) = by_cause("refused");
-    let (us, uc) = by_cause("unblocked");
-    let (ms, mc) = by_cause("mid-block");
-    let native = p.run_cycles.saturating_sub(gc);
-    let block_steps = steps_per_pass - (gs + rs + us + ms) as f64 / n;
-    let _ = writeln!(
-        out,
-        "cause | steps/pass | share of steps | share of pass time"
-    );
-    let _ = writeln!(
-        out,
-        "native in blocks (batch + memory/move lowering) | {:.0} | {:.1}% | {:.1}%",
-        block_steps - gs as f64 / n,
-        100.0 * (block_steps - gs as f64 / n) / steps_per_pass,
-        pct(native)
-    );
-    for (name, s, c) in [
-        ("generic aot_step inside blocks", gs, gc),
-        ("block start refused by entry guard", rs, rc),
-        ("pc in no block (interpreter)", us, uc),
-        ("pc inside a block after a bail-out (interpreter)", ms, mc),
-    ] {
-        let _ = writeln!(
-            out,
-            "{name} | {:.0} | {:.1}% | {:.1}%",
-            s as f64 / n,
-            100.0 * s as f64 / n / steps_per_pass,
-            pct(c)
-        );
-    }
-    for (k, name) in ["interpreter exec_compute_op", "generated Pe kernel"]
-        .iter()
-        .enumerate()
-    {
-        let _ = writeln!(
-            out,
-            "  of native: compute fields via {name} | {:.0} ops/pass | | {:.1}% = {:.0} cycles/op",
-            p.compute_ops[k] as f64 / n,
-            pct(p.compute_cycles[k]),
-            p.compute_cycles[k] as f64 / p.compute_ops[k].max(1) as f64
-        );
-    }
-    let _ = writeln!(
-        out,
-        "block entry/exit dispatch (try - run) | | | {:.1}%",
-        pct(p.try_cycles.saturating_sub(p.run_cycles))
-    );
-    let other = p.pass_cycles.saturating_sub(p.try_cycles + rc + uc + mc);
-    let _ = writeln!(out, "loop glue and idle check | | | {:.1}%", pct(other));
-    let _ = writeln!(
-        out,
-        "top fallback classes by time (class | cause | steps/pass | us-share of pass)"
-    );
-    let mut rows: Vec<&ProfRow> = p.rows.iter().collect();
-    rows.sort_by_key(|r| std::cmp::Reverse(r.cycles));
-    for r in rows.iter().take(12) {
-        let _ = writeln!(
-            out,
-            "{} | {} | {:.1} | {:.1}%",
-            r.class,
-            r.cause,
-            r.steps as f64 / n,
-            pct(r.cycles)
-        );
-    }
-    let _ = writeln!(out, "entry refusals per pass by first failing condition:");
-    for (why, c) in &p.refusals {
-        let _ = writeln!(out, "{why} | {:.1}", *c as f64 / n);
-    }
-    out
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    use nord_sharc::runner::live_presets::boot_core;
+    use nord_sharc::runner::periph_run::PeriphOpts;
+    use nord_sharc::runner::uop_pass::arm_for;
+    use nord_sharc::runner::uop_report::measure::{synthetic_image, synthetic_preset};
+    use nord_sharc::runner::uop_report::Window;
+
+    fn args(v: &[&str]) -> impl Iterator<Item = String> {
+        v.iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>()
+            .into_iter()
+    }
+
+    /// Two armed synthetic cores (the poll program of `uop-report`, no firmware).
+    fn armed_jobs(engine: Engine) -> Vec<PassJob> {
+        let preset = synthetic_preset();
+        ["A", "B"]
+            .iter()
+            .map(|name| {
+                let (image, opts) = (synthetic_image(), PeriphOpts::default());
+                let mut core = boot_core(&image, &preset, &opts).unwrap();
+                arm_for(&mut core, engine, 0, preset.idle_pc, None)
+                    .unwrap()
+                    .expect("a uop engine");
+                PassJob::from_preset(name, core, &preset, Vec::new(), engine)
+            })
+            .collect()
+    }
+
     #[test]
-    fn core_specs_parse_with_optional_msgs_and_tag() {
-        let c = parse_core("A=img.bin,org,m.txt,TAG").unwrap();
+    fn the_reports_hold_the_measured_passes_not_the_warm_up() {
+        let r = run_ticks(armed_jobs(Engine::Uop), 3, 5).unwrap();
+        let reports = measured_reports(&r, "uop");
+        assert_eq!(reports.len(), 2);
+        for (rep, j) in reports.iter().zip(&r.jobs) {
+            assert_eq!(rep.window, Window::Measured);
+            assert_eq!(rep.stats.passes, 5, "the 5 measured passes");
+            assert_eq!(
+                j.core.uop_stats().passes,
+                8,
+                "the core itself counted the 3 warm-up passes too"
+            );
+            assert_eq!(rep.label, format!("{} uop", j.name));
+            assert!(
+                rep.block_steps.is_none(),
+                "the scheduler cannot watch entries"
+            );
+        }
+        let json = UopReport::list_json(&reports);
+        assert!(json.contains("\"window\":\"measured\""), "{json}");
+    }
+
+    #[test]
+    fn a_run_without_measured_passes_reports_nothing_of_its_warm_up() {
+        // every warm-up pass is excluded: with no measured pass the delta is empty
+        let r = run_ticks(armed_jobs(Engine::Uop), 4, 0).unwrap();
+        for rep in measured_reports(&r, "uop") {
+            assert_eq!(rep.stats.passes, 0);
+            assert_eq!(rep.stats.maintain_calls, 0);
+            assert_eq!(rep.stats.smc, 0);
+        }
+    }
+
+    #[test]
+    fn engines_and_uop_options_parse_and_the_defaults_are_unchanged() {
+        let o = parse_args(args(&["--core", "A=i.bin,org"])).unwrap();
         assert_eq!(
-            (c.name.as_str(), c.image.as_str(), c.preset.as_str()),
-            ("A", "img.bin", "org")
+            (o.passes, o.warmup, o.engine, o.families, o.profile),
+            (300, 16, Engine::Interp, 0, false)
         );
-        assert_eq!(
-            (c.msgs.as_deref(), c.tag.as_deref()),
-            (Some("m.txt"), Some("TAG"))
-        );
-        let c = parse_core("B=img.bin,pno").unwrap();
-        assert!(c.msgs.is_none() && c.tag.is_none());
-        let c = parse_core("C=img.bin,org,,TAG").unwrap();
-        assert!(c.msgs.is_none() && c.tag.as_deref() == Some("TAG"));
-        assert!(parse_core("nope").is_err() && parse_core("D=only").is_err());
+        assert!(o.uop_report.is_none());
+        assert_eq!(o.ranges, RangeMode::Extent);
+        for (name, engine) in [
+            ("interp", Engine::Interp),
+            ("aot", Engine::Aot),
+            ("uop", Engine::Uop),
+            ("uop-checked", Engine::UopChecked),
+            ("uop-native", Engine::UopNative),
+        ] {
+            let o = parse_args(args(&["--core", "A=i.bin,org", "--engine", name])).unwrap();
+            assert_eq!((o.engine, o.engine_name.as_str()), (engine, name));
+        }
+        let o = parse_args(args(&[
+            "--core",
+            "A=i.bin,org",
+            "--engine",
+            "uop-native",
+            "--uop-families",
+            "0x6",
+            "--uop-report",
+            "r.json",
+            "--passes",
+            "50",
+            "--uop-ranges",
+            "probe",
+        ]))
+        .unwrap();
+        assert_eq!((o.families, o.passes, o.ranges), (6, 50, RangeMode::Probe));
+        assert_eq!(o.uop_report.as_deref(), Some("r.json"));
+    }
+
+    #[test]
+    fn bad_command_lines_are_rejected() {
+        for bad in [
+            &[][..],                                              // no core
+            &["--core", "A=i.bin,org", "--engine", "turbo"],      // unknown engine
+            &["--core", "A=i.bin,org", "--engine"],               // no value
+            &["--core", "A=i.bin,org", "--uop-families", "x"],    // not a number
+            &["--core", "A=i.bin,org", "--uop-report", "r.json"], // counters need a uop engine
+            &[
+                "--core",
+                "A=i.bin,org",
+                "--engine",
+                "aot",
+                "--uop-report",
+                "r.json",
+            ],
+            &["--core", "A=i.bin,org", "--bogus"],
+            &[
+                "--core",
+                "A=i.bin,org",
+                "--engine",
+                "uop",
+                "--uop-ranges",
+                "all",
+            ], // unknown mode
+            &["--core", "A=i.bin,org", "--engine", "uop", "--uop-ranges"], // no value
+            &["--core", "A=i.bin,org", "--uop-ranges", "probe"], // a probe needs a uop engine
+        ] {
+            assert!(parse_args(args(bad)).is_err(), "{bad:?}");
+        }
     }
 }
