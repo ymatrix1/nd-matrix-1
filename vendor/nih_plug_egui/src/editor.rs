@@ -202,13 +202,14 @@ impl Drop for EguiEditorHandle {
         // window (and its `wnd_proc`, which lives in this DLL) was destroyed later by the host's
         // message pump. Hosts such as VSTHost unload the plugin right after `removed()`, so the next
         // message called a window proc in unmapped code (0xC0000005 on closing the VST3, issue #629).
-        // Destroy it synchronously here: `removed()` runs on the thread that created the window.
+        // Destroy it synchronously here: `removed()` runs on the thread that created the window. If
+        // that fails (a host dropping the handle on another thread), the window procedure is
+        // replaced by `DefWindowProcW` instead of falling back to the posted close.
         #[cfg(windows)]
         if self.window.is_open() {
             if let RawWindowHandle::Win32(handle) = self.window.raw_window_handle() {
-                if win32::destroy_window_now(handle.hwnd) {
-                    return;
-                }
+                win32::close_window_now(handle.hwnd);
+                return;
             }
         }
 
@@ -221,11 +222,30 @@ impl Drop for EguiEditorHandle {
 mod win32 {
     use std::ffi::c_void;
 
+    use crate::close_plan::{plan, CloseStep};
+
+    const GWLP_WNDPROC: i32 = -4;
+
     #[link(name = "user32")]
     extern "system" {
         fn DestroyWindow(hwnd: *mut c_void) -> i32;
-        #[cfg(test)]
-        pub fn IsWindow(hwnd: *mut c_void) -> i32;
+        fn IsWindow(hwnd: *mut c_void) -> i32;
+        fn SetWindowLongPtrW(hwnd: *mut c_void, index: i32, value: isize) -> isize;
+        fn DefWindowProcW(hwnd: *mut c_void, msg: u32, wparam: usize, lparam: isize) -> isize;
+    }
+
+    /// Close `hwnd` so that no message can reach this DLL afterwards: destroy it, and if it survives
+    /// (`DestroyWindow` only works on the creating thread) replace its procedure with user32's
+    /// `DefWindowProcW`. The baseview state of a neutralised window is leaked on purpose.
+    pub fn close_window_now(hwnd: *mut c_void) {
+        let destroyed = destroy_window_now(hwnd);
+        // SAFETY: `IsWindow` accepts any handle value.
+        let alive = !hwnd.is_null() && unsafe { IsWindow(hwnd) } != 0;
+        if plan(destroyed, alive) == CloseStep::Neutralise {
+            // SAFETY: changing a window procedure of a window of this process is allowed from any
+            // thread; `DefWindowProcW` lives in user32, which stays mapped.
+            unsafe { SetWindowLongPtrW(hwnd, GWLP_WNDPROC, DefWindowProcW as *const () as usize as isize) };
+        }
     }
 
     /// Destroy `hwnd` before returning (baseview's own close is asynchronous). Returns whether the
