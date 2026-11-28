@@ -11,6 +11,7 @@
 //! | `state` | the start state: hidden state, DAG with live circular buffers, MR edges, IVT |
 //! | `shapes` | program shapes: straight, nested loops, delayed branches, calls, system loads |
 //! | `scenario`, `driver` | one case end to end, the loop that collects every divergence |
+//! | `ran` | the evidence of one run (counters, installs, interrupts taken) |
 //! | `rig` | the translation service of a run (synchronous or a worker thread) |
 //! | `straight` | random straight programs per family, PEy on and off, block limits |
 //! | `control` | jumps, calls, DO and DO UNTIL (nested), delayed branches and their slots |
@@ -32,6 +33,7 @@ mod events;
 mod findings;
 mod knobs;
 mod mutants;
+mod ran;
 mod rig;
 mod scenario;
 mod service;

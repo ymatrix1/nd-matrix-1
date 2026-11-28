@@ -11,10 +11,11 @@
 //! anything is written (a core with peripheral models is compared through its census), and
 //! programs that move float registers get the stale-extension fill (`Prep::stale`), because
 //! `exact_diff` compares the raw hidden extension bytes.
+use super::ran::{fault_diff, Ran};
 use super::rig::Rig;
 use super::state::{aim_at, arm_interrupts, prepare, Prep, ISR_PC};
 use crate::core::uop::config::{UopConfig, UopError, UopStats};
-use crate::core::uop::types::UopKind;
+use crate::core::uop::types::{Handler, UopKind};
 use crate::core::uop::verify::compare::{exact_diff, ExactDiff};
 use crate::core::uop::verify::fuzz::DiffRun;
 use crate::core::uop::verify::gen::{core_with_code, CODE_PC};
@@ -201,34 +202,19 @@ impl Scenario {
     }
 }
 
-/// What a scenario did: the verdict and evidence of [`DiffRun`], plus the interrupts the engine
-/// core took (equal to the interpreter's when `diff` is `None`) and the steps the engine ran
-/// through uops after its first interrupt.
-#[derive(Clone, Debug)]
-pub(super) struct Ran {
-    pub run: DiffRun,
-    pub taken: u64,
-}
-
-impl Ran {
-    /// Whether the case ran fast uops (the rule of `DiffRun::exercised`) and entered blocks.
-    pub fn exercised(&self) -> bool {
-        self.run.exercised() && self.run.stats.blocks_run > 0
-    }
-}
-
-fn fault_diff<E: std::fmt::Debug + PartialEq>(a: Option<E>, b: Option<E>) -> Option<ExactDiff> {
-    (a != b).then(|| ExactDiff {
-        field: "fault",
-        a: format!("{a:?}"),
-        b: format!("{b:?}"),
-    })
-}
-
 /// Wraps the handler of the `nth` (modulo their number) distinct fast uop kinds that `got` holds
 /// in `m`. Returns the kind, or `None` when every uop is a `NOP` or `Interp` uop. Kind 0 is the
 /// first in program order.
 pub(super) fn plant(got: &mut Core, m: Mutant, nth: usize) -> Option<UopKind> {
+    plant_with(got, nth, |h| perturb(h, m))
+}
+
+/// [`plant`] with any wrapper: replaces the handler of the chosen kind by `wrap(handler)`.
+pub(super) fn plant_with(
+    got: &mut Core,
+    nth: usize,
+    wrap: impl FnOnce(Handler) -> Handler,
+) -> Option<UopKind> {
     let hot = got.uop.as_mut()?;
     let mut kinds: Vec<UopKind> = Vec::new();
     for u in hot.arena.iter().map(|u| UopKind(u.h)) {
@@ -238,7 +224,7 @@ pub(super) fn plant(got: &mut Core, m: Mutant, nth: usize) -> Option<UopKind> {
     }
     let kind = *kinds.get(nth.checked_rem(kinds.len())?)?;
     let at = usize::from(kind.0);
-    hot.handlers[at] = perturb(hot.handlers[at], m);
+    hot.handlers[at] = wrap(hot.handlers[at]);
     Some(kind)
 }
 
@@ -273,7 +259,9 @@ pub(super) fn run(s: &Scenario) -> Result<Ran, UopError> {
             Step::Maintain => {
                 got.uop_maintain();
             }
-            Step::MaintainAsync => rig.round(&mut got, &s.cfg),
+            Step::MaintainAsync => {
+                rig.round(&mut got, &s.cfg);
+            }
         }
         diff = diff.or_else(|| exact_diff(&want, &got));
         if diff.is_some() {
@@ -284,6 +272,8 @@ pub(super) fn run(s: &Scenario) -> Result<Ran, UopError> {
     Ok(Ran {
         run: DiffRun { diff, build, stats },
         taken: got.interrupts_taken(),
+        installed: rig.installed(),
+        fast_after_install: rig.fast_after_install(&got),
     })
 }
 

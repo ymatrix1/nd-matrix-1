@@ -54,12 +54,25 @@ fn changing(rng: &mut Rng, seed: u64, name: &'static str) -> Scenario {
     s
 }
 
+/// What a service sweep must show beyond exactness: the rounds installed blocks, and fast uops
+/// ran after an install. A worker answer that is dropped (not installed) falls back to the
+/// interpreter and keeps every state exact, so exactness alone cannot tell.
+#[track_caller]
+fn assert_installed(t: &super::driver::Totals) {
+    assert!(t.maintain >= t.cases, "every case ran its rounds: {t:?}");
+    assert!(t.installed > 0, "no round installed a block: {t:?}");
+    assert!(
+        t.fast_after_install > 0,
+        "no fast uop ran after an install: {t:?}"
+    );
+}
+
 #[test]
 fn rounds_through_a_synchronous_service_equal_the_interpreter() {
     let t = sweep("service-sync", 50, CASES, |rng, seed| {
         changing(rng, seed, "service-sync")
     });
-    assert!(t.maintain >= t.cases, "every case ran its rounds: {t:?}");
+    assert_installed(&t);
 }
 
 #[test]
@@ -69,17 +82,18 @@ fn rounds_through_a_worker_thread_equal_the_interpreter() {
         s.threaded = true;
         s
     });
-    assert!(t.maintain >= t.cases, "every case ran its rounds: {t:?}");
+    assert_installed(&t);
 }
 
 #[test]
 fn a_stop_pc_inside_the_program_stays_a_block_start_through_the_service() {
     // the pass idle pc is a block start for the translator at arming, for the worker (fixed at
     // spawn) and for the retranslation; a block the worker built across it is not installed
-    sweep("service-stop", 52, CASES, |rng, seed| {
+    let t = sweep("service-stop", 52, CASES, |rng, seed| {
         let mut s = changing(rng, seed, "service-stop");
         s.threaded = rng.below(2) == 0;
         s.stop_pc = Some(s.targets[rng.below(s.targets.len() as u32) as usize]);
         s
     });
+    assert_installed(&t);
 }

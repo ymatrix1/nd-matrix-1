@@ -22,6 +22,9 @@ pub(super) struct Totals {
     pub taken: u64,
     pub smc: u64,
     pub maintain: u64,
+    /// Blocks installed by async rounds, and fast steps run after the first install of a case.
+    pub installed: u64,
+    pub fast_after_install: u64,
     pub exits: [u64; 6],
     /// Cases flagged `heavy` and how many of them ran a fast uop.
     pub heavy: (u64, u64),
@@ -63,6 +66,8 @@ pub(super) fn sweep(
                 totals.taken += r.taken;
                 totals.smc += st.smc;
                 totals.maintain += st.maintain_calls;
+                totals.installed += r.installed;
+                totals.fast_after_install += r.fast_after_install;
                 for (t, e) in totals.exits.iter_mut().zip(st.exits) {
                     *t += e;
                 }

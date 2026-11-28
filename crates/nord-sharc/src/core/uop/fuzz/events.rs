@@ -11,8 +11,13 @@
 //! KNOWN: after the first interrupt the `Window` row of the entry guard refuses every block
 //! (`irq.stall` is cumulative, `findings.rs`), so the engine finishes the run through
 //! `Core::step`: the results are still equal, but only the steps before the first interrupt run
-//! as uops. The tests assert exactness and what ran before the interrupt, not after it.
-use super::driver::sweep;
+//! as uops. The tests assert exactness and what ran before the interrupt, not after it;
+//! [`after_interrupts`] records how much ran as uops and, with `NS4_FUZZ_STRICT=1` (once
+//! W2B-SFIX has fixed the row), asserts that most of it did. Until then the service routine and
+//! RTI as uops, an interrupt inside a delay slot or at a loop end, and the event split after a
+//! served interrupt are untested at uop level.
+use super::driver::{sweep, Totals};
+use super::knobs::strict;
 use super::scenario::{Irq, Scenario};
 use super::shapes::{control, loops, straight, ALL, REGS};
 use super::sieve::Fam;
@@ -52,6 +57,24 @@ fn schedule(rng: &mut Rng, n: u32, horizon: u64) -> Vec<(u64, u8)> {
             )
         })
         .collect()
+}
+
+/// Records the steps the engine ran as fast uops against the steps it handed to `Core::step`, over
+/// a sweep whose cases serve interrupts. Strict mode asserts that the fast steps are the majority
+/// (finding 2 of `findings.rs`: after the first interrupt they are not).
+#[track_caller]
+fn after_interrupts(name: &str, t: &Totals) {
+    let fast = t.steps_uop.saturating_sub(t.steps_interp_uop);
+    eprintln!(
+        "{name}: {fast} fast steps against {} through Core::step ({} interrupts in {} cases)",
+        t.steps_core_step, t.taken, t.cases
+    );
+    if strict() {
+        assert!(
+            fast > t.steps_core_step,
+            "{name}: most steps still run through Core::step after an interrupt: {t:?}"
+        );
+    }
 }
 
 /// A config whose blocks are short (2 to 5 steps), so some fit before the first deadline.
@@ -96,6 +119,7 @@ fn interrupts_at_random_cycles_in_branching_code_equal_the_interpreter() {
         s
     });
     assert!(t.taken >= t.cases / 2, "too few interrupts taken: {t:?}");
+    after_interrupts("irq-control", &t);
 }
 
 #[test]
@@ -125,6 +149,7 @@ fn interrupts_inside_loops_and_straight_code_equal_the_interpreter() {
         s
     });
     assert!(t.taken >= t.cases / 2, "too few interrupts taken: {t:?}");
+    after_interrupts("irq-loops", &t);
 }
 
 #[test]
@@ -161,7 +186,6 @@ fn arithmetic_exception_interrupts_raised_by_the_compute_equal_the_interpreter()
             ..Prep::default()
         };
         s.cfg = irq_cfg(rng);
-        s.heavy = true;
         s.heavy = true;
         s.irq = Some(Irq {
             at: Vec::new(),

@@ -98,7 +98,11 @@ fn the_census_replays_equal_on_both_uop_engines_and_the_firmware_entry_skips_cle
     use crate::core::uop::verify::lockstep::{firmware_lockstep, Outcome};
     for e in [Engine::Uop, Engine::UopChecked] {
         let n = replay(e).unwrap_or_else(|d| panic!("{e:?}: {d}"));
-        assert!(n >= 1500, "{e:?}: only {n} census cases compared");
+        // EMPIRICAL: 1,580 hardware-measured cases (design 6.8: `census_cases.txt` plus
+        // `census_extra_cases.txt`); the same count as `verify::gen::census` reads. Whether the
+        // engine ran fast uops in them is not observable from here (`run_cases_on` builds its own
+        // cores): a temporary probe in `core/census.rs` saw fast uops in all 3,160 runs.
+        assert_eq!(n, 1580, "{e:?}: {n} census cases compared");
     }
     // without the user firmware the lockstep reports Skipped instead of failing
     let out = firmware_lockstep(256).expect("the firmware lockstep found no difference");
