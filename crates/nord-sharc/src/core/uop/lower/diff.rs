@@ -17,7 +17,8 @@
 use super::cut::{can_raise_arith, flow_of, touches_sys, translatable, Flow};
 use super::decode::decode_at;
 use super::lower_insn;
-use super::support::{build, guard_state, lockstep, Seen, FLOW_CASES};
+use super::support::{build, guard_state, lockstep, reg_move, Seen, FLOW_CASES};
+use crate::core::decode_cache::{DecodedOp, MoveOp};
 use crate::core::support::{core_with, CODE};
 use crate::core::uop::config::UopConfig;
 use crate::core::uop::verify::compare::exact_diff;
@@ -46,6 +47,9 @@ fn census_forms() -> Vec<Vec<u16>> {
         .collect()
 }
 
+/// Source codes of the register-move sweep: R0, R15, I0, M0, L0, I15 and the top system code.
+const REG_MOVE_SOURCES: [u8; 7] = [0x00, 0x0F, 0x10, 0x18, 0x20, 0x37, 0x7F];
+
 /// Every instruction shape the classification is checked on.
 fn corpus(rng: &mut Rng) -> Vec<Vec<u16>> {
     let mut all = census_forms();
@@ -54,6 +58,13 @@ fn corpus(rng: &mut Rng) -> Vec<Vec<u16>> {
     for u in 0..=0x7Fu16 {
         all.extend([0, 0x1234, 0xFFFF].map(|imm| vec![0x0F80 | u, imm]));
         all.push(vec![0x0F00 | u, 0xDEAD, 0xBEEF]);
+    }
+    // register moves (`ureg = ureg`, T5a and T5b): every destination code against data, DAG and
+    // system sources, so a move into MODE1, IMASK, the timers, ... is on the corpus
+    for dst in 0..=0x7Fu8 {
+        for src in REG_MOVE_SOURCES {
+            all.extend([false, true].map(|short| reg_move(src, dst, short)));
+        }
     }
     let known = all.clone();
     for form in &known {
@@ -84,6 +95,8 @@ struct Tally {
     flow_changed: u32,
     /// A delayed branch left a pending branch.
     pending: u32,
+    /// Register moves into a system register that changed the guard state.
+    reg_move_sys_changed: u32,
     /// Plain instructions that changed nothing: the "no" side, checked.
     unchanged: u32,
 }
@@ -128,6 +141,9 @@ fn classify_case(program: &[u16], rng: &mut Rng, t: &mut Tally) -> Result<(), St
         if c.pending.is_some() && flow != (Flow::End { slots: 2 }) {
             return Err(format!("{name}: a branch is pending, flow class {flow:?}"));
         }
+        let into_sys =
+            matches!(insn.op, DecodedOp::Move(MoveOp::RegMove { dst, .. }) if dst >= 0x60);
+        t.reg_move_sys_changed += u32::from(into_sys && state_changed);
         t.pending += u32::from(c.pending.is_some());
         t.flow_changed += u32::from(flow_changed);
         if state_changed && flow == Flow::Plain {
@@ -180,6 +196,10 @@ fn no_instruction_classified_plain_changes_guarded_state_or_leaves_the_straight_
     assert!(
         t.arith_changed >= 40,
         "arithmetic exceptions that moved the guard state: {t:?}"
+    );
+    assert!(
+        t.reg_move_sys_changed >= 100,
+        "register moves into system registers that moved the guard state: {t:?}"
     );
     assert!(t.flow_changed >= 300 && t.pending >= 30, "{t:?}");
     assert!(

@@ -15,8 +15,14 @@
 //! store handler re-checks `irq.due` and the self-modified-code flag after the store (design 4.5
 //! rules 4 and 6), which keeps the long straight-line stretches of DSP code in one block.
 //!
+//! One cut depends on the uops and not on the instruction: a block also ends after an
+//! instruction whose uop is followed by the circular-buffer latch (`UF_CB`), because the latch
+//! pokes `irq.due` (`cbwrap.rs`, applied in `translate.rs`).
+//!
 //! The classes below are conservative: a wrong "yes" only splits a block or widens a guard, a
-//! wrong "no" would be an exactness bug. `diff.rs` checks every "no" against `Core::step`.
+//! wrong "no" would be an exactness bug. `diff.rs` checks every "no" against `Core::step`: the
+//! corpus holds every register code of the immediate loads and of the register moves (T5a/T5b),
+//! the census forms, bit-flipped forms and random words.
 use super::LowerCtx;
 use crate::core::decode_cache::{CachedInsn, ComputeOp, DecodedOp, FlowOp, MoveOp};
 use crate::visa::{bits, Kind};
@@ -172,7 +178,7 @@ mod tests {
     use crate::core::support::core_with;
     use crate::core::uop::config::UopConfig;
     use crate::core::uop::lower::decode::decode_at;
-    use crate::core::uop::lower::support::FLOW_CASES;
+    use crate::core::uop::lower::support::{reg_move, FLOW_CASES};
 
     fn insn(program: &[u16]) -> CachedInsn {
         let mut core = core_with(program);
@@ -228,6 +234,23 @@ mod tests {
                 want,
                 "ureg {u:#x}"
             );
+        }
+        // `ureg = ureg` (T5a and T5b): the destination decides, whatever the source is
+        for short in [false, true] {
+            for (src, dst, want) in [
+                (0x00, 0x01, false),
+                (0x7F, 0x10, false),
+                (0x00, 0x5F, false),
+                (0x00, 0x60, true),
+                (0x01, 0x7B, true),
+                (0x10, 0x7F, true),
+            ] {
+                assert_eq!(
+                    touches_sys(&insn(&reg_move(src, dst, short))),
+                    want,
+                    "{src:#x} -> {dst:#x} short={short}"
+                );
+            }
         }
         assert!(!touches_sys(&insn(&[0x0001])));
         assert!(!touches_sys(&insn(&[0x013e, 0x0000, 0x1312])));

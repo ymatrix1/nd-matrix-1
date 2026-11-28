@@ -14,8 +14,12 @@
 //!   `Arith`, one with a delay group `Delayed`, with a loop end `Loop`;
 //! * an instruction whose uops do not account exactly one step is lowered as `Interp` instead
 //!   (the static budget must equal the interpreter's steps);
+//! * a block ends after an instruction whose uop is followed by the circular-buffer latch
+//!   (`UF_CB`), or that instruction is lowered `Interp` when delay slots are still owed
+//!   (`cbwrap.rs`);
 //! * `Block::code_hash` is stored here, over the parcels `pc..end_pc` (rule P6).
 use super::builder::BlockBuilder;
+use super::cbwrap::latches_cb;
 use super::cut::{can_raise_arith, cuts_after, flow_of, Flow};
 use super::decode::{code_hash, decode_at};
 use super::group::{fits, group_fits, readable};
@@ -118,6 +122,19 @@ where
         // a family that does not account exactly one step is wrong; the interpreter is not
         b.rollback(cp);
         b.interp(c);
+    }
+    if latches_cb(&b.uops()[first..]) {
+        // the wrap latch pokes `irq.due`: nothing may run after it in the block (`cbwrap.rs`)
+        let slots_follow = match flow_of(c) {
+            Flow::End { slots } if !in_slot => slots > 0,
+            _ => in_slot && b.owed_slots() > 1,
+        };
+        if slots_follow {
+            b.rollback(cp);
+            b.interp(c);
+        } else {
+            b.end_block();
+        }
     }
     if can_raise_arith(c) && b.uops()[first..].iter().any(|u| u.h != UopKind::INTERP.0) {
         b.note_arith();

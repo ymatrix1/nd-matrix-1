@@ -14,7 +14,7 @@ use super::{lower_insn, LowerCtx};
 use crate::core::decode_cache::CachedInsn;
 use crate::core::support::{core_with, CODE};
 use crate::core::uop::config::UopConfig;
-use crate::core::uop::types::{Block, Uop, UopKind, NONE};
+use crate::core::uop::types::{Block, Uop, UopKind, NONE, UF_CB};
 use crate::core::Core;
 
 /// (name, parcels, flow class) of one instruction per kind of terminator, with and without delay
@@ -103,6 +103,19 @@ pub(super) fn fast_lower(_cx: &LowerCtx<'_>, c: &CachedInsn, out: &mut BlockBuil
     ));
 }
 
+/// [`fast_lower`] with `UF_CB` on the uop of every instruction at one of `cb_pcs`: a stand-in for
+/// a DAG access through I7 or I15 that can wrap its circular buffer.
+pub(super) fn fast_lower_cb(
+    cb_pcs: Vec<u32>,
+) -> impl Fn(&LowerCtx<'_>, &CachedInsn, &mut BlockBuilder) {
+    move |_cx, c, out| {
+        let flags = if cb_pcs.contains(&c.pc) { UF_CB } else { 0 };
+        let mut u = Uop::new(UopKind(UopKind::MOVE_BASE + 1), 1, c.pc, 0, c.next_pc);
+        u.flags |= flags;
+        out.push(u);
+    }
+}
+
 /// Blocks and uops as `translate_range` returns them.
 pub(super) struct Built {
     pub blocks: Vec<Block>,
@@ -166,6 +179,21 @@ pub(super) const ALU: [u16; 3] = [0x013e, 0x0000, 0x1312];
 pub(super) const JUMP_DB: [u16; 3] = [0x063E, 0x0400, 0x0010];
 /// A load of 1 into universal register 0x6A, a system register.
 pub(super) const LOAD_SYS: [u16; 2] = [0x0F80 | 0x6A, 0x0001];
+
+/// `dst = src`, an unconditional register move between two universal register codes (Type 5a, or
+/// the 32-bit Type 5b when `short`; fields as `MoveOp::decode` reads them: source bits 42..38 and
+/// 32..31, destination bits 29..23, condition bits 37..33 set to TRUE, the 5b marker `0x3F` in
+/// the low bits of the second parcel).
+pub(super) fn reg_move(src: u8, dst: u8, short: bool) -> Vec<u16> {
+    let (src, dst) = (u16::from(src), u16::from(dst));
+    let p0 = 0x7000 | (src >> 2) << 6 | 0x3E | (src >> 1) & 1;
+    let p1 = (src & 1) << 15 | dst << 7;
+    if short {
+        vec![p0, p1 | 0x3F]
+    } else {
+        vec![p0, p1, 0]
+    }
+}
 
 /// The parcels of an instruction the decoder cannot translate (it faults in the interpreter):
 /// the first first-parcel value that decodes to one, with the zero parcels it needs.
@@ -304,6 +332,36 @@ mod tests {
         let seen = lockstep(&mut a, &mut b, &built, None, 100).unwrap();
         assert_eq!((seen.blocks, seen.steps, seen.fell_through), (1, 3, 1));
         assert!(built.at(CODE, false).is_some() && built.at(CODE + 1, false).is_none());
+    }
+
+    #[test]
+    fn reg_move_encodes_every_source_and_destination_as_the_decoder_reads_them() {
+        use crate::core::decode_cache::{DecodedOp, MoveOp};
+        for short in [false, true] {
+            for (src, dst) in [
+                (0u8, 0u8),
+                (0x0F, 0x7F),
+                (0x10, 0x60),
+                (0x7F, 0x01),
+                (0x5B, 0x6A),
+            ] {
+                let mut c = core_with(&reg_move(src, dst, short));
+                let pc = c.pc;
+                let insn = decode_at(&mut c, pc);
+                let DecodedOp::Move(MoveOp::RegMove {
+                    src: s,
+                    dst: d,
+                    cond,
+                    compute,
+                }) = insn.op
+                else {
+                    panic!("{src:#x} -> {dst:#x} short={short}: {:?}", insn.op)
+                };
+                assert_eq!((s, d, cond), (src, dst, 31), "short={short}");
+                assert_eq!(compute.is_some(), !short, "only Type 5a carries a compute");
+                assert_eq!(insn.next_pc - pc, if short { 2 } else { 3 });
+            }
+        }
     }
 
     #[test]

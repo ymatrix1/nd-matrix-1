@@ -1,7 +1,7 @@
 //! Lowering: from the decoded instructions of a code range to blocks of uops.
 //!
-//! OWNER: W1-LOWER (this file and `scan`, `cut`, `group`, `translate`, `budget`, `guard`,
-//! `pcmap`, `decode`, `builder`, and the test-only `support` and `diff`); `float`, `fixed`,
+//! OWNER: W1-LOWER (this file and `scan`, `cut`, `cbwrap`, `group`, `translate`, `budget`,
+//! `guard`, `pcmap`, `decode`, `builder`, and the test-only `support` and `diff`); `float`, `fixed`,
 //! `moves`, `flow` belong to W2-FLOAT, W2-FIXED, W2-MOVE and W2-FLOW. Registration of the
 //! families is STATIC: [`lower_insn`] asks the four [`Family`] implementations in a fixed order
 //! and falls back to an `Interp` uop, so a family that lowers nothing leaves its instructions
@@ -12,6 +12,7 @@
 //! instruction every uop is an `Interp` uop, which is exact by construction.
 pub mod budget;
 pub mod builder;
+pub mod cbwrap;
 pub mod cut;
 pub mod decode;
 pub mod fixed;
