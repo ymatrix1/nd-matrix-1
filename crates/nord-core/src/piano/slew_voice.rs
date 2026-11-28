@@ -98,6 +98,8 @@ pub(super) struct SlewVoice {
     acc: f64,
     left: f32,
     right: f32,
+    /// Level word of the note-on (`F15`), the reference of [`Self::steal_level`].
+    level: f32,
     released: bool,
     /// A key-up sample record: it decays by its own rate and ends without a note-off write.
     finite: bool,
@@ -114,6 +116,7 @@ impl SlewVoice {
             acc: 1.0,
             left: 0.0,
             right: 0.0,
+            level,
             released: false,
             finite: false,
         };
@@ -167,11 +170,18 @@ impl SlewVoice {
         }
     }
 
-    /// Current audible gain of the voice scaled to the engine envelope (`1.0` at the hold gain
-    /// `0.21875 * level`, so a slew voice compares with a plain voice's `env` when the allocator
-    /// picks a voice to steal). ASSUMED: only a priority heuristic; a loud note starts above 1.
+    /// Current audible gain relative to the voice's own hold gain `0.21875 * level`: `1.0` while
+    /// held with no decay, falling as the in-loop rate or the release decays it. A slew voice's
+    /// engine envelope stays 1.0, so the allocator multiplies it by this to rank voices when it
+    /// picks one to steal. `0.0` for an inactive voice or a zero level. ASSUMED: only a priority
+    /// heuristic; it ignores that a louder note is harder to hear fade.
     pub(super) fn steal_level(&self) -> f32 {
-        self.left.max(self.right) / HOLD_GAIN
+        let hold = HOLD_GAIN * self.level;
+        if hold > 0.0 {
+            self.left.max(self.right) / hold
+        } else {
+            0.0
+        }
     }
 
     fn advance(&mut self) {
@@ -478,8 +488,16 @@ mod tests {
     #[test]
     fn steal_level_is_one_at_the_hold_gain() {
         let mut v = SlewVoice::start(0.4454, f32::from_bits(0x3F7F_FF42), 48_000.0);
-        let g = v.tick().0 / (0.21875 * 0.4454);
-        assert!((v.steal_level() / 0.4454 - g).abs() < 1e-3);
+        // Held at the hold gain: 1.0 whatever the level word.
+        assert!((v.steal_level() - 1.0).abs() < 1e-3, "{}", v.steal_level());
+        let mut quiet = SlewVoice::start(0.1, f32::from_bits(0x3F7F_FF42), 48_000.0);
+        assert!((quiet.steal_level() - 1.0).abs() < 1e-3);
+        // Releasing decays it below 1.
+        quiet.release();
+        for _ in 0..4_800 {
+            quiet.tick();
+        }
+        assert!(quiet.steal_level() < 0.9, "{}", quiet.steal_level());
     }
 
     #[test]
