@@ -178,7 +178,7 @@ pub fn saved_library() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use super::support::{drain_until, two_program_backup};
+    use super::support::{drain_until, two_program_backup, write_two_program_backup};
     use super::*;
     use crate::loader::{load_queue, LoadJob};
     use std::path::Path;
@@ -313,6 +313,36 @@ mod tests {
             })
             .collect();
         assert_eq!(names.last().map(String::as_str), Some("First"));
+    }
+
+    #[test]
+    fn a_library_replaced_on_disk_is_read_again_on_the_next_request() {
+        let path = two_program_backup("replaced");
+        let (tx, rx) = load_queue(64);
+        let link = LibraryLink::start(Some(path.clone()), tx).expect("worker");
+        assert!(link.request(1));
+        assert!(link.wait_handled(1, Duration::from_secs(30)));
+        let all = |rx: &crate::loader::LoadReceiver| {
+            let mut jobs = Vec::new();
+            while let Some(j) = rx.pop() {
+                jobs.push(j);
+            }
+            jobs
+        };
+        let program = |jobs: &[LoadJob]| {
+            jobs.iter().find_map(|j| match j {
+                LoadJob::Program(p) => Some(p.name.clone()),
+                _ => None,
+            })
+        };
+        assert_eq!(program(&all(&rx)).as_deref(), Some("First"));
+        // `ns4 library set` / a re-export: another file (another length) at the same path.
+        write_two_program_backup(&path, "FirstNew");
+        assert!(link.request(1));
+        assert!(link.wait_handled(1, Duration::from_secs(30)));
+        let second = program(&all(&rx));
+        let _ = std::fs::remove_file(&path);
+        assert_eq!(second.as_deref(), Some("FirstNew"));
     }
 
     #[test]

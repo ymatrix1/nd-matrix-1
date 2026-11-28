@@ -4,7 +4,7 @@
 //! leaves this code running.
 
 use super::archive::{
-    bank_key, decode_program, index, read_entry, short_name, wanted_sounds, Indexed,
+    bank_key, current_stamp, decode_program, index, read_entry, short_name, wanted_sounds, Indexed,
 };
 use super::handled::Handled;
 use super::{report, QUEUE_WAIT, WAVE_TABLES_WAIT};
@@ -111,7 +111,20 @@ impl Worker {
         }
     }
 
+    /// The indexed library. A file replaced on disk since it was indexed (another stamp) is
+    /// indexed again, and the banks decoded from the old file are let go: the next request after
+    /// `ns4 library set` or a re-export plays the new file without a restart.
     fn open(&mut self) -> Result<Arc<Indexed>, String> {
+        if self
+            .archive
+            .as_ref()
+            .is_some_and(|a| a.stamp != current_stamp(&self.path))
+        {
+            report("the sound library changed on disk: reading it again");
+            self.archive = None;
+            self.pianos.clear();
+            self.samples.clear();
+        }
         if self.archive.is_none() {
             self.archive = Some(Arc::new(index(&self.path)?));
         }

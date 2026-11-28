@@ -23,7 +23,7 @@ pub(super) struct Indexed {
 pub(super) fn index(path: &Path) -> Result<Indexed, String> {
     let archive = Ns4BackupArchive::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let file = File::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let stamp = file_stamp(&file);
+    let stamp = stamp_of(file.metadata().ok());
     let mut reader = BufReader::new(file);
     let slots = SlotIndex::read(&archive, &mut reader)
         .map_err(|e| format!("{}: {e}", path.display()))?
@@ -39,9 +39,14 @@ pub(super) fn index(path: &Path) -> Result<Indexed, String> {
     })
 }
 
+/// The stamp of the file at `path` now (no read of its content), to notice a library replaced
+/// on disk since [`index`] ran.
+pub(super) fn current_stamp(path: &Path) -> String {
+    stamp_of(std::fs::metadata(path).ok())
+}
+
 /// `<seconds since the epoch of the last write>-<length>`; `0-0` when the file says nothing.
-fn file_stamp(file: &File) -> String {
-    let meta = file.metadata().ok();
+fn stamp_of(meta: Option<std::fs::Metadata>) -> String {
     let secs = meta
         .as_ref()
         .and_then(|m| m.modified().ok())
