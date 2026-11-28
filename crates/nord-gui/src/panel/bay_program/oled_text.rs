@@ -17,13 +17,6 @@ pub const SMALL_FONT: usize = 3;
 /// A line whose monospace size is at least this many display pixels is the 13 px font.
 const BIG_FROM_PX: f32 = 10.0;
 
-/// From this many screen pixels per display pixel the glyph edges snap to whole screen pixels.
-const SNAP_FROM_CELL: f32 = 4.0;
-
-/// Halo and core growth of a lit run, in display pixels (EMPIRICAL: by eye against a photo).
-const GLOW_HALO: f32 = 0.22;
-const GLOW_CORE: f32 = 0.04;
-
 /// The font for a line of monospace `size` at `cell` screen pixels per display pixel.
 pub fn font_for(size: f32, cell: f32) -> Option<Font> {
     let idx = if size / cell.max(0.01) >= BIG_FROM_PX {
@@ -127,37 +120,18 @@ pub fn draw_with(
             x += 1;
         }
     }
-    // Small cells (display scaled to 1 to 4 screen pixels per display pixel) keep fractional
-    // edges so egui's anti-aliasing averages the coverage: rounding them to whole screen
-    // pixels made strokes alternate between 1 and 2 pixels and the text hard to read. Large
-    // cells stay crisp.
-    // Thresholds are in physical screen pixels (egui points x pixels per point).
-    let phys = cell * painter.ctx().pixels_per_point();
-    let snap = phys >= SNAP_FROM_CELL;
-    let edge = |origin: f32, i: u32| {
-        let v = origin + i as f32 * cell;
-        if snap {
-            v.round()
-        } else {
-            v
-        }
-    };
-    // EMPIRICAL: a photo of the unit shows thick, glowing strokes (bloom of the lit pixels), which
-    // 1 px strokes at 1 to 4 screen pixels per display pixel lack. Below `SNAP_FROM_CELL` each
-    // run gets a faint halo and a slightly fattened core. At cell 1 (the pixel checks) nothing
-    // is added, so the tests still compare exact pixels.
-    let glow = phys > 1.05 && !snap;
+    // The painters lay text out on the 128 x 64 grid (one point per display pixel) and
+    // `oled_fb` rasterises it, so the edges stay exact; scaling happens on the texture.
+    let edge = |origin: f32, i: u32| origin + i as f32 * cell;
     for (x0, x1, y0, y1) in runs {
-        let r = Rect::from_min_max(
-            pos2(edge(rect.left(), x0), edge(rect.top(), y0)),
-            pos2(edge(rect.left(), x1), edge(rect.top(), y1)),
+        painter.rect_filled(
+            Rect::from_min_max(
+                pos2(edge(rect.left(), x0), edge(rect.top(), y0)),
+                pos2(edge(rect.left(), x1), edge(rect.top(), y1)),
+            ),
+            0.0,
+            color,
         );
-        if glow {
-            painter.rect_filled(r.expand(GLOW_HALO * cell), 0.0, color.gamma_multiply(0.18));
-            painter.rect_filled(r.expand(GLOW_CORE * cell), 0.0, color);
-        } else {
-            painter.rect_filled(r, 0.0, color);
-        }
     }
     rect
 }
@@ -198,9 +172,8 @@ mod tests {
             assert_eq!(r.width(), 6.0);
             assert_eq!(r.height(), 6.0);
         });
-        // A: rows 0 and 2 are two runs, the gap none, B: one run; at cell 2 each run is a halo
-        // plus a core
-        assert_eq!(n - base(), 3 * 2);
+        // A: rows 0 and 2 are two runs, the gap none, B: one run
+        assert_eq!(n - base(), 3);
     }
 
     #[test]
@@ -218,25 +191,7 @@ mod tests {
             );
             assert_eq!(r.width(), 4.5);
         });
-        // one run: halo + core
-        assert_eq!(n - base(), 2);
-    }
-
-    #[test]
-    fn at_one_screen_pixel_per_display_pixel_there_is_no_glow() {
-        let n = shapes_painted(|_ui, p, rect, _s, _a| {
-            draw_with(
-                p,
-                Some(&tiny()),
-                rect.min,
-                Align2::LEFT_TOP,
-                "BBB",
-                10.0,
-                1.0,
-                Color32::WHITE,
-            );
-        });
-        assert_eq!(n - base(), 1, "the pixel checks compare exact pixels");
+        assert_eq!(n - base(), 1);
     }
 
     #[test]
