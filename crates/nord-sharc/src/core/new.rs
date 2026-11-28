@@ -76,6 +76,7 @@ impl Core {
             aot_slow: false,
             uop: None,
             uop_run: uop::UopRun::new(),
+            aot_ev_steps: 0,
             #[cfg(feature = "jit")]
             jit: None,
         };

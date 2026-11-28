@@ -19,6 +19,8 @@
 mod addr_hash;
 mod alu;
 mod aot;
+#[path = "../aot2/mod.rs"]
+mod aot2;
 mod aot_emit;
 mod aot_fadd;
 mod aot_fast;
@@ -258,6 +260,8 @@ pub struct Core {
     uop: Option<Box<uop::UopHot>>,
     /// Counters, flags and code-page bitmap of the uop engine; inert while it is off.
     uop_run: uop::UopRun,
+    /// Steps run by the event paths of event-aware AOT blocks (`aot2/events.rs`).
+    aot_ev_steps: u64,
     /// Optional Level-2 Cranelift JIT engine (allocated lazily on first `run_jit`).
     #[cfg(feature = "jit")]
     jit: Option<Box<jit::JitEngine>>,
