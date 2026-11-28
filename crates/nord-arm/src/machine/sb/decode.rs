@@ -246,14 +246,14 @@ mod tests {
         let mut out = vec![Uop::new(k::MOV_IMM, 0x0FFC)];
         let mut fold = |_: u32| None;
         let mut cx = LowerCtx {
-            insn: at(0x1000, 0xE280_0001),
+            insn: at(0x1000, 0xE001_0092), // mul r1,r2,r0: no kind id exists, so no lowerer takes it
             out: &mut out,
             fold: &mut fold,
             opts: &opts,
         };
         assert_eq!(lower_or_generic(&mut cx), Lowered::Generic);
         assert_eq!(out.len(), 2);
-        assert_eq!(out[1], Uop::generic(0xE280_0001, 0x1000, 0));
+        assert_eq!(out[1], Uop::generic(0xE001_0092, 0x1000, 0));
     }
 
     #[test]
