@@ -84,7 +84,7 @@ pub fn lean_pass_uop_checked(core: &mut Core, cfg: &PassConfig) -> (u64, bool, O
 
 #[cfg(test)]
 mod tests {
-    use super::super::support::{poll_cfg, poll_core, POLL_PC};
+    use super::super::support::{self, poll_cfg, poll_core, POLL_PC};
     use super::*;
     use crate::core::UopConfig;
     use crate::runner::system::lean_pass;
@@ -156,6 +156,71 @@ mod tests {
             diff.is_some(),
             "an extra step shows in pc, steps or the call state"
         );
+    }
+
+    /// A poll core, armed for the engine, whose engine is wrong (`support::mark_wrong_engine`:
+    /// the executor of this base is the skeleton, so the engine would otherwise equal the
+    /// interpreter and nothing could prove that a check sees a difference).
+    fn wrong() -> Core {
+        let mut c = poll_core();
+        support::mark_wrong_engine(&mut c);
+        super::super::arm_uop(&mut c, UopConfig::default(), POLL_PC).unwrap();
+        c
+    }
+
+    /// The core the interpreter leaves after one pass of [`wrong`]'s program.
+    fn interpreted_wrong() -> Core {
+        let mut want = poll_core();
+        support::mark_wrong_engine(&mut want);
+        lean_pass(&mut want, &poll_cfg());
+        want
+    }
+
+    #[test]
+    fn the_public_checked_pass_reports_a_wrong_engine_as_a_difference_and_heals() {
+        // the public wrapper itself, not `checked_with`: a wrapper that dropped the difference
+        // (`(steps, idle, None)`) fails here
+        let mut c = wrong();
+        let (steps, idle, diff) = lean_pass_uop_checked(&mut c, &poll_cfg());
+        assert_eq!((steps, idle), (11, true), "the engine's own result");
+        let d = diff.expect("a wrong engine is a difference through the public pass");
+        assert_eq!(d.field, "r", "{d}");
+        assert_eq!(interpreted_wrong().state_mismatch(&c), None, "healed");
+        // and every pass after it, the engine stays wrong and the check stays awake
+        let (_, _, again) = lean_pass_uop_checked(&mut c, &poll_cfg());
+        assert!(again.is_some_and(|d| d.field == "r"));
+    }
+
+    #[test]
+    fn the_shadowed_passes_say_mismatch_for_a_wrong_engine() {
+        let cfg = poll_cfg();
+        let (mut a, mut b) = (wrong(), wrong());
+        let (steps, idle, verdict) = lean_pass_uop_shadowed(&mut a, &cfg);
+        assert_eq!((steps, idle), (11, true));
+        assert!(
+            matches!(&verdict, Shadow::Mismatch(d) if d.field == "r"),
+            "{verdict:?}"
+        );
+        let mut entries = 0;
+        let (steps, idle, verdict) = lean_pass_uop_shadowed_entries(&mut b, &cfg, &mut |_| {
+            entries += 1;
+        });
+        assert_eq!((steps, idle), (11, true));
+        assert!(
+            matches!(&verdict, Shadow::Mismatch(d) if d.field == "r"),
+            "{verdict:?}"
+        );
+        assert!(entries > 0, "the engine was entered: {entries}");
+        assert_eq!(a.state_mismatch(&b), None, "both healed to the same state");
+    }
+
+    #[test]
+    fn only_the_checked_passes_see_a_wrong_engine() {
+        // the unchecked pass is as wrong as the mark says: the difference the checked forms
+        // report is real, not an artefact of the replay
+        let mut c = wrong();
+        assert_eq!(super::super::lean_pass_uop(&mut c, &poll_cfg()), (11, true));
+        assert!(interpreted_wrong().state_mismatch(&c).is_some());
     }
 
     #[test]

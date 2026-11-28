@@ -27,7 +27,7 @@ pub use model::{
     model_cycles, Tier, BUDGET_CYCLES, DISPATCH, INTERP_STEP, NATIVE_PER_STEP, TRANSITION,
     WORK_PER_STEP,
 };
-pub use summary::{build_summary, counters_text};
+pub use summary::{build_summary, counters_text, mean_block_steps};
 
 use crate::core::{Core, UopStats};
 

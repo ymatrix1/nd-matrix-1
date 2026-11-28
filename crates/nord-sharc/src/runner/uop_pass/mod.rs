@@ -1,6 +1,7 @@
 //! The pass loop with the uop engine: [`lean_pass_uop`] and its checked twins. The arming of a
-//! booted core (which code to translate, the stop pc, engine names) is in [`arm`], the checked
-//! passes (replayed on the interpreter and compared) in [`checked`]; both are re-exported here.
+//! booted core (which code to translate, the stop pc) is in [`arm`], the engine names and the
+//! arming a runner was asked for in [`engines`], the checked passes (replayed on the interpreter
+//! and compared) in [`checked`]; all are re-exported here.
 //!
 //! OWNER: W1-RUN. Same contract as `lean_pass` (`system.rs`) and `lean_pass_aot`
 //! (`pass_sched/mod.rs`): trigger the pass, run to the poll loop with the mailbox cleared, return
@@ -16,15 +17,14 @@
 //! for the timed forms.
 mod arm;
 mod checked;
+mod engines;
 mod probe;
 #[cfg(test)]
-mod support;
+pub(crate) mod support;
 
-pub use arm::{
-    arm_for, arm_uop, arm_uop_ranges, code_ranges, engine_named, uop_config, CODE_WINDOW,
-    RANGE_GAP, RANGE_TAIL,
-};
+pub use arm::{arm_uop, arm_uop_ranges, code_ranges, CODE_WINDOW, RANGE_GAP, RANGE_TAIL};
 pub use checked::{lean_pass_uop_checked, lean_pass_uop_shadowed, lean_pass_uop_shadowed_entries};
+pub use engines::{arm_for, engine_named, uop_config};
 pub use probe::{pc_ranges, probe_ranges, ranges_for, RangeMode};
 
 use super::pass::PassConfig;
@@ -108,8 +108,18 @@ fn begin_pass(core: &mut Core, cfg: &PassConfig) {
     core.uop_begin_pass(cfg.idle_pc);
 }
 
-/// The pass loop proper, after the trigger: block hook first, `Core::step` for the gaps.
+/// The pass loop proper, after the trigger: block hook first, `Core::step` for the gaps. In a test
+/// build a core marked with `support::mark_wrong_engine` ends the pass wrong, which is how the
+/// tests of the checked passes get an engine that differs from the interpreter.
 fn uop_body_with(core: &mut Core, cfg: &PassConfig, watch: &mut impl Entries) -> (u64, bool) {
+    let result = engine_loop(core, cfg, watch);
+    #[cfg(test)]
+    support::misbehave(core);
+    result
+}
+
+/// The loop of [`uop_body_with`].
+fn engine_loop(core: &mut Core, cfg: &PassConfig, watch: &mut impl Entries) -> (u64, bool) {
     let begin = core.steps;
     let limit = begin + cfg.max_steps;
     while core.steps < limit {

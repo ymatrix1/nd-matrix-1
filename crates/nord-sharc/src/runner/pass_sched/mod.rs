@@ -213,8 +213,54 @@ pub fn summarize(v: &[u64], skip: usize) -> (f64, f64, f64, f64) {
 
 #[cfg(test)]
 mod tests {
-    use super::support::poll_job;
+    use super::support::{bounded, poll_job, wrong_poll_job};
     use super::*;
+
+    #[test]
+    #[should_panic(expected = "uop pass differs from the interpreter: r:")]
+    fn the_checked_engine_panics_when_the_engine_differs_from_the_interpreter() {
+        // the arm of `run_pass` itself: an engine that ends a pass in another state is not
+        // reported and carried on, it stops the pass with the difference in the message
+        let mut job = wrong_poll_job("w", Engine::UopChecked);
+        job.run_pass();
+    }
+
+    #[test]
+    fn the_other_uop_engines_do_not_check_so_a_wrong_engine_goes_unseen_there() {
+        let mut want = poll_job("i", Engine::Interp);
+        let steps = want.run_pass();
+        for engine in [Engine::Uop, Engine::UopNative] {
+            let mut job = wrong_poll_job("w", engine);
+            assert_eq!(job.run_pass(), steps, "{engine:?} runs the pass, unchecked");
+            assert!(want.core.state_mismatch(&job.core).is_some(), "{engine:?}");
+        }
+    }
+
+    #[test]
+    fn a_wrong_engine_under_run_ticks_ends_the_run_with_the_core_and_the_difference() {
+        // the whole path of `lle_sharc_bench --engine uop-checked`: the scheduler's worker
+        // thread, `run_pass`, the checked pass and the panic that `run_ticks` turns into an
+        // error (the benchmark's `main` returns it, so the exit status is not zero). The other
+        // core is a good one, so the run must also stop it instead of waiting for it.
+        let jobs = vec![
+            poll_job("good", Engine::UopChecked),
+            wrong_poll_job("bad", Engine::UopChecked),
+        ];
+        let e = bounded(jobs, 1, 3, |job, _| job.run_pass()).err().unwrap();
+        assert!(
+            e.contains("core bad panicked in pass 0")
+                && e.contains("uop pass differs from the interpreter: r:"),
+            "{e}"
+        );
+        assert!(!e.contains("core good"), "{e}");
+    }
+
+    #[test]
+    fn a_good_checked_engine_runs_to_the_end_under_run_ticks() {
+        let jobs = vec![poll_job("a", Engine::UopChecked)];
+        let r = bounded(jobs, 1, 3, |job, _| job.run_pass()).unwrap();
+        assert_eq!((r.cores.len(), r.cores[0].steps.len()), (1, 4));
+    }
 
     #[test]
     fn summarize_orders_percentiles() {

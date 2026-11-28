@@ -52,13 +52,30 @@ poisoned {}, model/pass tier1 {} (x{:.2}) tier2 {} (x{:.2})",
     }
 }
 
+/// Mean steps of a translated block, 0 when nothing was built: the one static block-length
+/// figure the build report carries (`insns` is the steps of every uop of every block, so the
+/// ratio does not depend on how many blocks each PEy mode adds). The table of block lengths needs
+/// an accessor on the core that does not exist yet (`hist` has the dynamic one).
+pub fn mean_block_steps(b: &UopBuildReport) -> f64 {
+    if b.blocks == 0 {
+        0.0
+    } else {
+        f64::from(b.insns) / f64::from(b.blocks)
+    }
+}
+
 /// One line about what `enable_uop` built (the static side of a run; the counters are the
-/// dynamic side): blocks, uops, instructions and how many of them stay `Interp` uops, and the
-/// code pages the write hook watches.
+/// dynamic side): blocks and their mean length in steps, uops, instructions and how many of them
+/// stay `Interp` uops, and the code pages the write hook watches.
 pub fn build_summary(b: &UopBuildReport) -> String {
     format!(
-        "built {} blocks, {} uops, {} insns ({} as Interp uops), {} code pages",
-        b.blocks, b.uops, b.insns, b.interp_insns, b.pages
+        "built {} blocks (mean {:.1} steps), {} uops, {} insns ({} as Interp uops), {} code pages",
+        b.blocks,
+        mean_block_steps(b),
+        b.uops,
+        b.insns,
+        b.interp_insns,
+        b.pages
     )
 }
 
@@ -168,8 +185,26 @@ model/pass tier1 341638 (x1.65) tier2 341638 (x1.65)"
         };
         assert_eq!(
             build_summary(&b),
-            "built 3 blocks, 7 uops, 9 insns (2 as Interp uops), 5 code pages"
+            "built 3 blocks (mean 3.0 steps), 7 uops, 9 insns (2 as Interp uops), 5 code pages"
         );
+    }
+
+    #[test]
+    fn the_mean_block_length_is_the_steps_of_the_build_over_its_blocks() {
+        let built = |blocks, insns| UopBuildReport {
+            blocks,
+            insns,
+            ..UopBuildReport::default()
+        };
+        assert_eq!(mean_block_steps(&built(4, 50)), 12.5);
+        assert_eq!(mean_block_steps(&built(1, 1)), 1.0);
+        assert_eq!(mean_block_steps(&built(0, 0)), 0.0, "nothing built, no NaN");
+        assert_eq!(
+            mean_block_steps(&built(0, 7)),
+            0.0,
+            "and no division by zero"
+        );
+        assert!(build_summary(&built(0, 0)).starts_with("built 0 blocks (mean 0.0 steps),"));
     }
 
     #[test]

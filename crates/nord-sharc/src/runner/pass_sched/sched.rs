@@ -217,7 +217,7 @@ pub fn run_ticks_with(
 
 #[cfg(test)]
 mod tests {
-    use super::super::support::poll_job;
+    use super::super::support::{bounded, poll_job};
     use super::super::Engine;
     use super::*;
     use crate::runner::fx_run;
@@ -225,23 +225,6 @@ mod tests {
     use crate::runner::periph_run::PeriphOpts;
     use crate::runner::uop_pass::arm_for;
     use crate::runner::uop_report::measure::{synthetic_image, synthetic_preset, SYNTH_PASS_STEPS};
-    use std::time::Duration;
-
-    /// The run on a helper thread with a deadline: a regression that hangs the barrier fails this
-    /// test with a message instead of hanging the test run.
-    fn bounded(
-        jobs: Vec<PassJob>,
-        warmup: u32,
-        ticks: u32,
-        run: PassFn,
-    ) -> Result<SchedReport, String> {
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let _ = tx.send(run_ticks_with(jobs, warmup, ticks, run));
-        });
-        rx.recv_timeout(Duration::from_secs(120))
-            .expect("the scheduler hung after a panic in a core")
-    }
 
     fn boom_when(job: &mut PassJob, tick: u32, name: &str, at: u32) -> (u64, bool) {
         if job.name == name && tick == at {
