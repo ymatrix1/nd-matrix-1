@@ -87,12 +87,16 @@ pub struct AudioBus {
     pub node_levels: Vec<NodeLevels>,
 }
 
-/// Level statistics of one signal point (finite samples only).
+/// Level statistics of one signal point: peak, RMS and first non-zero tick over the finite samples;
+/// `non_finite` counts the NaN and infinite ones, which are left out of the other fields, so a node
+/// that outputs NaN does not read as a clean 0.0.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Level {
     pub peak: f32,
     sumsq: f64,
     pub samples: u64,
+    /// NaN or infinite samples seen (not in `peak`, RMS or `samples`).
+    pub non_finite: u64,
     /// First tick with a non-zero sample.
     pub first_nonzero_tick: Option<u64>,
 }
@@ -100,7 +104,11 @@ pub struct Level {
 impl Level {
     /// Folds `frames` seen at `tick`.
     pub fn add(&mut self, frames: &[Frame], tick: u64) {
-        for x in frames.iter().flatten().filter(|x| x.is_finite()) {
+        for x in frames.iter().flatten() {
+            if !x.is_finite() {
+                self.non_finite += 1;
+                continue;
+            }
             self.peak = self.peak.max(x.abs());
             self.sumsq += f64::from(*x).powi(2);
             self.samples += 1;
@@ -376,7 +384,11 @@ pub(crate) mod tests {
         );
         assert_eq!((l.output.first_nonzero_tick, l.input.samples), (Some(0), 0));
         let mut z = Level::default();
-        z.add(&[[0.0, f32::NAN]], 4);
-        assert_eq!((z.peak, z.samples, z.first_nonzero_tick), (0.0, 1, None));
+        z.add(&[[0.0, f32::NAN], [f32::INFINITY, 0.0]], 4);
+        assert_eq!((z.peak, z.samples, z.first_nonzero_tick), (0.0, 2, None));
+        assert_eq!(
+            z.non_finite, 2,
+            "NaN and inf are counted, not read as silence"
+        );
     }
 }

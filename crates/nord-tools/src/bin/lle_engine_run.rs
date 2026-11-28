@@ -101,7 +101,7 @@ fn stage(l: &nord_sharc::runner::audio_bus::Level) -> String {
     let first = l
         .first_nonzero_tick
         .map_or("-".to_string(), |t| t.to_string());
-    format!("{:.6}/{:.6}/{first}", l.peak, l.rms())
+    format!("{:.6}/{:.6}/{first}/nf{}", l.peak, l.rms(), l.non_finite)
 }
 
 /// `(peak, rms, nonzero frames)` of the finite samples.
@@ -239,7 +239,7 @@ fn run_once(a: &Args, first: bool) -> Result<Outcome, String> {
         ms(s.route_ns),
         ms(s.dsp_ns)
     );
-    let _ = writeln!(out, "per-stage levels (peak / rms / first non-zero tick; in = frames the node took, out = frames it produced):");
+    let _ = writeln!(out, "per-stage levels (peak / rms / first non-zero tick / non-finite count; in = frames the node took, out = frames it produced):");
     for (i, n) in e.node_names().iter().enumerate() {
         let l = &e.bus.node_levels[i];
         let _ = writeln!(
@@ -254,8 +254,8 @@ fn run_once(a: &Args, first: bool) -> Result<Outcome, String> {
     let r = &e.router;
     let _ = writeln!(
         out,
-        "routed {:?}; skipped {}, counted (no chip) {}, L2 forwarded {} dropped {}",
-        r.sent, r.skipped, r.counted, r.l2_forwarded, r.l2_dropped
+        "routed {:?}; skipped {}, counted (no chip) {}, L2 forwarded {} dropped {}, bad SMP descriptors {}",
+        r.sent, r.skipped, r.counted, r.l2_forwarded, r.l2_dropped, e.stats.bad_descriptors
     );
     if let Some(sr) = e.smp_refill() {
         let _ = writeln!(
@@ -401,9 +401,9 @@ mod tests {
     #[test]
     fn a_stage_line_shows_peak_rms_and_the_first_non_zero_tick() {
         let mut l = nord_sharc::runner::audio_bus::Level::default();
-        assert_eq!(stage(&l), "0.000000/0.000000/-");
-        l.add(&[[0.0, 0.0], [0.5, -0.5]], 7);
-        assert_eq!(stage(&l), "0.500000/0.353553/7");
+        assert_eq!(stage(&l), "0.000000/0.000000/-/nf0");
+        l.add(&[[0.0, 0.0], [0.5, -0.5], [f32::NAN, 0.0]], 7);
+        assert_eq!(stage(&l), "0.500000/0.316228/7/nf1");
     }
 
     #[test]

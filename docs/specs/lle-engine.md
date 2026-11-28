@@ -46,7 +46,7 @@ The host buffer is at the **DSP frame rate**, not 48 kHz; resampling is not impl
 | anything else, or no node owns it | counted (`router.counted`) |
 | a bad SMP descriptor (`rec11` outside the directory) | counted `stats.bad_descriptors`, skipped, no fault |
 
-Nodes are registered by `(comm, core)`; a missing image just leaves its messages counted. Driven in the run so far: PNO core 1 and 2, ORG core 2, SMP, FX 1, FX 2 (six nodes, `SLOTS`). **SY is loaded but idle** (no message addressed to comm 3). **ORG core 1 is not loaded** (under the `org` preset it does not return to the poll loop, 2,000,000 steps at pass 0) and its 912 messages are counted without a chip. The ARM addresses seven `(comm, core)` pairs; claiming "all six DSP cores driven" is wrong.
+Nodes are registered by `(comm, core)`; a missing image just leaves its messages counted. Driven in the run so far: PNO core 1 and 2, ORG core 2, SMP, FX 1, FX 2 (six nodes, `SLOTS`). **SY is loaded but idle** (no message addressed to comm 3). **ORG core 1 is not loaded** (under the `org` preset it does not return to the poll loop, 2,000,000 steps at pass 0) and its 912 messages are counted without a chip. Basis: of the 8 DSP cores (PNO 1 and 2, ORG 1 and 2, SY, SMP, FX 1 and 2), 7 are loaded, the ARM addresses 7 (not SY), 6 are driven, SY is idle, ORG core 1 is not loaded. Claiming "all six DSP cores driven" is wrong.
 
 ## DSP to ARM return path (`ns4-nds8`)
 
@@ -69,7 +69,7 @@ The three SPI read routines are answered inside `Machine` (`install_dsp_return`,
 * single thread, fixed order (ARM, route, passes), no wall clock in any decision;
 * pass count from integer arithmetic; maps are `BTreeMap`;
 * DSP and ARM state are pure functions of images and event stream (`Machine::state_hash`, bit-exact SHARC core);
-* `digest()` = FNV-1a over host buffers, ARM state hash, routing counters **and the state of every DSP core** (`engine::core_digest` over each node's `core_mut()`: PC, step counter, register files, MODE1/2 and the data window `DM 0x80000..0x100000`; ASSUMED: nothing the passes write lives outside it, PM, L2 and SDRAM are not hashed); wall times (`Stats`, `node_ns`) are excluded. Test: `real_nodes_are_deterministic_and_the_digest_sees_dsp_state` runs real `CoreNode`s twice on a synthetic program and compares the full digest;
+* `digest()` = FNV-1a over host buffers, ARM state hash, routing counters **and the state of every DSP core** (`engine::core_digest` over each node's `core_mut()`: PC, step counter, register files, MODE1/2 and the data window `DM 0x90000..0x100000` (read with `dm_peek`); ASSUMED: nothing the passes write lives outside it, PM, L2 and SDRAM are not hashed); wall times (`Stats`, `node_ns`) are excluded. Test: `real_nodes_are_deterministic_and_the_digest_sees_dsp_state` runs real `CoreNode`s twice on a synthetic program and compares the full digest;
 * until a chip produces output the determinism result is "ARM state + DSP state + counters equal; audio all zero". It does not show that audio is reproducible;
 * an error from ARM or a node is sticky: `step` keeps returning it, nothing runs on.
 

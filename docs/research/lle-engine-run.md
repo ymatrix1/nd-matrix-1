@@ -23,7 +23,7 @@ lle_engine_run --dir IMG_B3 --ticks 12000 --runs 1 --note-on 6000:60:100 --note-
 | Cores | **driven:** PNO core 1, PNO core 2, ORG core 2, SMP, FX 1, FX 2. **SY loaded, idle** (no message addressed to comm 3). **ORG core 1 not loaded:** under the `org` preset it does not return to the poll loop (2,000,000 steps at pass 0); its 912 messages are counted without a chip. The first version of this note and of the PR said "six DSP cores" and dropped 1,824 messages (ORG core 1 and PNO core 2, 912 each); loading PNO core 2 leaves 912 | EMPIRICAL (run) |
 | Messages (4,000 ticks, factory EEPROM) | 15,335; routed `(comm, core)`: FX1 1,844, FX2 1,905, PNO1 7,334, PNO2 912, ORG2 912, SMP 1,516; counted without a chip 912 | EMPIRICAL (run); agrees with the per-chip counts of [org-system-run](org-system-run.md) s2 |
 | Key event | `NoteOn` through the `lle_io` ring reaches UART2; PNO core 1 gets 42 extra messages afterwards (factory EEPROM) | EMPIRICAL (run) |
-| Equality over runs | two full runs (boot included) give digest `a47d8a49fd98e499`; the digest covers host buffers, ARM state hash, counters and each core's registers and data window `DM 0x80000..0x100000` (PM, L2 and SDRAM not hashed, ASSUMED) | EMPIRICAL (run); unit test `real_nodes_are_deterministic_and_the_digest_sees_dsp_state` on real `CoreNode`s |
+| Equality over runs | two full runs (boot included) give digest `a27fa5bec6dce499` (re-run 2026-11-28 after the digest read `dm_peek` over `DM 0x90000..0x100000`; the earlier `a47d8a49fd98e499` used another window); the digest covers host buffers, ARM state hash, counters and each core's registers and data window `DM 0x90000..0x100000` (PM, L2 and SDRAM not hashed, ASSUMED) | EMPIRICAL (run); unit test `real_nodes_are_deterministic_and_the_digest_sees_dsp_state` on real `CoreNode`s |
 | Wall time (factory EEPROM, 4,000 ticks) | 17.1 and 18.0 s = 102x and 108x slower than real time (DSP bus 16.4 / 17.4 s, ARM 0.62 / 0.63 s); B3 EEPROM run 47 s for 4,000 ticks (283x), 78 s for 12,000 (155x) on a host at 85 to 100 % CPU from other sessions | EMPIRICAL, one or two runs each, not a median: read as an order of magnitude |
 | FX input | 4 frames short at the first FX pass of each core (one hop of latency) | EMPIRICAL (run) |
 
@@ -42,9 +42,10 @@ Findings:
 
 1. **Candidate 0 (missing cores) is not the cause.** Loading PNO core 2 changed nothing; ORG core 1 cannot be loaded under the `org` preset.
 2. **Tap is right.** The tone chips now tap `OutTap::Lane{set 2, pair 0}` (`DM(0xB015B)`, VERIFIED in [pno-full-pass](pno-full-pass.md) s1); the standalone PNO core 1 with that tap and preset is audible. The earlier tap (set 0) was wrong; correcting it did not make the engine audible.
-3. **Zero at the chip output**, not only at the host or the FX input: PNO core 1's own output is 0.0 for the whole run, so FX and host are zero because their input is.
-4. **The difference is the message stream.** In the standalone run the script sends the key flag and weight words to PNO core 1. In the ARM-driven stream no such word arrives after the key: the extra messages after `NoteOn` are periodic housekeeping triples. SY gets no message at all.
-5. **EEPROM state is not the whole answer.** Recalling the B3 program into the EEPROM changed the message counts (PNO core 1 7,334 to 7,693 in 4,000 ticks) but not the silence, also not in 0.5 s of virtual time.
+3. **The zeros are real zeros, not NaN.** The stage lines carry a non-finite counter (`nf`): 0 at every node input and output in the 4,000-tick run, so no stage reads as silent because its samples were dropped as NaN or infinite.
+4. **Zero at the chip output**, not only at the host or the FX input: PNO core 1's own output is 0.0 for the whole run, so FX and host are zero because their input is.
+5. **The difference is the message stream.** In the standalone run the script sends the key flag and weight words to PNO core 1. In the ARM-driven stream no such word arrives after the key: the extra messages after `NoteOn` are periodic housekeeping triples. SY gets no message at all.
+6. **EEPROM state is not the whole answer.** Recalling the B3 program into the EEPROM changed the message counts (PNO core 1 7,334 to 7,693 in 4,000 ticks) but not the silence, also not in 0.5 s of virtual time.
 
 ## What is missing to get sound (data or work, not a plain bug)
 

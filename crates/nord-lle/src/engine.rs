@@ -268,9 +268,9 @@ impl<A: ArmHost> LleEngine<A> {
     }
 
     /// FNV-1a over the host buffers, the ARM state hash, the routing counters and, per DSP node
-    /// with a core, its registers, step counter and data words `DM_HASH`. Equal inputs give equal
-    /// digests; wall times are not included. `&mut` because reading core data memory goes through
-    /// the (peripheral-aware) `dm_read`.
+    /// with a core, its registers, step counter and data words `DM_HASH` (read with `dm_peek`, no
+    /// watch or device-read side effect). Equal inputs give equal digests; wall times are not
+    /// included.
     pub fn digest(&mut self) -> u64 {
         let mut h = 0xCBF2_9CE4_8422_2325u64;
         let mut mix = |v: u64| h = (h ^ v).wrapping_mul(0x100_0000_01B3);
@@ -290,10 +290,10 @@ impl<A: ArmHost> LleEngine<A> {
     }
 }
 
-/// Data words hashed per core: the SRAM data window `0x80000..0x100000` holds the module state,
+/// Data words hashed per core: the SRAM data window `0x90000..0x100000` (`memory.rs::SRAM_WORDS`) holds the module state,
 /// pass buffers and strips (`pno-full-pass.md`, `org-system-run.md`). ASSUMED: nothing the
 /// passes write lives outside it (L2 and SDRAM are not hashed).
-pub const DM_HASH: std::ops::Range<u32> = 0x8_0000..0x10_0000;
+pub const DM_HASH: std::ops::Range<u32> = 0x9_0000..0x10_0000;
 
 /// FNV-1a over a core's registers, counters and data window.
 pub fn core_digest(c: &mut Core) -> u64 {
@@ -314,7 +314,7 @@ pub fn core_digest(c: &mut Core) -> u64 {
     mix(u64::from(c.mode1));
     mix(u64::from(c.mode2));
     for a in DM_HASH {
-        mix(u64::from(c.dm_read(a).unwrap_or(0)));
+        mix(u64::from(c.dm_peek(a).unwrap_or(0)));
     }
     h
 }
