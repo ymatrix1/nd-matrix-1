@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/ymatrix1/nd-matrix-1/tree/main/docs
+    about: Guides, specs, host compatibility and known open questions.
+  - name: Legal and rights-holder contact
+    url: https://github.com/ymatrix1/nd-matrix-1/blob/main/docs/LEGAL.md
+    about: Legal posture and how to raise a rights concern (or use the Rights-holder contact issue form).
