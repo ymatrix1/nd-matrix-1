@@ -20,3 +20,7 @@ path = "src/bin/arm_lle_bench.rs"
 [[bin]]
 name = "kernel-bench"
 path = "src/bin/kernel_bench.rs"
+
+[[bin]]
+name = "arm-tail-bench"
+path = "src/bin/arm_tail_bench.rs"
