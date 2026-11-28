@@ -23,7 +23,7 @@ pub(super) fn tag_led(p: &Painter, button: Rect, text: &str, lit: bool) -> Rect 
         Align2::CENTER_BOTTOM,
     );
     let c = pos2(drawn.left() - LEGEND_LED_GAP, drawn.center().y);
-    led_small(p, c, lit, LED_RED, LED_RED_DIM, LED_R);
+    led_small(p, c, lit, LED_ACCENT, LED_ACCENT_DIM, LED_R);
     drawn
 }
 

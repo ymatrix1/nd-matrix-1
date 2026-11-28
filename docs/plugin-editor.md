@@ -12,7 +12,7 @@ Bundles land in `target/bundled/` (`nd-matrix-1.clap`, `nd-matrix-1.vst3`). Copy
 
 ## Smoke test (Reaper, Bitwig)
 
-1. Rescan plugins; add "Nord Stage 4" to an instrument track. Expect: no crash, the editor opens and shows the red panel with the keybed.
+1. Rescan plugins; add "Nord Stage 4" to an instrument track. Expect: no crash, the editor opens and shows the graphite-navy panel with the keybed.
 2. Click keys on the on-screen keybed: Organ A sounds. Hold and release a key: no stuck note.
 3. Drag the Master Level knob and an Organ drawbar. In the host's parameter list `master_level` and `drawbar_*` move; arm write automation, drag again, play back: the knob follows the lane.
 4. Move a parameter from the host (automation lane or generic UI): the panel knob follows within a frame.

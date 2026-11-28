@@ -40,13 +40,13 @@ fn organ_ladder_shows_the_morphed_level_not_the_fader() {
     let mut sim = Sim::new();
     assert_eq!(sim.state.organ_a_level, 0.85);
     assert_eq!(
-        fills(&sim, "organ.ladder.a", LED_RED),
+        fills(&sim, "organ.ladder.a", LED_ACCENT),
         0,
         "UI 0.85 lights 9 of 11"
     );
     with_telemetry(&mut sim, |t| t.layer_level[0] = 1.0);
     assert_eq!(
-        fills(&sim, "organ.ladder.a", LED_RED),
+        fills(&sim, "organ.ladder.a", LED_ACCENT),
         1,
         "engine level 1.0 lights all 11"
     );
@@ -62,7 +62,7 @@ fn organ_ladder_shows_the_morphed_level_not_the_fader() {
 fn drawbar_ladder_shows_the_engine_drawbar() {
     let mut sim = Sim::new();
     assert_eq!(sim.state.organ_drawbars[0], 8);
-    let lit = |sim: &Sim| fills(sim, "organ.drawbar_ladder.1", LED_RED);
+    let lit = |sim: &Sim| fills(sim, "organ.drawbar_ladder.1", LED_ACCENT);
     let before = lit(&sim);
     with_telemetry(&mut sim, |t| t.organ_drawbars[0][0] = 2);
     assert!(
@@ -84,10 +84,10 @@ fn aux_led_follows_the_engine_flag() {
 fn rotary_leds_follow_the_real_rotor_state() {
     let mut sim = Sim::new();
     assert_eq!(sim.state.rotary_speed, RotarySpeed::Slow);
-    assert_eq!(fills(&sim, "rotary.speed_leds", LED_RED), 0);
+    assert_eq!(fills(&sim, "rotary.speed_leds", LED_ACCENT), 0);
     with_telemetry(&mut sim, |t| t.rotary_speed = RotarySpeed::Fast);
     assert_eq!(
-        fills(&sim, "rotary.speed_leds", LED_RED),
+        fills(&sim, "rotary.speed_leds", LED_ACCENT),
         1,
         "a pedal made the rotor fast"
     );

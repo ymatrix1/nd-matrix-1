@@ -5,7 +5,7 @@ use super::ids::dim_reason;
 use crate::panel::param_hint::table::{EQ_DB, MID_HZ};
 use crate::panel::prelude::Stage4PanelState;
 use crate::panel::ui_state::fx::{ChainUi, Unit};
-use crate::style::{LED_RED, LED_RED_DIM};
+use crate::style::{LED_ACCENT, LED_ACCENT_DIM};
 use nord_core::fx::AmpCabinet;
 use nord_panel::behaviour::{cycle, Trigger};
 
@@ -45,7 +45,7 @@ pub(super) fn amp(f: &mut Fx, st: &mut Stage4PanelState, slot: usize) {
     {
         let c = &mut st.fx_ui.chains[slot];
         let on = f.rect("amp.on");
-        f.led_above(on, c.amp_on, LED_RED, LED_RED_DIM);
+        f.led_above(on, c.amp_on, LED_ACCENT, LED_ACCENT_DIM);
         if f.button("amp.on", on, c.amp_on, false, "AMP SIM/EQ ON")
             .is_some()
         {
@@ -178,7 +178,7 @@ pub(super) fn comp(f: &mut Fx, st: &mut Stage4PanelState, slot: usize) {
     {
         let c = &mut st.fx_ui.chains[slot];
         let on = f.rect("comp.on");
-        f.led_left(on, c.comp_on, LED_RED, LED_RED_DIM);
+        f.led_left(on, c.comp_on, LED_ACCENT, LED_ACCENT_DIM);
         match f.button(
             "comp.on",
             on,

@@ -2,50 +2,68 @@
 
 ## 1. Scope
 
-Specifies the 1:1 visual layout, color palette, typography, hardware widgets, LED indicators, OLED displays, and interactive behaviors for the ND Matrix 1 GUI (Standalone & CLAP/VST3 DAW Plugin).
+Specifies the visual layout, colour palette, typography, widgets, LED indicators, OLED displays, and interactive behaviours for the ND Matrix 1 GUI (Standalone & CLAP/VST3 DAW Plugin).
 
-Derived directly from the hardware reference images in `.reference/`:
-- `foto.jpg` (Full Nord Stage 4 Hammer Action 88 top panel & keybed)
-- `NS4-Panel-organ.max-2000x2000.format-png.png` (2000px close-up of Master, Rotary Speaker, and Organ Section)
-- `Screenshot20at2015.jpg` (Close-up of Piano Section)
-- `12916-Lg.jpg` (Front-panel PCB showing physical drawbar sliders, LED ladders, LED-ring encoders, and OLED module)
+**Identity (D251, 2026-11-23).** The look is an original design, the **Slate Matrix** identity, and deliberately does not imitate the vendor's red chassis or its control styling (trade dress, `ns4-80xe`). Control *positions*, counts, indices and parameter IDs are unchanged (D16: saved DAW projects keep loading); only surfaces, shapes, colours, texture and typography differ. Which control exists where and what it does follows the instrument's function as documented in its manual; no vendor art, photo, trace or colour sample is used. Photos in `.reference/` are measurement-only (control geometry, scale sweeps) and never ship (`tools/check_no_vendor_photos.py`).
+
+### 1.1 Slate Matrix: what differs from the original instrument
+
+| Element | Original instrument | ND Matrix 1 |
+|---|---|---|
+| Chassis | crimson lacquer, red-stained wood cheeks | graphite-navy powder coat with a fine **dot-matrix** texture; graphite side cheeks with a teal edge line |
+| Module bays | speckled blue-grey slate | navy slate with the dot-matrix texture |
+| Section headers | light silver bar, rounded stepped tab | **dark plate with 45 degree chamfers** and a 3 px **section-accent underline** (Organ amber, Piano mint, Program cyan, Synth violet, Effects sky) |
+| Light sub-panels | silver-blue | **bone** (`#D3CCB9`) with dark ink |
+| Pot knobs | round, fluted, white wrap-over line | **hexagonal** graphite body, brushed-aluminium round cap, **cyan pointer** |
+| Encoders | round, silver ring | round, **teal ring** |
+| Buttons | black stadium pill on a rectangular collar | **square-cornered tile cap with a centre groove**; graphite, bone and cyan caps |
+| Highlighted buttons / LEDs | red | **cyan** (mint for ladders, amber kept for Morph) |
+| Faders | grey pyramid cap | graphite cap with a cyan index line |
+| Drawbars | white and black caps | **sand** and **navy** caps with a ribbed grip band |
+| Keys | white and black, red felt lip | **ivory** and **blue-black** keys, near-black felt, pressed keys tint pale teal |
+| Pitch stick / mod wheel | wooden stick, pebbled stone wheel | aluminium stick with a cyan line, ribbed metal wheel |
+| Typography | proportional DIN-style sans | **monospace** silkscreen (`Cascadia Mono` / `Consolas`), upper-case labels |
+| Wordmark | lower-case `nd matrix 1` | 3x3 dot-grid glyph (one lit dot) plus `ND MATRIX 1`, letter-spaced |
+
+Guards: `crates/nord-gui/src/identity_tests.rs` (no red-dominant chassis token, no red-dominant pixel in the baked plate or sprite atlas) and `tools/tests/test_bake_panel_from_html.py` (no legacy red tokens in the prototype CSS, hexagon knob, no stadium pills). Silkscreen text resolves against the fonts installed on the baking machine; the committed PNGs are the source of truth.
 
 ---
 
 ## 2. Color Palette & Surface Tokens
 
-The Nord Stage 4 panel alternates between **Nord Signature Crimson Red** (`#8E1B1F`) for global/master/program/rotary/FX-focus zones and **Anodized Slate Blue-Grey** (`#323D47`) for the four sound/effect module bays (`ORGAN`, `PIANO`, `SYNTH`, `LAYER EFFECTS`), topped by a **Brushed Silver-Blue Header Bar** (`#A3AFB9`).
+All values are `ASSUMED` design choices (no hardware measurement); the checked property is text contrast. The same values live in `prototypes/panel-mock/styles.css` (`:root`, source of the baked plate) and `crates/nord-gui/src/style.rs` (vector fallback panel, plugin chrome).
 
-| Token | Hex | Usage |
+| Token (CSS / Rust) | Hex | Usage |
 |---|---|---|
-| `chassis_red_primary` | `#8E1B1F` | Outer chassis, Left Master/Rotary strip, Central Program/Morph bay, FX Focus strip |
-| `chassis_red_dark` | `#641014` | Recessed borders, end-cheeks shadow, chamfered panel seams |
-| `module_slate_bg` | `#323D47` | Main speckled metallic background of `ORGAN`, `PIANO`, `SYNTH`, and `LAYER EFFECTS` sections |
-| `module_header_bar` | `#A3AFB9` | Top header strip of each module (`ORGAN SECTION`, `PIANO SECTION`, `SYNTH SECTION`, `LAYER EFFECTS`) |
-| `group_frame_border` | `#9CA8B3` | 1.5 px rounded-corner outline boxes (`ORGAN MODEL`, `VIB/CHORUS`, `B3 PERCUSSION`, `PIANO SELECT`, `MOD 1`, `MOD 2`, `AMP SIM/EQ`, `DELAY`, `REVERB`) |
-| `button_grey_layer` | `#8C9196` | Primary section/layer toggle buttons (`A`, `B`, `C`, `ON`, `ORGAN`) |
-| `button_black_pill` | `#1C1F22` | Mode/selector pill buttons (`MODEL`, `VIB/CHORUS`, `PERC`, `OCTAVE SHIFT`, `TIMBRE`) |
-| `button_store_red` | `#B8252A` | Recessed `STORE` button in the central Program bay |
-| `led_red_active` | `#FF2A2A` | Active state LEDs, 8-segment drawbar ladders, model/category triangle indicators |
-| `led_green_meter` | `#5CE62E` | 11-segment layer level fader ladders, `ON/OFF` halo rings, `KB ZONE` split indicators, `SLOW` rotary LED |
-| `led_amber_morph` | `#FFB020` | Morph assignment preview / secondary status |
-| `oled_bg` | `#080A0C` | High-contrast monochrome OLED screen background |
-| `oled_fg` | `#F0F6FC` | Crisp white/ice-blue pixel text & waveform graphics on both OLED displays |
-| `drawbar_white` | `#ECEBE6` | Harmonic footage caps for `8'`, `4'`, `2'`, `1'` |
-| `drawbar_black` | `#1A1C1E` | Sub/mutation footage caps for `16'`, `5 1/3'`, `2 2/3'`, `1 3/5'`, `1 1/3'` |
+| `--chassis-base` / `CHASSIS_BASE` | `#151C29` | Outer chassis, master strip, program deck |
+| `--chassis-dark` / `CHASSIS_DARK` | `#0B1018` | Recessed borders, seams, plugin bar fill |
+| `--module-slate-bg` / `MODULE_SLATE` | `#243249` | Background of `ORGAN`, `PIANO`, `SYNTH`, `LAYER EFFECTS` |
+| `--module-slate-dark` / `MODULE_SLATE_DARK` | `#1A2538` | Recessed frames |
+| `HEADER_DARK`, `HEADER_INK`, `HEADER_EDGE` | `#0D121B`, `#E8ECF0`, `#2B3A52` | Section header plate, ink (15:1), hairline |
+| `--bone` / `MODULE_HEADER_BAR` | `#D3CCB9` | Light sub-panels, Rotary Speaker tab |
+| `--group-frame-border` / `GROUP_BORDER` | `#7F97BA` | 1 px outline boxes (`ORGAN MODEL`, `VIB/CHORUS`, `MOD 1`, ...) |
+| `BUTTON_GREY` | `#CFC8B5` | Bone layer / toggle buttons |
+| `BUTTON_BLACK` | `#1B2231` | Graphite selector buttons |
+| `--accent` / `LED_ACCENT`, `BUTTON_ACCENT` | `#35E0E8`, `#35D9E1` | Active LEDs, drawbar ladders, triangles, STORE and ARP RUN caps, knob pointer |
+| `LED_GREEN` | `#3DE8A8` | 11-segment fader ladders, `ON/OFF` halos, `KB ZONE` indicators |
+| `LED_AMBER` | `#FFB020` | Morph assignment, secondary status |
+| `OLED_BG` / `OLED_FG` | `#06090E` / `#BFF6F2` | OLED background and pale-cyan pixels |
+| `DRAWBAR_WHITE` / `DRAWBAR_BLACK` | `#E6DCC0` / `#1F2A3F` | Sand and navy drawbar caps |
+| `KEY_WHITE` / `KEY_WHITE_PRESSED` | `#F7F1E0` / `#D3EFE9` | Ivory key and pressed tint |
+| Section accents | Organ `#F0A63C`, Piano `#2FD0B8`, Program and Master `#35E0E8`, Synth `#9A87FF`, Effects `#4CB0FF` | Header underline per bay |
 
 ---
 
 ## 3. Left-to-Right Panel Architecture (6 Horizontal Bays)
 
-The top panel is laid out horizontally above the 88-key triple-sensor keybed (with 3 split-point red LEDs above the keybed lip):
+The top panel is laid out horizontally above the 88-key triple-sensor keybed (with split-point LEDs above the keybed lip):
 
 ```text
 ┌──────────┬────────────────────┬───────────────────┬────────────────────┬─────────────────────────┬───────────────────────┐
 │  1. LEFT │  2. ORGAN SECTION  │ 3. PIANO SECTION  │ 4. PROGRAM / MORPH │    5. SYNTH SECTION     │   6. LAYER EFFECTS    │
-│  MASTER  │   (Slate #323D47)  │  (Slate #323D47)  │   (Red #8E1B1F)    │     (Slate #323D47)     │    (Slate #323D47)    │
+│  MASTER  │   (Slate #243249)  │  (Slate #243249)  │   (Navy #151C29)   │     (Slate #243249)     │    (Slate #243249)    │
 │ & ROTARY │                    │                   │                    │                         │                       │
-│ (#8E1B1F)│ • Faders A & B     │ • Faders A & B    │ • MORPH ASSIGN     │ • Faders A, B & C       │ • FX FOCUS (Org/Pno/  │
+│ (#151C29)│ • Faders A & B     │ • Faders A & B    │ • MORPH ASSIGN     │ • Faders A, B & C       │ • FX FOCUS (Org/Pno/  │
 │          │   + 11-LED ladders │   + 11-LED ladders│   (Wheel/AT/Pedal) │   + 11-LED ladders      │   Syn A/B/C, Group)   │
 │ • Pitch  │ • ORGAN MODEL      │ • ACOUSTICS       │ • SPLIT (3 zones)  │ • SYNTH OLED DISPLAY    │ • MOD 1 (Rate/Amount) │
 │   Stick  │   (B3/Vox/Farf/    │   (String Res,    │ • MST CLK / TRANSP │   (Waveform, Detune,    │ • MOD 2 (Rate/Amount) │
@@ -56,7 +74,7 @@ The top panel is laid out horizontally above the 88-key triple-sensor keybed (wi
 │ • Rotary │   (Soft/Fast/3rd)  │ • DYN COMP        │ • LAYER SCENE II   │ • LFO & OSCILLATORS     │   Feedback, PingPong, │
 │   Drive  │ • 9 PHYSICAL       │ • TIMBRE          │ • PROGRAM 1..8     │ • FILTER (LP12/24/Lad/  │   Analog, Filter, Mix)│
 │ • Slow / │   DRAWBARS +       │ • PIANO SELECT    │   Selector Buttons │   BP/HP, Freq, Res)     │ • COMP (Amount, Fast) │
-│   Fast   │   8-LED RED LADDERS│   + MODEL Encoder │                    │ • AMP ENV & UNISON      │ • REVERB (6 Rooms,    │
+│   Fast   │   8-LED LADDERS│   + MODEL Encoder │                    │ • AMP ENV & UNISON      │ • REVERB (6 Rooms,    │
 │          │ • KB ZONE (4 LEDs) │ • KB ZONE (4 LEDs)│                    │ • KB ZONE (4 LEDs)      │   Bright/Dark, Chorale│
 └──────────┴────────────────────┴───────────────────┴────────────────────┴─────────────────────────┴───────────────────────┘
 ```
@@ -75,13 +93,13 @@ Every custom UI widget in `crates/nord-gui` / `crates/nord-plugin` must render t
 - **Layer Activation Button (`A`, `B`, `C`):** Above each grey rectangular button sits a pill label (`ON/OFF ▼`) with a circular green ring LED (`#5CE62E` when active in the current Scene, dim when off, blinking when edited in FX Focus).
 - **Zone Indicator (`◄ KB ZONE ►`):** 4 circular green LEDs at the bottom of each section's mixer strip showing which of the 4 split zones the selected layer spans.
 
-### 4.2 Physical Organ Drawbar + 8-Segment Red LED Ladder (`DrawbarWidget`)
+### 4.2 Physical Organ Drawbar + 8-Segment LED Ladder (`DrawbarWidget`)
 - **9 Drawbar Tracks (`16'`, `5 1/3'`, `8'`, `4'`, `2 2/3'`, `2'`, `1 3/5'`, `1 1/3'`, `1'`):**
   - Pulled **down** (`0` at top, `8` fully pulled out at bottom), matching real Hammond B3 / Nord Stage 4 mechanics.
   - Top labels show Pipe/Farfisa/Vox equivalents (`BASS16 / 16'`, `STR16 / 8'`, `FLUTE8 / 4'`, `OBOE8 / 2'`, `TRMP8 / II`, `STR8 / III`, `FLUTE4 / IV`, `STR4`, `2 2/3 ~`).
   - Bottom labels show B3 harmonic footages (`16'`, `5 1/3'`, `8'`, `4'`, `2 2/3'`, `2'`, `1 3/5'`, `1 1/3'`, `1'`).
-- **Adjacent 8-Segment Red LED Ladder (`1..8`):**
-  - Next to every drawbar slot is a white-framed vertical strip numbered `1` through `8` with 8 rectangular red LEDs (`#FF2A2A`).
+- **Adjacent 8-Segment LED Ladder (`1..8`):**
+  - Next to every drawbar slot is a white-framed vertical strip numbered `1` through `8` with 8 rectangular accent LEDs (`#35E0E8`).
   - Lights from the top down (`1..N`) to display the active drawbar registration (and any live Morph transition).
   - Unlit while the Organ section is off and in Drawbar Live (EMPIRICAL: the hardware frame of the piano program `A:13 Felt Upright` shows no lit ladder, [D78](../DECISIONS.md)).
 - **Drawbar Cap Colors:**
@@ -109,9 +127,9 @@ Ground truth: frames of `NEW NORD STAGE 4 - PROGRAMAS PRESETS DEMO (PART A)` (St
 
 Open (not matched yet): Piano TIMBRE of `Felt Upright` shows SOFT while the stored `kEq` is 0 (`Off`); UNISON / DYN COMP LEDs of A:13 show lit points that the stored 0 does not explain; SUSTPED / PSTICK LEDs per layer (A:38, A:13) are not decoded; the stored organ focus bits; Piano and Synth focus rules (A:38 Synth focuses A with A and B on, so "highest layer" is Organ only).
 
-### 4.3 Dual-Column Red Triangle Matrix Selector (`TriangleSelectorWidget`)
+### 4.3 Dual-Column Triangle Matrix Selector (`TriangleSelectorWidget`)
 - Used in `ORGAN MODEL` (`FARF / VOX / B3` vs `PIPE1 / PIPE2 / B3 BASS`), `VIB/CHORUS` (`C2 V3 C3 / V2 C1 V1`), and `PIANO SELECT` (`ELECTRIC / UPRIGHT / GRAND` vs `CLAV / DIGITAL / MISC`).
-- Recessed dark bezel containing left/right pointing red LED triangles (`◄` `►`) above a black pill selector button.
+- Recessed dark bezel containing left/right pointing accent LED triangles (`◄` `►`) above a black pill selector button.
 
 ### 4.4 Rotary Knobs & Morph Range Arcs (`NordKnobWidget`)
 - Dark charcoal ribbed cylindrical cap with a crisp white radial pointer line (or endless stepped encoder with `LIST` badge for `MODEL` / `OSC`).
@@ -300,7 +318,7 @@ A user cannot find or understand a control without its name, frame or scale, so 
 | Organ | `ORGAN MODEL`, `VIB/CHORUS`, `B3 PERCUSSION` frames (the former `ORGAN MODEL` / `VIB/CHORUS` text tags are the frame titles now); per-drawbar register names over each ladder (manual p.19: BASS16, STR16, FLUTE8, OBOE8, TRMP8, STR8, FLUTE4, STR4, 2 2/3) and the numerals 1-8 beside every LED ladder (the ladder LEDs are 1 px smaller in radius to make room) |
 | Synth | `MODE`, `ARPEGGIATOR / GATE`, `VOICE`, `VIBRATO`, `LFO`, `OSCILLATORS`, `FILTER`, `AMP`, `UNISON` boxes (the old heading texts are the box titles; the MODE, VOICE and UNISON button legends became SELECT / MODE / SELECT so a title is not printed twice); `0` and `10` (`-10` and `10` for the oscillator ENV AMT) at the two ends of every pot's tick ring (`widgets/scale.rs`); `INFO`, `LIST`, `LIST` under the three OLED dials |
 | Layer Effects | `MOD 1`, `MOD 2`, `AMP SIM/EQ`, `DELAY`, `COMP`, `REVERB` boxes; `0` / `10` scale ends on every knob, `-15` / `15` under the three EQ knobs (no room beside them) |
-| Program | `MORPH ASSIGN`, `SPLIT`, `MST CLK`, `TRANSP`, `PRESET LIBRARY`, `PROGRAM` boxes on the red block (the SPLIT, MST CLK and TRANSP button legends are ON/SET, TAP/SET, ON/SET so the title is not repeated) |
+| Program | `MORPH ASSIGN`, `SPLIT`, `MST CLK`, `TRANSP`, `PRESET LIBRARY`, `PROGRAM` boxes on the program plate (the SPLIT, MST CLK and TRANSP button legends are ON/SET, TAP/SET, ON/SET so the title is not repeated) |
 | Keybed | `L`, `M`, `H` printed beside the three split-point LEDs |
 | Contrast | every dimmed legend (ZONE -/+, PEDAL TAP, SOLO, Shift legends of unsupported controls, dimmed button names) goes through `style::dim_legend`, which fades the ink but keeps a WCAG contrast of at least 4.5:1 against the slate and the red (grey 150 on red was 3.9:1, grey 105 on slate 2.2:1) |
 
@@ -386,13 +404,13 @@ Status: accepted (owner request: production-ready look, compared with the Nord e
 
 ## 9. Offline HTML/CSS-to-`egui` Baked Panel Pipeline (D15 Amendment, `ns4-op1w`)
 
-To achieve 1:1 visual parity with the approved `nd matrix 1` HTML/CSS reference (`prototypes/panel-mock/`) inside OpenGL `egui` hosts without embedding a WebView:
+To render the approved ND Matrix 1 HTML/CSS design (`prototypes/panel-mock/`, Slate Matrix identity, D251) inside OpenGL `egui` hosts without embedding a WebView:
 
-- **Offline Baker (`tools/bake_panel_from_html.py`):** Launches headless Chromium (Playwright) at `2x` device scale, hides dynamic moving elements via `.bake-static`, and exports deterministic assets to `crates/nord-gui/assets/baked/`:
-  - `panel_plate_2x.png`: static red chassis, wooden cheeks, S-curve section headers, silkscreen, scales, and `nd matrix 1` wordmark.
-  - `panel_sprites_2x.png` + `panel_sprites.json`: stadium-pill buttons (`up`/`down`), 12-flute knob caps with 14 px shadow padding, fader cap, white/black stepped drawbars, pebbled mod wheel drum, pitch stick, and key sprites.
+- **Offline Baker (`tools/bake_panel_from_html.py`):** Launches headless Chromium or Edge (DevTools protocol) at `2x` device scale, hides dynamic moving elements via `.bake-static`, and exports deterministic assets to `crates/nord-gui/assets/baked/`:
+  - `panel_plate_2x.png`: static graphite chassis, side cheeks, chamfered section headers with accent underlines, silkscreen, scales, keys and the `ND MATRIX 1` wordmark.
+  - `panel_sprites_2x.png` + `panel_sprites.json`: tile buttons (`black`/`grey`/`accent`, `up`/`down`), hexagonal knob caps and round encoder caps with 14 px shadow padding, fader cap, sand/navy ribbed drawbars, ribbed mod wheel drum and pitch stick.
   - `panel_layout.json`: normalized `(x, y, w, h)` bounding boxes for all annotated `data-control-id` controls, LEDs, OLEDs, and 88 keys.
-- **Runtime Loader & 1:1 View (`crates/nord-gui/src/baked.rs`, `crates/nord-gui/src/panel/baked_view.rs`):**
+- **Runtime Loader & View (`crates/nord-gui/src/baked.rs`, `crates/nord-gui/src/panel/baked_view.rs`):**
   - `BakedPanelAssets::get_or_load` uploads the baked atlas and splits `panel_plate_2x.png` into `<= 2048px` horizontal GPU texture tiles so OpenGL contexts with `max_texture_side = 2048` never fail.
   - Zoom and pan (D240, `panel/baked_zoom.rs`): `render_baked_panel` takes the plate rectangle from `BakedZoom` (zoom 1 = whole plate fitted, up to 6) and clips to the viewport. Keys `1`-`5` jump to the `bay-organ`, `bay-piano`, `bay-program`, `bay-synth`, `bay-fx` rectangles, `0` / `Esc` fit, `+` / `-` step; Ctrl + scroll zooms at the pointer, dragging empty plate pans. Bar pills are shared by the standalone and plugin bars. Commands: `docs/guides/commands.md`.
   - No photo texture ships: the former embedded `panel_texture.jpg` (a vendor photo) is removed (D16); all panel pixels come from the baked plate and sprite atlas, and chrome colours from `style.rs` tokens. `tools/check_no_vendor_photos.py` enforces it in CI.

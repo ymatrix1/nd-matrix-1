@@ -67,7 +67,7 @@ pub fn triangle_matrix_selector(
         let y = rect.top() + 4.0 + (i as f32) * row_h;
         // triangle
         let tri_center = pos2(rect.left() + 7.0, y + row_h * 0.5);
-        let col = if is_sel { LED_RED } else { LED_RED_DIM };
+        let col = if is_sel { LED_ACCENT } else { LED_ACCENT_DIM };
         p.text(
             tri_center,
             Align2::CENTER_CENTER,
@@ -93,7 +93,7 @@ pub fn triangle_matrix_selector(
         let is_sel = selected_idx == idx;
         let y = rect.top() + 4.0 + (i as f32) * row_h;
         let tri_center = pos2(rect.right() - 7.0, y + row_h * 0.5);
-        let col = if is_sel { LED_RED } else { LED_RED_DIM };
+        let col = if is_sel { LED_ACCENT } else { LED_ACCENT_DIM };
         p.text(
             tri_center,
             Align2::CENTER_CENTER,

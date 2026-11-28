@@ -295,7 +295,7 @@ pub fn draw_button(
     painter.rect_filled(rect, 2.0, body);
     let pill = rect.shrink2(vec2(rect.width() * 0.16, rect.height() * 0.22));
     let pill_fill = if lit {
-        fade(LED_RED)
+        fade(LED_ACCENT)
     } else {
         body.gamma_multiply(1.3)
     };

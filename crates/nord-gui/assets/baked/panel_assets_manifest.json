@@ -3,20 +3,20 @@
   "generator": "tools/bake_panel_from_html.py",
   "files": {
     "panel_layout.json": {
-      "bytes": 174601,
-      "sha256": "6959ecb57f3e002667ca2c86d275c50e7f06678b6015874f885fd743d87d833b"
+      "bytes": 175125,
+      "sha256": "845df6924b48034af4ca1992d379dd4d891c8e704a915110b63ce163f7250d38"
     },
     "panel_plate_2x.png": {
-      "bytes": 2934720,
-      "sha256": "b56a25f0daeab174b220f792cf480e817af26a683a8f31d8c9139ac69f3caf4d"
+      "bytes": 1336523,
+      "sha256": "bb7dd7c0e73eadbb140d774c9d9d09f4e95fb72b74763043796ff816b6af0911"
     },
     "panel_sprites.json": {
-      "bytes": 2958,
-      "sha256": "7715595ea3e6a749eb40c60cb7e6fc908bb739c8edeb3e5fffba5dbc578f8aa0"
+      "bytes": 2964,
+      "sha256": "63e23a3180f393d50b9772321630475bd98e068f3dfe79328c97a724d8b14f2d"
     },
     "panel_sprites_2x.png": {
-      "bytes": 64045,
-      "sha256": "9f59905a5ed8d4a8d70a4f7624f8bf65cc1fb4b8d39ffd43712f3476b486ad8f"
+      "bytes": 55663,
+      "sha256": "8b6058fbda5d58e95f084c4bc50b6c5bb8cfb89e0b32488e4eb28560a99c7204"
     }
   }
 }

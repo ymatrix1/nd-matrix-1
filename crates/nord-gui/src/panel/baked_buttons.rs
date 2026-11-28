@@ -750,7 +750,12 @@ pub(crate) fn handle_baked_button_click(
             _ => 2,
         };
         let groups: [(&str, &str, &[&str], &str); 3] = [
-            ("organ", "org-fx-focus", &["fxf-org-a", "fxf-org-b"], "red"),
+            (
+                "organ",
+                "org-fx-focus",
+                &["fxf-org-a", "fxf-org-b"],
+                "accent",
+            ),
             (
                 "piano",
                 "pno-fx-focus",
