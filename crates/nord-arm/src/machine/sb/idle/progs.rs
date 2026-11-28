@@ -1,6 +1,7 @@
 //! Test-only program generator of W1-IDLE: ARM code with finite counting phases followed by an
 //! idle (or deliberately non-idle) tail, so the v1 and v2 schedules see the same program from
-//! different phases.
+//! different phases. About one program in five starts with a long counting stretch, past the
+//! point where the v2 slices part from v1's, so the sweep sees the two schedules differ.
 //!
 //! Register convention: `r0` stays 0, `r4` is the loop counter, `r5..r9` are scratch, `r10` is
 //! `0x2000` (plain RAM), `r11` is `0x6000_0000` (a device window). A spin loop only writes
@@ -16,6 +17,17 @@ pub(super) const CODE: u32 = 0xC000_0000;
 pub(super) const AL: u32 = 0xE;
 const EQ: u32 = 0x0;
 const NE: u32 = 0x1;
+
+/// Instructions after which the v2 slice schedule parts from v1's.
+///
+/// ASSUMED (derived from the schedule constants, no external source): both start at
+/// `MIN_SLICE = 64` and double after each failed probe, v1 up to 8192 and v2 up to 2^20, so the
+/// first eight slices (64, 128, ..., 8192: 64 * 255 = 16 320 instructions) and the eight failed
+/// probes after them (8 * `MAX_PERIOD` = 32 768, counting loops without memory writes run the
+/// whole probe) are the same; the ninth slice is 8192 in v1 and 16 384 in v2. Confirmed by
+/// `ticks::a_long_counting_stretch_moves_the_v2_schedule_and_both_still_skip`, which asserts
+/// that the probe counts differ above this and are equal below it.
+pub(super) const SCHEDULES_PART_AFTER: u64 = 16_320 + 8 * 4096;
 
 /// A machine with `code` at [`CODE`] and `pc` on its first word.
 pub(super) fn machine(code: &[u32]) -> Machine {
@@ -144,6 +156,19 @@ fn count_phase(rng: &mut Rng, code: &mut Vec<u32>) -> u64 {
     1 + iters * (u64::from(noise) + 2)
 }
 
+/// A long counting phase (`add` plus the counter loop, no memory writes so a probe inside it runs
+/// its whole 4096 instructions): 16 384 to 65 280 iterations of 3 instructions, i.e. 49 152 to
+/// 195 840 instructions, always past [`SCHEDULES_PART_AFTER`]. Returns its length.
+fn long_phase(rng: &mut Rng, code: &mut Vec<u32>) -> u64 {
+    let imm8 = 64 + rng.below(192);
+    code.push(mov_imm(AL, 4, imm8, 12)); // r4 = imm8 << 8
+    let top = code.len();
+    code.push(0xE085_5004); // add r5,r5,r4
+    code.push(0xE254_4001); // subs r4,r4,#1
+    code.push(branch(NE, code.len(), top));
+    1 + (u64::from(imm8) << 8) * 3
+}
+
 /// Program number `i` of a run: the tail kind and the spin period cycle with `i`, so any 200
 /// consecutive programs cover every period 1..=40 and every tail; the rest comes from `rng`.
 pub(super) fn random_prog(rng: &mut Rng, i: u64) -> Prog {
@@ -151,6 +176,9 @@ pub(super) fn random_prog(rng: &mut Rng, i: u64) -> Prog {
     let mut work = 2;
     for _ in 0..rng.below(3) {
         work += count_phase(rng, &mut code);
+    }
+    if rng.chance(5) {
+        work += long_phase(rng, &mut code);
     }
     let (q, r) = (i / 8, i % 8);
     let tail = match r {
@@ -233,6 +261,24 @@ mod tests {
         }
         assert!(a.iter().all(|p| p.code.len() < 1000 && p.budget > 0));
         assert!(a.iter().any(|p| p.must_skip) && a.iter().any(|p| !p.must_skip));
+        // a share of the programs has a stretch long enough to part the two schedules
+        let long = a.iter().filter(|p| p.work > SCHEDULES_PART_AFTER).count();
+        assert!((15..=80).contains(&long), "long programs: {long}");
+    }
+
+    #[test]
+    fn a_long_phase_runs_for_the_instructions_it_reports_and_outlasts_the_shared_schedule() {
+        let mut rng = Rng::new(5);
+        for _ in 0..8 {
+            let mut code = Vec::new();
+            let n = long_phase(&mut rng, &mut code);
+            assert!(n > SCHEDULES_PART_AFTER, "{n}");
+            code.push(SPIN1);
+            let mut m = machine(&code);
+            m.run(n, 0, None);
+            assert_eq!(m.cpu.r[15], CODE + 4 * (code.len() as u32 - 1), "{n}");
+            assert_eq!(m.reg(4), 0);
+        }
     }
 
     #[test]

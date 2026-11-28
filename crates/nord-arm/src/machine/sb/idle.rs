@@ -9,10 +9,20 @@
 //! | the `HOOK_X` and `stop_pc` checks run when the pc enters a new page, not per instruction | the flag is page-granular and only the host sets it (`add_hook`, `guard_null_calls`), never guest execution, so it cannot change inside a probe; `stop_pc` is compared on its own page only, where equality is possible |
 //! | after a failed probe the next slice doubles up to [`MAX_SLICE_V2`] (v1 stops at 8192) | the slice only delays the next probe; the instructions it runs are real execution, so the state after any number of them is the interpreter's |
 //!
-//! Reused, not copied: `machine::idle::same_state` (the equality), `Machine::step_cached` (the
-//! probed instruction) and `Machine::run` (the slices). `Machine::probe_loop` is the oracle of
-//! the tests (`idle/diff.rs`): stage 1 changes the body of that loop, so production code cannot
-//! call it, but every probe result and every final machine state is compared against it.
+//! Reused: `machine::idle::same_state` (the equality), `Machine::step_cached` (the probed
+//! instruction) and `Machine::run` (the slices).
+//!
+//! Deviation from the work-package row ("reuse `Machine::probe_loop`, never a copy"):
+//! [`probe_loop_v2`] mirrors `Machine::probe_loop` (and the two functions around it,
+//! `probe_idle` and `run_idle_skip`, are mirrored by [`probe_idle_v2_counted`] and
+//! [`run_idle_skip_v2_counted`]). Stage 1 changes the body of that loop (the state compare, the
+//! hook and the stop checks), so it cannot be called as is, and `machine/idle.rs` is not owned by
+//! this package. The drift risk is covered three ways: every probe result and every final
+//! machine state is compared against `Machine::probe_idle` and `Machine::run_idle_skip` in
+//! `idle/diff.rs` and `idle/ticks.rs`; `idle/drift.rs` pins the text of the three v1 functions,
+//! so editing one of them fails a test that names the mirror to update; and the follow-up
+//! (needs, W1-IDLE) is to extract the per-instruction step of `probe_loop` into a `pub(super)`
+//! method that both loops call, which removes the copy of the part that matters.
 //!
 //! [`V2Counters`] holds the deterministic counters of stage 1 next to `IdleStats` (whose layout
 //! the other work packages and the bench share).
@@ -24,6 +34,8 @@ use crate::mem::HOOK_X;
 
 #[cfg(test)]
 mod diff;
+#[cfg(test)]
+mod drift;
 #[cfg(test)]
 mod progs;
 #[cfg(test)]
