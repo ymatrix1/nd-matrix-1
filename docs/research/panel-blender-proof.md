@@ -23,10 +23,10 @@ python tools/panel_assets.py verify    # CI-safe: committed PNGs match manifest 
 | Camera | orthographic, tilted 14 deg toward the player so cap sides and slot walls show | `ASSUMED`, confirm in B8 |
 | Scale | 64 px per Blender unit at 1x; 2x doubles | `EMPIRICAL` |
 | Knob rotation | 64 frames, -135 to +135 deg clockwise (270 deg) | `EMPIRICAL`: the Rotary Speaker `DRIVE` scale on the reference photo runs 0 at lower-left to 10 at lower-right |
-| Materials | red lacquer (`#8E1B1F`), dark slate (`#323D47`), rubber (`#1C1F22`), matte cap (`#8C9196`); procedural flake and grain, no image textures | tokens `VERIFIED` from the spec table |
+| Materials | base lacquer (`#151C29`), navy slate (`#243249`), graphite rubber (`#1B2231`), bone cap (`#CFC8B5`); procedural flake and grain, no image textures | `ASSUMED` design tokens (D251; the first proof used the former red palette, re-rendered 2026-11-24) |
 | Shadow layers | knob: baked into each frame (shadow catcher); fader: separate sprite, cap held out | |
 
-Colour check (mean of rendered plate vs token): red plate (138, 39, 41) vs (142, 27, 31); slate (56, 66, 75) vs (50, 61, 71). Slightly lifted by ambient and specular; acceptable for the proof.
+Colour check of the first (red) render: plate and slate sat slightly lifted by ambient and specular light; acceptable for the proof. The geometry (fluted knob, wedge fader cap) is proof-only and not shipped (D251: the shipped panel bakes from HTML/CSS).
 
 ## Sizes (committed PNG, 8-bit RGBA)
 
@@ -35,7 +35,7 @@ Colour check (mean of rendered plate vs token): red plate (138, 39, 41) vs (142,
 | Knob filmstrip, 64 frames, 8x8 grid | 768x768 | 372,214 | 1536x1536 | 1,091,749 |
 | Fader cap | 96x96 | 5,928 | 192x192 | 17,116 |
 | Fader shadow (own layer) | 96x96 | 5,194 | 192x192 | 13,905 |
-| Red plate | 128x128 | 12,916 | 256x256 | 53,402 |
+| Base plate | 128x128 | 12,916 | 256x256 | 53,402 |
 | Slate plate with slot | 128x256 | 23,856 | 256x512 | 106,894 |
 | **One of each (shared set)** | | **420,108** | | **1,283,066** |
 
@@ -57,7 +57,6 @@ All knobs of one style share a filmstrip, so the count of knobs does not change 
 ## What looks poor or is unfinished
 
 - Knob filmstrip is large because Cycles grain survives denoising (about 1.1 MB at 2x for one style). Palette quantisation or lower-noise settings should cut it.
-- Red plate is slightly lighter and less saturated than the token.
 - Cap top is flat grey; no wear or label. Ridges are plain boxes.
 - Pointer is a plain white bar; the scale arc and LEDs are dynamic layers, not rendered here.
 - The comparison drawn in egui is not done: it needs `nord-panel` from B4. `preview_2x.png` uses PIL as a stand-in.

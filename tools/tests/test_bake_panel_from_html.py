@@ -63,3 +63,32 @@ def test_default_mock_dir_exists() -> None:
 def test_cli_help_exits_cleanly() -> None:
     assert Path(baker.__file__).is_file()
     assert len(baker.SPRITE_NAMES) == 13
+
+
+def _red_dominant(px: tuple[int, ...]) -> bool:
+    r, g, b = px[0], px[1], px[2]
+    return r > 90 and r > 1.8 * max(g, b)
+
+
+def test_prototype_css_has_no_legacy_red_chassis_tokens() -> None:
+    css = (baker.DEFAULT_MOCK_DIR / "styles.css").read_text(encoding="utf-8").lower()
+    for legacy in ("--chassis-red", "#8f1922", "#9b1d26", "#8c1720", "#b92c36", "--badge-red"):
+        assert legacy not in css, legacy
+    # Original control shapes: hexagonal knob body, square-cornered button cap (no stadium pill).
+    assert "clip-path: polygon(50% 0%, 93.3% 25%" in css
+    assert "border-radius: 999px" not in css
+
+
+def test_baked_plate_is_not_red() -> None:
+    plate = Image.open(baker.DEFAULT_OUT_DIR / "panel_plate_2x.png").convert("RGBA")
+    raw = plate.resize((plate.width // 8, plate.height // 8)).tobytes()
+    px = [tuple(raw[i : i + 4]) for i in range(0, len(raw), 4)]
+    opaque = [p for p in px if p[3] > 200]
+    assert opaque
+    red = sum(1 for p in opaque if _red_dominant(p))
+    assert red / len(opaque) < 0.002
+
+
+def test_red_detector_catches_the_old_chassis() -> None:
+    assert _red_dominant((0x8E, 0x1B, 0x1F))
+    assert not _red_dominant((0x15, 0x1C, 0x29))

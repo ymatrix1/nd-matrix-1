@@ -165,8 +165,8 @@ pub(super) fn paint_strip(
             p,
             rect_or_empty(FOCUS_LEDS[i], o).center(),
             lit,
-            LED_RED,
-            LED_RED_DIM,
+            LED_ACCENT,
+            LED_ACCENT_DIM,
         );
         sui.mark(AUX_LEDS[i]);
         // Aux KB LED: the layer is played by the aux keyboard (click toggles the flag; the engine

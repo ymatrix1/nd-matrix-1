@@ -1,61 +1,67 @@
-//! Hardware Surface Colors & Authentic Texture Tokens.
+//! ND Matrix 1 "Slate Matrix" surface colours and tokens.
+//!
+//! Original palette (D134): graphite-navy chassis, bone plates, one cyan accent, and one accent
+//! hue per section. The baked plate (`baked.rs`, built from `prototypes/panel-mock/`) uses the
+//! same values; the vector fallback panel and the plugin chrome draw from these tokens.
+//!
+//! Provenance: every colour here is `ASSUMED` (a design choice, not a measurement of any
+//! hardware); the only checked property is text contrast (`LEGEND_MIN_CONTRAST`, tests below).
 //!
 //! Spec: `docs/specs/visual-style-and-panel.md`
 
 use egui::Color32;
 
-/// Signature Nord Crimson Red (`#8E1B1F`).
-pub const CHASSIS_RED: Color32 = Color32::from_rgb(0x8E, 0x1B, 0x1F);
+/// Graphite-navy chassis base (`#151C29`).
+pub const CHASSIS_BASE: Color32 = Color32::from_rgb(0x15, 0x1C, 0x29);
 
-/// Dark recessed chassis chamfer shadow (`#641014`).
-pub const CHASSIS_DARK: Color32 = Color32::from_rgb(0x64, 0x10, 0x14);
+/// Darker recessed chassis seam and plugin bar fill (`#0B1018`).
+pub const CHASSIS_DARK: Color32 = Color32::from_rgb(0x0B, 0x10, 0x18);
 
-/// Bright red highlight for recessed STORE / ARP RUN buttons (`#B8252A`).
-pub const BUTTON_STORE_RED: Color32 = Color32::from_rgb(0xB8, 0x25, 0x2A);
+/// Accent fill of the highlighted (store / arp run) buttons (`#35D9E1`).
+pub const BUTTON_ACCENT: Color32 = Color32::from_rgb(0x35, 0xD9, 0xE1);
 
-/// Anodized Slate Blue-Grey Module Background (`#323D47`).
-pub const MODULE_SLATE: Color32 = Color32::from_rgb(0x32, 0x3D, 0x47);
+/// Slate-navy module background (`#243249`).
+pub const MODULE_SLATE: Color32 = Color32::from_rgb(0x24, 0x32, 0x49);
 
-/// Slightly darker slate for recessed frames (`#273038`).
-pub const MODULE_SLATE_DARK: Color32 = Color32::from_rgb(0x27, 0x30, 0x38);
+/// Darker navy for recessed frames (`#1A2538`).
+pub const MODULE_SLATE_DARK: Color32 = Color32::from_rgb(0x1A, 0x25, 0x38);
 
-/// Brushed Silver-Blue Module Header Strip (`#A3AFB9`).
-pub const MODULE_HEADER_BAR: Color32 = Color32::from_rgb(0xA3, 0xAF, 0xB9);
+/// Bone plate used for light tabs and sub-panels (`#D3CCB9`).
+pub const MODULE_HEADER_BAR: Color32 = Color32::from_rgb(0xD3, 0xCC, 0xB9);
 
-/// Graphite section header (plate rim and tab, `#1D2126`): production look; light header text
-/// ([`HEADER_INK`]) reads at 13:1 where the old silver strip gave the FX FOCUS / LAYER FX
-/// captions only about 1.5:1. The photo-verified Rotary Speaker tab keeps the silver strip.
-pub const HEADER_DARK: Color32 = Color32::from_rgb(0x1D, 0x21, 0x26);
+/// Dark section header (plate rim and tab, `#0D121B`); light header text ([`HEADER_INK`]) reads
+/// at more than 15:1.
+pub const HEADER_DARK: Color32 = Color32::from_rgb(0x0D, 0x12, 0x1B);
 
 /// Header title and caption ink on [`HEADER_DARK`] (`#E8ECF0`).
 pub const HEADER_INK: Color32 = Color32::from_rgb(0xE8, 0xEC, 0xF0);
 
-/// Hairline edge of the graphite header (`#3C4651`).
-pub const HEADER_EDGE: Color32 = Color32::from_rgb(0x3C, 0x46, 0x51);
+/// Hairline edge of the dark header (`#2B3A52`).
+pub const HEADER_EDGE: Color32 = Color32::from_rgb(0x2B, 0x3A, 0x52);
 
-/// Silkscreen group outline border (`#9CA8B3`).
-pub const GROUP_BORDER: Color32 = Color32::from_rgb(0x9C, 0xA8, 0xB3);
+/// Silkscreen group outline border, steel blue (`#7F97BA`).
+pub const GROUP_BORDER: Color32 = Color32::from_rgb(0x7F, 0x97, 0xBA);
 
-/// Matte Grey rectangular layer button (`#8C9196`).
-pub const BUTTON_GREY: Color32 = Color32::from_rgb(0x8C, 0x91, 0x96);
+/// Bone rectangular layer button (`#CFC8B5`).
+pub const BUTTON_GREY: Color32 = Color32::from_rgb(0xCF, 0xC8, 0xB5);
 
-/// Black selector pill button (`#1C1F22`).
-pub const BUTTON_BLACK: Color32 = Color32::from_rgb(0x1C, 0x1F, 0x22);
+/// Graphite selector button (`#1B2231`).
+pub const BUTTON_BLACK: Color32 = Color32::from_rgb(0x1B, 0x22, 0x31);
 
-/// Recessed button bezel dark border (`#0D0F11`).
-pub const BUTTON_BEZEL: Color32 = Color32::from_rgb(0x0D, 0x0F, 0x11);
+/// Recessed button bezel dark border (`#05080D`).
+pub const BUTTON_BEZEL: Color32 = Color32::from_rgb(0x05, 0x08, 0x0D);
 
-/// Active state indicator LED red (`#FF2A2A`).
-pub const LED_RED: Color32 = Color32::from_rgb(0xFF, 0x2A, 0x2A);
+/// Active-state accent LED, cyan (`#35E0E8`).
+pub const LED_ACCENT: Color32 = Color32::from_rgb(0x35, 0xE0, 0xE8);
 
-/// Dim unlit state for red LEDs (`#4A0A0A`).
-pub const LED_RED_DIM: Color32 = Color32::from_rgb(0x4A, 0x0A, 0x0A);
+/// Dim unlit state for accent LEDs (`#0B3A3E`).
+pub const LED_ACCENT_DIM: Color32 = Color32::from_rgb(0x0B, 0x3A, 0x3E);
 
-/// 11-segment level ladder & split active indicator LED green (`#5CE62E`).
-pub const LED_GREEN: Color32 = Color32::from_rgb(0x5C, 0xE6, 0x2E);
+/// 11-segment level ladder and split active indicator LED, mint (`#3DE8A8`).
+pub const LED_GREEN: Color32 = Color32::from_rgb(0x3D, 0xE8, 0xA8);
 
-/// Dim unlit state for green LEDs (`#0F380A`).
-pub const LED_GREEN_DIM: Color32 = Color32::from_rgb(0x0F, 0x38, 0x0A);
+/// Dim unlit state for mint LEDs (`#0A3A2A`).
+pub const LED_GREEN_DIM: Color32 = Color32::from_rgb(0x0A, 0x3A, 0x2A);
 
 /// Amber Morph assignment LED (`#FFB020`).
 pub const LED_AMBER: Color32 = Color32::from_rgb(0xFF, 0xB0, 0x20);
@@ -63,29 +69,29 @@ pub const LED_AMBER: Color32 = Color32::from_rgb(0xFF, 0xB0, 0x20);
 /// Dim unlit state for amber LEDs (`#45300A`).
 pub const LED_AMBER_DIM: Color32 = Color32::from_rgb(0x45, 0x30, 0x0A);
 
-/// High-contrast monochrome OLED display background (`#080A0C`).
-pub const OLED_BG: Color32 = Color32::from_rgb(0x08, 0x0A, 0x0C);
+/// Unlit ladder segment and LED well (`#2A3344`).
+pub const LED_OFF_WELL: Color32 = Color32::from_rgb(0x2A, 0x33, 0x44);
 
-/// OLED ice-white pixel graphic & text font color (`#F0F6FC`).
-pub const OLED_FG: Color32 = Color32::from_rgb(0xF0, 0xF6, 0xFC);
+/// OLED display background (`#06090E`).
+pub const OLED_BG: Color32 = Color32::from_rgb(0x06, 0x09, 0x0E);
 
-/// White harmonic drawbar cap (`#ECEBE6`).
-pub const DRAWBAR_WHITE: Color32 = Color32::from_rgb(0xEC, 0xEB, 0xE6);
+/// OLED pixel graphic and text colour, pale cyan (`#BFF6F2`).
+pub const OLED_FG: Color32 = Color32::from_rgb(0xBF, 0xF6, 0xF2);
 
-/// Black sub/mutation drawbar cap (`#1A1C1E`).
-pub const DRAWBAR_BLACK: Color32 = Color32::from_rgb(0x1A, 0x1C, 0x1E);
+/// Sand harmonic drawbar cap (`#E6DCC0`).
+pub const DRAWBAR_WHITE: Color32 = Color32::from_rgb(0xE6, 0xDC, 0xC0);
 
-/// Red of the Program / Master blocks behind legends (`bay_program`, `panel::frames`).
-pub const PROGRAM_RED: Color32 = Color32::from_rgb(115, 18, 22);
+/// Navy sub/mutation drawbar cap (`#1F2A3F`).
+pub const DRAWBAR_BLACK: Color32 = Color32::from_rgb(0x1F, 0x2A, 0x3F);
 
-/// Refined tokens from the 1:1 `nd matrix 1` HTML/CSS prototype (`prototypes/panel-mock/styles.css`).
-pub const PROTOTYPE_CHASSIS_RED: Color32 = Color32::from_rgb(0x8F, 0x19, 0x22);
-pub const PROTOTYPE_SLATE_BG: Color32 = Color32::from_rgb(0x32, 0x3C, 0x47);
-pub const PROTOTYPE_HEADER_BAR: Color32 = Color32::from_rgb(0xAA, 0xB5, 0xC1);
-pub const PROTOTYPE_ENCODER_RING: Color32 = Color32::from_rgb(0xA8, 0xB6, 0xC4);
-pub const PROTOTYPE_CRIMSON_COLLAR: Color32 = Color32::from_rgb(0x98, 0x1C, 0x25);
-pub const PROTOTYPE_OLED_BG: Color32 = Color32::from_rgb(0x07, 0x09, 0x0D);
-pub const PROTOTYPE_OLED_FG: Color32 = Color32::from_rgb(0xD9, 0xEC, 0xFF);
+/// Plate behind the Program / Master blocks and their legends (`#16202F`).
+pub const PROGRAM_PLATE: Color32 = Color32::from_rgb(0x16, 0x20, 0x2F);
+
+/// Ivory white key face (`#F7F1E0`); pressed keys use [`KEY_WHITE_PRESSED`].
+pub const KEY_WHITE: Color32 = Color32::from_rgb(0xF7, 0xF1, 0xE0);
+
+/// Pressed white key tint, pale teal (`#D3EFE9`).
+pub const KEY_WHITE_PRESSED: Color32 = Color32::from_rgb(0xD3, 0xEF, 0xE9);
 
 /// Smallest contrast ratio (WCAG 2, 4.5:1 for small text) a printed legend keeps against the panel,
 /// dimmed or not.
@@ -111,7 +117,7 @@ pub fn contrast_ratio(a: Color32, b: Color32) -> f32 {
 }
 
 /// Colour of a dimmed (not supported yet, or secondary) legend: `ink` faded toward the panel, but
-/// never below [`LEGEND_MIN_CONTRAST`] against the slate and the red of the panel, so a dimmed
+/// never below [`LEGEND_MIN_CONTRAST`] against the slate and the program plate, so a dimmed
 /// legend stays readable. The fade is strongest at a blend of 0.45.
 pub fn dim_legend(ink: Color32) -> Color32 {
     let lerp = |bg: Color32, t: f32| {
@@ -122,7 +128,7 @@ pub fn dim_legend(ink: Color32) -> Color32 {
     while t < 1.0 {
         let c = lerp(MODULE_SLATE, t);
         if contrast_ratio(c, MODULE_SLATE) >= LEGEND_MIN_CONTRAST
-            && contrast_ratio(lerp(PROGRAM_RED, t), PROGRAM_RED) >= LEGEND_MIN_CONTRAST
+            && contrast_ratio(lerp(PROGRAM_PLATE, t), PROGRAM_PLATE) >= LEGEND_MIN_CONTRAST
         {
             return c;
         }
@@ -131,10 +137,10 @@ pub fn dim_legend(ink: Color32) -> Color32 {
     ink
 }
 
-/// Configure egui visual style to use our own chassis colours (`CHASSIS_RED`, `MODULE_SLATE`, `OLED_BG`); the panel art itself is the baked plate (`baked.rs`).
+/// Configure egui visual style to use our own chassis colours (`CHASSIS_BASE`, `MODULE_SLATE`, `OLED_BG`); the panel art itself is the baked plate (`baked.rs`).
 pub fn setup_nord_visuals(ctx: &egui::Context) {
     let mut visuals = egui::Visuals::dark();
-    visuals.panel_fill = CHASSIS_RED;
+    visuals.panel_fill = CHASSIS_BASE;
     visuals.window_fill = MODULE_SLATE;
     visuals.extreme_bg_color = OLED_BG;
     ctx.set_visuals(visuals);
@@ -146,10 +152,10 @@ mod tests {
 
     #[test]
     fn test_color_tokens() {
-        assert_eq!(CHASSIS_RED.r(), 0x8E);
-        assert_eq!(MODULE_SLATE.g(), 0x3D);
-        assert_eq!(LED_GREEN.b(), 0x2E);
-        assert_eq!(BUTTON_STORE_RED.r(), 0xB8);
+        assert_eq!(CHASSIS_BASE.r(), 0x15);
+        assert_eq!(MODULE_SLATE.g(), 0x32);
+        assert_eq!(LED_GREEN.b(), 0xA8);
+        assert_eq!(BUTTON_ACCENT.r(), 0x35);
     }
 
     #[test]
@@ -159,14 +165,14 @@ mod tests {
     }
 
     #[test]
-    fn dimmed_legends_keep_the_minimum_contrast_on_slate_and_red() {
+    fn dimmed_legends_keep_the_minimum_contrast_on_slate_and_program_plate() {
         for ink in [
             Color32::WHITE,
             Color32::from_gray(225),
             Color32::from_rgb(235, 190, 190),
         ] {
             let c = dim_legend(ink);
-            for bg in [MODULE_SLATE, PROGRAM_RED] {
+            for bg in [MODULE_SLATE, PROGRAM_PLATE] {
                 assert!(
                     contrast_ratio(c, bg) >= LEGEND_MIN_CONTRAST,
                     "{c:?} on {bg:?}"

@@ -121,7 +121,7 @@ pub struct BakedLed {
 }
 
 fn default_led_color() -> String {
-    "red".to_string()
+    "accent".to_string()
 }
 
 /// Triangular selector LED metadata from `panel_layout.json`.
