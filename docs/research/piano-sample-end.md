@@ -1,4 +1,4 @@
-# Piano sample end: the firmware loops the last third of the stroke (issue #640)
+# Piano sample end: the firmware loops the stroke's loop region (issue #640)
 
 - **Checked:** 2026-11-24
 - **Sources (local, never committed):** OS v1.66 `target/fw_unpacked/bank0_CODE.bin`, SMP image `target/oracle/smp.bin`, factory backup `Nord Stage 4 Factory Restore RevK v1.66.ns4b`, `factory_programs/Program/Bank A/Astoria Grand.ns4p`; the run `tools/arm_dsp_live.py ... --piano-bind --key-ticks 80000 --log run` (SMP0.script, `smp_flash.npno`), replayed by `tools/smp_stream_end.py`.
@@ -10,8 +10,8 @@ Tags follow `.agents/rules/provenance-in-code.md`.
 
 | Question | Result | Tag |
 |---|---|---|
-| Does a factory stroke loop? | **Yes.** The ARM copies loop words from the `.npno` stroke record into the SMP voice record: loop start = `u32` at record byte `0x24`, loop length = `u32` at `0x28`, loop end `F-8` = start + length, stream end `F-9` = `total_frames` (`0x0E`). Key-up strokes carry zeros. | VERIFIED (2 of 2 strokes, s2) |
-| What happens at `F-8`? | The counter wraps by `F-7` (smp-slew s3). The counter never reaches `F-9` while looping: **a held note is never freed by the stream end**, it repeats the last third of the stroke until the key-up | VERIFIED (run, s3) |
+| Does a factory stroke loop? | **Yes.** The ARM copies loop words from the `.npno` stroke record into the SMP voice record: loop start = `u32` at record byte `0x24`, loop length = `u32` at `0x28`, loop end `F-8` = start + length, stream end `F-9` = `total_frames` (`0x0E`). Key-up strokes carry zeros. | VERIFIED (2 of 2 strokes: 513 and 502 of Astoria Grand, s2); other sounds EMPIRICAL (s5) |
+| What happens at `F-8`? | The counter wraps by `F-7` (smp-slew s3). The counter never reaches `F-9` while looping: **a held note is never freed by the stream end**, it repeats the stroke's loop region (about 33 % of the two verified strokes) until the key-up | VERIFIED (run, s3) |
 | Level law in the loop | The record level `F15` keeps decaying by the rate word every slew update; once the counter is above `F-8 - F-7` the rate word is `F+6` (`d = 370`, 1.87 times the outside rate `F+7`, `d = 198` / `202`). In-loop decay is `exp(-d / 2^24 * 21,701 / s)` = **4.16 dB/s**, i.e. 6.5 dB per repetition of Astoria Grand stroke 513 | VERIFIED (run, s3) |
 | Source of `F+6` | `d = 2 * -i16` of the `i16` at record byte `0x38` (`-185` on both strokes). Pitch scaling unknown (both notes were at the root) | ASSUMED (2 points) |
 
@@ -46,7 +46,7 @@ Stroke 502 (voice 1): same behaviour (counter 151,898 at pass 96,000, 130,206 at
 
 Real time of stroke 513: 162,505 / 1.596 passes x 2 / 43,402.34 Hz = 4.69 s to the loop end, a 1.56 s loop (key 60 of Astoria Grand).
 
-## 4. What the engine does now (D250)
+## 4. What the engine does now (D255)
 
 | Part | Engine | Evidence |
 |---|---|---|
@@ -54,11 +54,33 @@ Real time of stroke 513: 162,505 / 1.596 passes x 2 / 43,402.34 Hz = 4.69 s to t
 | Wrap | the read position wraps by the loop length at the loop end (`piano/sample_loop.rs::wrap`); no end, no tail fade for looped strokes (D243 stays for strokes without loop: SFZ, key-up) | VERIFIED (oracle edge case counter 130 gives 90 with `F-8 = 100`, `F-7 = 40`) |
 | In-loop decay | the voice envelope is multiplied by `exp(-x * 21,701 / fs)` per frame above the loop start, `x = 2 * -i16 / 2^24`; the voice is freed below `1e-4` (-80 dB, about 19 s for `d = 370`) | VERIFIED rate, ASSUMED start at 1.0 |
 
-Not modelled: the `F+7` decay (`d` about 200) of the hold before the loop (the default path plays the sample's own decay as recorded; the opt-in `--piano-slew-fw` chain applies it), the rate switch inside the slew voice (the slew voice wraps with the engine loop but keeps one rate), predictor history continuity across the wrap (the engine reads the decoded PCM).
+On the opt-in `--piano-slew-fw` path the slew record takes `F+6` in the loop in place of `F+7` (`SlewVoice::set_rate`, test `piano::loop_tests::slew_path_looped_voice_decays_with_the_loop_rate`), and the voice allocator scores a slew voice by its slew gain (`decayed_slew_looped_voice_is_stolen_first`). SFZ regions loop only for `loop_mode=loop_continuous` / `loop_sustain`, `loop_end` inclusive, without decay (`piano/sfz.rs`, ASSUMED default `no_loop`).
+
+Not modelled: the `F+7` decay (`d` about 200) of the hold before the loop (the default path plays the sample's own decay as recorded; the opt-in `--piano-slew-fw` chain applies it), predictor history continuity across the wrap (the engine reads the decoded PCM).
+
+## 5. Other sounds: library survey (EMPIRICAL, not reproduced here)
+
+The two verified strokes loop about 33 % of their length, which is where the first wording ("the last third") came from. A reviewer's survey of a local library of 2,196 strokes (review of PR #675, 2026-11-24) shows that is not typical:
+
+| Quantity | Result over the surveyed strokes |
+|---|---|
+| Loop length / `total_frames` | 1.6 to 3.6 % for most strokes, median 2.7 %, maximum 22.7 % |
+| Loop length | typically about 3.6k frames |
+| `total_frames - loop_end` | 1k to 3k frames |
+| Decay field `i16` at `0x38` | varies by sound |
+
+Tag: `EMPIRICAL` (read from the files, never checked on the SMP). Only strokes 513 and 502 of Astoria Grand are `VERIFIED` on the SMP, which also shows this survey's loop words are the ones the voice record gets. The engine plays each stroke's own loop region, so nothing in the code depends on the third.
+
+Method (repeatable, local-only; the library and the output stay out of git, D20 / D128):
+
+1. Extract the `.npno` entries of the local factory backup (`Nord Stage 4 Factory Restore RevK v1.66.ns4b`, under `.reference/`) into a git-ignored folder, one file per sound.
+2. For every file call `NpnoInstrument::parse(&bytes)` (`crates/nord-core/src/cbin/piano_sample.rs`) in a throwaway local program (a scratch `nord-tools` binary or test, not committed) and, for each stroke with `stroke_kind != 2` (key-up strokes carry no loop), read `total_frames`, `loop_start`, `loop_end` and `loop_decay`.
+3. Tabulate `(loop_end - loop_start) / total_frames`, `total_frames - loop_end` and `loop_decay` per sound; report the distribution (median, maximum, 10th and 90th percentile) and the number of strokes.
+4. Cross-check two strokes against `python tools/smp_stream_end.py loop-words` (513 and 502: 54,149 / 162,532 and 47,238 / 153,593).
 
 ## Implications
 
-- The abrupt cut of #640 was the missing loop, not a library limit. D243 (fade) is superseded for `.npno` strokes by D250; the fade stays as the tail rule of strokes without loop points.
+- The abrupt cut of #640 was the missing loop, not a library limit. D243 (fade) is superseded for `.npno` strokes by D255 (owner confirmation of the reversal pending); the fade stays as the tail rule of strokes without loop points.
 - A looped note decays 4.2 dB/s: low notes (longer strokes, same rate) outlast high notes by their stroke length, as the reporter expects.
 - OQ20 (end-of-sample behaviour) is answered for the sample end; the level at loop entry against the hardware stays open.
 
@@ -66,4 +88,4 @@ Not modelled: the `F+7` decay (`d` about 200) of the hold before the loop (the d
 
 1. A hardware recording of a 10 s held note (known velocity) to confirm the level at loop entry, the `F+7` hold decay and the audible loop seam (predictor history after the wrap).
 2. Verify the `i16` at `0x38` law (pitch scaling, other sounds): `tools/smp_stream_end.py loop-words` on a note 7 semitones above the root and on a second sound.
-3. Apply `F+6` inside `--piano-slew-fw` (rate switch at the loop start).
+3. ~~Apply `F+6` inside `--piano-slew-fw`~~ done (D255, `SlewVoice::set_rate`).

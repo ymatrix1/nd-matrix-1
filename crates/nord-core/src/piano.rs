@@ -10,6 +10,15 @@ use std::f32::consts::TAU;
 use std::path::Path;
 use std::sync::Arc;
 
+/// Stroke cache key of an SFZ load: sample path, root key, loop mode and loop opcodes.
+type SfzStrokeKey = (
+    String,
+    u8,
+    Option<sfz::LoopMode>,
+    Option<usize>,
+    Option<usize>,
+);
+
 pub mod category;
 pub mod downstream;
 pub mod ext40;
@@ -30,8 +39,11 @@ pub mod velocity_level;
 mod extra_voice;
 #[cfg(test)]
 mod interp_switch;
+#[cfg(test)]
+mod loop_tests;
 mod pedal_voices;
 mod sample_loop;
+mod sfz;
 mod slew_voice;
 mod tail_fade;
 mod timbre_gain_tables;
@@ -321,25 +333,25 @@ impl NpnoSound {
     ///
     /// Shared `sample=` paths are decoded once into `Arc<[f32]>` RAM buffers. Supports multi-velocity
     /// (`lovel`/`hivel`), key ranges (`lokey`/`hikey`/`key`/`pitch_keycenter`), fine `tune`,
-    /// loops (`loop_start`/`loop_end`), and key-off release samples (`trigger=release`).
+    /// loops (`loop_mode`, `loop_start`/`loop_end`), and key-off release samples (`trigger=release`).
     pub fn from_sfz_str<F>(name: &str, sfz_text: &str, mut load_sample: F) -> Result<Self, String>
     where
         F: FnMut(&str) -> Result<Vec<u8>, String>,
     {
-        let parsed = parse_sfz_regions(sfz_text);
+        let parsed = sfz::parse_sfz_regions(sfz_text);
         if parsed.is_empty() {
             return Err("no SFZ <region> entries found".to_string());
         }
 
         let mut strokes: Vec<LoadedPianoStroke> = Vec::new();
         let mut zones: Vec<PianoSampleZone> = Vec::new();
-        let mut cache: HashMap<(String, u8, Option<usize>, Option<usize>), usize> = HashMap::new();
+        let mut cache: HashMap<SfzStrokeKey, usize> = HashMap::new();
         let mut key_map = [60u8; 128];
         let mut tuning_cents = [0i8; 128];
         let mut stroke_by_key = [None; 128];
 
         for reg in parsed {
-            let Some(sample_rel) = reg.sample else {
+            let Some(sample_rel) = reg.sample.clone() else {
                 continue;
             };
             let full_path = if reg.default_path.is_empty() {
@@ -347,9 +359,10 @@ impl NpnoSound {
             } else {
                 format!("{}{}", reg.default_path, sample_rel)
             };
-            let cache_key = (
+            let cache_key: SfzStrokeKey = (
                 full_path.clone(),
                 reg.root_key,
+                reg.loop_mode,
                 reg.loop_start,
                 reg.loop_end,
             );
@@ -358,14 +371,16 @@ impl NpnoSound {
             } else {
                 let wav_bytes = load_sample(&full_path)?;
                 let (sample_rate, pcm) = parse_wav_mono(&wav_bytes)?;
+                // SFZ loops only for `loop_mode=loop_continuous|loop_sustain` (`sfz.rs`).
+                let points = reg.loop_points(pcm.len());
                 let idx = strokes.len();
                 strokes.push(LoadedPianoStroke {
                     root_key: reg.root_key,
                     sample_rate,
                     pcm: pcm.into(),
                     pcm_right: None,
-                    loop_start: reg.loop_start,
-                    loop_end: reg.loop_end,
+                    loop_start: points.map(|p| p.0),
+                    loop_end: points.map(|p| p.1),
                     loop_decay: 0,
                     integer_pcm: false,
                 });
@@ -491,228 +506,6 @@ impl NpnoSound {
             .count()
             > 1
     }
-}
-
-#[derive(Debug, Clone)]
-struct SfzRegionSpec {
-    default_path: String,
-    sample: Option<String>,
-    key_low: u8,
-    key_high: u8,
-    vel_low: u8,
-    vel_high: u8,
-    root_key: u8,
-    tune_cents: i8,
-    trigger_release: bool,
-    loop_start: Option<usize>,
-    loop_end: Option<usize>,
-}
-
-impl Default for SfzRegionSpec {
-    fn default() -> Self {
-        Self {
-            default_path: String::new(),
-            sample: None,
-            key_low: 0,
-            key_high: 127,
-            vel_low: 1,
-            vel_high: 127,
-            root_key: 60,
-            tune_cents: 0,
-            trigger_release: false,
-            loop_start: None,
-            loop_end: None,
-        }
-    }
-}
-
-fn parse_sfz_note(raw: &str) -> Option<u8> {
-    let trimmed = raw.trim();
-    if let Ok(num) = trimmed.parse::<u8>() {
-        return Some(num.min(127));
-    }
-    let lower = trimmed.to_ascii_lowercase();
-    let mut chars = lower.chars().peekable();
-    let base = match chars.next()? {
-        'c' => 0i32,
-        'd' => 2,
-        'e' => 4,
-        'f' => 5,
-        'g' => 7,
-        'a' => 9,
-        'b' => 11,
-        _ => return None,
-    };
-    let acc = match chars.peek().copied() {
-        Some('#') => {
-            chars.next();
-            1
-        }
-        Some('b') => {
-            chars.next();
-            -1
-        }
-        _ => 0,
-    };
-    let oct_str: String = chars.collect();
-    let oct: i32 = oct_str.parse().ok()?;
-    let midi = (oct + 1) * 12 + base + acc;
-    Some(midi.clamp(0, 127) as u8)
-}
-
-fn apply_sfz_opcode(spec: &mut SfzRegionSpec, key: &str, val: &str) {
-    match key {
-        "default_path" => spec.default_path = val.to_string(),
-        "sample" => spec.sample = Some(val.to_string()),
-        "key" => {
-            if let Some(n) = parse_sfz_note(val) {
-                spec.key_low = n;
-                spec.key_high = n;
-                spec.root_key = n;
-            }
-        }
-        "lokey" => {
-            if let Some(n) = parse_sfz_note(val) {
-                spec.key_low = n;
-            }
-        }
-        "hikey" => {
-            if let Some(n) = parse_sfz_note(val) {
-                spec.key_high = n;
-            }
-        }
-        "pitch_keycenter" => {
-            if let Some(n) = parse_sfz_note(val) {
-                spec.root_key = n;
-            }
-        }
-        "lovel" => {
-            if let Ok(v) = val.parse::<u8>() {
-                spec.vel_low = v.clamp(1, 127);
-            }
-        }
-        "hivel" => {
-            if let Ok(v) = val.parse::<u8>() {
-                spec.vel_high = v.clamp(1, 127);
-            }
-        }
-        "tune" => {
-            if let Ok(c) = val.parse::<i16>() {
-                spec.tune_cents = c.clamp(-128, 127) as i8;
-            }
-        }
-        "trigger" => {
-            spec.trigger_release = val.eq_ignore_ascii_case("release");
-        }
-        "loop_start" => {
-            if let Ok(v) = val.parse::<usize>() {
-                spec.loop_start = Some(v);
-            }
-        }
-        "loop_end" => {
-            if let Ok(v) = val.parse::<usize>() {
-                spec.loop_end = Some(v);
-            }
-        }
-        _ => {}
-    }
-}
-
-fn parse_sfz_regions(text: &str) -> Vec<SfzRegionSpec> {
-    let mut regions = Vec::new();
-    let mut global_spec = SfzRegionSpec::default();
-    let mut group_spec = SfzRegionSpec::default();
-    let mut current: Option<SfzRegionSpec> = None;
-    let mut in_group = false;
-    let mut in_global = false;
-
-    for raw_line in text.lines() {
-        let line = raw_line.split("//").next().unwrap_or("").trim();
-        if line.is_empty() {
-            continue;
-        }
-        // Scan tags and opcodes on the line
-        let mut rest = line;
-        while !rest.is_empty() {
-            rest = rest.trim_start();
-            if rest.starts_with('<') {
-                if let Some(end_tag) = rest.find('>') {
-                    let tag = &rest[..=end_tag];
-                    if tag.eq_ignore_ascii_case("<global>") || tag.eq_ignore_ascii_case("<control>")
-                    {
-                        if let Some(r) = current.take() {
-                            regions.push(r);
-                        }
-                        in_global = true;
-                        in_group = false;
-                    } else if tag.eq_ignore_ascii_case("<group>") {
-                        if let Some(r) = current.take() {
-                            regions.push(r);
-                        }
-                        group_spec = global_spec.clone();
-                        in_group = true;
-                        in_global = false;
-                    } else if tag.eq_ignore_ascii_case("<region>") {
-                        if let Some(r) = current.take() {
-                            regions.push(r);
-                        }
-                        current = Some(if in_group {
-                            group_spec.clone()
-                        } else {
-                            global_spec.clone()
-                        });
-                        in_global = false;
-                    }
-                    rest = &rest[end_tag + 1..];
-                    continue;
-                }
-            }
-
-            if let Some(eq_pos) = rest.find('=') {
-                let key = rest[..eq_pos].trim().to_ascii_lowercase();
-                let after_eq = &rest[eq_pos + 1..];
-                let next_boundary = find_next_sfz_token(after_eq);
-                let val = after_eq[..next_boundary].trim();
-                if let Some(ref mut reg) = current {
-                    apply_sfz_opcode(reg, &key, val);
-                } else if in_group {
-                    apply_sfz_opcode(&mut group_spec, &key, val);
-                } else if in_global {
-                    apply_sfz_opcode(&mut global_spec, &key, val);
-                }
-                rest = &after_eq[next_boundary..];
-            } else {
-                break;
-            }
-        }
-    }
-    if let Some(r) = current {
-        regions.push(r);
-    }
-    regions
-}
-
-fn find_next_sfz_token(after_eq: &str) -> usize {
-    let bytes = after_eq.as_bytes();
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'<' {
-            return i;
-        }
-        if bytes[i].is_ascii_whitespace() {
-            let tail = after_eq[i..].trim_start();
-            if tail.is_empty() || tail.starts_with('<') {
-                return i;
-            }
-            if let Some(next_space_or_eq) = tail.find(['=', ' ', '\t']) {
-                if tail.as_bytes()[next_space_or_eq] == b'=' {
-                    return i;
-                }
-            }
-        }
-        i += 1;
-    }
-    after_eq.len()
 }
 
 /// Clean-room RIFF/WAVE parser decoding 8/16/24-bit integer PCM or 32-bit IEEE float into mono `f32`.
@@ -1071,7 +864,12 @@ impl PianoLayer {
         let mut best = 0;
         let mut min_score = f32::MAX;
         for (i, v) in self.voices.iter().enumerate() {
-            let mut score = if v.releasing { v.env * 0.1 } else { v.env };
+            let base = if v.slew.is_active() {
+                v.env * v.slew.steal_level()
+            } else {
+                v.env
+            };
+            let mut score = if v.releasing { base * 0.1 } else { base };
             if v.is_release_sample {
                 score *= 0.05;
             }
@@ -1598,16 +1396,15 @@ impl PianoLayer {
 
             // In the sustain loop the firmware slew rate is the steeper `F+6` (issue #640).
             let loop_x = match (&self.sound, v.stroke_idx) {
-                (Some(snd), Some(i)) if !v.is_release_sample => snd
-                    .strokes
-                    .get(i)
-                    .filter(|st| {
-                        st.loop_start
-                            .is_some_and(|ls| sample_loop::in_loop(v.sample_pos, ls))
-                    })
-                    .map_or(0.0, |st| sample_loop::rate_x(st.loop_decay)),
+                (Some(snd), Some(i)) if !v.is_release_sample => {
+                    sample_loop::voice_rate_x(snd.strokes.get(i), v.sample_pos)
+                }
                 _ => 0.0,
             };
+            if loop_x > 0.0 {
+                // The slew path loads the rate word from `F+6` in the loop (replacing `F+7`).
+                v.slew.set_rate(1.0 - loop_x);
+            }
 
             let sample_scale = downstream::voice_scale(
                 v.stroke_idx.is_some(),
@@ -1756,7 +1553,7 @@ impl PianoLayer {
 mod tests {
     use super::*;
 
-    fn build_test_wav_i16(sample_rate: u32, freq_hz: f32, frames: usize) -> Vec<u8> {
+    pub(super) fn build_test_wav_i16(sample_rate: u32, freq_hz: f32, frames: usize) -> Vec<u8> {
         let data_bytes = (frames * 2) as u32;
         let riff_size = 36 + data_bytes;
         let mut out = Vec::with_capacity(44 + frames * 2);
@@ -1835,81 +1632,6 @@ mod tests {
         let medium = VelocityTouch::Medium.map_velocity(64);
         let heavy = VelocityTouch::Heavy.map_velocity(64);
         assert!(heavy < medium && medium < light);
-    }
-
-    fn looped_sound(loop_decay: i16) -> Arc<NpnoSound> {
-        let sfz = "<region> sample=a.wav lokey=0 hikey=127 pitch_keycenter=60
-";
-        let wav = build_test_wav_i16(48_000, 261.63, 4096);
-        let mut sound = NpnoSound::from_sfz_str("Loop", sfz, |_| Ok(wav.clone())).unwrap();
-        sound.strokes[0].loop_start = Some(2048);
-        sound.strokes[0].loop_end = Some(4096);
-        sound.strokes[0].loop_decay = loop_decay;
-        Arc::new(sound)
-    }
-
-    /// Issue #640: the firmware wraps a held stroke at the loop end, so the note outlasts its
-    /// sample instead of ending (hardware: SMP `F-8` / `F-7`, `docs/research/piano-sample-end.md`).
-    #[test]
-    fn held_looped_note_outlasts_its_sample() {
-        let mut piano = PianoLayer::new(48_000.0);
-        piano.set_sound(Some(looped_sound(0)));
-        piano.note_on(60, 110);
-        let out: Vec<f32> = (0..30_000).map(|_| piano.render_frame()[0].abs()).collect();
-        let peak = |a: usize, b: usize| out[a..b].iter().cloned().fold(0.0f32, f32::max);
-        assert!(
-            piano.voices.iter().any(|v| v.active),
-            "voice must survive the stroke end"
-        );
-        assert!(
-            peak(29_000, 30_000) > 0.8 * peak(1000, 2000),
-            "looped tail must keep sounding"
-        );
-    }
-
-    /// Inside the loop the firmware rate word `F+6` makes every repetition quieter.
-    #[test]
-    fn looped_note_decays_in_the_loop_and_is_freed_when_silent() {
-        let mut piano = PianoLayer::new(48_000.0);
-        piano.set_sound(Some(looped_sound(-20_000)));
-        piano.note_on(60, 110);
-        let out: Vec<f32> = (0..60_000).map(|_| piano.render_frame()[0].abs()).collect();
-        let peak = |a: usize, b: usize| out[a..b].iter().cloned().fold(0.0f32, f32::max);
-        let early = peak(4_200, 5_200);
-        let late = peak(20_000, 21_000);
-        assert!(late < 0.5 * early, "loop must decay: {late} vs {early}");
-        assert!(late > 0.0);
-        assert!(
-            piano.voices.iter().all(|v| !v.active),
-            "voice freed when decayed"
-        );
-    }
-
-    /// Issue #640: a held note that outlasts its sample must fade out, not stop at full level.
-    #[test]
-    fn held_note_fades_out_at_sample_end() {
-        let sfz = "<region> sample=a.wav lokey=0 hikey=127 pitch_keycenter=60\n";
-        let wav = build_test_wav_i16(48_000, 261.63, 4096);
-        let sound = Arc::new(
-            NpnoSound::from_sfz_str("Tail", sfz, |_| Ok(wav.clone())).expect("SFZ parses"),
-        );
-        let mut piano = PianoLayer::new(48_000.0);
-        piano.set_sound(Some(sound));
-        piano.note_on(60, 110);
-        let out: Vec<f32> = (0..6000).map(|_| piano.render_frame()[0].abs()).collect();
-        let peak = |a: usize, b: usize| out[a..b].iter().cloned().fold(0.0f32, f32::max);
-        let body = peak(1000, 1200);
-        assert!(body > 1e-3, "note must sound: {body}");
-        // The last 64 frames before the sample ends sit at the bottom of the fade.
-        assert!(
-            peak(4096 - 64, 4096) < 0.05 * body,
-            "tail not faded: {} vs {body}",
-            peak(4096 - 64, 4096)
-        );
-        assert!(
-            piano.voices.iter().all(|v| !v.active),
-            "voice freed after the sample"
-        );
     }
 
     #[test]
