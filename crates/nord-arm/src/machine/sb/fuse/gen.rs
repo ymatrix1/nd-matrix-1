@@ -86,7 +86,8 @@ impl Gen<'_> {
             2 => a::dp_shift_imm(6, false, rn, rd, self.reg(), 0, 0),   // sbc
             3 => a::mrs(rd, false),
             4 => a::str(rd, 8, 4 * self.rng.below(8) as i32),
-            5 => 0xE000_0090 | rd << 16 | self.reg() << 8 | rn, // mul: GENERIC
+            // umull: GENERIC (`mul` is a native kind since W2-MUL); RdHi, RdLo and Rm are distinct
+            5 => 0xE080_0090 | rd << 16 | ((rd + 1) & 7) << 12 | rn << 8 | ((rd + 2) & 7),
             6 => a::ldr(rd, 8, 4 * self.rng.below(8) as i32),
             7 => return self.cmp_branch(),
             _ => a::mov_imm(rd, self.rng.below(200)),

@@ -140,13 +140,25 @@ pub mod tests {
         let h = &v["block_steps"];
         assert_eq!(h["edges"].as_array().unwrap().len(), 11);
         assert_eq!(h["counts"].as_array().unwrap().len(), 12);
-        let entries = h["entries"].as_u64().unwrap()
-            + h["chained"].as_u64().unwrap()
-            + h["empty"].as_u64().unwrap();
-        assert_eq!(
-            entries, v["stats"]["blocks_run"],
-            "one table entry per block entered"
+        // `entries + empty + 2 * chained <= blocks_run` (a chained entry ran at least two
+        // linked blocks), with equality when nothing chained (`hist.rs`).
+        let (entries, empty, chained) = (
+            h["entries"].as_u64().unwrap(),
+            h["empty"].as_u64().unwrap(),
+            h["chained"].as_u64().unwrap(),
         );
+        let blocks = v["stats"]["blocks_run"].as_u64().unwrap();
+        assert!(
+            entries + empty + 2 * chained <= blocks,
+            "{entries} + {empty} + 2 * {chained} <= {blocks}"
+        );
+        assert!(
+            entries + empty + chained > 0,
+            "the table counts the block entries"
+        );
+        if chained == 0 {
+            assert_eq!(entries + empty, blocks, "one table entry per block entered");
+        }
         let line = r.histogram.expect("a uop engine is profiled");
         assert!(line.starts_with("steps per block entry ["), "{line}");
     }

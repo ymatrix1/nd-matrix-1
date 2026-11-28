@@ -165,14 +165,12 @@ mod tests {
         );
         let mut fctx = FunctionBuilderContext::new();
         let mut cx = NCtx::new(&mut func, &mut fctx, &t);
-        // a fused compare needs its lowerer; data processing and memory kinds are lowered now
-        for kind in [k::CMP_GUARD_I] {
-            assert_eq!(
-                lower_uop(&mut cx, &Uop::new(kind, 0x1000)),
-                Err(Unsupported),
-                "kind {kind}"
-            );
-        }
+        // the fused family is routed to lower_flow (W2-NDP): the fused compare lowers now
+        assert_eq!(
+            lower_uop(&mut cx, &Uop::new(k::CMP_GUARD_I, 0x1000)),
+            Ok(()),
+            "CMP_GUARD_I is routed to lower_flow"
+        );
         // A data-processing kind that touches r15 stays unsupported (I2).
         let mut pc_add = Uop::new(k::ADD_IMM, 0x1000);
         (pc_add.rd, pc_add.rn) = (15, 1);

@@ -12,7 +12,7 @@ use crate::machine::sb::trace::testexec::suite;
 
 /// The sweep of the kill run of `kills.rs`.
 pub(in crate::machine::sb) fn probe() {
-    let t = l0(8, Passes::PRED, 0xBEEF);
+    let t = l0(16, Passes::PRED, 0xBEEF);
     assert!(
         t.preds_removed > 5,
         "predicates removed: {}",
