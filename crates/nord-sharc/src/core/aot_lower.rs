@@ -85,6 +85,9 @@ pub(super) struct Lowered {
     /// Instruction parcels `start..exit`, to detect self-modified code at run time.
     pub code: Vec<u16>,
     pub items: Vec<Item>,
+    /// `(pc, pc after)` of the instructions of each item (empty when not recorded): the event-aware
+    /// emitter (`aot2/`) re-runs an item on the interpreter from its first pc.
+    pub spans: Vec<(u32, u32)>,
     /// The last item set the pc itself (a whole-pass block that ends in control flow).
     pub dynamic_exit: bool,
 }
@@ -247,6 +250,7 @@ impl Core {
             steps,
             code,
             items,
+            spans: Vec::new(),
             dynamic_exit: false,
         })
     }

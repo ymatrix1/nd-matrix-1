@@ -32,6 +32,8 @@ pub(super) struct AotBlock {
     pub dynamic: bool,
     /// Little-endian bytes of the parcels `start..exit`.
     pub code: &'static [u8],
+    /// Event-aware block (`aot2/events.rs`): an event due inside it does not refuse the entry.
+    pub ev: bool,
     pub run: fn(&mut Core) -> Result<(), Fault>,
 }
 
@@ -71,6 +73,16 @@ pub(super) struct AotHot {
     fault: Option<Fault>,
 }
 
+/// The module `enable_aot_hot` and `aot_generated_ranges` pick from: the embedded module named by
+/// the environment variable `NORD_SHARC_AOT_TAG` when set (so `sharc_jit_diff --aot-top` can diff
+/// any embedded module), else the first one.
+fn selected_blocks() -> &'static [AotBlock] {
+    std::env::var("NORD_SHARC_AOT_TAG")
+        .ok()
+        .and_then(|t| gen::by_tag(&t))
+        .unwrap_or_else(gen::blocks)
+}
+
 impl Core {
     /// Whether the live SRAM still holds the code the block was generated from.
     pub(super) fn aot_code_matches(&self, b: &AotBlock) -> bool {
@@ -101,7 +113,7 @@ impl Core {
             && self.site_hits.is_empty()
             && self.irq.window_len == 0
             && !self.irq.idle
-            && self.steps + n <= self.irq.due
+            && (b.ev || self.steps + n <= self.irq.due)
             && self
                 .loops
                 .last()
@@ -147,7 +159,7 @@ impl Core {
     /// when this binary has no generated block for one of them or the loaded code differs from
     /// the code it was generated from. Generated blocks not listed stay off.
     pub fn enable_aot_hot(&mut self, ranges: &[(u32, u32)]) -> Result<(), String> {
-        let all = gen::blocks();
+        let all = selected_blocks();
         if all.is_empty() {
             return Err("built without a generated AOT block (set NORD_SHARC_AOT_HOT=<file from sharc-aot --hot/--ranges> and rebuild)".into());
         }
@@ -195,7 +207,10 @@ impl Core {
 
     /// Ranges `(start, last)` of every block this binary embeds (empty for a stub build).
     pub fn aot_generated_ranges() -> Vec<(u32, u32)> {
-        gen::blocks().iter().map(|b| (b.start, b.last)).collect()
+        selected_blocks()
+            .iter()
+            .map(|b| (b.start, b.last))
+            .collect()
     }
 
     /// Turns the hook off again.
@@ -271,7 +286,10 @@ impl Core {
         }
         let s0 = self.steps;
         let t = super::aot_prof::aot_prof_on().then(super::aot_prof::tsc);
-        let res = (b.run)(self);
+        let res = match (b.run)(self) {
+            Err(f) if f == super::aot2::events::SPLIT => Ok(()),
+            r => r,
+        };
         if let Some(t) = t {
             super::aot_prof::prof_run(super::aot_prof::tsc() - t);
         }
@@ -327,6 +345,7 @@ mod tests {
             native: 0,
             dynamic: false,
             code: &[1, 0, 1, 0],
+            ev: false,
             run: run2,
         }
     }

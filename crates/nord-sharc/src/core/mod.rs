@@ -19,6 +19,8 @@
 mod addr_hash;
 mod alu;
 mod aot;
+#[path = "../aot2/mod.rs"]
+mod aot2;
 mod aot_emit;
 mod aot_fadd;
 mod aot_fast;
