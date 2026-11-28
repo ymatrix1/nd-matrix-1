@@ -332,6 +332,40 @@ CARGO_TARGET_DIR=target/aot cargo build --release -p nord-tools --bin lle_sharc_
 target/aot/release/lle_sharc_bench --engine aot --core PNOc2=target/sram/PNO/core2_sram.bin,org,,PNO2
 ```
 
+## Stages C and D: event-aware blocks (D1) and what was not built (2026-11-27, `ns4-lle3`)
+
+Question: do event-split blocks (D1), then superblocks (D2) and static analysis (C1 to C3) of [sharc-lowering-v2](sharc-lowering-v2.md) bring ORG Core2 exact to x2.5? Tags: EMPIRICAL unless stated.
+
+### D1 result (deterministic, `lle_sharc_bench --profile`, per pass; `AOT DIFF OK` 1:1 for both modules)
+
+| Counter | ORG2 (v1) | ORG2E (D1) | PNO2 (v1) | PNO2E (D1) |
+|---|---:|---:|---:|---:|
+| refused block entries | 14 | 0 | 14 | 0 |
+| interpreter steps after a refusal | 255 | 0 | 255 | 0 |
+| native steps | 5 047 | 5 286 | 3 047 | 3 286 |
+| generic `aot_step` steps | 481 | 496 | 475 | 490 |
+| diff coverage of audio passes | 95.62% | 99.97% | 93.69% | 100.00% |
+| diff block misses (all passes) | 4 206 | 5 | 4 201 | 0 |
+
+The 15 extra generic steps are the 15 steps of the former interpreted tails that are generic forms. Interrupt-controller pokes (`due = 0`) and timer expiry no longer cost a block.
+
+### Wall-clock: not separable from noise
+
+Every round ran on a saturated host (`LoadPercentage` 88 to 100%, 5 to 17 cargo/rustc/link processes), so absolute figures are x4 to x7 over budget instead of the x3.5 to x3.9 of quiet runs and carry no claim. Interleaved A/B in one binary (9 rounds, 2 warm-up, p50 us of the pass, median (min..max)):
+
+| Core | v1 | D1 | Reading |
+|---|---|---|---|
+| ORG Core2 exact | 282.3 (266.9..297.2) | 268.5 (231.7..307.7) | within noise (bands overlap) |
+| PNO Core2 exact | 210.2 (165.4..224.4) | 184.8 (163.6..203.3) | within noise (bands overlap) |
+
+Mean-us runs (9 rounds, ORG2 341.8 (319.1..427.9), ORG2E 321.5 (283.5..440.3)) agree in direction and are also within noise. D1 is kept on the deterministic counters; no wall-clock gain is claimed.
+
+### Why D2 and C1 to C3 were not built
+
+By the profiles (shares inflated by the profiler, so upper bounds): generic `aot_step` forms 490 steps = at most 14% of the PNO pass and 8% of ORG (`Move:Other(4b)` 172 steps, `DirectMem` 72, `DagMem` 48, `Move:Other(4a)` 46), block entry/exit 5%, loop glue 1 to 8%. Each lowering slice (one MemXfer form with its random-state test against the interpreter) is worth under 4%; direct chaining of blocks (D2) replaces only the dispatcher's search, not the guard or the code check, so under 3%; constants and range proofs (C1, C2) act inside native steps whose cost is instruction fetch of shared handlers (code bytes per step is the budget, see the bounded experiment). All are below the 3% quiet and 14% loaded min-max bands of this host, so by the stop rule none can be shown, and none was built. **ORG Core2 exact at or below x2.5 is not reached**; the last quiet measurement (stage B, 158.9..164.4 us) is x3.5, the host here cannot give a better one. Re-measure D1 on a quiet host before building anything further.
+
+Reproduce: `target/lle/gen.sh` (modules incl. `--ev`), `target/lle/build.sh OUT`, then `NORD_SHARC_AOT_TAG=ORG2E sharc_jit_diff IMG $(cat org2.run) --aot-top 999 --chunk 20000` and `lle_sharc_bench --engine aot --profile --core ORGc2=...,ORG2E` (scripts are local, same commands as "Reproduce" below with `sharc-aot --ev`).
+
 ## Alternatives (what to do instead)
 
 - **HLE hybrid** (recommended by the numbers): run LLE only for cores that fit the budget and keep the Rust HLE engines for the rest. On these measurements only PNO Core1 (x1.6 over, closest) could ever fit; ORG/PNO Core2 are x7 to x8 over.
