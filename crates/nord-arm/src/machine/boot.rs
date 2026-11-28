@@ -54,7 +54,11 @@ impl Machine {
                 // other code, so say so; callers can check `layout_known`
                 if code.len() >= 1 << 20 {
                     eprintln!(
-                        "nord-arm: unknown bank0_CODE length {} (known: OS v1.66, v1.68); using the                          v1.66 addresses, the boot will most likely fail. Add a Layout with                          tools/fw_addr_map.py",
+                        concat!(
+                            "nord-arm: unknown bank0_CODE length {} (known: OS v1.66, v1.68); ",
+                            "using the v1.66 addresses, the boot will most likely fail. ",
+                            "Add a Layout with tools/fw_addr_map.py"
+                        ),
                         code.len()
                     );
                 }

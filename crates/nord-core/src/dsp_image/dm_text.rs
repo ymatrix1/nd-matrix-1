@@ -283,6 +283,19 @@ mod tests {
         let build = |s: &[Shift]| -> Result<usize, String> { Ok(s.len()) };
         // table 1 (OS_V168, 2 pieces) is the first accepted
         assert_eq!(pick_shifts(&tables, build, |n| *n == 2).unwrap(), 2);
+        // two accepted tables with different results: the first one wins, in order
+        let tagged: [&[Shift]; 3] = [&OS_V168[..1], OS_V168, &OS_V168[..1]];
+        let by_len = |s: &[Shift]| -> Result<usize, String> { Ok(s.len() * 10) };
+        assert_eq!(pick_shifts(&tagged, by_len, |_| true).unwrap(), 10);
+        assert_eq!(pick_shifts(&tagged, by_len, |n| *n == 20).unwrap(), 20);
+        // none accepted: the first built result, not the last (0, 20, 10 by table order)
+        let seq = std::cell::Cell::new(0usize);
+        let order = |_: &[Shift]| -> Result<usize, String> {
+            let k = seq.get();
+            seq.set(k + 1);
+            Ok([7, 8, 9][k])
+        };
+        assert_eq!(pick_shifts(&tagged, order, |_| false).unwrap(), 7);
         // none accepted: the first table that built
         assert_eq!(pick_shifts(&tables, build, |_| false).unwrap(), 0);
         // the first table fails to build, the second is accepted
