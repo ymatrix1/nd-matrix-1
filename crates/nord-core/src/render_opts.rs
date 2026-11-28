@@ -326,6 +326,10 @@ pub struct FirmwareOptions {
     /// firmware voice list, VERIFIED by the ARM run; on by default since D262, issue #679;
     /// `--legacy-piano-pedal-voices` and `--legacy-all` play the damper-stroke path).
     pub piano_pedal_voices: bool,
+    /// `--firmware-piano-pedal-restrike`: `PianoLayer::firmware_pedal_restrike` (a note struck
+    /// again under the pedal leaves the held earlier instance ringing and the pedal lift plays one
+    /// key-up per note; hold word VERIFIED by the ARM run, key-up count ASSUMED; opt-in, D263).
+    pub piano_pedal_restrike: bool,
     /// `--firmware-piano-timbre`: `PianoLayer::firmware_timbre_gain` (the Soft / Mid / Bright timbre as
     /// the per-note gain of the firmware ROM tables, VERIFIED by the ARM run; opt-in, D22).
     pub piano_timbre_gain: bool,
@@ -482,6 +486,7 @@ impl Default for FirmwareOptions {
             piano_slew: false,
             piano_key_up: false,
             piano_pedal_voices: true,
+            piano_pedal_restrike: false,
             piano_timbre_gain: false,
             piano_chain_scale: false,
             piano_layer_law: false,
@@ -550,6 +555,7 @@ impl FirmwareOptions {
             piano_firmware_level: false,
             piano_touch: false,
             piano_pedal_voices: false,
+            piano_pedal_restrike: false,
             fx_rate_match: false,
             synth_layer_law: false,
             measured_tick: false,
@@ -581,6 +587,7 @@ impl FirmwareOptions {
             piano_slew: false,
             piano_key_up: false,
             piano_pedal_voices: true,
+            piano_pedal_restrike: false,
             piano_timbre_gain: false,
             piano_chain_scale: false,
             piano_layer_law: false,
@@ -705,6 +712,7 @@ impl FirmwareOptions {
         if has("--legacy-piano-pedal-voices") {
             o.piano_pedal_voices = false;
         }
+        o.piano_pedal_restrike |= has("--firmware-piano-pedal-restrike");
         o.piano_timbre_gain |= has("--firmware-piano-timbre");
         o.piano_chain_scale |= has("--firmware-piano-chain");
         o.piano_layer_law |= has("--firmware-piano-layer-law");
@@ -919,6 +927,8 @@ impl FirmwareOptions {
         engine.piano_b.firmware_key_up = self.piano_key_up;
         engine.piano_a.firmware_pedal_voices = self.piano_pedal_voices;
         engine.piano_b.firmware_pedal_voices = self.piano_pedal_voices;
+        engine.piano_a.firmware_pedal_restrike = self.piano_pedal_restrike;
+        engine.piano_b.firmware_pedal_restrike = self.piano_pedal_restrike;
         engine.piano_a.firmware_timbre_gain = self.piano_timbre_gain;
         engine.piano_b.firmware_timbre_gain = self.piano_timbre_gain;
         engine.piano_a.receiver_chain_scale = self.piano_chain_scale;
@@ -1008,6 +1018,8 @@ impl FirmwareOptions {
         engine.piano_b.firmware_key_up = self.piano_key_up;
         engine.piano_a.firmware_pedal_voices = self.piano_pedal_voices;
         engine.piano_b.firmware_pedal_voices = self.piano_pedal_voices;
+        engine.piano_a.firmware_pedal_restrike = self.piano_pedal_restrike;
+        engine.piano_b.firmware_pedal_restrike = self.piano_pedal_restrike;
         engine.piano_a.firmware_timbre_gain = self.piano_timbre_gain;
         engine.piano_b.firmware_timbre_gain = self.piano_timbre_gain;
         engine.piano_a.receiver_chain_scale = self.piano_chain_scale;
@@ -1271,6 +1283,9 @@ impl FirmwareOptions {
         if !self.piano_pedal_voices {
             parts.push("legacy-piano-pedal-voices".into());
         }
+        if self.piano_pedal_restrike {
+            parts.push("piano-pedal-restrike".into());
+        }
         if self.piano_timbre_gain {
             parts.push("piano-timbre".into());
         }
@@ -1517,6 +1532,22 @@ mod tests {
         ]))
         .unwrap();
         assert!(!wins.piano_pedal_voices, "the legacy flag wins");
+        assert!(
+            !o.piano_pedal_restrike,
+            "the pedal re-strike hold is opt-in (D263)"
+        );
+        assert!(
+            !e.piano_a.firmware_pedal_restrike
+                && !FirmwareOptions::firmware_all().piano_pedal_restrike
+        );
+        let restrike =
+            FirmwareOptions::from_args(&args(&["--firmware-piano-pedal-restrike"])).unwrap();
+        assert!(
+            restrike.piano_pedal_restrike && restrike.summary().contains("piano-pedal-restrike")
+        );
+        let mut e = Stage4Engine::new(48_000.0);
+        restrike.apply_to(&mut e);
+        assert!(e.piano_a.firmware_pedal_restrike && e.piano_b.firmware_pedal_restrike);
         assert!(!o.piano_timbre_gain, "the firmware timbre gain is opt-in");
         let timbre = FirmwareOptions::from_args(&args(&["--firmware-piano-timbre"])).unwrap();
         assert!(timbre.piano_timbre_gain && timbre.summary().contains("piano-timbre"));

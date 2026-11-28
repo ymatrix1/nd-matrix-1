@@ -121,3 +121,5 @@ Level, pedal-down over pedal-up, engine output RMS (stereo, 200 ms after the not
 | Hybrid EP | 0.00 dB at 9 of 9 | -0.5 to +3.1 dB (louder at low velocity) |
 
 The level measurement is a throwaway program (not in the repo); the two commands above are the reproducible part. The EP result shows the legacy path was not uniformly quieter: it differed from the firmware list in both directions.
+
+Update 2026-11-28: the key-up placement under the pedal was measured with `tools/arm_piano_keyup.py` ([piano-pedal-keyup](piano-pedal-keyup.md), D263). The note-off counts above (8 / 4) are the first stage only: the key-up start and the 44 ms release arrive 52 ticks (2.2 ms) after a plain note-off, outside the 10 tick windows of `arm_piano_pedal.py`.
