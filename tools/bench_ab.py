@@ -15,12 +15,13 @@ Example:
     python tools/bench_ab.py --rounds 5 \\
         --a "target/release/lle_sharc_bench --core ORG2=img,org --engine interp" \\
         --b "target/release/lle_sharc_bench --core ORG2=img,org --engine aot" \\
-        --metric "mean ([0-9.]+) us"
+        --metric "total CPU per pass ([0-9.]+) us"
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shlex
 import statistics
@@ -62,7 +63,7 @@ def parse_metric(text: str, pattern: str, which: str = "last") -> float:
 
 
 def verdict(a: Side, b: Side) -> str:
-    """ "B faster", "B slower" when the bands are disjoint, else "within noise"."""
+    """ "B lower" / "B higher" when the bands are disjoint, else "within noise"."""
     if b.hi < a.lo:
         return "B lower (disjoint bands)"
     if b.lo > a.hi:
@@ -129,8 +130,18 @@ def report(a: Side, b: Side, loads: list[int], unit: str) -> str:
     return "\n".join(lines)
 
 
+def split_command(cmd: str) -> list[str]:
+    """Split a command line; on Windows backslashes in paths are kept, quotes are stripped."""
+    if os.name != "nt":
+        return shlex.split(cmd)
+    return [
+        t[1:-1] if len(t) > 1 and t[0] == t[-1] and t[0] in "\"'" else t
+        for t in shlex.split(cmd, posix=False)
+    ]
+
+
 def shell_run(cmd: str) -> str:
-    done = subprocess.run(shlex.split(cmd), capture_output=True, text=True, check=False)
+    done = subprocess.run(split_command(cmd), capture_output=True, text=True, check=False)
     if done.returncode != 0:
         raise RuntimeError(f"{cmd!r} exited {done.returncode}: {done.stderr[-400:]}")
     return done.stdout + done.stderr

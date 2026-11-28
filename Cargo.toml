@@ -25,11 +25,7 @@ nih_plug_egui = { path = "vendor/nih_plug_egui" }
 
 # Build profiles (D259). The DSP and emulator crates run optimized (opt-level 1) in dev and test
 # builds, so the fuzz, render and golden-hash tests finish in a quarter of the time; overflow
-# checks and debug assertions stay on. Line-table debug info is ASSUMED to shorten the MSVC link
-# (not measured: the rebuild times in docs/research/build-bench-speed.md did not move).
-[profile.dev]
-debug = "line-tables-only"
-
+# checks and debug assertions stay on (docs/research/build-bench-speed.md).
 [profile.dev.package.nord-core]
 opt-level = 1
 

@@ -2723,9 +2723,9 @@ The rate matches in all three; the score of the clock word is better than flag o
 ### D259. Dev and test builds run the emulator crates at opt-level 1; benchmarks time thread CPU and an interleaved A/B driver replaces hand-run rounds
 
 - **Status:** accepted. **Decided by:** project owner brief "reduce benchmark times so we can implement and code faster" (2026-11-28).
-- **Context:** the emulator crates ran tests at opt-level 0 (76 s for three crates), every benchmark A/B needed 7 to 9 hand-run rounds on a quiet host, and seven sessions share one machine.
-- **Decision:** `[profile.dev.package.{nord-core,nord-sharc,nord-arm}] opt-level = 1` and `debug = "line-tables-only"`; `nord_sharc::cpu_clock::ThreadClock` times per-core passes, ARM ticks and kernels; `tools/bench_ab.py` runs interleaved A/B rounds with a band verdict and a compiler-load note.
-- **Why:** measured in `docs/research/build-bench-speed.md`: tests 76.5 s to 19.8 s, rebuild times unchanged. CPU time drops the noise from descheduling, so fewer rounds suffice (EMPIRICAL claim, to be confirmed by use).
+- **Context:** the emulator crates ran tests at opt-level 0 (76 s for three crates), every benchmark A/B needed 7 to 9 hand-run rounds on a quiet host, and several sessions share one machine.
+- **Decision:** `[profile.dev.package.{nord-core,nord-sharc,nord-arm}] opt-level = 1`; `nord_sharc::cpu_clock::ThreadClock` adds thread CPU time next to wall time in the per-core pass series, the ARM tick rows and the kernel bench (deadline statistics and "x of budget" stay wall time); `tools/bench_ab.py` runs interleaved A/B rounds with a band verdict and a compiler-load note.
+- **Why:** measured in `docs/research/build-bench-speed.md`: tests 76.5 s to 19.8 s, rebuild times unchanged. CPU time is not inflated by descheduling, which should allow fewer rounds for exploration (ASSUMED: the CPU-versus-wall spread under load was not measured; the protocol keeps 7 to 9 rounds for a decision).
 - **Alternatives:** a `codegen-units = 32` AOT profile (no gain, 94.9 s vs 91.3 s, not adopted); `sccache` as a global `RUSTC_WRAPPER` (changes every session's build, left to the owner); `opt-level = 2` or 3 (slower rebuilds, not measured); CI changes (out of scope, cost-neutral rule).
 - **Impact:** overflow checks and debug assertions stay on, so a test that relied on opt-level 0 timing is the only risk (none failed). Wall-clock rules for real-time budget claims are unchanged (quiet host, 7 to 9 rounds); the AOT compile time is unchanged.
 

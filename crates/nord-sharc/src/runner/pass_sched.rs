@@ -151,8 +151,12 @@ pub struct CoreSeries {
     pub name: String,
     /// Steps of each pass (warm-up included).
     pub steps: Vec<u64>,
-    /// Pass latency in ns (the pass only, not the message delivery), warm-up included.
+    /// Pass latency in WALL ns (the pass only, not the message delivery), warm-up included. The
+    /// "x of budget" claim uses this.
     pub ns: Vec<u64>,
+    /// The same passes in thread CPU ns (equal to `ns` where there is no thread counter, see
+    /// `cpu_clock::ThreadClock::is_cpu_time`); a loaded host does not inflate it.
+    pub cpu_ns: Vec<u64>,
     /// Every pass returned to its poll loop.
     pub all_idle: bool,
 }
@@ -198,13 +202,14 @@ pub fn run_ticks(jobs: Vec<PassJob>, warmup: u32, ticks: u32) -> Result<SchedRep
                 if job.before_pass(p, &mut next_msg).is_err() {
                     series.all_idle = false;
                 }
-                // thread CPU time of the pass: a descheduled thread (other builds on the host) does
-                // not inflate the per-core figure; the barrier tick below stays wall time
+                // both clocks: wall (the budget claim) and thread CPU (not inflated by a
+                // descheduled thread); the barrier tick below stays wall time
                 let t0 = ThreadClock::start();
                 let (steps, idle) = job.run_pass();
-                let ns = t0.elapsed_ns();
+                let cpu = t0.elapsed_ns();
                 series.steps.push(steps);
-                series.ns.push(ns);
+                series.ns.push(t0.wall_ns());
+                series.cpu_ns.push(cpu);
                 series.all_idle &= idle;
                 done.fetch_add(1, Ordering::AcqRel);
             }

@@ -1,9 +1,10 @@
 //! Thread CPU clock for benchmarks.
 //!
 //! Wall time on a shared host includes every moment the thread was descheduled by another build or
-//! test, which is why a quiet host and 7 to 9 interleaved rounds were needed. The thread CPU time
-//! excludes that, so a benchmark on a loaded host is usable with fewer rounds (residual noise:
-//! cache and SMT contention, which CPU time does not remove).
+//! test. The thread CPU time excludes that, which should make an A/B on a loaded host usable
+//! with fewer rounds (ASSUMED, not yet measured; residual noise: cache and SMT contention). CPU
+//! time is a lower bound of the wall time on a loaded host: use wall time for every deadline and
+//! "x of budget" claim.
 //!
 //! Windows x86-64: `QueryThreadCycleTime` (TSC-rate cycles of this thread), converted to ns with a
 //! TSC-over-wall calibration done once (200 ms). Elsewhere there is no per-thread counter without
@@ -28,7 +29,8 @@ mod imp {
         let mut c = 0u64;
         // SAFETY: both calls are plain Win32 queries on the current-thread pseudo-handle; `c` is a
         // valid out pointer for the duration of the call.
-        unsafe { QueryThreadCycleTime(GetCurrentThread(), &mut c) };
+        let ok = unsafe { QueryThreadCycleTime(GetCurrentThread(), &mut c) };
+        assert!(ok != 0, "QueryThreadCycleTime failed");
         c
     }
 
@@ -39,11 +41,9 @@ mod imp {
             std::arch::x86_64::_rdtsc()
         });
         std::thread::sleep(std::time::Duration::from_millis(200));
-        let (dt, dc) = (
-            t0.elapsed().as_nanos() as f64,
-            unsafe { std::arch::x86_64::_rdtsc() } - c0,
-        );
-        dt / dc.max(1) as f64
+        // wrapping: the thread may move to a core whose TSC lags (VMs); the ratio stays usable
+        let dc = unsafe { std::arch::x86_64::_rdtsc() }.wrapping_sub(c0);
+        t0.elapsed().as_nanos() as f64 / dc.max(1) as f64
     }
 }
 
@@ -51,12 +51,12 @@ mod imp {
 mod imp {
     pub const IS_CPU: bool = false;
 
-    /// Wall-clock nanoseconds (the fallback clock already counts ns).
+    /// Monotonic nanoseconds since the first call (the fallback clock already counts ns).
     pub fn ticks() -> u64 {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_or(0, |d| d.as_nanos() as u64)
+        use std::sync::OnceLock;
+        use std::time::Instant;
+        static START: OnceLock<Instant> = OnceLock::new();
+        START.get_or_init(Instant::now).elapsed().as_nanos() as u64
     }
 
     pub fn calibrate() -> f64 {

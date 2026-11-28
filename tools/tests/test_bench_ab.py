@@ -7,6 +7,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import bench_ab as b  # noqa: E402
 
+BACKSLASH = chr(92)
+
 
 def test_metric_takes_the_last_match_by_default_and_the_first_on_request():
     out = "pass mean 10.5 us\nfinal mean 12.25 us\n"
@@ -55,3 +57,17 @@ def test_report_names_the_rounds_that_overlapped_a_compiler():
 def test_compiler_count_matches_process_names_only():
     listing = "cargo.exe 12\nrustc.exe 33\nrustc.exe 40\nexplorer.exe 5\nmycargo.exe 9\n"
     assert b.compiler_count(lambda: listing) == 3
+
+
+def test_windows_paths_keep_their_backslashes_and_quotes_are_stripped(monkeypatch):
+    monkeypatch.setattr(b.os, "name", "nt")
+    exe = "target" + BACKSLASH + "release" + BACKSLASH + "bench.exe"
+    out = b.split_command(exe + ' --core "A=img one,org" --n 5')
+    assert out[0] == exe
+    assert out[2] == "A=img one,org"
+    assert out[-1] == "5"
+
+
+def test_posix_split_is_plain_shlex(monkeypatch):
+    monkeypatch.setattr(b.os, "name", "posix")
+    assert b.split_command("a/b --x 'y z'") == ["a/b", "--x", "y z"]
