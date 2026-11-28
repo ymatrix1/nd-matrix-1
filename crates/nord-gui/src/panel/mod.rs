@@ -46,6 +46,7 @@ mod legibility_rules;
 mod legibility_tests;
 #[cfg(test)]
 mod oled_arm_check;
+pub(crate) mod oled_fb;
 mod organ_drawbars;
 mod organ_layer;
 mod organ_logic;
