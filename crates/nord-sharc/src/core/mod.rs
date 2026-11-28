@@ -35,6 +35,11 @@ mod aot_native;
 mod aot_pe;
 pub mod aot_prof;
 mod aot_round;
+mod aot_simd;
+mod aot_simd_core;
+mod aot_simd_lanes;
+#[cfg(test)]
+mod aot_simd_sweep;
 mod aot_state;
 mod aot_whole;
 mod arith_loop;
