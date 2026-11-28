@@ -243,9 +243,11 @@ mod tests {
         );
         // a translated poll program must have run through blocks: the poll instruction is a
         // block start (the stop pc) and the NOP run ends in front of it
-        if report.blocks > 0 {
-            assert!(s.blocks_run > 0 && s.steps_uop > 0, "{s:?}");
-        }
+        assert!(
+            report.blocks > 0,
+            "the poll program is translated: {report:?}"
+        );
+        assert!(s.blocks_run > 0 && s.steps_uop > 0, "{s:?}");
         assert_eq!(
             plain.uop_stats().passes,
             0,
