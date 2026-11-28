@@ -141,7 +141,11 @@ where
     }
     let loop_end = sc.is_loop_end(c.pc);
     match flow_of(c) {
-        // a branch: its handler runs finish_step itself (flow family contract, like `Interp`)
+        // a branch: its handler runs finish_step itself (flow family contract, like `Interp`),
+        // so it never gets `UF_FIN`, also when it is the last instruction of a static loop body
+        // (`loop_end` below): this arm wins over the `loop_end` arm, a second `finish_step` after
+        // the handler would take the loop back-edge twice (`lower/flow/chain.rs`,
+        // `exec/h_flow/diff_chain.rs`)
         Flow::End { slots } if !in_slot => {
             if slots > 0 && b.owed_slots() == 0 {
                 b.owe_slots(slots);

@@ -209,7 +209,7 @@ impl BlockBuilder {
     }
 
     /// Translator hook: the last uop is the terminator of a flow instruction, whose handler runs
-    /// `finish_step` itself (the flow family contract, like `Interp`).
+    /// `finish_step` itself (flow contract, like `Interp`), so no `UF_FIN` even at a loop end.
     pub fn note_terminator(&mut self) {
         self.last_seq = true;
     }
