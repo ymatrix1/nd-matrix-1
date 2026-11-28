@@ -44,3 +44,7 @@ path = "src/bin/arm_sb_ab.rs"
 [[bin]]
 name = "uop-report"
 path = "src/bin/uop_report.rs"
+
+[[bin]]
+name = "lle-gates"
+path = "src/bin/lle_gates.rs"
