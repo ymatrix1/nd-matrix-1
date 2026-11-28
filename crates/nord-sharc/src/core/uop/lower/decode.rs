@@ -1,9 +1,10 @@
 //! The decode path of lowering: instructions are read exactly as `Core::step` reads them, so a
 //! block is built from the same `CachedInsn` the interpreter would execute.
 //!
-//! OWNER: W1-LOWER. Skeleton: [`decode_at`] is complete (decode cache first, then
-//! `fetch_and_cache`, which also widens `sram_code_nw_lo/hi` so stores into translated code
-//! reach the invalidation hook).
+//! OWNER: W1-LOWER. [`decode_at`] reads the decode cache first, then `fetch_and_cache`, which
+//! also widens `sram_code_nw_lo/hi` so stores into translated code reach the invalidation hook.
+//! [`code_hash`] is the one hash both the translator and revalidation use (rule P6).
+//! [`window_hides`] is the one place that knows which pcs the decode path cannot be trusted for.
 use crate::core::decode_cache::CachedInsn;
 use crate::core::Core;
 
@@ -19,6 +20,15 @@ pub(in crate::core) fn decode_at(core: &mut Core, pc: u32) -> CachedInsn {
         Some(c) => c,
         None => core.fetch_and_cache(pc, isa),
     }
+}
+
+/// Whether `pc` lies in an open interrupt-vector window. `Core::fetch` reads those parcels in ISA
+/// order (`isa_window_parcels`), so a decode made now would give the instruction boundaries of the
+/// vector slot, not those of the same parcels read as VISA code once the window is closed. The
+/// translator leaves such pcs to the interpreter (no block starts or runs through them), which is
+/// exact by construction; the entry guard (`Window` row) already keeps blocks out of a window.
+pub(in crate::core) fn window_hides(core: &Core, pc: u32) -> bool {
+    core.irq.window_len != 0 && pc.wrapping_sub(core.irq.window_lo) < core.irq.window_len
 }
 
 /// Hash of the code parcels `lo..hi` (FNV-1a, 64 bit, over the parcels in address order). The one
@@ -59,6 +69,20 @@ mod tests {
         // one interpreter step on the same code lands on the pc the decode says
         c.step().unwrap();
         assert_eq!(c.pc, a.next_pc);
+    }
+
+    #[test]
+    fn an_open_vector_window_hides_exactly_its_own_pcs() {
+        let mut c = core_with(&[0x0001; 4]);
+        let pc = c.pc;
+        assert!(!window_hides(&c, pc), "no window open");
+        (c.irq.window_lo, c.irq.window_len) = (pc + 1, 2);
+        assert_eq!(
+            [pc, pc + 1, pc + 2, pc + 3].map(|p| window_hides(&c, p)),
+            [false, true, true, false]
+        );
+        // a pc below the window start wraps to a huge distance and is not hidden
+        assert!(!window_hides(&c, 0));
     }
 
     #[test]
