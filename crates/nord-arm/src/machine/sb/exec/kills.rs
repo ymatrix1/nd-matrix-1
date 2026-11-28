@@ -1,21 +1,22 @@
 //! OWNER: W2-XCORE (tests). Mutation kill test of layer L5 for the sites of `exec.rs` (ids
-//! `450..=457`) and `exec_flow.rs` with its children (ids `400..=421`).
+//! `450..=458`) and `exec_flow.rs` with its children (ids `400..=421`).
 //!
 //! A mutant is killed when a suite of this work package fails under it: the suites are replayed
 //! whole under `mutants::with(id, ..)` and one failed assertion is a kill. They run in order of
 //! cost; a mutant that no suite notices is a hole in the oracle.
 
-use crate::machine::sb::exec::{exits, MUTANTS};
+use crate::machine::sb::exec::{exits, stores, MUTANTS};
 use crate::machine::sb::exec_flow::{cases, fused, psr, MUTANTS as FLOW_MUTANTS};
 use crate::machine::sb::mutants::{self, with};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 /// The suites in order of cost.
-const SUITES: [(&str, fn()); 4] = [
+const SUITES: [(&str, fn()); 5] = [
     ("cases", cases::run_all),
     ("exits", exits::run_all),
     ("psr", psr::tests::run_all),
     ("fused", fused::tests::run_all),
+    ("stores", stores::run_all),
 ];
 
 /// The first suite that fails under mutant `id`.
@@ -68,6 +69,8 @@ fn the_mutants_of_the_exit_and_of_the_loop_are_caught_by_the_hand_built_traces()
     for id in [450, 451, 452, 453, 454, 455, 456, 457] {
         assert_eq!(killer(id), Some("exits"), "mutant {id}");
     }
+    // every store kind must end the trace, not only the two the hand-built traces use
+    assert_eq!(killer(458), Some("stores"));
     // the arms are pinned one by one before any trace runs
     for id in [400, 401, 402, 403, 404, 406, 407, 408] {
         assert_eq!(killer(id), Some("cases"), "mutant {id}");

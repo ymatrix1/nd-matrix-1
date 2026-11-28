@@ -50,6 +50,8 @@ mod exits;
 mod kills;
 #[cfg(test)]
 mod kinds;
+#[cfg(test)]
+mod stores;
 
 /// `(id, name)` of the mutation sites of `exec.rs` (block `450..=499`).
 #[cfg(test)]
@@ -62,6 +64,10 @@ pub(crate) const MUTANTS: &[(u32, &str)] = &[
     (455, "finish: the budget is not decremented"),
     (456, "finish: cpu.r[15] is not set"),
     (457, "finish: the exit counts one instruction too few"),
+    (
+        458,
+        "run_sb: only STR_IMM and STM end the trace after a store",
+    ),
 ];
 
 /// Run trace `sb` from its first uop. The caller guarantees I7 (`*left >= sb.n_guest`, no page
@@ -91,7 +97,12 @@ pub fn run_sb<B: SbBus>(
             }
             k::Family::Mem => {
                 exec_mem(&mut cpu.r, bus, u);
-                if k::is_store(u.kind) && bus.stale() && !mutant(450) {
+                let ends = if mutant(458) {
+                    matches!(u.kind, k::STR_IMM | k::STM)
+                } else {
+                    k::is_store(u.kind)
+                };
+                if ends && bus.stale() && !mutant(450) {
                     break u.exit_idx();
                 }
                 i += 1;
