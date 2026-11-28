@@ -314,23 +314,30 @@ mod tests {
         let m = measure(&mut job(Engine::Uop), "hist", 2, 5).unwrap();
         let h = m.report.block_steps.expect("a uop engine is profiled");
         let s = m.report.stats;
+        let seen = h.entries() + h.chained() + h.empty();
+        assert!(seen > 0, "the engine entered blocks: {h:?}");
+        // an entry that ran one block is bucketed (or empty), one that ran a chain of linked blocks
+        // (2 or more) is counted apart: so every entry the table holds stands for at least one
+        // block of the engine's `blocks_run`, a chain for at least two, and no more than there are
         assert!(
-            h.entries() + h.chained() + h.empty() > 0,
-            "the engine entered blocks"
+            h.entries() + h.empty() + 2 * h.chained() <= s.blocks_run,
+            "{h:?} against {s:?}"
         );
-        assert_eq!(
-            h.entries() + h.chained() + h.empty(),
-            s.blocks_run,
-            "one table entry per block the driver entered, those that ran no step included"
+        assert!(seen <= s.blocks_run, "{h:?} against {s:?}");
+        assert!(
+            h.chained() > 0,
+            "the synthetic pass chains its blocks, so the chained column is exercised: {h:?}"
         );
-        if h.chained() == 0 {
-            assert_eq!(h.steps(), s.steps_uop, "every counted step is in a bucket");
-        }
+        // chained entries are in no bucket, so the buckets hold at most the steps the engine ran
+        assert!(h.steps() <= s.steps_uop, "{h:?} against {s:?}");
         assert_eq!(h.counts().iter().sum::<u64>(), h.entries());
         // a longer measurement has proportionally more entries: the warm-up is not in the table
         let more = measure(&mut job(Engine::Uop), "hist", 2, 10).unwrap();
         let hm = more.report.block_steps.unwrap();
-        assert_eq!(hm.entries(), 2 * h.entries());
+        assert_eq!(
+            (hm.entries(), hm.chained(), hm.empty()),
+            (2 * h.entries(), 2 * h.chained(), 2 * h.empty())
+        );
         // and the checked engine fills the same table from its engine run only
         let c = measure(&mut job(Engine::UopChecked), "hist", 2, 5).unwrap();
         assert_eq!(c.report.block_steps.as_ref(), Some(&h));

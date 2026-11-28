@@ -16,9 +16,12 @@
 use crate::core::types::Flags;
 use crate::core::Core;
 
-/// ASTAT extra bit 10 (AF): the last ALU operation was floating point. A fixed ALU operation
-/// clears it. VERIFIED: `alu.rs::exec_compute_op` (`af = is_float_alu << 10`), checked by every
-/// ALU case of `diff_ops.rs`.
+/// ASTAT extra bit 10 (AF): the last ALU operation was floating point. The bit position and "a
+/// float ALU op sets it" are VERIFIED against the simulator (`simd_measured.rs`); that a FIXED ALU
+/// operation clears it is ASSUMED (PRM; `core/alu.rs`, `exec_compute_op`: every probe case started
+/// from ASTAT = 0). The handlers equal the interpreter on it (every ALU case of `diff_ops.rs`),
+/// which proves the implementation, not the hardware. A simulator probe that starts with AF set
+/// and runs a fixed ALU op would confirm it.
 pub(super) const AF: u32 = 1 << 10;
 /// ASTAT extra bit 14 (SF), cleared by every shifter operation. VERIFIED: `shifter.rs::shifter_op`.
 pub(super) const SF: u32 = 1 << 14;

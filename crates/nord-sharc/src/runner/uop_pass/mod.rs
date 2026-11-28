@@ -34,8 +34,8 @@ use crate::core::{Core, UopStats};
 /// What one block entry (one `uop_try` that found a block) added to the engine counters.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct BlockEntry {
-    /// Blocks run by the entry (`blocks_run`; the driver counts one per `uop_try` today, a chain
-    /// of linked blocks would count more).
+    /// Blocks run by the entry (`blocks_run`): one, or more when the driver chained linked blocks
+    /// inside the `uop_try` (`drive/chain.rs`).
     pub blocks: u64,
     /// Uops dispatched.
     pub uops: u64,
@@ -352,9 +352,15 @@ mod tests {
             },
             "the entries add up to the engine counters"
         );
-        // one entry per block the driver entered, whether or not it ran a step
-        assert_eq!(seen.len() as u64, s.blocks_run);
-        assert!(seen.iter().all(|e| e.blocks == 1), "{seen:?}");
+        // one entry per `uop_try` that entered a block, whether or not it ran a step; the driver
+        // chains linked blocks inside one `uop_try`, so an entry holds one block or a chain of
+        // them and there are fewer entries than blocks (the sum above is the exact statement)
+        assert!(seen.iter().all(|e| e.blocks >= 1), "{seen:?}");
+        assert!(
+            seen.iter().any(|e| e.blocks > 1),
+            "a chain of blocks is one entry: {seen:?}"
+        );
+        assert!((seen.len() as u64) < s.blocks_run, "{seen:?} against {s:?}");
     }
 
     #[test]

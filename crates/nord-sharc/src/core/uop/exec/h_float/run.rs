@@ -104,11 +104,11 @@ pub(super) fn enabled(core: &Core, cond: u32, simd: bool) -> (bool, bool) {
 #[inline(always)]
 pub(super) unsafe fn run(
     ctx: *mut UopCtx,
-    u: *const Uop,
+    up: *const Uop,
     pair: impl FnOnce(&mut Elem<'_>, &mut Elem<'_>, Args),
     one: impl Fn(&mut Elem<'_>, Args),
 ) -> u32 {
-    let (ctx, u) = (&mut *ctx, &*u);
+    let (ctx, u) = (&mut *ctx, &*up);
     let core = &mut *ctx.core;
     let args = unpack(u.a);
     let (x_on, y_on) = enabled(core, u.b, u.flags & UF_SIMD != 0);
@@ -123,15 +123,20 @@ pub(super) unsafe fn run(
         }
         (ex.sticky(), ey.sticky())
     };
-    finish(ctx, u, core, due, sx, sy)
+    finish(ctx, up, core, due, sx, sy)
 }
 
 /// The end of a uop that collected the sticky bits `sx` (PEx) and `sy` (PEy): nothing to do when
 /// none is set, otherwise the cold path.
+///
+/// # Safety
+/// `up` is the pointer the handler was called with: it points into the uop slice of its block
+/// (the handler ABI, `types::Handler`), so the uop after it is readable through it unless `up`
+/// is the last uop. It must not be re-derived from a `&Uop`, whose provenance covers one element.
 #[inline(always)]
-pub(super) fn finish(
+pub(super) unsafe fn finish(
     ctx: &mut UopCtx,
-    u: &Uop,
+    up: *const Uop,
     core: &mut Core,
     due: u64,
     sx: u32,
@@ -140,37 +145,51 @@ pub(super) fn finish(
     if sx | sy == 0 {
         return Exit::Ok as u32;
     }
-    raised(ctx, u, core, due, sx, sy)
+    raised(ctx, up, core, due, sx, sy)
 }
 
 /// Raises the arithmetic-exception bits (PEx first) and hands over to the driver when that
 /// moved `irq.due`.
 #[cold]
 #[inline(never)]
-fn raised(ctx: &mut UopCtx, u: &Uop, core: &mut Core, due: u64, sx: u32, sy: u32) -> u32 {
+unsafe fn raised(
+    ctx: &mut UopCtx,
+    up: *const Uop,
+    core: &mut Core,
+    due: u64,
+    sx: u32,
+    sy: u32,
+) -> u32 {
     core.aot_pe_end(false, sx);
     core.aot_pe_end(true, sy);
-    poked(ctx, u, core, due)
+    poked(ctx, up, core, due)
 }
 
 /// The exit of a uop that has run: `Ok` while `irq.due` is where the uop found it, else `Jump` to
 /// the pc of the next uop, so the driver re-dispatches there, finds no room (`due` is 0) and lets
 /// `Core::step` run the prologue (design 4.5 rule 4, P2: a `Jump` carries the steps of its uop).
+/// The next pc is read through `up`, the slice pointer of the handler ABI (a pointer made from a
+/// `&Uop` would cover one element only, so reading the next one through it would be unsound).
 ///
 /// A uop that is the last of its block, or that finishes a step itself (`UF_FIN`: a delay slot or
 /// a loop end), returns `Ok`: the block ends anyway or the driver still has to run `finish_step`,
 /// and the next entry of the block finds no room. The lowering never emits `UF_FIN` on a uop that
 /// is not the last of its block, because it declines a float instruction in the first delay slot
-/// (`float::FloatFamily`). ASSUMED until `W2-DRIVE` lands: its loop adds the uop's steps on
-/// `Jump` and does not follow a cached link for a uop that is not the block's terminator.
+/// (`float::FloatFamily`). VERIFIED against the driver: its loop adds the uop's steps on `Jump`
+/// and re-dispatches at `ctx.next_pc` (`dispatch.rs`, `block.rs`).
+///
+/// # Safety
+/// `up` is valid and points into the uop slice of its block, as in [`finish`]; the next uop is read
+/// only when `up` is neither `UF_LAST` (the last uop of every block, `BlockBuilder::finish`) nor
+/// `UF_FIN`.
 #[inline(always)]
-pub(super) fn poked(ctx: &mut UopCtx, u: &Uop, core: &Core, due: u64) -> u32 {
-    if core.irq.due == due || u.flags & (UF_LAST | UF_FIN) != 0 {
+pub(super) unsafe fn poked(ctx: &mut UopCtx, up: *const Uop, core: &Core, due: u64) -> u32 {
+    if core.irq.due == due || (*up).flags & (UF_LAST | UF_FIN) != 0 {
         return Exit::Ok as u32;
     }
-    // SAFETY: the uop is not the last of its block (`UF_LAST` is set on the last uop by
-    // `BlockBuilder::finish`), so the next uop of the arena is the next uop of this block.
-    ctx.next_pc = unsafe { (*std::ptr::from_ref(u).add(1)).pc };
+    // SAFETY: not the last uop of its block, so the next uop of the slice is the next uop of this
+    // block; the pointer comes from the slice (see above).
+    ctx.next_pc = unsafe { (*up.add(1)).pc };
     Exit::Jump as u32
 }
 
@@ -244,18 +263,19 @@ mod tests {
         ];
         let mut ctx = UopCtx::new(&mut core as *mut Core, 0, 8);
         // nothing moved `due`: carry on
-        let r = poked(&mut ctx, &arena[0], &core, core.irq.due);
+        let first = arena.as_ptr();
+        // SAFETY: `first` points into `arena`, which holds the uop and its successor.
+        let r = unsafe { poked(&mut ctx, first, &core, core.irq.due) };
         assert_eq!(r, Exit::Ok as u32);
         // `due` moved: the next uop's pc is the re-dispatch point
-        let r = poked(&mut ctx, &arena[0], &core, core.irq.due ^ 1);
+        let r = unsafe { poked(&mut ctx, first, &core, core.irq.due ^ 1) };
         assert_eq!((r, ctx.next_pc), (Exit::Jump as u32, 0x12_0007));
         // the last uop and a uop that runs `finish_step` return Ok whatever `due` did
         for flags in [UF_LAST, UF_FIN] {
             let u = Uop { flags, ..arena[0] };
-            assert_eq!(
-                poked(&mut ctx, &u, &core, core.irq.due ^ 1),
-                Exit::Ok as u32
-            );
+            // SAFETY: a last uop and a finishing uop do not read their successor.
+            let r = unsafe { poked(&mut ctx, &raw const u, &core, core.irq.due ^ 1) };
+            assert_eq!(r, Exit::Ok as u32);
         }
     }
 }

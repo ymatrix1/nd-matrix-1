@@ -37,7 +37,7 @@ pub(in crate::core) const DELAY_SLOTS: u8 = 2;
 /// uses the same bound for "the register file below the system registers cannot change the
 /// guard", checked by `diff.rs` (sweep of every register code of every load form against
 /// `Core::step`).
-const SYS_UREG: u8 = 0x60;
+pub(in crate::core) const SYS_UREG: u8 = 0x60;
 
 /// What an instruction does to the flow of the block.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

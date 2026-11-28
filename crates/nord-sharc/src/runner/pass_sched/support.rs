@@ -32,8 +32,8 @@ pub fn poll_job(name: &str, engine: Engine) -> PassJob {
 
 /// [`poll_job`] whose uop engine is wrong (`uop_pass::support::mark_wrong_engine`): every pass
 /// it runs on a uop engine ends with a register flipped, which only [`Engine::UopChecked`]
-/// notices. The executor is still the skeleton at this base, so this is how a test gets an engine
-/// that differs from the interpreter.
+/// notices. The engine is exact against the interpreter by construction and by test, so this is
+/// how a test gets an engine that differs from it.
 pub fn wrong_poll_job(name: &str, engine: Engine) -> PassJob {
     let mut job = poll_job(name, engine);
     mark_wrong_engine(&mut job.core);

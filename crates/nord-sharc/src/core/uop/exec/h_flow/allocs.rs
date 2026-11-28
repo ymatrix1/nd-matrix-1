@@ -1,12 +1,11 @@
 //! Test-only: which flow handlers allocate (design 9.3: no allocation in a handler; P14).
 //!
-//! OWNER: W2-FLOW. Every flow handler but one reuses state the core already owns (the call stack,
-//! the loop stack and the pending branch keep their capacity), so a steady-state call allocates
-//! nothing. The exception is `DO_UNTIL` (the arithmetic loop): it runs the interpreter's
-//! `Core::exec_do_until`, whose `refresh_check` collects the body addresses in a `Vec`. That is
-//! inherited from v1 (the interpreter and the `Interp` fallback allocate the same way), lives in
-//! `arith_loop.rs`, which is not a W2-FLOW file, and is pinned here so it cannot grow: the handler
-//! allocates exactly what `refresh_check` does and nothing else.
+//! OWNER: W2-FLOW. Every flow handler reuses state the core already owns (the call stack, the
+//! loop stack and the pending branch keep their capacity), so a steady-state call allocates
+//! nothing. That includes `DO_UNTIL` (the arithmetic loop): it runs the interpreter's
+//! `Core::exec_do_until`, whose `refresh_check` walks the body twice (count, then index) and no
+//! longer collects the addresses in a `Vec` (`arith_loop.rs`, test
+//! `the_check_address_equals_the_list_walk_on_random_bodies_and_does_not_allocate`).
 use super::pack::{indirect, Branch, FROM_REG};
 use super::{DO_COUNT, DO_UNTIL, IDLE, JUMP, JUMP_I, RET, SYS_LOAD};
 use crate::core::interrupts::Serviced;
@@ -14,7 +13,7 @@ use crate::core::support::{core_with, CODE};
 use crate::core::uop::hot::UopHot;
 use crate::core::uop::types::{Exit, Handler, Uop, UopCtx, UopKind};
 use crate::core::uop::verify::count_alloc::allocs_in;
-use crate::core::{Core, LoopFrame};
+use crate::core::Core;
 
 /// Parcels of the program of every case (16-bit NOPs).
 const PROGRAM: usize = 64;
@@ -48,7 +47,7 @@ fn steady_allocs(kind: UopKind, a: u32, b: u32, setup: fn(&mut Core)) -> (Exit, 
 }
 
 #[test]
-fn a_steady_call_of_every_flow_handler_but_the_arithmetic_loop_allocates_nothing() {
+fn a_steady_call_of_every_flow_handler_including_the_arithmetic_loop_allocates_nothing() {
     let word = |delayed, call, rti| Branch::new(31, 3, delayed, call, rti).0;
     let ret = |delayed, rti| Branch::new(31, 1, delayed, false, rti).0;
     let with_return: fn(&mut Core) = |c| c.push_return_address(CODE + 5);
@@ -60,7 +59,12 @@ fn a_steady_call_of_every_flow_handler_but_the_arithmetic_loop_allocates_nothing
         });
     };
     let nothing: fn(&mut Core) = |_| {};
-    let cases: [Case; 12] = [
+    let until = |off: u32| {
+        let w = 0x0E3E_0000_0000u64 | u64::from(off);
+        (w as u32, (w >> 32) as u32)
+    };
+    let (until_1, until_5, until_38) = (until(3), until(7), until(40));
+    let cases: [Case; 15] = [
         ("jump", JUMP, CODE + 40, word(false, false, false), nothing),
         ("call", JUMP, CODE + 40, word(false, true, false), nothing),
         (
@@ -85,38 +89,15 @@ fn a_steady_call_of_every_flow_handler_but_the_arithmetic_loop_allocates_nothing
         ("idle", IDLE, 0, word(false, false, false), nothing),
         ("sys load", SYS_LOAD, 0x7B, 5, nothing),
         ("sys load timer", SYS_LOAD, 0x6F, 5, nothing),
+        // DO (pc, off) UNTIL FOREVER over bodies of 1, 5 and 38 instructions (the walk of the
+        // body once collected them in a Vec: 1, 2 and 5 allocations)
+        ("do until 1", DO_UNTIL, until_1.0, until_1.1, nothing),
+        ("do until 5", DO_UNTIL, until_5.0, until_5.1, nothing),
+        ("do until 38", DO_UNTIL, until_38.0, until_38.1, nothing),
     ];
     for (name, kind, a, b, setup) in cases {
         let (exit, n) = steady_allocs(kind, a, b, setup);
         assert_eq!(n, 0, "{name} allocated ({exit:?})");
         assert!(matches!(exit, Exit::Ok | Exit::Jump), "{name}: {exit:?}");
     }
-}
-
-#[test]
-fn the_arithmetic_loop_handler_allocates_what_the_interpreters_refresh_check_does_and_no_more() {
-    // DO (pc, off) UNTIL FOREVER: bodies of 1, 5 and 38 16-bit instructions after the DO
-    let mut walks = Vec::new();
-    for off in [3u32, 7, 40] {
-        let w = 0x0E3E_0000_0000u64 | u64::from(off);
-        let (exit, handler) = steady_allocs(DO_UNTIL, w as u32, (w >> 32) as u32, |_| {});
-        assert_eq!(exit, Exit::Ok);
-        let frame = LoopFrame {
-            start: CODE + 3,
-            end: CODE + off,
-            term: Some(31),
-            ..LoopFrame::default()
-        };
-        let mut twin = core_with(&[0x0001; PROGRAM]);
-        twin.push_loop(frame);
-        twin.refresh_check(); // the first walk warms the decode cache, as the handler's first call did
-        let ((), walk) = allocs_in(|| twin.refresh_check());
-        assert_eq!(
-            handler, walk,
-            "off {off}: the handler allocates {handler} times, the interpreter's body walk {walk}"
-        );
-        walks.push(walk);
-    }
-    // the walk is the only allocation, and it is larger for a longer body (`Vec` growth)
-    assert!(walks[2] >= walks[1], "{walks:?}");
 }

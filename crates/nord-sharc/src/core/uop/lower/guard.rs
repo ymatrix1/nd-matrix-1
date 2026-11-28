@@ -63,7 +63,10 @@ pub(in crate::core) fn check(core: &Core, block: &Block, room: u32) -> Option<Gu
     let row = [
         (room == 0, GuardFail::Steps),
         (
-            core.irq.window_len != 0 || core.irq.idle || core.irq.stall != 0,
+            // transient conditions only: `irq.stall` is the cumulative cycle offset (interrupt
+            // entry and IDLE wake-up add to it, nothing clears it), so testing it would fail
+            // every block after the first interrupt; `aot_try` makes the same choice
+            core.irq.window_len != 0 || core.irq.idle,
             GuardFail::Window,
         ),
         (core.pending.is_some() && !can_delay, GuardFail::Pending),
@@ -93,7 +96,7 @@ pub(in crate::core) fn check(core: &Core, block: &Block, room: u32) -> Option<Gu
 pub const fn name(row: GuardFail) -> &'static str {
     match row {
         GuardFail::Steps => "steps past min(limit, irq.due)",
-        GuardFail::Window => "interrupt window, idle or stall",
+        GuardFail::Window => "interrupt vector window or idle",
         GuardFail::Pending => "delayed branch pending",
         GuardFail::Loop => "loop frame ends inside the block",
         GuardFail::Simd => "SIMD mode differs",
@@ -124,9 +127,19 @@ mod tests {
         let b = block_at(c.pc);
         assert_eq!(check(&c, &b, 3), None);
         assert_eq!(check(&c, &b, 0), Some(GuardFail::Steps));
-        c.irq.stall = 1;
-        assert_eq!(check(&c, &b, 3), Some(GuardFail::Window));
+        c.irq.stall = 1_000;
+        assert_eq!(
+            check(&c, &b, 3),
+            None,
+            "the stall is cumulative: it is not a window"
+        );
         c.irq.stall = 0;
+        c.irq.window_len = 1;
+        assert_eq!(check(&c, &b, 3), Some(GuardFail::Window));
+        c.irq.window_len = 0;
+        c.irq.idle = true;
+        assert_eq!(check(&c, &b, 3), Some(GuardFail::Window));
+        c.irq.idle = false;
         c.pending = Some(crate::core::types::Pending {
             slots: 2,
             target: 0,

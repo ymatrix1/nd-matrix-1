@@ -32,6 +32,7 @@ mod tests {
     use super::*;
     use crate::core::interrupts::{IRPTEN, VECTOR_PARCELS};
     use crate::core::support::{core_with, load, CODE};
+    use crate::core::uop::config::UopConfig;
     use crate::core::uop::drive::fixture::{arm_one_interp_block, run_both, Setup};
     use crate::core::uop::types::{Exit, GuardFail};
     use crate::core::uop::verify::compare::exact_diff;
@@ -196,5 +197,62 @@ mod tests {
         // and the rest of the program agrees
         assert_eq!((want.run(40), got.run_uop(40)), (None, None));
         assert_eq!(exact_diff(&want, &got), None);
+    }
+
+    #[test]
+    fn blocks_keep_running_after_the_first_interrupt_and_stay_equal_to_the_interpreter() {
+        // `irq.stall` is cumulative (every interrupt entry adds to it, nothing clears it): a guard
+        // row that tested it would send every step after the first interrupt to `Core::step`.
+        // Three interrupts, the production lowering over a mix of NOPs and fixed-point computes;
+        // the counters must keep growing after each one and the cores stay identical.
+        let mut program = Vec::new();
+        for _ in 0..420 {
+            program.push(0x0001);
+            program.extend([0x013e, 0x0000, 0x1312]);
+        }
+        let setup = Setup::program(&program).with(|c| {
+            vector_11(c);
+            for cycle in [40, 150, 300] {
+                c.schedule_interrupt(cycle, 11);
+            }
+            (c.r[1], c.r[2]) = (5, 7);
+        });
+        let (mut want, mut got) = (setup.core(), setup.core());
+        let report = got
+            .enable_uop(UopConfig::default(), &[(CODE, CODE + program.len() as u32)])
+            .unwrap();
+        assert!(report.insns > report.interp_insns, "{report:?}");
+        let mut uop_steps_after = Vec::new();
+        for chunk in 0..40 {
+            assert_eq!(
+                (want.run(20), got.run_uop(20)),
+                (None, None),
+                "chunk {chunk}"
+            );
+            assert_eq!(exact_diff(&want, &got), None, "chunk {chunk}");
+            if got.interrupts_taken() > uop_steps_after.len() as u64 {
+                uop_steps_after.push(got.uop_stats().steps_uop);
+            }
+        }
+        assert_eq!(got.interrupts_taken(), 3, "all three interrupts were taken");
+        assert!(
+            got.irq.stall > 0,
+            "the stall is what the guard must not test"
+        );
+        assert_eq!(uop_steps_after.len(), 3);
+        let last = got.uop_stats();
+        assert!(
+            uop_steps_after[0] < uop_steps_after[1] && uop_steps_after[1] < uop_steps_after[2],
+            "steps_uop kept growing between the interrupts: {uop_steps_after:?}"
+        );
+        assert!(
+            last.steps_uop > uop_steps_after[2] && last.steps_uop > last.steps_core_step,
+            "and after the last one: {last:?}"
+        );
+        assert_eq!(
+            last.guard_fail[GuardFail::Window as usize],
+            0,
+            "no block was refused for the window row: {last:?}"
+        );
     }
 }

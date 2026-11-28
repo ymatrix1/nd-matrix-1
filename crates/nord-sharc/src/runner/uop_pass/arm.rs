@@ -61,13 +61,13 @@ fn split_at(ranges: &[(u32, u32)], pc: u32) -> Vec<(u32, u32)> {
 /// the short word `ranges` are translated with `cfg`. Call it once on a booted core, before the
 /// first pass; the pass loops keep the stop pc current afterwards.
 ///
-/// Two things make `idle_pc` a block start, because neither is enough alone on the engine as it
-/// is. The stop pc is set BEFORE `enable_uop`, which saves it and restores it
-/// (`core/uop/drive.rs`) and which the retranslation after a code write (`uop_maintain`: a
-/// program change or an overlay load) reads again; but `enable_uop` clears it with `disable_uop`
-/// before it translates, so the FIRST translation does not see it. The range that holds `idle_pc`
-/// is therefore cut there (`split_at`): the translator starts a block at the first pc of a range.
-/// Tests: `arming_cuts_the_first_translation_at_the_idle_pc_which_a_bare_enable_does_not` (the
+/// Two things make `idle_pc` a block start. The stop pc is set BEFORE `enable_uop`, which keeps
+/// it while it translates (`core/uop/drive/mod.rs`: it saves it across `disable_uop` and restores
+/// it before the first translation) and which the retranslation after a code write
+/// (`uop_maintain`: a program change or an overlay load) reads again. The range that holds
+/// `idle_pc` is also cut there (`split_at`): the translator starts a block at the first pc of a
+/// range, so the first build does not depend on the stop pc being honoured (belt and braces; the
+/// stop pc alone gives the same blocks, `arming_cuts_the_first_translation_...`). Tests: `arming_cuts_the_first_translation_at_the_idle_pc_which_a_bare_enable_does_not` (the
 /// first build) and `the_stop_pc_set_at_arming_cuts_the_retranslation_too` (deleting the
 /// `uop_set_stop_pc` call fails it).
 pub fn arm_uop_ranges(
@@ -214,12 +214,14 @@ mod tests {
         assert!(empty.uop_enabled());
     }
 
-    /// A code write that leaves the code as it is, so the page is dirty and `uop_maintain` drops
-    /// and retranslates its blocks; returns the blocks that retranslation added.
+    /// A code write that changes the first NOP and the jump target of the poll program: the hash
+    /// of every block of it changes (an identical rewrite is kept by revalidation, P6, and
+    /// retranslates nothing), so `uop_maintain` drops and retranslates the whole program; returns
+    /// the blocks that retranslation added.
     fn retranslated(c: &mut Core) -> usize {
-        let word = c.dm_read(CODE / 2).unwrap();
-        c.dm_write(CODE / 2, word).unwrap();
-        assert!(c.uop_needs_maintenance(), "the write made the page dirty");
+        put(c, CODE, &[0xc8be]);
+        put(c, POLL_PC + 1, &[0x0013]);
+        assert!(c.uop_needs_maintenance(), "the writes made the page dirty");
         c.uop_maintain()
     }
 
@@ -248,10 +250,10 @@ mod tests {
 
     #[test]
     fn arming_cuts_the_first_translation_at_the_idle_pc_which_a_bare_enable_does_not() {
-        // ten NOPs and the poll jump at POLL_PC: `enable_uop` clears the stop pc before it
-        // translates (`core/uop/drive.rs`), so a bare enable (or one that only sets the stop pc)
-        // builds the poll program as one block per PEy mode, with the idle pc inside it. Arming
-        // cuts the range at the idle pc, which starts a block of its own (P7).
+        // ten NOPs and the poll jump at POLL_PC: a bare enable (no stop pc) builds the poll
+        // program as one block per PEy mode, with the idle pc inside it. Arming makes the idle pc
+        // a block start (P7): it sets the stop pc, which `enable_uop` keeps while it translates
+        // (`core/uop/drive/mod.rs`), and cuts the range there as well.
         let (mut armed, mut bare) = (poll_core(), poll_core());
         let ranges = code_ranges(&bare);
         let built = arm_uop(&mut armed, UopConfig::default(), POLL_PC).unwrap();
@@ -262,6 +264,14 @@ mod tests {
             "armed built {built:?}, bare {plain:?}: the idle pc is a block start"
         );
         assert_eq!(built.insns, plain.insns, "the same code is covered");
+        // the stop pc alone does the same: `enable_uop` restores it before it translates, the
+        // cut of the range is a second way to the same blocks
+        let mut stop_only = poll_core();
+        stop_only.uop_set_stop_pc(Some(POLL_PC));
+        assert_eq!(
+            stop_only.enable_uop(UopConfig::default(), &ranges),
+            Ok(built)
+        );
         assert_eq!(armed.uop_stats().translations, u64::from(built.blocks));
         // an idle pc at the start of the code, or outside it, cuts nothing
         for idle in [CODE, CODE - 1, CODE + 0x1000] {
@@ -274,10 +284,11 @@ mod tests {
     #[test]
     fn the_stop_pc_set_at_arming_cuts_the_retranslation_too() {
         // the retranslation after a code write (`uop_maintain`: a program change or an overlay
-        // load) reads the stop pc again, with the range merged back into one: only a core armed
-        // with the stop pc cuts the poll program at the idle pc there. Without
+        // load) reads the stop pc again, with the dropped ranges merged back into one: only a
+        // core armed with the stop pc cuts the poll program at the idle pc there. Without
         // `core.uop_set_stop_pc(Some(idle_pc))` in `arm_uop_ranges` the armed core retranslates
-        // as many blocks as the bare one and this test fails.
+        // as many blocks as the bare one and this test fails. The write changes the code of both
+        // blocks of the armed core (an identical rewrite is kept by revalidation).
         let (mut armed, mut bare) = (poll_core(), poll_core());
         let ranges = code_ranges(&bare);
         let built = arm_uop(&mut armed, UopConfig::default(), POLL_PC).unwrap();

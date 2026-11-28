@@ -43,7 +43,9 @@ pub(crate) const CLASS_OTHER: u8 = 2;
 
 /// First universal register code of the system registers, which the move uops leave to the
 /// interpreter (their reads and writes depend on `pc`, `steps` and the interrupt state).
-/// VERIFIED: the same bound as `cut.rs::SYS_UREG`, checked by `classes_split_the_register_file`.
+/// VERIFIED: the same constant as `lower::cut::SYS_UREG` (the bound the translator cuts blocks
+/// at), checked by `classes_split_the_register_file`, which compares the two values and the
+/// class of every register code below and above the bound, max err 0.
 pub(crate) const SYS_UREG: u8 = 0x60;
 
 /// The register class of `ureg`, `None` for a system register.
@@ -167,6 +169,7 @@ mod tests {
             assert_eq!(class_of(code), want, "{code:#x}");
         }
         assert_eq!(SYS_UREG, 0x60);
+        assert_eq!(SYS_UREG, crate::core::uop::lower::cut::SYS_UREG);
     }
 
     #[test]

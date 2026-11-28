@@ -180,8 +180,8 @@ mod tests {
     use super::super::builder::FP_LAST_SEQ;
     use super::super::lower_insn;
     use super::super::support::{
-        build, build_cfg, build_default, fast_lower, spans, unimplemented_insn, Built, ALU,
-        JUMP_DB, LOAD_SYS, NOP,
+        build, build_cfg, build_default, build_interp, fast_lower, spans, unimplemented_insn,
+        Built, ALU, JUMP_DB, LOAD_SYS, NOP,
     };
     use super::*;
     use crate::core::support::{core_with, CODE};
@@ -190,7 +190,8 @@ mod tests {
     #[test]
     fn straight_code_is_one_block_per_mode_with_its_hash_and_budget() {
         let program = [&[NOP][..], &ALU, &[NOP, NOP]].concat();
-        let (core, built) = build_default(&program);
+        // the baseline: every instruction an Interp uop, which raises its own exceptions (Plain)
+        let (core, built) = build_interp(&program);
         assert_eq!(built.blocks.len(), 2);
         for (k, simd) in [false, true].into_iter().enumerate() {
             let [(b, uops)] = built.mode(simd)[..] else {
@@ -210,6 +211,34 @@ mod tests {
                 FP_LAST_SEQ,
                 "Interp finishes"
             );
+        }
+        // the production lowering: same blocks, same budget and hash, but the compute is a fast
+        // fixed-point uop that can raise an arithmetic exception, so the block is Arith
+        let (_, fast) = build_default(&program);
+        for (base, simd) in [(&built, false), (&built, true)] {
+            let [(want, _)] = base.mode(simd)[..] else {
+                panic!("one block per mode")
+            };
+            let [(b, uops)] = fast.mode(simd)[..] else {
+                panic!("one block per mode")
+            };
+            let shape = |b: &Block| {
+                (
+                    b.pc,
+                    b.last_pc,
+                    b.end_pc,
+                    b.steps,
+                    b.cum.clone(),
+                    b.code_hash,
+                )
+            };
+            assert_eq!(shape(b), shape(want), "translation only changes the uops");
+            assert_eq!(b.guard, GuardClass::Arith);
+            assert!(
+                uops.iter().any(|u| u.h != UopKind::INTERP.0),
+                "something was lowered fast: {uops:?}"
+            );
+            assert_eq!(uops.iter().map(|u| u32::from(u.steps)).sum::<u32>(), 4);
         }
     }
 
@@ -276,9 +305,21 @@ mod tests {
             do_block.iter().all(|u| u.flags & UF_FIN == 0),
             "the DO is a terminator"
         );
-        let (_, interp) = build_default(&p);
+        let (_, interp) = build_interp(&p);
         let (b, uops) = interp.at(CODE + 8, false).unwrap();
         assert_eq!((b.guard, uops[0].flags & UF_FIN), (GuardClass::Loop, 0));
+        assert_eq!(b.footprint.writes & FP_LAST_SEQ, FP_LAST_SEQ);
+        // the production lowering takes the store: a fast uop of the loop end runs finish_step
+        // itself (UF_FIN), an Interp uop never does
+        let (_, prod) = build_default(&p);
+        let (b, uops) = prod.at(CODE + 8, false).unwrap();
+        assert_eq!(b.guard, GuardClass::Loop);
+        assert_ne!(
+            uops[0].h,
+            UopKind::INTERP.0,
+            "the store is lowered fast: {uops:?}"
+        );
+        assert_eq!(uops[0].flags & UF_FIN, UF_FIN, "{uops:?}");
         assert_eq!(b.footprint.writes & FP_LAST_SEQ, FP_LAST_SEQ);
     }
 
@@ -361,9 +402,14 @@ mod tests {
             GuardClass::Plain
         );
         assert_eq!(
-            class(&build_default(&alu).1),
+            class(&build_interp(&alu).1),
             GuardClass::Plain,
             "Interp raises its own"
+        );
+        assert_eq!(
+            class(&build_default(&alu).1),
+            GuardClass::Arith,
+            "the production lowering takes the compute: a fast uop cannot raise it late"
         );
     }
 }

@@ -8,14 +8,9 @@
 //! flags and is exact only when it is the interpreter's own function. The frame is pushed through
 //! `Core::push_loop`, so the loop stack overflow bit and its interrupt are the interpreter's.
 //!
-//! KNOWN LIMITATION (allocation): `exec_do_until` allocates. Its `refresh_check` collects the
-//! body addresses in a `Vec` (`arith_loop.rs`, v1 code outside this package), so the `DO_UNTIL`
-//! handler allocates on the audio path, once per entry of an arithmetic loop (measured by
-//! `allocs.rs`: 1 allocation for a body of 1 instruction, 2 for 5, 5 for 38). `DO_COUNT` and
-//! every other flow handler allocate nothing. `allocs.rs` pins the count to the interpreter's
-//! own, so it is the walk and nothing in this file. Removing it is a change of `refresh_check` to
-//! a count-then-index walk (two passes over the body, no `Vec`); `allocs.rs` then still passes
-//! and this note goes.
+//! Allocation: none. `exec_do_until` walks the body twice (count, then index) in `refresh_check`
+//! (`arith_loop.rs`), so `DO_UNTIL` allocates nothing, like every other flow handler (`allocs.rs`
+//! pins all of them to 0, `DO_UNTIL` over bodies of 1, 5 and 38 instructions included).
 use super::end_step;
 use super::pack::FROM_REG;
 use crate::core::exec::Decoded;

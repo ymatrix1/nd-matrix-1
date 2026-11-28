@@ -76,8 +76,8 @@ pub(super) fn run_uop(c: &mut Core, table: &[Handler], uops: &[Uop]) -> Ran {
     let (u, next) = (&uops[0], uops[1].pc);
     let mut ctx = UopCtx::new(c as *mut Core, c.steps, 8);
     // SAFETY: `ctx.core` is `c`, which is not used until the handler has returned; `uops` holds
-    // the uop and its successor
-    let r = unsafe { table[usize::from(u.h)](&mut ctx, u) };
+    // the uop and its successor, and the pointer is into the slice (the handler ABI)
+    let r = unsafe { table[usize::from(u.h)](&mut ctx, uops.as_ptr()) };
     let exit = Exit::from_u32(r).expect("a handler returns an exit code");
     let pc = match exit {
         Exit::Ok => next,

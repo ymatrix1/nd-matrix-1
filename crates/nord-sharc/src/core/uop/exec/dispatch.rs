@@ -42,6 +42,10 @@ pub(super) unsafe fn run(
     let mut checked = checked || room < need;
     let mut i = from;
     while i < uops.len() {
+        // the handler gets a pointer into the block's slice, not one made from `&uops[i]`: a
+        // handler that needs the uop after it (the float family's hand-over, `poked`) reads it
+        // through that pointer, whose provenance covers the whole slice
+        let up = uops.as_ptr().add(i);
         let u = &uops[i];
         let s = u32::from(u.steps);
         if checked && (*ctx).done + s > (*ctx).room {
@@ -52,7 +56,7 @@ pub(super) unsafe fn run(
             .get(usize::from(u.h))
             .copied()
             .unwrap_or(bail_handler as Handler);
-        let mut e = Exit::from_u32(handler(ctx, u)).unwrap_or(Exit::Slow);
+        let mut e = Exit::from_u32(handler(ctx, up)).unwrap_or(Exit::Slow);
         if matches!(e, Exit::Fault | Exit::Guard | Exit::Slow) {
             return leave(cp, ctx, e, i, u.pc);
         }

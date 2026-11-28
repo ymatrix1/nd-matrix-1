@@ -159,8 +159,8 @@ mod tests {
     }
 
     /// A poll core, armed for the engine, whose engine is wrong (`support::mark_wrong_engine`:
-    /// the executor of this base is the skeleton, so the engine would otherwise equal the
-    /// interpreter and nothing could prove that a check sees a difference).
+    /// the engine equals the interpreter, so nothing could prove that a check sees a difference
+    /// without a wrong one).
     fn wrong() -> Core {
         let mut c = poll_core();
         support::mark_wrong_engine(&mut c);
