@@ -20,6 +20,7 @@ compile_error!("There's currently no software rendering support for egui");
 /// Re-export for convenience.
 pub use egui_baseview::egui;
 
+mod close_plan;
 mod editor;
 pub mod resizable_window;
 pub mod widgets;

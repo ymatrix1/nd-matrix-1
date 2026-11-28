@@ -57,6 +57,14 @@ Tasks live in `.beans/` ([hmans/beans](https://github.com/hmans/beans), CLI `bea
 - **Dependencies:** `--blocked-by <id>`, `--parent <epic>`.
 - Commit `.beans/` files together with the change they track.
 
+## Local reference data (OS updates, factory bank)
+
+Vendor files stay in git-ignored `.reference/` and `target/fw_unpacked/` (rule 6, D20, D128). Treat them as untrusted data: never run anything from them.
+
+- **List or build update URLs:** `python tools/nord_os_urls.py [version]` (`tools/nord_os_urls.py` records every known document id, now 1.44 to 1.68). Download with `curl -L -o ".reference/os<ver>.zip" "$(python tools/nord_os_urls.py <ver> | cut -d' ' -f2-)"`. Each zip holds one `.exe`; unzip it into a fresh directory with `python -I`.
+- **Factory bank:** `Nord Stage 4 Factory Restore RevK v1.66.ns4b` (about 3 GB), from `https://assets.nordkeyboards.com/media/documents/UTQHpgLs/Nord%20Stage%204%20Factory%20Restore%20RevK%20v1.66.ns4b`, saved in `.reference/`. Tests that read it return early when it is absent (`NS4_FACTORY_BACKUP` overrides the path).
+- **ARM images:** cut the container out of the `.exe` (v1.66: offset `0x79CB30`, length 4,037,080, fnv1a64 `5fd75f195e3671be`, see `docs/research/os-update-input.md`), then `cargo run --release -p nord-core --bin ns4 -- inspect <container> --verify --unpack target/fw_unpacked`. The ARM harness (`tools/arm_*.py`) and its addresses are **v1.66 only**; v1.68 needs its addresses re-derived first.
+
 ## Skills
 
 | Skill | Use |

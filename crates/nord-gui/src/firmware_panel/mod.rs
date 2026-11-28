@@ -19,6 +19,7 @@ pub mod bar;
 pub mod cards;
 pub mod choices;
 pub mod info;
+pub mod live;
 pub mod presets;
 
 /// Headless-run request parsed from `--self-test <out.wav>` / `--dump-options`.

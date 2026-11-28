@@ -16,6 +16,11 @@
 //!   it), the product form of the joint mid words and the interpolation between captured
 //!   indices (`fw_eq_tables`), and that the organ unit runs the same recurrence (its words equal
 //!   the piano's; its routine layout is not decoded).
+//! * Memo (idle cost, issue #691): the target words and the mid frequency index are pure functions
+//!   of the four knobs and `Hz`, but `LayerFxChain` re-derives them every frame (`ln` / `exp` and a
+//!   128 step table scan, about a third of an idle rack). The stage keeps the last inputs (bit
+//!   compare) and their result, so a frame with unchanged knobs reuses the identical `f32` words.
+//!   Bit-identical by construction; proved against the unmemoized path by `memo_*` tests.
 //! * The recurrence runs at the engine rate, the firmware at 43,402.34 Hz
 //!   (`docs/research/dsp-frame-rate.md`): every corner and centre frequency is `fs / 43402.34`
 //!   higher (1.106 at 48 kHz). The words are not rescaled (kept bit for bit).
@@ -29,9 +34,12 @@ const SMOOTH_K: f32 = f32::from_bits(0x3F7D_A3C2);
 /// ASSUMED: clip bound and output reference `L` of the tone stack (1.0 in the oracle golden).
 const LIMIT: f32 = 1.0;
 
+/// `(offset, word)` target pairs of one setting.
+type TargetWords = [(i32, f32); 8];
+
 /// The tone stack context words of a setting: `(offset, word)` target pairs and their smoothed
 /// state copies (`+2` words above the target for the five smoothed pairs).
-fn target_words(bass: f32, mid_counts: f32, treble: f32, freq: f32) -> [(i32, f32); 8] {
+fn target_words(bass: f32, mid_counts: f32, treble: f32, freq: f32) -> TargetWords {
     let (b, c, d) = mid::words(mid_counts, freq);
     [
         (-0x20, tone_shelf_gain(bass)),
@@ -52,6 +60,12 @@ pub(super) struct FwEqStage {
     input: [[f32; 2]; 2],
     output: [[f32; 2]; 2],
     pos: usize,
+    /// Memo of [`target_words`]: input bits `(bass, mid, treble, freq)` and the words they gave.
+    pub(super) targets: Option<([u32; 4], TargetWords)>,
+    /// Memo of [`freq_index_of_hz`]: `(hz bits, index)`.
+    pub(super) freq: Option<(u32, f32)>,
+    /// `false` re-derives both on every call (the reference path of the `memo_*` tests).
+    pub(super) memo: bool,
 }
 
 impl FwEqStage {
@@ -65,6 +79,9 @@ impl FwEqStage {
             input: [[0.0; 2]; 2],
             output: [[0.0; 2]; 2],
             pos: 0,
+            targets: None,
+            freq: None,
+            memo: true,
         };
         s.set(bass, mid, treble, freq, true);
         s
@@ -72,7 +89,21 @@ impl FwEqStage {
 
     /// Moves the targets; the routine's own smoother glides there unless `settle`.
     pub(super) fn set(&mut self, bass: f32, mid: f32, treble: f32, freq: f32, settle: bool) {
-        for (off, v) in target_words(bass, mid, treble, freq) {
+        let key = [
+            bass.to_bits(),
+            mid.to_bits(),
+            treble.to_bits(),
+            freq.to_bits(),
+        ];
+        let words = match self.targets {
+            Some((k, w)) if k == key && self.memo => w,
+            _ => {
+                let w = target_words(bass, mid, treble, freq);
+                self.targets = Some((key, w));
+                w
+            }
+        };
+        for (off, v) in words {
             self.stack.set_value(off, v);
             // smoothed copies: A -0x1E, B -0x1D, E -0x1A, F -0x19, C -0x15, D -0x16
             let copy = match off {
@@ -81,6 +112,19 @@ impl FwEqStage {
             };
             if let (true, Some(c)) = (settle, copy) {
                 self.stack.set_value(c, v);
+            }
+        }
+    }
+
+    /// [`freq_index_of_hz`] of the stage's own memo: the scan runs only when `hz` changed.
+    #[inline]
+    pub(super) fn freq_index_of_hz(&mut self, hz: f32) -> f32 {
+        match self.freq {
+            Some((bits, idx)) if bits == hz.to_bits() && self.memo => idx,
+            _ => {
+                let idx = freq_index_of_hz(hz);
+                self.freq = Some((hz.to_bits(), idx));
+                idx
             }
         }
     }
