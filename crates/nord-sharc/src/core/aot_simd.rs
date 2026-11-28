@@ -142,6 +142,8 @@ mod tests {
         }
     }
 
+    // x86-64 only: other targets send both lanes to the scalar kernel (`bad = 3`).
+    #[cfg(target_arch = "x86_64")]
     #[test]
     fn rejected_lanes_use_the_fallback_and_accepted_lanes_do_not() {
         let m = Mode::default();
@@ -162,6 +164,7 @@ mod tests {
 
     /// The vector path must decide ordinary lanes itself: a fallback taken for most lanes would
     /// still be bit-exact but would not be a fast path.
+    #[cfg(target_arch = "x86_64")]
     #[test]
     fn ordinary_operands_rarely_reach_the_fallback() {
         use std::cell::Cell;
