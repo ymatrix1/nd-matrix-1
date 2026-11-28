@@ -51,6 +51,9 @@ struct Err1 {
     /// flags: control state), and the words compared.
     diff: u64,
     other_diff: u64,
+    /// Words where the fast core holds a NaN or infinity and the cores differ. Counted for every
+    /// word, also when the exact word is outside the float domain (the energies map non-finite to 0).
+    nonfinite_fast: u64,
     n: u64,
 }
 
@@ -58,6 +61,7 @@ impl Err1 {
     fn add(&mut self, exact: u32, fast: u32) {
         self.n += 1;
         self.diff += u64::from(exact != fast);
+        self.nonfinite_fast += u64::from(exact != fast && !f32::from_bits(fast).is_finite());
         let e = finite(exact);
         if !in_domain(exact) {
             // not a float word of the module: counted, kept out of the energies
@@ -80,19 +84,12 @@ impl Err1 {
         self.max_rel = self.max_rel.max(o.max_rel);
         self.diff += o.diff;
         self.other_diff += o.other_diff;
+        self.nonfinite_fast += o.nonfinite_fast;
         self.n += o.n;
     }
 
     fn snr(&self) -> f64 {
         snr_db(self.sig, self.err)
-    }
-
-    fn rms(&self) -> f64 {
-        if self.n == 0 {
-            0.0
-        } else {
-            (self.err / self.n as f64).sqrt()
-        }
     }
 }
 
@@ -118,20 +115,30 @@ fn in_domain(w: u32) -> bool {
 #[derive(Clone, Copy, Debug, Default)]
 struct PassRow {
     steps: (u64, u64),
+    /// Data-memory reads that failed on either core (read as 0).
+    unreadable: u64,
     lanes: Err1,
     bufs: Err1,
     state: Err1,
 }
 
-fn words(job: &mut PassJob, lo: u32, hi: u32) -> Vec<u32> {
-    (lo..hi).map(|a| job.core.dm_read(a).unwrap_or(0)).collect()
+/// One data-memory word; a failed read counts in `bad` and reads as 0 (reported, never silent).
+fn read(job: &mut PassJob, addr: u32, bad: &mut u64) -> u32 {
+    job.core.dm_read(addr).unwrap_or_else(|_| {
+        *bad += 1;
+        0
+    })
 }
 
-fn lanes(job: &mut PassJob) -> Vec<u32> {
+fn words(job: &mut PassJob, lo: u32, hi: u32, bad: &mut u64) -> Vec<u32> {
+    (lo..hi).map(|a| read(job, a, bad)).collect()
+}
+
+fn lanes(job: &mut PassJob, bad: &mut u64) -> Vec<u32> {
     let mut out = Vec::new();
     for set in 0..OUT_SETS {
-        let base = job.core.dm_read(OUT_POINTERS + set).unwrap_or(0);
-        out.extend((0..LANE_WORDS).map(|k| job.core.dm_read(base.wrapping_add(k)).unwrap_or(0)));
+        let base = read(job, OUT_POINTERS + set, bad);
+        out.extend((0..LANE_WORDS).map(|k| read(job, base.wrapping_add(k), bad)));
     }
     out
 }
@@ -143,26 +150,29 @@ fn compare(a: &[u32], b: &[u32]) -> Err1 {
 }
 
 fn measure(ex: &mut PassJob, fa: &mut PassJob, scan: (u32, u32), steps: (u64, u64)) -> PassRow {
+    let mut bad = 0;
     let mut state = Err1::default();
     // the scan skips the pass buffers, which are their own group
     for (lo, hi) in [
         (scan.0, BUFFERS.0.max(scan.0)),
         (BUFFERS.1.max(scan.0), scan.1),
     ] {
-        if lo < hi.min(scan.1) {
-            state.merge(&compare(
-                &words(ex, lo, hi.min(scan.1)),
-                &words(fa, lo, hi.min(scan.1)),
-            ));
+        let hi = hi.min(scan.1);
+        if lo < hi {
+            let (a, b) = (words(ex, lo, hi, &mut bad), words(fa, lo, hi, &mut bad));
+            state.merge(&compare(&a, &b));
         }
     }
+    let lanes = compare(&lanes(ex, &mut bad), &lanes(fa, &mut bad));
+    let (a, b) = (
+        words(ex, BUFFERS.0, BUFFERS.1, &mut bad),
+        words(fa, BUFFERS.0, BUFFERS.1, &mut bad),
+    );
     PassRow {
         steps,
-        lanes: compare(&lanes(ex), &lanes(fa)),
-        bufs: compare(
-            &words(ex, BUFFERS.0, BUFFERS.1),
-            &words(fa, BUFFERS.0, BUFFERS.1),
-        ),
+        unreadable: bad,
+        lanes,
+        bufs: compare(&a, &b),
         state,
     }
 }
@@ -171,7 +181,11 @@ fn measure(ex: &mut PassJob, fa: &mut PassJob, scan: (u32, u32), steps: (u64, u6
 /// The `n` state words with the largest relative error after the last pass, as text lines
 /// `address exact fast rel` (words outside the float domain are listed as raw hex).
 fn top_diffs(ex: &mut PassJob, fa: &mut PassJob, scan: (u32, u32), n: usize) -> String {
-    let (a, b) = (words(ex, scan.0, scan.1), words(fa, scan.0, scan.1));
+    let mut bad = 0;
+    let (a, b) = (
+        words(ex, scan.0, scan.1, &mut bad),
+        words(fa, scan.0, scan.1, &mut bad),
+    );
     let mut d: Vec<(f64, u32, u32, u32)> = (0..a.len())
         .filter(|&i| a[i] != b[i] && !(BUFFERS.0..BUFFERS.1).contains(&(scan.0 + i as u32)))
         .map(|i| {
@@ -220,16 +234,26 @@ fn mean_err(rows: &[PassRow], lo: usize, hi: usize, pick: impl Fn(&PassRow) -> &
     window(rows, lo, hi, pick).err / n as f64
 }
 
+/// SNR in dB; "undefined" when the exact words carry no energy (silent output), not `inf`.
+fn snr_text(e: &Err1) -> String {
+    if e.sig == 0.0 {
+        "undefined (exact energy 0)".into()
+    } else {
+        format!("{:.1}", e.snr())
+    }
+}
+
 fn row_text(label: &str, g: &str, e: &Err1) -> String {
     format!(
-        "{label} | {g} | {} | {:.3e} | {:.3e} | {:.1} | {} / {} ({} outside the float domain)\n",
+        "{label} | {g} | {} | {:.3e} | {:.3e} | {} | {} / {} ({} outside the float domain, {} non-finite in fast)\n",
         e.n,
         e.max_abs,
-        e.rms(),
-        e.snr(),
+        e.max_rel,
+        snr_text(e),
         e.diff,
         e.n,
-        e.other_diff
+        e.other_diff,
+        e.nonfinite_fast
     )
 }
 
@@ -242,6 +266,16 @@ fn report(rows: &[PassRow], warmup: usize) -> String {
     let _ = writeln!(
         out,
         "passes with a different step count (control flow): {ctl}"
+    );
+    let bad: u64 = rows.iter().map(|r| r.unreadable).sum();
+    let warn = if bad > 0 {
+        "  <-- the comparison below is unreliable"
+    } else {
+        ""
+    };
+    let _ = writeln!(
+        out,
+        "data-memory reads that failed (read as 0, either core): {bad}{warn}"
     );
     for (name, pick) in [
         ("lanes", (|r: &PassRow| &r.lanes) as fn(&PassRow) -> &Err1),
@@ -284,7 +318,7 @@ fn report(rows: &[PassRow], warmup: usize) -> String {
     }
     let _ = writeln!(
         out,
-        "pass | group | words | max abs err | max rel err | SNR dB | differing words"
+        "pass | group | words | max abs err | max rel err (exact >= 1e-12, this pass) | SNR dB | differing words"
     );
     // the first pass (after boot, with the first messages), early passes, and the last
     let last = total.saturating_sub(1);
@@ -306,7 +340,10 @@ fn report(rows: &[PassRow], warmup: usize) -> String {
 fn csv(rows: &[PassRow]) -> String {
     let mut s = String::from("pass,steps_exact,steps_fast");
     for g in ["lanes", "bufs", "state"] {
-        let _ = write!(s, ",{g}_sig,{g}_err,{g}_max_abs,{g}_max_rel,{g}_diff");
+        let _ = write!(
+            s,
+            ",{g}_sig,{g}_err,{g}_max_abs,{g}_max_rel,{g}_diff,{g}_nonfinite_fast"
+        );
     }
     s.push('\n');
     for (i, r) in rows.iter().enumerate() {
@@ -314,8 +351,8 @@ fn csv(rows: &[PassRow]) -> String {
         for e in [r.lanes, r.bufs, r.state] {
             let _ = write!(
                 s,
-                ",{:e},{:e},{:e},{:e},{}",
-                e.sig, e.err, e.max_abs, e.max_rel, e.diff
+                ",{:e},{:e},{:e},{:e},{},{}",
+                e.sig, e.err, e.max_abs, e.max_rel, e.diff, e.nonfinite_fast
             );
         }
         s.push('\n');
@@ -426,10 +463,12 @@ mod tests {
             max_rel: 0.0,
             diff,
             other_diff: 0,
+            nonfinite_fast: 0,
             n: 10,
         };
         PassRow {
             steps: (5, 5),
+            unreadable: 0,
             lanes: e,
             bufs: e,
             state: e,
@@ -447,6 +486,35 @@ mod tests {
         assert!((e.max_abs - 0.5).abs() < 1e-12);
         assert!((e.snr() - 10.0 * (5.0f64 / 0.25).log10()).abs() < 1e-9);
         assert!(Err1::default().snr().is_nan() || Err1::default().snr().is_infinite());
+    }
+
+    #[test]
+    fn a_nonfinite_fast_word_is_counted_even_when_the_exact_word_is_not_a_float() {
+        let mut e = Err1::default();
+        // exact is an integer (outside the float domain), fast holds a NaN
+        e.add(0x1234_5678, f32::NAN.to_bits());
+        e.add(0.0f32.to_bits(), f32::INFINITY.to_bits());
+        e.add(1.0f32.to_bits(), 1.0f32.to_bits());
+        assert_eq!((e.nonfinite_fast, e.diff), (2, 2));
+        assert!(row_text("x", "g", &e).contains("2 non-finite in fast"));
+    }
+
+    #[test]
+    fn silent_exact_output_reports_an_undefined_snr_and_the_columns_match_the_header() {
+        let e = Err1::default();
+        assert!(row_text("x", "g", &e).contains("undefined"));
+        let mut f = Err1::default();
+        f.add(2.0f32.to_bits(), 1.0f32.to_bits());
+        // max rel is 0.5, printed in the max rel column
+        assert!(row_text("x", "g", &f).contains("5.000e-1"));
+    }
+
+    #[test]
+    fn unreadable_reads_are_reported() {
+        let mut rows: Vec<PassRow> = (0..4).map(|_| row(1.0, 0.0, 0)).collect();
+        assert!(report(&rows, 0).contains("failed (read as 0, either core): 0\n"));
+        rows[1].unreadable = 7;
+        assert!(report(&rows, 0).contains(": 7  <-- the comparison below is unreliable"));
     }
 
     #[test]
