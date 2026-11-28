@@ -239,7 +239,8 @@ impl<'a> Mem<'a> {
     /// completed and the rest of the block may be stale. `Jump` to the pc after the instruction:
     /// the uop completed and an access moved `irq.due` below its value before the uop, so the
     /// room the block was entered with is no longer true. The circular-buffer latch the dispatch
-    /// loop owes a `UF_CB` uop runs here first, because neither exit passes through it.
+    /// loop owes a `UF_CB` uop runs here first, because neither exit passes through it (pinned by
+    /// `h_move::tests_cb`: without it `CB7S` / `CB15S` would be latched one instruction late).
     #[cold]
     #[inline(never)]
     fn leave(&mut self) -> u32 {
@@ -258,25 +259,13 @@ impl<'a> Mem<'a> {
 }
 
 #[cfg(test)]
+mod tests_access;
+#[cfg(test)]
+mod tests_exit;
+
+#[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::sdram::Sdram;
-    use crate::core::support::core_with;
-    use crate::core::uop::types::UopKind;
-    use crate::core::uop::verify::compare::exact_diff;
-    use crate::core::IOP_WORDS;
-
-    /// A core with every peripheral model and the census on.
-    fn all_models() -> Core {
-        let mut c = core_with(&[0x0001]);
-        c.enable_sc57x(0);
-        c.enable_epdma();
-        c.enable_epchain();
-        c.enable_ringdma();
-        c.enable_access_log();
-        c.enable_spi_boot(vec![1, 2, 3]);
-        c
-    }
 
     #[test]
     fn the_windows_are_the_ones_of_memory_rs_and_do_not_overlap() {
@@ -292,34 +281,6 @@ mod tests {
         const _: () = assert!(SRAM_WORDS.end <= SHORT_WORDS.start);
     }
 
-    /// The premise of the fast path: no peripheral model looks at an SRAM address, with every
-    /// model on, and no other window of `dm_read` / `dm_write` is in the way (the IOP array is
-    /// below, the SDRAM window above, the device store has no window).
-    #[test]
-    fn periph_claims_disjoint_from_sram_windows() {
-        let c = all_models();
-        // the census and the models are really on: the same function claims the IOP window and
-        // the system range (without this the loop below would pass for any function)
-        assert!(c.periph_claims(0x1_0000), "the IOP window under the census");
-        assert!(c.periph_claims(0x2000_0000) && c.periph_claims(0x31FF_FFFF));
-        assert!(c.periph_claims(0x1080) && c.periph_claims(0x1084));
-        assert!(!c.periph_claims(0x3200_0000));
-        let bare = core_with(&[0x0001]);
-        assert!(!bare.periph_claims(0x1_0000), "no census, no claim");
-        assert!(bare.periph_claims(0x2000_0000), "the range needs no model");
-        // every address of both SRAM windows
-        let start = SRAM_WORDS.start;
-        let end = SHORT_WORDS.end;
-        let claimed = (start..end).filter(|&a| c.periph_claims(a)).count();
-        assert_eq!(claimed, 0, "claims inside {start:#x}..{end:#x}");
-        // and just outside them nothing changes either way
-        assert!(!c.periph_claims(start - 1) && !c.periph_claims(end));
-        // the other windows of the memory model keep clear of the SRAM windows
-        assert!(IOP_WORDS as u32 <= SRAM_WORDS.start);
-        assert!(!Sdram::contains(SRAM_WORDS.start) && !Sdram::contains(SHORT_WORDS.end - 1));
-        assert!(!Sdram::contains(IOP_WORDS as u32 - 1));
-    }
-
     #[test]
     fn insn_length_round_trips() {
         for len in 1..=3u32 {
@@ -327,190 +288,5 @@ mod tests {
             assert_eq!(a >> LEN_SHIFT, len);
         }
         assert_eq!(3u32 << LEN_SHIFT, 0xC000_0000);
-    }
-
-    /// Fast reads and writes equal `dm_read` / `dm_write` on the SRAM window, including the
-    /// side effects of a write (the decode cache of the code word it hits).
-    #[test]
-    fn fast_access_equals_the_interpreters_memory_path() {
-        let (mut fast, mut slow) = (core_with(&[0x0001; 4]), core_with(&[0x0001; 4]));
-        for (k, a) in [0x9_8000u32, 0x9_8001, 0xA_1234, 0xF_FFFE, 0xF_FFFF]
-            .into_iter()
-            .enumerate()
-        {
-            let v = 0x1234_5678u32.rotate_left(k as u32 * 7);
-            assert!(wr_fast(&mut fast, a, v));
-            slow.dm_write(a, v).unwrap();
-            assert_eq!(rd_fast(&fast, a), Some(v));
-            assert_eq!(slow.dm_read(a), Ok(v));
-        }
-        assert_eq!(exact_diff(&fast, &slow), None);
-        // a write into cached code: both cores run the NEW instruction afterwards. The four NOPs
-        // are cached by running them; the word 0x9_0001 holds the parcels at 0x12_0002 and 0x12_0003
-        for c in [&mut fast, &mut slow] {
-            assert_eq!(c.run(4), None);
-            (c.pc, c.r[0]) = (0x12_0002, 7);
-        }
-        // `R0 = DM(I2, M2)` (T3c, 16 bits) in the low parcel, a NOP in the high one
-        let new_code = 0x0001_9490u32;
-        assert!(wr_fast(&mut fast, 0x9_0001, new_code));
-        slow.dm_write(0x9_0001, new_code).unwrap();
-        for c in [&mut fast, &mut slow] {
-            assert!(c.step().is_ok());
-        }
-        assert_eq!(fast.r[0], 0, "the stale NOP was not run");
-        assert_eq!(exact_diff(&fast, &slow), None);
-    }
-
-    #[test]
-    fn the_fast_path_declines_what_the_interpreter_must_see() {
-        let mut c = core_with(&[0x0001]);
-        c.dm_write(0x9_0010, 5).unwrap();
-        // a watched address, a window of them, and a read watch
-        c.watch = 0x9_0010;
-        assert!(!wr_fast(&mut c, 0x9_0010, 6) && wr_fast(&mut c, 0x9_0011, 6));
-        assert_eq!(c.dm_peek(0x9_0010), Some(5), "nothing was written");
-        c.watch_len = 4;
-        assert!(!wr_fast(&mut c, 0x9_0013, 6) && wr_fast(&mut c, 0x9_0014, 6));
-        assert!(rd_fast(&c, 0x9_0010).is_some());
-        c.rwatch_on = true;
-        assert!(rd_fast(&c, 0x9_0010).is_none(), "every read logs while on");
-        c.rwatch_on = false;
-        // outside the window: IOP, short-word alias, SDRAM, device, peripheral
-        for a in [
-            0x3_E018,
-            0x8_FFFF,
-            0x10_0000,
-            0x12_4006,
-            0x0802_0000,
-            0x3108_D004,
-        ] {
-            assert!(rd_fast(&c, a).is_none(), "{a:#x}");
-            assert!(!wr_fast(&mut c, a, 1), "{a:#x}");
-        }
-    }
-
-    /// A write into a marked code page reaches `uop_note_write` through the fast path exactly as
-    /// it does through `dm_write`, and a write elsewhere does not.
-    #[test]
-    fn a_fast_write_into_translated_code_raises_the_smc_flag() {
-        let (mut fast, mut slow) = (core_with(&[0x0001; 2]), core_with(&[0x0001; 2]));
-        for c in [&mut fast, &mut slow] {
-            c.uop_run.active = true;
-            c.uop_run.code_pages.set_range(0x12_0000, 0x12_0100);
-        }
-        // a data word far from the marked page: no flag
-        assert!(wr_fast(&mut fast, 0xA_0000, 7) && fast.uop_run.flags & RF_SMC == 0);
-        assert!(!wr_plain(&fast, 0x9_0000), "its page is marked");
-        assert!(wr_plain(&fast, 0xA_0000));
-        // the first code word: flag, dirty bit and counter as `dm_write` leaves them
-        assert!(wr_fast(&mut fast, 0x9_0000, 7));
-        slow.dm_write(0x9_0000, 7).unwrap();
-        assert_eq!(fast.uop_run.flags & RF_SMC, RF_SMC);
-        assert_eq!(
-            (
-                fast.uop_run.flags,
-                fast.uop_run.dirty,
-                fast.uop_run.stats.smc
-            ),
-            (
-                slow.uop_run.flags,
-                slow.uop_run.dirty,
-                slow.uop_run.stats.smc
-            )
-        );
-        // the second page boundary: words 0x9_007F/0x9_0080 are short words 0x12_00FE..0x12_0101
-        for (a, hit) in [(0x9_007Fu32, true), (0x9_0080, false)] {
-            let mut c = core_with(&[0x0001]);
-            c.uop_run.active = true;
-            c.uop_run.code_pages.set_range(0x12_0000, 0x12_0100);
-            assert!(wr_fast(&mut c, a, 1));
-            assert_eq!(c.uop_run.flags & RF_SMC != 0, hit, "{a:#x}");
-        }
-    }
-
-    /// The slow path of [`Mem`] materializes `pc` and `steps` before it looks at memory, so a
-    /// watch hit and a read-watch hit carry what the interpreter would log, and the accesses
-    /// reach the models in program order.
-    #[test]
-    fn slow_accesses_see_the_uop_boundary_and_keep_their_order() {
-        let (mut a, mut b) = (core_with(&[0x0001]), core_with(&[0x0001]));
-        for c in [&mut a, &mut b] {
-            c.enable_access_log();
-            c.watch = 0x3_E000;
-            c.watch_len = 8;
-            c.rwatch = 0x3_E000;
-            c.rwatch_len = 8;
-            c.rwatch_on = true;
-        }
-        // the interpreter's view: `pc`/`steps` as the instruction sees them
-        b.pc = 0x12_0007;
-        b.steps = 42;
-        let seq: [(bool, u32, u32); 5] = [
-            (true, 0x3_E001, 11),
-            (false, 0x3_E002, 0),
-            (true, 0x3_E000, 12),
-            (false, 0x3_E001, 0),
-            (true, 0x9_0001, 13), // SRAM in between: not logged by the census
-        ];
-        for (write, addr, v) in seq {
-            if write {
-                b.dm_write(addr, v).unwrap();
-            } else {
-                b.dm_read(addr).unwrap();
-            }
-        }
-        // the handler's view: the core still sits at block entry, the context knows the rest
-        a.pc = 0x12_0000;
-        a.steps = 40;
-        let mut ctx = UopCtx::new(&mut a as *mut Core, 40, 100);
-        ctx.done = 2;
-        let u = Uop::new(UopKind(UopKind::MOVE_BASE), 1, 0x12_0007, 0, 0);
-        let mut m = unsafe { Mem::new(&mut ctx, &u) };
-        for (write, addr, v) in seq {
-            if write {
-                assert_eq!(m.wr(addr, v), Ok(()));
-            } else {
-                assert!(m.rd(addr).is_ok());
-            }
-        }
-        assert_eq!(m.finish(true), Exit::Ok as u32, "no deadline moved");
-        assert_eq!(a.watch_hits, b.watch_hits);
-        assert_eq!(a.watch_addrs, b.watch_addrs);
-        assert_eq!(a.rwatch_hits, b.rwatch_hits);
-        assert_eq!(a.watch_hits.len(), 2, "the two stores to the watched words");
-        assert_eq!(a.watch_hits[0], (42, 0x12_0007, 11));
-        // the census saw the same accesses in the same order; only pc and steps differ by design
-        a.pc = b.pc;
-        a.steps = b.steps;
-        assert_eq!(exact_diff(&a, &b), None);
-    }
-
-    #[test]
-    fn finish_reports_a_moved_deadline_and_a_store_into_code() {
-        let mut c = core_with(&[0x0001]);
-        c.enable_sc57x(1);
-        c.irq.due = u64::MAX;
-        c.sc57x().unwrap().raise_source(69);
-        let mut ctx = UopCtx::new(&mut c as *mut Core, 0, 100);
-        // a 3-parcel instruction: the pc after it is u.pc + 3
-        let u = Uop::new(UopKind(UopKind::MOVE_BASE), 1, 0x12_0010, 3 << LEN_SHIFT, 0);
-        let mut m = unsafe { Mem::new(&mut ctx, &u) };
-        // a store to a modelled register drains the queued SEC interrupt: `irq.due` drops to 0
-        assert_eq!(m.wr(0x3108_900C, 69), Ok(()));
-        assert_eq!(m.finish(true), Exit::Jump as u32);
-        assert_eq!(ctx.next_pc, 0x12_0013);
-        assert_eq!(c.irq.due, 0, "the event is due now");
-        // a load that changes nothing needs no exit
-        let mut ctx = UopCtx::new(&mut c as *mut Core, 0, 100);
-        let mut m = unsafe { Mem::new(&mut ctx, &u) };
-        assert!(m.rd(0x70_0000).is_ok());
-        assert_eq!(m.finish(false), Exit::Ok as u32);
-        // a store that hit a code page: Smc, and nothing else needed
-        c.uop_run.flags = RF_SMC;
-        let mut ctx = UopCtx::new(&mut c as *mut Core, 0, 100);
-        let mut m = unsafe { Mem::new(&mut ctx, &u) };
-        assert_eq!(m.finish(true), Exit::Smc as u32);
-        assert_eq!(m.finish(false), Exit::Ok as u32, "a load never looks at it");
     }
 }

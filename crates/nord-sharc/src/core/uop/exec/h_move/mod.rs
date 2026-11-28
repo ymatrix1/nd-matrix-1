@@ -66,6 +66,8 @@ mod probe;
 #[cfg(test)]
 mod support;
 #[cfg(test)]
+mod tests_cb;
+#[cfg(test)]
 mod tests_misc;
 #[cfg(test)]
 mod tests_xfer;

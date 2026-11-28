@@ -30,7 +30,7 @@ const JUMP: u32 = Exit::Jump as u32;
 const SLOW: u32 = Exit::Slow as u32;
 /// MODE1: `BDCST9` 22, `BDCST1` 23, `CBUFEN` 24.
 const BDCST: u32 = 3 << 22;
-const CBUFEN: u32 = 1 << 24;
+pub(super) const CBUFEN: u32 = 1 << 24;
 
 /// `T14a`: `ureg = DM(addr)` or `DM(addr) = ureg` (ureg in the low bits of the first parcel, the
 /// store bit is 0x100, the address in the two other parcels).
@@ -43,7 +43,7 @@ fn t14a(addr: u32, ureg: u16, store: bool) -> [u16; 3] {
 }
 
 /// `R1 = DM(Ii, 2)` post-modify, type 4b (`6c7e 10bf` is I6): `ii` 0..8 plus the DAG2 bank.
-fn t4b_post(ii: u16, bank: u16) -> [u16; 2] {
+pub(super) fn t4b_post(ii: u16, bank: u16) -> [u16; 2] {
     [
         (0x6c7e & !(7 << 9) & !(1 << 8)) | ii << 9 | bank << 8,
         0x10bf,
@@ -58,7 +58,7 @@ fn at_loop_end(c: &mut Core) {
     loop_end_here(c);
 }
 
-fn mark_code(c: &mut Core) {
+pub(super) fn mark_code(c: &mut Core) {
     c.uop_run.active = true;
     c.uop_run.code_pages.set_range(CODE_PC, CODE_PC + 0x100);
 }
