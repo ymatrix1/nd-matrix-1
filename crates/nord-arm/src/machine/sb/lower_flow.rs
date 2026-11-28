@@ -7,7 +7,7 @@
 //!
 //! | Ender | Result |
 //! |---|---|
-//! | `b` | followed (no uop, `n` is not carried); `LOOP_BACK` when the target is `entry_pc`; `EXIT` when `can_follow` refuses it (unmapped or `HOOK_X` page, page cap, already in the trace) |
+//! | `b` | followed with no uop (the builder covers it with `parts::nop`, see below); `LOOP_BACK` when the target is `entry_pc`; `EXIT` when `can_follow` refuses it (unmapped or `HOOK_X` page, page cap, already in the trace) |
 //! | `bl` | `MOV_IMM r14, pc + 4`, then as `b`; the callee is inlined while `depth < opts.inline_depth` (the return address goes on `rets`), otherwise `EXIT` |
 //! | `bcc` | `GUARD` leaving through the unpredicted side, the trace continues on the predicted one (backward taken unless `taken_hint`); polarity: guard `cond ^ 1` when the taken side is followed, `cond` when the fall-through is |
 //! | `bx rm` | `EXIT_REG` (`Indirect` exit, interwork); at `depth > 0` with `rm == r14` an inlined return: `GUARD_REG_EQ r14 == return pc` (its exit is the `Indirect` one), the trace continues at the return pc |
@@ -19,10 +19,12 @@
 //! table never exceeds `MAX_EXITS` (the builder keeps room for two exits per ender). `bx`/`mov
 //! pc` on `r15` read `pc + 8`, which only the interpreter reproduces (I2), so they stay generic.
 //!
-//! `Uop::n`: the uop that stands for the ender carries `n = 1` (`GUARD`, `EXIT*`, `LOOP_BACK` of
-//! an unconditional jump, `GENERIC_END`, the `MOV_IMM` of a `bl`); the terminal after a guard has
-//! `n = 0`. A followed unconditional `b` emits no uop, so the sum of `n` along a path is `done`
-//! minus the number of followed `b`s: `n` is bookkeeping, never an input of an executor.
+//! `Uop::n` (S0: summing `n` over the uops up to an exit gives its `done`): the uop that stands for
+//! the ender carries `n = 1` (`GUARD`, `EXIT*`, `LOOP_BACK` of an unconditional jump,
+//! `GENERIC_END`, the `MOV_IMM` of a `bl`); the terminal after a guard has `n = 0`. The one ender
+//! that lowers to no uop is a followed unconditional `b`: `lower_flow` returns `Flow::Follow` and
+//! pushes nothing, and `trace::build` then pushes `parts::nop` (`MOV_REG r0, r0`, `n = 1`) for it,
+//! so the count stays on a uop of its own. `n` is bookkeeping, never an input of an executor.
 //!
 //! # Mutation sites (L5, ids `200..=299` of `mutants.rs`)
 //!
@@ -88,6 +90,7 @@ pub(crate) const FLOW_MUTANTS: &[(u32, &str)] = &[
     (213, "trace: words snapshot of an instruction is wrong"),
     (214, "trace: a flipped prediction is ignored"),
     (215, "trace: literal fold registers no word"),
+    (216, "trace: a followed branch has no uop to count it"),
 ];
 
 /// Mutation site: true only inside `mutants::with(id, ..)` of a test build.
@@ -322,8 +325,8 @@ mod tests {
 
     #[test]
     fn the_mutation_sites_are_off_outside_a_mutant_run() {
-        assert!((200..=215).all(|id| !mutant(id)));
-        assert_eq!(FLOW_MUTANTS.len(), 16);
+        assert!((200..=216).all(|id| !mutant(id)));
+        assert_eq!(FLOW_MUTANTS.len(), 17);
         assert!(FLOW_MUTANTS.iter().all(|(id, _)| (200..=299).contains(id)));
     }
 }

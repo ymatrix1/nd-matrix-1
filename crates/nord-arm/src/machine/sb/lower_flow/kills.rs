@@ -1,5 +1,5 @@
 //! OWNER: W1-FLOW (tests). Mutation kill tests of layer L5 for the sites `FLOW_MUTANTS` lists
-//! (ids `200..=215`, `lower_flow.rs`, `trace.rs`, `trace/parts.rs`).
+//! (ids `200..=216`, `lower_flow.rs`, `trace.rs`, `trace/parts.rs`).
 //!
 //! A mutant is killed when a suite of this work package fails under it: the suites are replayed
 //! whole under `mutants::with(id, ..)` and one failed assertion is a kill. The suites run in order
@@ -50,6 +50,12 @@ fn the_differential_run_alone_sees_the_mutants_that_change_the_state() {
     for id in [200, 201, 202, 203, 204, 206, 210, 211] {
         assert_eq!(killer(id, &["diff"]), Some("diff"), "mutant {id}");
     }
+}
+
+#[test]
+fn the_count_of_a_followed_branch_is_pinned_by_the_shape_suite_through_the_sum_of_n() {
+    // the no-op changes no state (`n` is bookkeeping), so only the L6 check on `Uop::n` sees it
+    assert_eq!(killer(216, &["cases", "parts", "shape"]), Some("shape"));
 }
 
 #[test]

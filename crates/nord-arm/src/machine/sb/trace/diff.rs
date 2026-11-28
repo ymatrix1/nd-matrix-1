@@ -135,6 +135,29 @@ pub(super) fn forward_branches() -> impl Fn(&mut Machine) {
     }
 }
 
+/// `C: b A` ; `A: mov r3,#0xC0000000 ; add r3,r3,#0x4000 ; mov r0,#1 ; str r0,[r3] ; b B` ;
+/// `B: add r0,r0,#1 ; add r1,r1,#2 ; b E` ; `E: b F` ; `F: mov r5,#5 ; b .`, with a junk word
+/// behind every branch: unconditional branches that are followed, in front of the trace, behind
+/// a store, behind data processing and behind each other.
+pub(super) fn followed_branches() -> impl Fn(&mut Machine) {
+    |m| {
+        let (a, bb, e, f) = (CODE + 0x40, CODE + 0x80, CODE + 0xC0, CODE + 0x100);
+        put(m, CODE, &[b(CODE, a), mov(6, 0xEE)]);
+        let words = [
+            MOV_R3_BASE,
+            0xE283_3901,
+            mov(0, 1),
+            0xE583_0000,
+            b(a + 16, bb),
+        ];
+        put(m, a, &words);
+        put(m, a + 20, &[mov(7, 0xEE)]);
+        put(m, bb, &[add(0, 1), add(1, 2), b(bb + 8, e), mov(8, 0xEE)]);
+        put(m, e, &[b(e, f), mov(9, 0xEE)]);
+        put(m, f, &[mov(5, 5), b(f + 4, f + 4)]);
+    }
+}
+
 /// A short differential run for the mutation tests (`lower_flow/kills.rs`): the call and loop,
 /// a late and a Thumb return, a store into the trace and forward branches, on the default
 /// options.
@@ -340,4 +363,38 @@ fn forward_conditional_branches_taken_and_not_taken_stay_exact_with_every_predic
         "{tally:?}"
     );
     assert!(tally.had(k::GUARD) > 0 && tally.laps > 0, "{tally:?}");
+}
+
+#[test]
+fn followed_unconditional_branches_are_counted_and_stay_exact_at_every_budget() {
+    // one trace from `C` covers the 12 instructions and the four followed branches, each behind
+    // a no-op, and ends in the exit of `b .`
+    let mut one = Tally::default();
+    let opts = BuildOpts::default();
+    same(
+        "one trace",
+        &followed_branches(),
+        3,
+        12,
+        &opts,
+        &[],
+        &mut one,
+    );
+    let seen = (
+        one.traces,
+        one.insns,
+        one.steps,
+        one.had(k::MOV_REG),
+        one.took(k::EXIT),
+    );
+    assert_eq!(seen, (1, 12, 0, 4, 1), "{one:?}");
+    let mut tally = Tally::default();
+    sweep(16, |name, opts, budget| {
+        same(name, &followed_branches(), 3, budget, opts, &[], &mut tally);
+    });
+    assert!(tally.traces > 80 && tally.steps > 0, "{tally:?}");
+    assert!(
+        tally.had(k::MOV_REG) > 80 && tally.took(k::EXIT) > 0,
+        "{tally:?}"
+    );
 }

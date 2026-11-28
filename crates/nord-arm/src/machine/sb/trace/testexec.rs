@@ -3,8 +3,8 @@
 //! interpreter before the real executor (`exec.rs`, W2-XCORE) exists.
 //!
 //! The executor knows every control uop the builder emits (`PRED`, `GUARD`, `GUARD_REG_EQ`,
-//! `LOOP_BACK`, `EXIT*`, `GENERIC*`) and the `MOV_IMM` of a `bl` link, and hands the data-processing and memory families to the
-//! frozen arms `exec_alu::exec_dp` and `exec_mem::exec_mem`, so the same tests keep working once
+//! `LOOP_BACK`, `EXIT*`, `GENERIC*`), the `MOV_IMM` of a `bl` link and the `MOV_REG` no-op of a
+//! followed `b`, and hands the data-processing and memory families to the frozen arms `exec_alu::exec_dp` and `exec_mem::exec_mem`, so the same tests keep working once
 //! the lowerers of W1-DP and W1-MEM land. It applies an exit as `exec::finish` does and reads the
 //! `LOOP_BACK` contract as design note 4.3 gives it: the exit's `done` is one iteration, the
 //! executor accumulates and re-enters while `left >= acc + n_guest`.
@@ -108,6 +108,11 @@ pub(super) fn run_trace<B: SbBus>(cpu: &mut Cpu, bus: &mut B, sb: &Sb, left: &mu
                 cpu.r[u.rd as usize] = u.imm;
                 i += 1;
             }
+            k::MOV_REG => {
+                // the no-op that counts a followed `b` (`mov r0, r0`), as the real arm does
+                cpu.r[u.rd as usize] = cpu.r[u.rm as usize];
+                i += 1;
+            }
             _ => match k::family(u.kind) {
                 k::Family::Dp => {
                     exec_dp(&mut cpu.r, &mut f, u);
@@ -149,6 +154,37 @@ pub(super) fn run_trace<B: SbBus>(cpu: &mut Cpu, bus: &mut B, sb: &Sb, left: &mu
     };
     bus.set_pc(e.last_pc);
     Ran { exit, via, laps }
+}
+
+/// Layer L6 on `Uop::n` (S0 convention): summing `n` over the uops in program order, up to and
+/// including a uop that has an exit (a `PRED` body included), gives the `done` of that exit. A
+/// trace is one path with side exits, so one prefix sum covers every path.
+pub(in crate::machine::sb) fn check_sums(sb: &Sb) {
+    let mut sum = 0u64;
+    for (i, u) in sb.uops.iter().enumerate() {
+        sum += u64::from(u.n);
+        let leaves = matches!(
+            u.kind,
+            k::GUARD
+                | k::GUARD_REG_EQ
+                | k::LOOP_BACK
+                | k::EXIT
+                | k::EXIT_REG
+                | k::EXIT_REG_ARM
+                | k::GENERIC
+                | k::GENERIC_END
+        ) || k::is_store(u.kind);
+        if leaves {
+            let e = &sb.exits[u.exit_idx()];
+            assert_eq!(
+                (sum, e.kind),
+                (u64::from(e.done), e.kind),
+                "uop {i} (kind {}, pc {:#x}): the sum of n up to it is not the done of its exit",
+                u.kind,
+                u.pc
+            );
+        }
+    }
 }
 
 /// What a [`drive`] run exercised.
@@ -206,6 +242,7 @@ pub(super) fn drive(
         };
         match sb {
             Some(sb) if left >= u64::from(sb.n_guest) => {
+                check_sums(&sb);
                 for p in &sb.pages[..sb.n_pages as usize] {
                     m.bus.mem.mark_code(p << 12);
                 }
@@ -275,6 +312,30 @@ mod tests {
             let ran = run_trace(&mut cpu, &mut bus, &sb, &mut left);
             assert_eq!((ran.exit, cpu.r[0]), (exit, r0), "z = {flags_z}");
         }
+    }
+
+    #[test]
+    fn the_sum_of_n_up_to_an_exit_is_its_done_and_a_wrong_count_is_found() {
+        // mov (early exit 0) ; b, counted by a no-op ; str (early exit 1) ; exit 2
+        let mov = Uop::generic(0xE3A0_0001, 0x1000, 0);
+        let nop = Uop::new(k::MOV_REG, 0x1004);
+        let mut store = Uop::new(k::STR_IMM, 0x1008);
+        store.set_exit_idx(1);
+        let exit = Uop::exit(2, 0x1008);
+        let exits = vec![
+            Exit::new(ExitKind::Stale, 1, 0x1000, 0x1004),
+            Exit::new(ExitKind::Stale, 3, 0x1008, 0x100C),
+            Exit::new(ExitKind::Direct, 3, 0x1008, 0x100C),
+        ];
+        check_sums(&trace(vec![mov, nop, store, exit], exits.clone(), 3));
+        // the no-op dropped: the store's exit says 3 but two instructions are counted
+        let short = trace(vec![mov, store, exit], exits.clone(), 3);
+        assert!(std::panic::catch_unwind(|| check_sums(&short)).is_err());
+        // a count one too high in front of the exit
+        let mut twice = nop;
+        twice.n = 2;
+        let long = trace(vec![mov, twice, store, exit], exits, 3);
+        assert!(std::panic::catch_unwind(|| check_sums(&long)).is_err());
     }
 
     #[test]

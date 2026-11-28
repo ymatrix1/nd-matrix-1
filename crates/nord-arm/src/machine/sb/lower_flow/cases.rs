@@ -130,6 +130,7 @@ suite! {
         let word = b(PC, PC + 0x40);
         let o = lower(word, case());
         assert_eq!(o.flow, Flow::Follow(PC + 0x40));
+        // no uop here: `trace::build` counts the followed branch with `parts::nop`
         assert!(o.uops.is_empty() && o.exits.is_empty());
         let o = lower(word, Case { follow: false, exits: filler(2), done: 9, ..case() });
         assert_eq!(o.flow, Flow::End);

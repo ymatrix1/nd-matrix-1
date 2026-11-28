@@ -4,7 +4,9 @@
 //! A trace starts at `start` and follows one path through the code, instruction by instruction:
 //!
 //! * a block ender (`Insn::is_ender`) goes to `lower_flow` (branches followed or guarded, inlined
-//!   returns, `LOOP_BACK`, `GENERIC_END`, see `lower_flow.rs`);
+//!   returns, `LOOP_BACK`, `GENERIC_END`, see `lower_flow.rs`). A followed unconditional `b` has
+//!   no uop there, so the builder adds `parts::nop` for it: every instruction of the trace is
+//!   covered by a uop and summing `Uop::n` over the uops up to an exit gives its `done` (S0);
 //! * everything else goes through `decode::lower_or_generic` (the static registry: predicate wrap,
 //!   `GENERIC` fallback), and the builder then allocates the early exit that the memory and
 //!   `GENERIC` uops need (I6): every store uop and every `GENERIC` of the instruction gets one
@@ -49,7 +51,7 @@ use super::pred;
 use super::uop::{k, Exit, ExitKind, Sb, Uop, MAX_EXITS, MAX_PAGES, MAX_UOPS};
 use crate::cpu::predecode::op;
 use crate::mem::Mem;
-use parts::{early_exit, fetchable, fold_word, follow_ok};
+use parts::{early_exit, fetchable, fold_word, follow_ok, nop};
 
 #[cfg(test)]
 pub(super) mod diff;
@@ -228,6 +230,9 @@ impl Builder<'_> {
             self.lower(mem, &insn);
             Flow::Follow(pc.wrapping_add(4))
         };
+        if self.uops.len() == snap.uops && !mutant(216) {
+            self.uops.push(nop(pc)); // lowered to no uop: it still retires, count it
+        }
         // a trace that goes on needs room for its terminal uop; the first instruction is
         // always taken
         let room = usize::from(matches!(flow, Flow::Follow(_)));

@@ -4,7 +4,7 @@
 //! of `shape.rs`.
 
 use super::super::lower_flow::mutant;
-use super::super::uop::{k, Exit, ExitKind, MAX_EXITS, MAX_UOPS};
+use super::super::uop::{k, Exit, ExitKind, Sb, MAX_EXITS, MAX_UOPS};
 use super::shape::{add, addrs, b, bcc, bl, built, check, mem, mov, of_kind, opts, tail, BX_LR, C};
 use super::testexec::suite;
 use super::{build, build_flipped, BuildOpts, Builder, Step};
@@ -181,6 +181,70 @@ suite! {
     }
 
     #[test]
+    fn a_followed_branch_is_counted_by_a_no_op_uop_so_the_counts_of_the_uops_add_up_to_done() {
+        let nops = |sb: &Sb| sb.uops.iter().filter(|u| u.kind == k::MOV_REG).map(|u| u.pc).collect::<Vec<_>>();
+        // the first instruction, a store (it has an exit), a chain of branches and a conditional
+        // instruction in front of one: each branch gets a no-op of its own at its address
+        let (a, f1, f2) = (C + 0x20, C + 0x40, C + 0x60);
+        let prog = [
+            (C, &[b(C, a)][..]),
+            (a, &[mov(0, 1), 0xE588_0000, b(a + 8, f1)][..]),
+            (f1, &[add(0, 1), 0x1280_1001, b(f1 + 8, f2), mov(9, 9)][..]),
+            (f2, &[b(f2, f2 + 4), b(f2 + 4, f2 + 8), mov(5, 5), b(f2 + 12, f2 + 12)][..]),
+        ];
+        let mut m = mem(&prog);
+        let sb = built(&mut m, &opts()); // `built` checks the sums of n against every exit
+        assert_eq!(addrs(&sb).len(), 11, "{:?}", addrs(&sb));
+        assert_eq!(nops(&sb), [C, a + 8, f1 + 8, f2, f2 + 4], "one no-op per followed branch");
+        assert!(sb.uops.iter().filter(|u| u.kind == k::MOV_REG).all(|u| (u.rd, u.rm, u.n) == (0, 0, 1)));
+        let (u, e) = tail(&sb);
+        assert_eq!((u.kind, u.n, e.done, sb.n_guest), (k::EXIT, 1, 11, 11));
+        let counted: u64 = sb.uops.iter().map(|u| u64::from(u.n)).sum();
+        assert_eq!(counted, 11, "every instruction is covered by one uop count");
+    }
+
+    #[test]
+    fn a_chain_of_branches_is_counted_one_no_op_each_and_ends_at_the_uop_cap() {
+        let run: Vec<u32> = (0..300).map(|i| b(C + 4 * i, C + 4 * i + 4)).collect();
+        for cap in [1usize, 2, 9, 128] {
+            let o = BuildOpts { max_uops: cap, ..opts() };
+            let sb = built(&mut mem(&[(C, &run)]), &o);
+            let body = cap.saturating_sub(1).max(1);
+            assert_eq!((sb.n_guest as usize, sb.uops.len()), (body, body + 1), "cap {cap}");
+            assert!(sb.uops[..body].iter().all(|u| (u.kind, u.n) == (k::MOV_REG, 1)), "cap {cap}");
+            assert_eq!(tail(&sb).1.target, C + 4 * body as u32, "cap {cap}");
+        }
+    }
+
+    #[test]
+    fn the_roll_back_of_a_counted_branch_removes_its_no_op() {
+        let mut m = mem(&[(C, &[add(0, 1), b(C + 4, C + 0x40)]), (C + 0x40, &[mov(1, 1)])]);
+        let o = opts();
+        let mut b = Builder {
+            opts: &o,
+            flips: &[],
+            start: C,
+            limit: 2,
+            max_pages: 4,
+            uops: Vec::new(),
+            exits: Vec::new(),
+            words: Vec::new(),
+            pages: vec![C >> 12],
+            visited: Vec::new(),
+            depth: 0,
+            rets: Vec::new(),
+            done: 0,
+            last_pc: C,
+        };
+        assert!(matches!(b.step(&mut m, C), Step::Next(_)));
+        // the branch lowers to nothing, its no-op is the second uop and leaves no room for the
+        // terminal: the whole instruction goes
+        assert!(matches!(b.step(&mut m, C + 4), Step::Overflow));
+        assert_eq!((b.uops.len(), b.done, b.last_pc, b.visited.len()), (1, 1, C, 1));
+        assert!(b.uops.iter().all(|u| u.kind != k::MOV_REG));
+    }
+
+    #[test]
     fn an_instruction_over_the_cap_is_rolled_back_whole_and_the_trace_ends_in_front_of_it() {
         let mut m = mem(&[(C, &[add(0, 1), add(1, 1), add(2, 1)])]);
         let o = opts();
@@ -247,6 +311,6 @@ suite! {
 
     #[test]
     fn mutation_sites_do_nothing_when_no_mutant_is_active() {
-        assert!(!(200..=215).any(mutant));
+        assert!(!(200..=216).any(mutant));
     }
 }

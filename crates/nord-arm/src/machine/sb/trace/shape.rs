@@ -7,7 +7,7 @@
 //! of W1-DP and W1-MEM alike (every ordinary instruction used here lowers to one uop).
 
 use super::super::uop::{k, Exit, ExitKind, Sb, Uop, MAX_EXITS, MAX_UOPS};
-use super::testexec::suite;
+use super::testexec::{check_sums, suite};
 use super::{build, build_flipped, BuildOpts};
 use crate::mem::Mem;
 
@@ -86,6 +86,7 @@ pub(in crate::machine::sb) fn check(sb: &Sb, m: &Mem) {
     );
     assert_eq!(sb.n_guest, sb.exits.iter().map(|e| e.done).max().unwrap());
     assert!(exit.done == sb.n_guest, "the terminal path is the longest");
+    check_sums(sb);
     for u in sb.uops.iter() {
         match u.kind {
             k::GUARD | k::GUARD_REG_EQ | k::LOOP_BACK | k::EXIT | k::EXIT_REG | k::EXIT_REG_ARM => {

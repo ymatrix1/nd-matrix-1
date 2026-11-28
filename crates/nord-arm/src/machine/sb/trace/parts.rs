@@ -1,6 +1,7 @@
 //! OWNER: W1-FLOW. The small decisions of the trace builder, as free functions so each one can
 //! be tested alone: may a trace read or follow an address (I9), what the `fold` callback of the
-//! lowerers returns, and the early exit every store and `GENERIC` uop needs (I6).
+//! lowerers returns, the early exit every store and `GENERIC` uop needs (I6), and the uop that
+//! counts an instruction which lowered to none.
 
 use super::super::decode::Insn;
 use super::super::lower_flow::mutant;
@@ -54,6 +55,16 @@ pub(super) fn fold_word(
         words.push((addr, word));
     }
     Some(word)
+}
+
+/// The uop of an instruction that lowered to none, an unconditional `b` the trace follows:
+/// `MOV_REG r0, r0`, the specialised `mov` that is a no-op in every executor (design note 3.1: a
+/// specialised id equals the generic non-S id it replaces, so flags and `r15` stay untouched).
+/// It covers the branch (`n = 1`, `pc` its address), so summing `Uop::n` along a path gives the
+/// `done` of the exit that path leaves through (the S0 convention) and a consumer that stops in
+/// front of any uop, as the native tier's generic exit does, has retired the branch.
+pub(super) fn nop(pc: u32) -> Uop {
+    Uop::new(k::MOV_REG, pc)
 }
 
 /// Uops that need the early exit of I6: a store may make decoded code stale, and `GENERIC` runs
@@ -166,6 +177,15 @@ mod tests {
             mem.add_flag(0xC000_0200, 0xC000_0200, HOOK_R);
             mem.write32(0xC000_0200, 1);
             assert_eq!(fold_word(&mut mem, &mut words, &mut pages, 4, true, 0xC000_0200), None);
+        }
+
+        #[test]
+        fn the_no_op_uop_is_a_mov_that_reads_and_writes_r0_and_covers_one_instruction() {
+            let u = nop(0xC000_0010);
+            assert_eq!((u.kind, u.rd, u.rm, u.n, u.pc), (k::MOV_REG, 0, 0, 1, 0xC000_0010));
+            assert_eq!((u.cond, u.rn, u.rs, u.sh, u.imm), (0, 0, 0, 0, 0), "a plain non-S mov");
+            assert_eq!(k::family(u.kind), k::Family::Dp);
+            assert!(!k::is_store(u.kind));
         }
 
         #[test]
