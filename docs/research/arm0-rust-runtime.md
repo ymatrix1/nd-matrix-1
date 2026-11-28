@@ -1,6 +1,6 @@
 # ARM0 native Rust runtime: wall-clock per 1 ms tick
 
-**Checked:** 2026-11-24 (first run 2026-11-23; predecode cache, tail, queue and budget measured 2026-11-24).
+**Checked:** 2026-11-28 (first run 2026-11-23; predecode cache, tail, queue and budget measured 2026-11-24; tail follow-up 2 and producer thread 2026-11-28).
 
 **Sources:** `crates/nord-arm` + `crates/nord-tools/src/bin/arm_lle_bench.rs`; user OS v1.66 images `target/fw_unpacked/bank0_CODE.bin` (loaded at `0xC0000000`) and `bank0_SRAM.bin` (read-only, never committed); a 256 KB EEPROM image built by `tools/arm_program_load.build_image` from `target/oled/eeprom.bin` plus factory program `B3 Chords n Solo.ns4p`; Python reference `tools/arm_org_stream.py`, `tools/arm_steady.py`, `tools/arm_dsp_return.py`; [pno-jit-arm-profile](pno-jit-arm-profile.md) (Python/Unicorn cost); [dsp-to-arm-return](dsp-to-arm-return.md); [arm-tick-timers](arm-tick-timers.md) (24 kHz timer, D130); [arm-dsp-live-link](arm-dsp-live-link.md) (7,340 count); [arm-oled-render](arm-oled-render.md) (display flush).
 
@@ -195,18 +195,23 @@ Idle-loop specialisation beyond WFI has nothing to act on: the heavy stretch is 
 
 ### 4. A decoupled thread makes the criterion about the backlog, not the tick
 
-`producer.rs`: ARM0 runs on a thread ahead of virtual time, one `TickMsgs` per tick through a bounded queue. Queue size from the deterministic instruction series and a stated rate (`queue_ticks_for(exec_i / rate)` = `ceil(1.5 x backlog) + 2`, rate 110 M insns/s = the lowest heavy-tick rate seen), `arm-rt-bench`, 5 real-time runs per budget plus a 1-tick queue for contrast, host load 68 to 90 %:
+`producer.rs` / `consumer.rs`: ARM0 runs on a thread ahead of virtual time, one `TickMsgs` per tick through a bounded queue. The real-time consumer takes exactly ONE tick per millisecond deadline (tick `k` due `k + 1` ms after the start) and counts a missed deadline as an underrun, so the producer's lead is at most the queue length (an earlier version took every ready tick at each deadline and so held about twice the lead: its "0 underruns" is withdrawn). Queue size from the deterministic instruction series and a stated rate (`queue_ticks_for(exec_i / rate)` = `ceil(1.5 x backlog) + 2`, rate 110 M insns/s = the lowest heavy-tick rate seen). `arm-rt-bench`, 5 real-time runs per budget plus a 1-tick queue for contrast, **cold start** (`PREFILL_MS=0`: the first deadline is 1 ms after the producer spawn), host load 79 to 82 %:
 
-| budget | queue (ticks = ms of lead) | deterministic runs (2) vs single-thread reference | real-time underruns, derived queue | real-time underruns, 1-tick queue | producer waited on a full queue |
-|---|---|---|---|---|---|
-| 150 k | 25 | digest and state hash equal (`3efde38f525cfbd1` / `2eb2fd59fb12078e`) | 0 of 1,900 in 5 runs | 11 (0.6 %), max 0.74 ms late | 74 times |
-| 200 k | 42 | equal (`.../6be2c14282a84986`) | 0 in 5 runs | 49 (2.6 %), max 14.6 ms | 45 times |
-| 300 k | 57 | equal (`a3aab7d387c3f514` / `7cc1638d7d84d519`) | 0 in 5 runs | 89 (4.7 %), max 26.9 ms | 33 times |
-| 456 k | 69 | equal (`.../8aeb29f222e09e35`) | 0 in 5 runs | 50 (2.6 %), max 31.1 ms | 27 times |
+| budget | queue (ticks = ms of lead) | deterministic runs (2) vs single-thread reference | underruns per run of 1,900, derived queue (5 runs) | max lateness | 1-tick queue | producer waited on a full queue |
+|---|---|---|---|---|---|---|
+| 150 k | 25 | digest and state hash equal (`3efde38f525cfbd1` / `2eb2fd59fb12078e`) | 0, 0, 0, 0, 0 | 0 ms | 1 (0.05 %), 0.20 ms | 1,813 to 1,841 |
+| 200 k | 42 | equal (`.../6be2c14282a84986`) | 2, 1, 1, 0, 0 | 5.19 ms | 19 (1.0 %), 4.7 ms | 1,790 to 1,815 |
+| 300 k | 57 | equal (`a3aab7d387c3f514` / `7cc1638d7d84d519`) | 0, 0, 0, 0, 1 | 0.45 ms | 34 (1.8 %), 11.0 ms | 1,776 to 1,795 |
+| 456 k | 69 | equal (`.../8aeb29f222e09e35`) | 1, 0, 0, 1, 1 | 0.36 ms | 52 (2.7 %), 27.4 ms | 1,760 to 1,776 |
 
-* A queue sized from ONE lucky single-thread timing run underran: 3 ticks at 150 k gave 0 to 42 underruns over 5 runs, 30 ticks from the worst of three runs was fine at 200 k. The sizing therefore uses the deterministic instruction series and a conservative rate; the margin 1.5 and slack 2 are ASSUMED.
-* The cost of the lead: while the queue is full the producer is up to `queue` ticks ahead, so live MIDI input is applied up to that many ms after it arrived (25 to 69 ms at the derived sizes). Only the program-load stretch (about 6.5 M instructions) needs the big queue; key phases run at 0.07 to 0.17 ms per tick. A cap on the lead outside heavy stretches is a follow-up (needs the producer to know when it can stop running ahead).
-* Determinism: the two threaded runs equal the single-thread reference in message digest and state hash (table above); the real-time runs were not compared; test `two_runs_produce_identical_message_streams_whatever_the_queue_or_the_consumer` (queue 1, 64 and 2 with a slow consumer: identical streams and state hash).
+* Result: a derived queue gives 0 to 2 underruns per run (11 underruns in 38,000 ticks over the 20 runs, 11 of the 20 runs with none), against 0.05 to 2.7 % for a 1-tick queue. It is not "0": the consumer starts cold. With the consumer started 50 ms after the producer (`PREFILL_MS=50`, the setting of the first version), 200 k gave 0, 0, 0, 0, 0 underruns, so the residue is the start-up (the first deadlines arrive while the producer thread is still spinning up), not the heavy stretch. A real DSP side needs its own start-up prefill of a few ticks.
+* "Producer waited on a full queue" counts nearly every tick now: with one tick per deadline the producer is always the one that waits (it is far faster than 1 ms per tick outside the heavy stretch); that is back-pressure working, not a stall.
+* A queue sized from ONE lucky single-thread timing run underran (3 ticks at 150 k, earlier consumer), hence the deterministic series and the 110 M insns/s rate; the 1.5 margin and 2 ticks of slack stay ASSUMED.
+* The cost of the lead: while the queue is full the producer is up to `queue` ticks ahead, so live MIDI input is applied up to that many ms after it arrived (25 to 69 ms at the derived sizes). Only the program-load stretch (about 6.5 M instructions) needs the big queue; key phases run at 0.07 to 0.17 ms per tick. A cap on the lead outside heavy stretches is a follow-up.
+* Determinism: unit test `the_threaded_stream_equals_a_plain_single_thread_loop` compares the producer's per-tick messages and final state hash with a plain `run_tick_idle` + `drain_messages_into` loop for queue sizes 1, 3 and 64 (synthetic machine); `arm-rt-bench` does the same on the real image (digest and state hash, table above). The real-time runs were not compared.
+* Failure reporting: a faulting machine delivers the tick's messages so far and `Item::Fault` to both consumers (tests); a producer panic closes the channel without `Done`, reported as `End::Disconnected`, and `finish()` returns the panic message. The panic path itself is not unit-tested.
+* Not allocation-free (`mpsc` sends allocate, consumer helpers push into a `Vec`): fine for this offline harness, a real DSP integration needs a preallocated SPSC ring.
+* Counter overhead (always-on `RunStats` increments): `arm-lle-bench` `BOOT_ONLY=1` boot rate, parent `5cf37e7d^` vs current, 11 alternating pairs, M executed insns/s, median [min..max]: parent 141.6 [135.9..155.6], current 144.5 [126.9..157.1] (same state hash). Inside the noise band; no cost is claimed or ruled out below it. Shared host, load not recorded for this run.
 
 ## Not verified
 
@@ -221,7 +226,7 @@ Idle-loop specialisation beyond WFI has nothing to act on: the heavy stretch is 
 
 * A native interpreter with a predecode cache is enough for the mean and for key events; decision [D245](../DECISIONS.md), update [D250](../DECISIONS.md).
 * Idle skipping needs no firmware knowledge; it is exact on the 6 benchmark phases at four tick budgets (state and message content), not proven in general.
-* A decoupled ARM0 thread with a queue of a few ticks keeps every message within 1 ms of its tick in the simulation. A lockstep design inside the 1 ms audio callback would still miss 0.2 to 0.5 % of ticks by up to 0.5 ms.
+* A decoupled ARM0 thread absorbs the heavy stretch in a queue of 25 to 69 ticks (derived from the instruction series), at the price of a lead: live MIDI is applied up to that many ms late while the queue is full (25 to 69 ms), and 0 to 2 underruns per 1,900 ticks remain at start-up. A lockstep design inside the 1 ms audio callback would still miss 0.2 to 0.5 % of ticks by up to 0.5 ms.
 
 ## Follow-ups
 
