@@ -23,6 +23,7 @@ use nord_arm::machine::metrics::{
 use nord_arm::machine::paced::{consume, produce, Flight};
 use nord_arm::machine::system::Message;
 use nord_arm::machine::{Machine, Stop};
+use nord_sharc::cpu_clock::ThreadClock;
 use nord_tools::arm_bench::{plan, RESERVE_PAGES};
 use std::time::Instant;
 
@@ -40,7 +41,10 @@ fn tick_insns() -> u64 {
 /// Per-tick measurements of one phase.
 struct Row {
     name: &'static str,
+    /// Wall time per tick: the deadline statistics (>1 ms, backlog) use this.
     ms: Vec<f64>,
+    /// Thread CPU time per tick (wall time where `ThreadClock::is_cpu_time()` is false).
+    cpu_ms: Vec<f64>,
     executed: Vec<u64>,
     device_reads: Vec<u64>,
     arena_growth: Vec<usize>,
@@ -58,6 +62,7 @@ fn run_phase(
     let mut row = Row {
         name,
         ms: Vec::with_capacity(ticks),
+        cpu_ms: Vec::with_capacity(ticks),
         executed: Vec::new(),
         device_reads: Vec::new(),
         arena_growth: Vec::new(),
@@ -70,13 +75,14 @@ fn run_phase(
     for i in 0..ticks {
         let (dev0, arena0, exec0) = (m.bus.device_reads, m.bus.mem.arena_bytes(), stats.executed);
         buf.clear();
-        let t = Instant::now();
+        let t = ThreadClock::start();
         if i == 0 {
             action(m);
         }
         let s = m.run_tick_idle(tick_insns(), stats);
         m.drain_messages_into(&mut buf);
-        row.ms.push(t.elapsed().as_secs_f64() * 1e3);
+        row.cpu_ms.push(t.elapsed_ms());
+        row.ms.push(t.wall_ns() as f64 / 1e6);
         assert!(
             matches!(s, Stop::Budget),
             "{name} tick {i}: {s:?} pc={:#x}",
@@ -101,6 +107,7 @@ fn run_phase_full(
     let mut row = Row {
         name,
         ms: Vec::new(),
+        cpu_ms: Vec::new(),
         executed: Vec::new(),
         device_reads: Vec::new(),
         arena_growth: Vec::new(),
@@ -110,13 +117,14 @@ fn run_phase_full(
     let mut buf = Vec::new();
     for i in 0..ticks {
         buf.clear();
-        let t = Instant::now();
+        let t = ThreadClock::start();
         if i == 0 {
             action(m);
         }
         let s = m.run_tick(tick_insns());
         m.drain_messages_into(&mut buf);
-        row.ms.push(t.elapsed().as_secs_f64() * 1e3);
+        row.cpu_ms.push(t.elapsed_ms());
+        row.ms.push(t.wall_ns() as f64 / 1e6);
         assert!(matches!(s, Stop::Budget), "{name} tick {i}: {s:?}");
         row.msgs_per_tick.push(buf.len());
         row.msgs.extend_from_slice(&buf);
@@ -209,7 +217,7 @@ fn report(rows: &[Row]) {
         let over = r.ms.iter().filter(|x| **x > 1.0).count();
         let (run, backlog) = tail(&r.ms);
         println!(
-            "{:<9} {:>6}  {:>7.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>3} ({:>4.1}%)  {:>4}  {:>10.2}  {:>14.0}  {:>6}",
+            "{:<9} {:>6}  {:>7.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>3} ({:>4.1}%)  {:>4}  {:>10.2}  {:>14.0}  {:>6}  {:>10.3}  {:>10.3}",
             r.name,
             r.ms.len(),
             mean,
@@ -222,7 +230,9 @@ fn report(rows: &[Row]) {
             run,
             backlog,
             r.executed.iter().sum::<u64>() as f64 / r.ms.len() as f64,
-            r.msgs.len()
+            r.msgs.len(),
+            r.cpu_ms.iter().sum::<f64>() / r.cpu_ms.len().max(1) as f64,
+            r.cpu_ms.iter().copied().fold(0.0, f64::max)
         );
     }
     let (run, backlog) = tail(&all);

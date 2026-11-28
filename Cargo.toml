@@ -22,3 +22,15 @@ authors = ["ymatrix1"]
 # nih_plug_egui with the HiDPI plugin-resize fix (see vendor/nih_plug_egui/README-VENDORED.md).
 [patch."https://github.com/davemollen/nih-plug.git"]
 nih_plug_egui = { path = "vendor/nih_plug_egui" }
+
+# Build profiles (D259). The DSP and emulator crates run optimized (opt-level 1) in dev and test
+# builds, so the fuzz, render and golden-hash tests finish in a quarter of the time; overflow
+# checks and debug assertions stay on (docs/research/build-bench-speed.md).
+[profile.dev.package.nord-core]
+opt-level = 1
+
+[profile.dev.package.nord-sharc]
+opt-level = 1
+
+[profile.dev.package.nord-arm]
+opt-level = 1
