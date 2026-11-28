@@ -9,6 +9,7 @@
 #![allow(semicolon_in_expressions_from_non_local_macros)]
 
 pub mod audio_out;
+pub mod auto_library;
 pub mod aux_pedal_params;
 mod core_sync;
 pub mod editor;
@@ -18,6 +19,11 @@ pub mod fx_params;
 pub mod fx_selectors;
 pub mod fx_sharing_params;
 pub mod fx_variation_params;
+pub mod library_host;
+#[cfg(test)]
+mod library_off_tests;
+pub mod library_select;
+pub mod load_queue;
 pub mod loader;
 pub mod menu_extra_params;
 pub mod midi;
@@ -37,6 +43,7 @@ pub mod program_hold;
 pub mod program_overrides;
 pub mod program_params;
 pub mod settings_params;
+pub mod shared_sounds;
 pub mod state;
 pub mod synth_gate_params;
 pub mod synth_mod_params;
@@ -72,6 +79,13 @@ pub struct NdMatrix1Plugin {
     /// Where the engine publishes its state (lit keys, LEDs, ladders) for the editor to read.
     /// It outlives engine rebuilds: each new engine is attached to the same cell.
     pub telemetry: Arc<TelemetryCell>,
+    /// The library worker serving `library_program` (`auto_library.rs`); `None` without a saved
+    /// library. Started when the instance activates.
+    pub library: Option<auto_library::LibraryLink>,
+    /// The `library_program` value last sent to the worker; a change in `process()` sends again.
+    last_library_program: i32,
+    /// Where the library comes from: the user's saved one, or what a test or tool sets.
+    pub library_source: auto_library::LibrarySource,
 }
 
 impl Default for NdMatrix1Plugin {
@@ -95,6 +109,9 @@ impl Default for NdMatrix1Plugin {
             load_tx,
             load_rx,
             telemetry,
+            library: None,
+            last_library_program: -1,
+            library_source: auto_library::LibrarySource::Saved,
         }
     }
 }
@@ -130,7 +147,7 @@ impl NdMatrix1Plugin {
     }
 
     /// Applies every queued editor load (`process()` start): no allocation, no free, no lock.
-    fn drain_loads(&mut self) {
+    pub(crate) fn drain_loads(&mut self) {
         while let Some(job) = self.load_rx.pop() {
             self.loaded
                 .apply(job, &mut self.engine, &self.params, &self.bin);
@@ -180,6 +197,17 @@ impl Plugin for NdMatrix1Plugin {
         self.bin = spawn_reaper();
         // The saved Nord OS update's WAVE tables, parsed off-thread and installed once per process.
         wave_tables::install_saved_in_background();
+        // The saved sound library: the wanted program is decoded off-thread, queued, and
+        // applied before the first block (the host may render at once).
+        if self.start_library(self.library_source.path()) {
+            auto_library::report(&format!(
+                "initialize: {:?} at {} Hz, loading program {}",
+                buffer_config.process_mode,
+                buffer_config.sample_rate,
+                library_select::label(self.last_library_program)
+            ));
+            self.wait_for_library_program();
+        }
         self.rebuild_engine();
         true
     }
@@ -195,7 +223,9 @@ impl Plugin for NdMatrix1Plugin {
         aux: &mut AuxiliaryBuffers,
         context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
-        // Editor loads first, so the block sync below sees the program that was just loaded.
+        // A moved Program parameter asks the worker; editor and worker loads are applied first,
+        // so the block sync below sees the program that was just loaded.
+        self.request_library_program();
         self.drain_loads();
 
         // Synchronize automatable parameters to engine state
@@ -334,6 +364,7 @@ mod tests {
     fn test_editor_keybed_note_reaches_process_output() {
         let mut plugin = NdMatrix1Plugin::default();
         let mut init_ctx = MockInitContext;
+        plugin.library_source = crate::auto_library::LibrarySource::None;
         plugin.initialize(
             &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0],
             &BufferConfig {
@@ -437,6 +468,7 @@ mod tests {
     fn test_plugin_process_buffer_zero_alloc() {
         let mut plugin = NdMatrix1Plugin::default();
         let mut init_ctx = MockInitContext;
+        plugin.library_source = crate::auto_library::LibrarySource::None;
         plugin.initialize(
             &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0],
             &BufferConfig {

@@ -293,8 +293,9 @@ Runs (one run each; deterministic, the result does not depend on timing):
 | | ORG Core2 | PNO Core2 |
 |---|---|---|
 | passes with a different step count (control flow) | 0 of 316 | 0 of 316 |
-| output lanes: words differing | 0 of 30 336 (exact output is all 0) | 0 of 30 336 (all 0) |
-| pass buffers: words differing | 0 of 3 883 008 | 0 of 3 883 008 |
+| output lanes: words differing | 0 of 30 336 (exact lanes are all 0, SNR undefined) | 0 of 30 336 (all 0) |
+| pass buffers: words differing | 0 of 3 883 008 (exact energy 8.7e3 per pass, identical) | 0 of 3 883 008 (same) |
+| failed data-memory reads, non-finite words in the fast core (added after review, re-run) | 0 / 0 | 0 / 0 |
 | state: first diverging pass | 1 | 0 |
 | state: words differing per pass, min / median / max | 58 / 190 / 222 of 512 000 | 12 / 96 / 128 of 512 000 |
 | state: max abs error, any pass | 1.40e-5 | 1.28e-5 |
@@ -309,8 +310,8 @@ pass 16: 128 words, 2.4e-7; last pass: 84 words, 3.5e-6. The differing words are
 (for example `0xc1e36`, `0xc1e37`, `0xc1e40`, ... hold the same pair in ORG; `0x3e5214f8` vs `0x3e5215a7`, 0.205158 vs
 0.205161, in PNO), so the count is a handful of distinct state variables.
 
-**Silent and loaded pass.** Both streams are silent: the exact output lanes and buffers are exactly 0 in every pass
-(known for ORG Core2: `org-system-run.md`, "ORG Core2 produces no audio in any state tried"). **The SNR relative to
+**Silent and loaded pass.** Both streams are silent: the exact output lanes are exactly 0 in every pass (the pass
+buffers hold nonzero data, identical on both cores; known for ORG Core2: `org-system-run.md`, "ORG Core2 produces no audio in any state tried"). **The SNR relative to
 the exact output is therefore not defined** (signal energy 0, error 0): the audio-side comparison is trivially
 identical and says nothing about audible error. The measurable difference is the module state. The idle pass (PNO
 Core2, pass 16) and the loaded pass (ORG Core2 after the 912 messages, pass 16 and later) look alike: tens to a few
@@ -322,7 +323,7 @@ flat. The state-energy SNR (about 280 to 300 dB) is dominated by large-magnitude
 | # | Criterion | ORG Core2 | PNO Core2 |
 |---|---|---|---|
 | 1 | step count equal to the exact module on every pass | met (0 of 316) | met (0 of 316) |
-| 2 | output lanes and buffers: SNR at least 100 dB whole run, 80 dB worst pass, spectrum within 0.1 dB (`aot_audio::TOLERANCE`) | not testable: exact output is 0 | not testable |
+| 2 | output lanes: SNR at least 100 dB whole run, 80 dB worst pass, spectrum within 0.1 dB (`aot_audio::TOLERANCE`) | not testable: exact output is 0 | not testable |
 | 3 | module float state: relative error at most 1e-3 on words of 1e-12 or larger | met, 2.0e-5 | met, 1.9e-5 |
 | 4 | bounded drift: last-quartile mean error energy at most 2x the third | met, 1.0x | met, 0.34x |
 
@@ -339,6 +340,11 @@ of audio) cannot show a drift that needs seconds (a pole near the unit circle, a
 
 `lle_sharc_bench` shows the fast tier saves 12 to 17% of a pass on these streams (`sharc-lle-realtime.md`, "Compute
 share"), so the listening cost is only worth paying if compute later dominates a pass.
+
+The `max rel` column of the tool's pass table is the value of that pass only; the whole-run figures above are the maxima
+over all passes (from the CSV). After the first review the tool also counts failed `dm_read`s and non-finite fast words
+(both 0 in the two runs above, re-run 2026-11-28 with identical numbers); a silent exact output prints its SNR as
+"undefined".
 
 Reproduce (Git Bash; modules from `sharc-lle-realtime.md`, "Reproduce"):
 

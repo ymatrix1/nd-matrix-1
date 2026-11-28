@@ -19,6 +19,11 @@ pub struct UserConfig {
     /// Path of the user's Nord OS update file (`.exe`, `.dmg`, `.zip` or extracted container).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub os_update_path: Option<String>,
+    /// Path of the user's `.ns4b` sound library (the factory backup, or an edited one): the
+    /// programs, pianos and sample banks the plugin loads by its `library_program` parameter
+    /// (`library_setting`). Read only by the plugin and `ns4 library`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub library_path: Option<String>,
     /// Engine to start with: `hle` or `lle` (opt-in, see `engine_select`). Kept as text so an
     /// unknown value from a newer version never makes the whole file unreadable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -118,6 +123,21 @@ pub fn saved_default(env: Option<&str>, config: &Path) -> Result<Option<PathBuf>
         .os_update_path
         .filter(|p| !p.trim().is_empty())
         .map(PathBuf::from))
+}
+
+/// The saved `.ns4b` library path, or `Ok(None)` when nothing is saved. A config file that cannot
+/// be read or parsed is an `Err`.
+pub fn saved_library(config: &Path) -> Result<Option<PathBuf>, String> {
+    Ok(load(config)?
+        .library_path
+        .filter(|p| !p.trim().is_empty())
+        .map(PathBuf::from))
+}
+
+/// Loads `config` for editing: a missing or unreadable file counts as the empty config, so one
+/// setting can be changed without losing the other.
+pub fn load_or_default(config: &Path) -> UserConfig {
+    load(config).unwrap_or_default()
 }
 
 /// What start-up does with the saved setting: the path to put in `NS4_WAVE_TABLES` (only when it
