@@ -1,25 +1,34 @@
 //! Lowering: from the decoded instructions of a code range to blocks of uops.
 //!
-//! OWNER: W1-LOWER (this file and `scan`, `cut`, `budget`, `guard`, `pcmap`, `decode`,
-//! `builder`); `float`, `fixed`, `moves`, `flow` belong to W2-FLOAT, W2-FIXED, W2-MOVE and
-//! W2-FLOW. Registration of the families is STATIC: [`lower_insn`] asks the four [`Family`]
-//! implementations in a fixed order and falls back to an `Interp` uop, so a family that lowers
-//! nothing leaves its instructions exact (design section 8) and the packages never edit this file
-//! for a new family member.
+//! OWNER: W1-LOWER (this file and `scan`, `cut`, `cbwrap`, `group`, `translate`, `budget`,
+//! `guard`, `pcmap`, `decode`, `builder`, and the test-only `support` and `diff`); `float`, `fixed`,
+//! `moves`, `flow` belong to W2-FLOAT, W2-FIXED, W2-MOVE and W2-FLOW. Registration of the
+//! families is STATIC: [`lower_insn`] asks the four [`Family`] implementations in a fixed order
+//! and falls back to an `Interp` uop, so a family that lowers nothing leaves its instructions
+//! exact (design section 8) and the packages never edit this file for a new family member.
 //!
-//! Skeleton: [`translate_range`] validates the range and returns no blocks, so the interpreter
-//! runs everything.
+//! [`translate_range`] walks the range once (`scan`), cuts it into blocks (`cut`, `translate`)
+//! for both PEy modes and lowers every instruction with [`lower_insn`]; while no family takes an
+//! instruction every uop is an `Interp` uop, which is exact by construction.
 pub mod budget;
 pub mod builder;
+pub mod cbwrap;
 pub mod cut;
 pub mod decode;
 pub mod fixed;
 pub mod float;
 pub mod flow;
+pub mod group;
 pub mod guard;
 pub mod moves;
 pub mod pcmap;
 pub mod scan;
+pub mod translate;
+
+#[cfg(test)]
+mod diff;
+#[cfg(test)]
+mod support;
 
 use super::config::{UopConfig, UopError};
 use super::types::{Block, Uop};
@@ -60,7 +69,10 @@ pub(in crate::core) fn lower_insn(cx: &LowerCtx<'_>, c: &CachedInsn, out: &mut B
 
 /// Translates the short words `lo..hi` into non-overlapping basic blocks and their uops (block
 /// `first` indexes are relative to the returned vector). Reads the code through the decode path
-/// of `Core::step`.
+/// of `Core::step`. Every range is translated twice, once per PEy mode (rule P4), the PEy-off
+/// blocks first. `core.uop_run.stop_pc` is the pass idle pc a block must end at (none when
+/// `NONE`); the caller sets it before translating (`uop_maintain` keeps it, `enable_uop` must
+/// restore it after `disable_uop`, see `docs/specs/sharc-uop.md`).
 pub(crate) fn translate_range(
     core: &mut Core,
     cfg: &UopConfig,
@@ -70,8 +82,7 @@ pub(crate) fn translate_range(
     if lo >= hi {
         return Err(UopError::OutOfRange { lo, hi });
     }
-    let _ = (core, cfg);
-    Ok((Vec::new(), Vec::new()))
+    Ok(translate::translate_with(core, cfg, lo, hi, lower_insn))
 }
 
 /// Test helper shared by the family tests: lowers the first instruction of `program` with family
@@ -100,15 +111,21 @@ mod tests {
     use crate::core::uop::types::UopKind;
 
     #[test]
-    fn the_skeleton_translates_nothing_and_rejects_an_empty_range() {
+    fn an_empty_or_reversed_range_is_rejected() {
         let mut c = core_with(&[0x0001, 0x0001]);
         let cfg = UopConfig::default();
         let pc = c.pc;
+        for (lo, hi) in [(5, 5), (pc + 2, pc)] {
+            assert_eq!(
+                translate_range(&mut c, &cfg, lo, hi).unwrap_err(),
+                UopError::OutOfRange { lo, hi }
+            );
+        }
         let (blocks, uops) = translate_range(&mut c, &cfg, pc, pc + 2).unwrap();
-        assert!(blocks.is_empty() && uops.is_empty());
         assert_eq!(
-            translate_range(&mut c, &cfg, 5, 5).unwrap_err(),
-            UopError::OutOfRange { lo: 5, hi: 5 }
+            (blocks.len(), uops.len()),
+            (2, 4),
+            "two NOPs, both PEy modes"
         );
     }
 
