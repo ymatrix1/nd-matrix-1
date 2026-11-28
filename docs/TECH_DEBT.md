@@ -28,6 +28,7 @@ This document tracks deliberate trade-offs, structural compromises, temporary wo
 | **TD-20** | `crates/nord-gui/src/panel/ui_state/fx` | Low | `StateEcho` / `ChainUi` do not mirror `mod2_variation` (and the firmware Mod 2 words), so after a program load the Mod 2 VAR legend shows off and the first Shift+click on the type selector writes `true`/`false` from a stale view | Phase 6b | Open |
 | **TD-21** | `crates/nord-plugin/` (`program_overrides.rs`, `lib.rs`, `editor/readback.rs`) | Medium | Loader and per-group hold exist (D218); the loaded program is not mirrored into host parameters or persisted, and a touched group collapses to host values | Phase 7 | Partly resolved |
 | **TD-22** | `crates/nord-arm` (`cpu/predecode.rs` 440 lines, `mem.rs` 453, `machine/fastrun.rs` 415), `crates/nord-tools/src/bin/arm_lle_bench.rs` (453) | Low | Four files are over the 400-line rule ([code-structure](../.agents/rules/code-structure.md)); most of the excess is unit tests and the benchmark's report code | `ns4-lle3` (split with the next change to these files) | Open |
+| **TD-23** | `crates/nord-gui/src/main.rs` (1 029 lines), `crates/nord-plugin/src/editor/draw.rs` (731), `crates/nord-plugin/src/lib.rs` (507), `loader.rs` (421) | Low | Four plugin / app files are over the 400-line rule | next change that touches them | Open |
 
 ---
 
@@ -177,12 +178,18 @@ This document tracks deliberate trade-offs, structural compromises, temporary wo
 - **Description:** D218 adds the load path (top bar, queue to the audio thread, per-group hold). Remaining gaps: (a) touching one host parameter of a group collapses that whole group to host values; (b) the editor panel and host automation lanes still show host values, not the loaded program (the panel shows the global Touch, not the per-layer one); (c) the loaded program is not stored in project state, so a reloaded project plays from host parameters only; (d) `LoadPreset` is unmapped; (e) an OS update file applies once per process; (f) loading in Reaper and Bitwig is not verified by hand (FL Studio is, see `HOST_COMPATIBILITY.md` 7.9).
 - **Impact:** After touching a control the program's other values in that group go away; reopening a project loses the program until it is loaded again.
 - **Remediation Plan:** (1) push program values into the host parameters on load (`begin_set/set/end_set` from the GUI thread) so panel, automation and persistence agree and the hold can go; (2) persist the loaded program path or bytes in `Stage4Params`; (3) map `LoadPreset`; (4) hand-test in FL Studio, Reaper and Ableton and record it in `docs/HOST_COMPATIBILITY.md`.
-- **Status:** Partly resolved by D218 (loader and hold); the items above are Open.
+- **Status:** Partly resolved by D218 (loader and hold). (c) is resolved for programs of the saved sound library: `library_program` is a host parameter and the library worker (`auto_library.rs`) reloads it with the project; a program opened by hand in the editor is still not persisted. The other items are Open.
 
 ### TD-22: Four ARM0 files are over the 400-line rule
 
 - **What:** `cpu/predecode.rs` (440), `mem.rs` (453), `machine/fastrun.rs` (415, +8 for the run counters) and the benchmark `arm_lle_bench.rs` (453) exceed about 400 lines of code plus tests. The tests stay in the same file because `tools/check_tests.py` counts a source file as covered only when it holds a `#[test]`.
 - **Plan:** move the benchmark's report and percentile printing into `machine/metrics.rs` (which has its own tests), split `mem.rs` into `mem/{pages,flags}.rs` and `predecode.rs` into decode and block-length submodules, each with its own tests, in the next change that touches them (a split in this PR would hide the review of the cache itself).
+- **Risk:** none for behaviour; review cost only.
+
+### TD-23: Plugin and standalone files over the 400-line rule
+
+- **What:** `nord-gui/src/main.rs` (1 029: command line, startup backups, `app.log`, window loop), `nord-plugin/src/editor/draw.rs` (731: editor state, library open, dialogs, drawing), `nord-plugin/src/lib.rs` (507, of which about 180 are the in-file tests with their host mocks) and `loader.rs` (421). The library PR split off `load_queue.rs` and `library_host.rs` from the last two and left the rest, because the files it touches are mostly moves of code it does not change.
+- **Plan:** `main.rs` into `startup/{backups,slot,log}.rs` plus the window loop; `draw.rs` into `state.rs` (`EditorState`, `plugin_library`) and the drawing; the `lib.rs` tests into a `#[cfg(test)]` module file with the host mocks shared by `library_off_tests.rs`. Each submodule keeps its own tests (`tools/check_tests.py`).
 - **Risk:** none for behaviour; review cost only.
 
 ---

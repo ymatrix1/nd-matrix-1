@@ -47,6 +47,12 @@ pub fn install_wave_tables(t: Vec<Super24Tables>) -> bool {
     WAVES.set(t).is_ok()
 }
 
+/// Whether the user's tables are installed (`install_wave_tables` ran): the plugin enables the
+/// WAVE stage only then, so a host without the OS image keeps the placeholder path.
+pub fn wave_tables_installed() -> bool {
+    WAVES.get().is_some()
+}
+
 /// The table of wave id `id`: the installed one, else the boot table (wave id 0, `Second`).
 pub fn wave_table(id: usize) -> &'static Super24Tables {
     WAVES.get().and_then(|t| t.get(id)).unwrap_or_else(tables)
@@ -90,6 +96,14 @@ mod tests {
         (0..n)
             .map(|_| wave_bank_sample(&mut st, tables(), dt, i_sy))
             .collect()
+    }
+
+    #[test]
+    fn the_installed_flag_answers_without_installing() {
+        // The process-wide `OnceLock` may already hold tables from another test: the flag only
+        // reports, and `wave_table` always answers.
+        let _ = wave_tables_installed();
+        assert!(wave_table(0).rows.len() >= 4);
     }
 
     #[test]

@@ -94,6 +94,7 @@ fn ctx() -> Ctx {
 /// Activates with layout `layout` (0 = main + aux, 1 = stereo only).
 fn activate(layout: usize) -> NdMatrix1Plugin {
     let mut plugin = NdMatrix1Plugin::default();
+    plugin.library_source = nord_plugin::auto_library::LibrarySource::None;
     let ok = plugin.initialize(
         &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[layout],
         &BufferConfig {
