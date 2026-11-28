@@ -1,4 +1,4 @@
-//! ARM0 on a decoupled producer thread (`ns4-lle2` tail follow-up, D251): the six benchmark
+//! ARM0 on a decoupled producer thread (`ns4-lle2` tail follow-up, D254): the six benchmark
 //! phases with the real OS image, per instruction budget, in the two modes of
 //! `nord_arm::machine::producer`.
 //!
@@ -9,7 +9,9 @@
 //! size derived from its backlog ([`queue_ticks_for`]), two deterministic threaded runs (no
 //! clock; message streams and state hashes must equal each other and the reference) and one
 //! real-time run (consumer on the wall clock: underruns, lateness, producer back-pressure).
-//! Environment: `BUDGETS` (default `150000,200000,300000,456000`), `PHASE_SCALE`, `QUEUE` (forces
+//! The real-time consumer takes ONE tick per 1 ms deadline and starts cold (`PREFILL_MS`, default 0,
+//! delays its first deadline after the producer start). Environment: `BUDGETS` (default
+//! `150000,200000,300000,456000`), `PHASE_SCALE`, `RT_RUNS`, `RATE` (M insns/s for the queue), `QUEUE` (forces
 //! the queue size in ticks).
 
 use nord_arm::machine::metrics::digest_messages;
@@ -51,6 +53,7 @@ fn main() {
             queue_ticks: queue,
             ticks,
             script: script(scale),
+            tick_delay: Default::default(),
         };
         println!("\n== budget {budget} insns/ms, {ticks} ticks, queue {queue} ticks ==");
         println!(
@@ -62,13 +65,13 @@ fn main() {
             let t = Instant::now();
             let p = Producer::spawn(m.clone(), cfg.clone());
             let got = collect_blocking(&p);
-            let r = p.finish();
+            let r = p.finish().expect("producer");
             println!(
                 "deterministic run {i}: {} ticks, digest messages {:016x} state {:016x}, queue full {} times, producer blocked {:.1} ms, {:.0} ms wall",
-                got.len(), digest(&got), r.machine.state_hash(), r.full_events,
+                got.ticks.len(), digest(&got.ticks), r.machine.state_hash(), r.full_events,
                 r.blocked.as_secs_f64() * 1e3, t.elapsed().as_secs_f64() * 1e3
             );
-            det.push((digest(&got), r.machine.state_hash()));
+            det.push((digest(&got.ticks), r.machine.state_hash()));
         }
         let ok = det[0] == det[1] && det[0] == (reference.digest, reference.state);
         println!(
@@ -77,6 +80,8 @@ fn main() {
         );
         // derived queue (RT_RUNS times), then a 1-tick queue for contrast
         let runs = env("RT_RUNS", "3").parse::<usize>().unwrap();
+        // consumer start offset after the producer start: 0 = cold (tick k due k + 1 ms after the spawn)
+        let prefill_ms = env("PREFILL_MS", "0").parse::<u64>().unwrap();
         for (label, q) in std::iter::repeat_n(("derived", queue), runs).chain([("1 tick", 1)]) {
             let p = Producer::spawn(
                 m.clone(),
@@ -85,13 +90,13 @@ fn main() {
                     ..cfg.clone()
                 },
             );
-            let t0 = Instant::now() + Duration::from_millis(50);
+            let t0 = Instant::now() + Duration::from_millis(prefill_ms);
             let rep = consume_realtime(&p, t0, ticks);
-            let r = p.finish();
+            let r = p.finish().expect("producer");
             println!(
-                "real-time run, queue {label} ({q}): taken {}, underruns {} ({:.2}%), max lateness {:.2} ms, max ready at one deadline {}, queue full {} times, producer blocked {:.1} ms",
-                rep.taken, rep.underruns, 100.0 * rep.underruns as f64 / ticks as f64,
-                rep.max_late_ms, rep.max_ready, r.full_events, r.blocked.as_secs_f64() * 1e3
+                "real-time run, queue {label} ({q}): taken {}, underruns {} ({:.2}%), max lateness {:.2} ms, ended {:?}, queue full {} times, producer blocked {:.1} ms",
+                rep.taken, rep.underruns, 100.0 * rep.underruns as f64 / rep.taken.max(1) as f64,
+                rep.max_late_ms, rep.end, r.full_events, r.blocked.as_secs_f64() * 1e3
             );
         }
     }

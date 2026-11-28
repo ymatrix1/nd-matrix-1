@@ -1,27 +1,29 @@
-//! ARM0 on a decoupled producer thread (`ns4-lle2` tail follow-up, D251).
+//! ARM0 on a decoupled producer thread (`ns4-lle2` tail follow-up, D254).
 //!
 //! The ARM core runs ahead of virtual time on its own thread and hands each tick's messages to the
 //! consumer (the DSP side) through a bounded queue of `queue_ticks` ticks. A tick that costs more
 //! than 1 ms of host time does not stall the consumer as long as the producer is at least that far
 //! ahead, so the real-time criterion becomes "the backlog never exceeds the queue", not "every
-//! tick under 1 ms" ([`queue_ticks_for`] sizes the queue from a measured per-tick cost series).
+//! tick under 1 ms" ([`queue_ticks_for`] sizes the queue from a per-tick cost series).
 //!
-//! * **Deterministic mode** ([`collect_blocking`]): the consumer pulls with a blocking `recv`; no
-//!   wall clock is read anywhere. The message stream is a function of the machine, the budget, the
-//!   tick count and the input script only: two runs are identical whatever the thread scheduling
-//!   or the queue size (test below).
-//! * **Real-time mode** ([`consume_realtime`]): the consumer takes ready ticks once per ms of wall
-//!   clock and counts the ticks that were not ready at their deadline (underruns). The producer is
-//!   the same code: it simply runs until the queue is full (back-pressure: `send` blocks, counted
-//!   in [`Report::full_events`] and [`Report::blocked`]).
-//! * **Input**: a script of `(tick, bytes)` entries is applied at the start of that tick
-//!   (deterministic). Live input through [`Producer::input`] is applied at the start of the
-//!   producer's next tick and recorded in [`Report::applied`] with the tick it landed on, so a
-//!   live session can be replayed as a script.
+//! * **Deterministic mode** ([`collect_blocking`]): blocking `recv`, no wall clock read anywhere.
+//!   The stream is a function of the machine, the budget, the tick count and the input script
+//!   only: it equals a plain single-thread `run_tick_idle` + drain loop whatever the scheduling or
+//!   the queue size (tests below).
+//! * **Real-time mode** ([`consume_realtime`]): the consumer takes exactly ONE tick per
+//!   millisecond deadline and counts a deadline at which that tick was not ready (underrun) with
+//!   its lateness. The producer is the same code: it runs until the queue is full (back-pressure:
+//!   `send` blocks, counted in [`Report::full_events`] / [`Report::blocked`]).
+//! * **Input**: a script `(tick, bytes)` is applied at the start of that tick (deterministic).
+//!   Live input ([`Producer::input`]) is applied at the start of the producer's next tick and
+//!   recorded in [`Report::applied`] (capped at [`APPLIED_CAP`]) so a session can be replayed.
+//! * **Ending**: the producer sends [`Item::Done`] after the last tick, or the faulting tick's
+//!   messages so far and [`Item::Fault`]; a panic closes the channel with neither, which the
+//!   consumers report as [`End::Disconnected`] and [`Producer::finish`] as an `Err`.
 //!
-//! The producer allocates per tick (the message `Vec`); that is the ARM thread, not the audio
-//! thread. The consumer returns drained buffers through [`Producer::recycle`], so the audio side
-//! neither allocates nor frees.
+//! Not allocation-free: the producer allocates per tick (its own thread), the `mpsc` channels
+//! allocate on `send`, and the consumer helpers push into a `Vec`. That is acceptable for the
+//! offline harness; real-time DSP integration needs a preallocated SPSC ring of message buffers.
 
 use super::grouper::Message;
 use super::idle::IdleStats;
@@ -31,6 +33,9 @@ use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, TryRecvError, Try
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
+/// Entries kept in [`Report::applied`]; later ones only count in `applied_dropped`.
+pub const APPLIED_CAP: usize = 4096;
+
 /// Messages one tick produced.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct TickMsgs {
@@ -38,8 +43,34 @@ pub struct TickMsgs {
     pub msgs: Vec<Message>,
 }
 
+/// What travels through the queue.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Item {
+    Tick(TickMsgs),
+    /// The machine stopped with `stop` (not a budget end) during `tick`; the messages it made so
+    /// far came just before as a `Tick`.
+    Fault {
+        tick: u64,
+        stop: Stop,
+    },
+    /// Every requested tick was produced.
+    Done,
+}
+
+/// How a consumer saw the producer end.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum End {
+    Complete,
+    Fault {
+        tick: u64,
+        stop: Stop,
+    },
+    /// The channel closed without `Done` or `Fault` (the producer thread panicked).
+    Disconnected,
+}
+
 /// What a producer run needs.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Config {
     /// Instructions of virtual time per tick (1 ms).
     pub budget: u64,
@@ -49,6 +80,9 @@ pub struct Config {
     pub ticks: u64,
     /// `(tick, MIDI bytes)` applied at the start of `tick`; need not be sorted.
     pub script: Vec<(u64, Vec<u8>)>,
+    /// Host time the producer waits after every tick (emulates a slow producer in tests; zero in
+    /// normal use).
+    pub tick_delay: Duration,
 }
 
 /// What the producer thread returns when it ends.
@@ -60,14 +94,17 @@ pub struct Report {
     pub full_events: u64,
     /// Wall clock spent blocked on a full queue.
     pub blocked: Duration,
-    /// Every input applied, with the tick it was applied at (script entries and live input).
+    /// Inputs applied with the tick they landed on (script entries and live input), at most
+    /// [`APPLIED_CAP`].
     pub applied: Vec<(u64, Vec<u8>)>,
+    /// Inputs applied beyond [`APPLIED_CAP`].
+    pub applied_dropped: u64,
     pub idle: IdleStats,
 }
 
 /// Handle of a running producer.
 pub struct Producer {
-    pub rx: Receiver<TickMsgs>,
+    pub rx: Receiver<Item>,
     input: Sender<Vec<u8>>,
     recycle: Sender<Vec<Message>>,
     join: JoinHandle<Report>,
@@ -76,49 +113,69 @@ pub struct Producer {
 impl Producer {
     /// Start `machine` on its own thread.
     pub fn spawn(mut machine: Machine, mut cfg: Config) -> Producer {
-        let (tx, rx) = sync_channel::<TickMsgs>(cfg.queue_ticks.max(1));
+        let (tx, rx) = sync_channel::<Item>(cfg.queue_ticks.max(1));
         let (input, input_rx) = channel::<Vec<u8>>();
         let (recycle, recycle_rx) = channel::<Vec<Message>>();
         cfg.script.sort_by_key(|s| s.0);
         let join = std::thread::spawn(move || {
             let mut idle = IdleStats::default();
-            let (mut applied, mut script, mut produced) = (Vec::new(), cfg.script.iter(), 0u64);
+            let (mut applied, mut dropped) = (Vec::new(), 0u64);
+            let mut note = |tick: u64, bytes: &[u8]| {
+                if applied.len() < APPLIED_CAP {
+                    applied.push((tick, bytes.to_vec()));
+                } else {
+                    dropped += 1;
+                }
+            };
+            let (mut script, mut produced) = (cfg.script.iter(), 0u64);
             let (mut full_events, mut blocked, mut stop) = (0u64, Duration::ZERO, Stop::Budget);
             let mut next = script.next();
-            'ticks: for tick in 0..cfg.ticks {
+            // blocking send that counts a full queue; false when the consumer is gone
+            let mut send = |item: Item| match tx.try_send(item) {
+                Ok(()) => true,
+                Err(TrySendError::Full(item)) => {
+                    full_events += 1;
+                    let t0 = Instant::now();
+                    let sent = tx.send(item).is_ok();
+                    blocked += t0.elapsed();
+                    sent
+                }
+                Err(TrySendError::Disconnected(_)) => false,
+            };
+            let mut completed = true;
+            for tick in 0..cfg.ticks {
                 while let Ok(bytes) = input_rx.try_recv() {
                     machine.send_midi(&bytes);
-                    applied.push((tick, bytes));
+                    note(tick, &bytes);
                 }
                 while let Some(s) = next.filter(|s| s.0 <= tick) {
                     machine.send_midi(&s.1);
-                    applied.push((tick, s.1.clone()));
+                    note(tick, &s.1);
                     next = script.next();
                 }
                 let s = machine.run_tick_idle(cfg.budget, &mut idle);
-                if !matches!(s, Stop::Budget) {
-                    stop = s;
-                    break;
-                }
                 let mut msgs = recycle_rx.try_recv().unwrap_or_default();
                 msgs.clear();
                 machine.drain_messages_into(&mut msgs);
-                let mut out = TickMsgs { tick, msgs };
-                match tx.try_send(out) {
-                    Ok(()) => {}
-                    Err(TrySendError::Full(t)) => {
-                        full_events += 1;
-                        out = t;
-                        let t0 = Instant::now();
-                        let sent = tx.send(out);
-                        blocked += t0.elapsed();
-                        if sent.is_err() {
-                            break 'ticks;
-                        }
+                if !matches!(s, Stop::Budget) {
+                    stop = s;
+                    completed = false;
+                    if send(Item::Tick(TickMsgs { tick, msgs })) {
+                        send(Item::Fault { tick, stop: s });
                     }
-                    Err(TrySendError::Disconnected(_)) => break 'ticks,
+                    break;
+                }
+                if !send(Item::Tick(TickMsgs { tick, msgs })) {
+                    completed = false;
+                    break;
                 }
                 produced += 1;
+                if !cfg.tick_delay.is_zero() {
+                    std::thread::sleep(cfg.tick_delay);
+                }
+            }
+            if completed {
+                send(Item::Done);
             }
             Report {
                 machine,
@@ -127,6 +184,7 @@ impl Producer {
                 full_events,
                 blocked,
                 applied,
+                applied_dropped: dropped,
                 idle,
             }
         });
@@ -148,87 +206,110 @@ impl Producer {
         let _ = self.recycle.send(buf);
     }
 
-    /// Wait for the producer thread (drop `rx` first if the consumer stops early).
-    pub fn finish(self) -> Report {
+    /// Wait for the producer thread (drops `rx` first so a producer blocked on a full queue
+    /// ends). `Err` carries the panic message of a producer that panicked.
+    pub fn finish(self) -> Result<Report, String> {
         drop(self.rx);
-        self.join.join().expect("producer thread panicked")
+        self.join.join().map_err(|e| {
+            e.downcast_ref::<&str>()
+                .map(|s| s.to_string())
+                .or_else(|| e.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "producer thread panicked".into())
+        })
     }
 }
 
-/// Deterministic consumer: blocking `recv` until the producer ends, no clock. Returns the ticks in
-/// arrival order (always `0, 1, 2, ...`).
-pub fn collect_blocking(p: &Producer) -> Vec<TickMsgs> {
-    let mut out = Vec::new();
-    while let Ok(t) = p.rx.recv() {
-        out.push(t);
+/// Ticks received and how the producer ended.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Collected {
+    pub ticks: Vec<TickMsgs>,
+    pub end: End,
+}
+
+/// Deterministic consumer: blocking `recv` until the producer ends, no clock.
+pub fn collect_blocking(p: &Producer) -> Collected {
+    let mut ticks = Vec::new();
+    loop {
+        let end = match p.rx.recv() {
+            Ok(Item::Tick(t)) => {
+                ticks.push(t);
+                continue;
+            }
+            Ok(Item::Fault { tick, stop }) => End::Fault { tick, stop },
+            Ok(Item::Done) => End::Complete,
+            Err(_) => End::Disconnected,
+        };
+        return Collected { ticks, end };
     }
-    out
 }
 
 /// What the real-time consumer saw.
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RealtimeReport {
     /// Ticks taken, in order.
     pub taken: u64,
-    /// Deadlines (tick `k` is due `k + 1` ms after `t0`) at which the tick was not ready yet.
+    /// Deadlines (tick `k` is due `k + 1` ms after `t0`) at which tick `k` was not ready.
     pub underruns: u64,
     /// Largest lateness of a tick behind its deadline, ms (0 when never late).
     pub max_late_ms: f64,
-    /// Most ticks that were ready (buffered) at one deadline.
-    pub max_ready: usize,
+    pub end: End,
 }
 
-/// Real-time consumer: at each deadline `t0 + (k + 1) ms` take every tick that is ready; a tick
-/// that is not ready counts as an underrun and is taken as soon as it arrives. `t0` in the past
-/// makes every deadline already due (tests).
+/// Real-time consumer: at deadline `t0 + (k + 1) ms` take exactly one tick (tick `k`); if it is
+/// not ready that is an underrun, and the consumer waits for it and records the lateness. `t0` in
+/// the past makes every deadline already due (tests). The producer's lead is therefore at most
+/// the queue length: nothing is hoarded on the consumer side.
 pub fn consume_realtime(p: &Producer, t0: Instant, ticks: u64) -> RealtimeReport {
-    let mut rep = RealtimeReport::default();
-    let mut ready = Vec::new();
+    let mut rep = RealtimeReport {
+        taken: 0,
+        underruns: 0,
+        max_late_ms: 0.0,
+        end: End::Complete,
+    };
     while rep.taken < ticks {
         let due = t0 + Duration::from_micros(1000 * (rep.taken + 1));
         while Instant::now() < due {
             std::hint::spin_loop();
         }
-        let before = rep.taken;
-        loop {
-            match p.rx.try_recv() {
-                Ok(t) => {
-                    debug_assert_eq!(t.tick, rep.taken);
-                    rep.taken += 1;
-                    ready.push(t.msgs);
-                }
-                Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Disconnected) => return rep,
+        let item = match p.rx.try_recv() {
+            Ok(i) => i,
+            Err(TryRecvError::Empty) => {
+                rep.underruns += 1;
+                let Ok(i) = p.rx.recv() else {
+                    rep.end = End::Disconnected;
+                    return rep;
+                };
+                rep.max_late_ms = rep.max_late_ms.max(due.elapsed().as_secs_f64() * 1e3);
+                i
             }
-        }
-        rep.max_ready = rep.max_ready.max((rep.taken - before) as usize);
-        if rep.taken == before {
-            rep.underruns += 1;
-            // wait for the tick (it is late); lateness is measured against its deadline
-            match p.rx.recv() {
-                Ok(t) => {
-                    rep.taken += 1;
-                    ready.push(t.msgs);
-                    let late = due.elapsed().as_secs_f64() * 1e3;
-                    rep.max_late_ms = rep.max_late_ms.max(late);
-                }
-                Err(_) => return rep,
+            Err(TryRecvError::Disconnected) => {
+                rep.end = End::Disconnected;
+                return rep;
             }
-        }
-        for b in ready.drain(..) {
-            p.recycle(b);
+        };
+        match item {
+            Item::Tick(t) => {
+                debug_assert_eq!(t.tick, rep.taken);
+                rep.taken += 1;
+                p.recycle(t.msgs);
+            }
+            Item::Fault { tick, stop } => {
+                rep.end = End::Fault { tick, stop };
+                return rep;
+            }
+            Item::Done => return rep,
         }
     }
     rep
 }
 
-/// Queue size in ticks that absorbs the measured backlog of a series of per-tick costs in ms
-/// (consumed one per ms, [`tail`]): `ceil(1.5 * worst backlog) + 2`.
+/// Queue size in ticks that absorbs the backlog of a series of per-tick costs in ms (consumed one
+/// per ms, [`tail`]): `ceil(1.5 * worst backlog) + 2`.
 ///
 /// ASSUMED: the 1.5 margin and the 2 ticks of slack (the tick the producer is blocked sending and
-/// one of jitter). Evidence: a queue of `ceil(backlog) + 2` taken from ONE run underran in 4 of 5
-/// real-time runs at 150 k (host jitter), none at 200 k and above; feed it the worst series of
-/// several runs.
+/// one of jitter). Evidence: a queue of `ceil(backlog) + 2` taken from ONE timing run underran in
+/// 4 of 5 real-time runs at 150 k (host jitter); feed it the deterministic instruction series
+/// divided by a conservative rate.
 pub fn queue_ticks_for(cost_ms: &[f64]) -> usize {
     let (_, backlog) = tail(cost_ms);
     (backlog * 1.5).ceil() as usize + 2
@@ -262,36 +343,74 @@ mod tests {
             queue_ticks: queue,
             ticks,
             script: vec![(5, vec![0x90, 60, 100]), (3, vec![0x80, 60, 0])],
+            tick_delay: Duration::ZERO,
         }
     }
 
-    fn run(queue: usize, ticks: u64, slow_consumer: bool) -> (Vec<TickMsgs>, Report) {
+    fn run(queue: usize, ticks: u64, slow_consumer: bool) -> (Collected, Report) {
         let p = Producer::spawn(machine(), cfg(queue, ticks));
-        let mut got = Vec::new();
-        while let Ok(t) = p.rx.recv() {
-            if slow_consumer {
-                std::thread::sleep(Duration::from_micros(300));
+        let mut got = Collected {
+            ticks: Vec::new(),
+            end: End::Complete,
+        };
+        loop {
+            match p.rx.recv() {
+                Ok(Item::Tick(t)) => {
+                    if slow_consumer {
+                        std::thread::sleep(Duration::from_micros(300));
+                    }
+                    got.ticks.push(t);
+                }
+                Ok(Item::Done) => break,
+                Ok(Item::Fault { tick, stop }) => {
+                    got.end = End::Fault { tick, stop };
+                    break;
+                }
+                Err(_) => {
+                    got.end = End::Disconnected;
+                    break;
+                }
             }
-            got.push(t);
         }
-        (got, p.finish())
+        (got, p.finish().unwrap())
+    }
+
+    /// The same machine and script on one thread: no queue, no clock, no helper of this module.
+    fn single_thread(ticks: u64) -> (Vec<TickMsgs>, u64) {
+        let (mut m, mut idle) = (machine(), IdleStats::default());
+        let script = cfg(1, ticks).script;
+        let mut out = Vec::new();
+        for tick in 0..ticks {
+            for s in script.iter().filter(|s| s.0 == tick) {
+                m.send_midi(&s.1);
+            }
+            m.run_tick_idle(400, &mut idle);
+            let mut msgs = Vec::new();
+            m.drain_messages_into(&mut msgs);
+            out.push(TickMsgs { tick, msgs });
+        }
+        (out, m.state_hash())
     }
 
     #[test]
-    fn two_runs_produce_identical_message_streams_whatever_the_queue_or_the_consumer() {
-        let (a, ra) = run(1, 40, false);
-        let (b, rb) = run(64, 40, false);
-        let (c, rc) = run(2, 40, true);
-        assert_eq!(a.len(), 40);
-        assert!(a.iter().map(|t| t.msgs.len()).sum::<usize>() > 100);
+    fn the_threaded_stream_equals_a_plain_single_thread_loop() {
+        let (reference, hash) = single_thread(40);
+        assert!(reference.iter().map(|t| t.msgs.len()).sum::<usize>() > 100);
+        for queue in [1, 3, 64] {
+            let (got, r) = run(queue, 40, false);
+            assert_eq!(got.end, End::Complete);
+            assert_eq!(got.ticks, reference, "queue {queue}");
+            assert_eq!(r.machine.state_hash(), hash, "queue {queue}");
+        }
+    }
+
+    #[test]
+    fn a_slow_consumer_and_a_tiny_queue_change_nothing_but_the_wait() {
+        let (a, ra) = run(64, 40, false);
+        let (b, rb) = run(2, 40, true);
         assert_eq!(a, b);
-        assert_eq!(a, c);
-        assert_eq!(
-            (ra.machine.state_hash(), ra.produced),
-            (rb.machine.state_hash(), 40)
-        );
-        assert_eq!(ra.machine.state_hash(), rc.machine.state_hash());
-        assert!(a.iter().enumerate().all(|(i, t)| t.tick == i as u64));
+        assert_eq!(ra.machine.state_hash(), rb.machine.state_hash());
+        assert!(a.ticks.iter().enumerate().all(|(i, t)| t.tick == i as u64));
     }
 
     #[test]
@@ -301,12 +420,27 @@ mod tests {
             r.applied,
             vec![(3, vec![0x80, 60, 0]), (5, vec![0x90, 60, 100])]
         );
+        assert_eq!(r.applied_dropped, 0);
+    }
+
+    #[test]
+    fn applied_is_capped_and_the_overflow_is_counted() {
+        let mut c = cfg(2, 2);
+        c.script = (0..APPLIED_CAP as u64 + 10)
+            .map(|i| (i % 2, vec![0x90, 60, 1]))
+            .collect();
+        let p = Producer::spawn(machine(), c);
+        let got = collect_blocking(&p);
+        let r = p.finish().unwrap();
+        assert_eq!(got.end, End::Complete);
+        assert_eq!(r.applied.len(), APPLIED_CAP);
+        assert_eq!(r.applied_dropped, 10);
     }
 
     #[test]
     fn a_full_queue_blocks_the_producer_and_is_counted() {
         let (got, r) = run(1, 30, true);
-        assert_eq!(got.len(), 30);
+        assert_eq!(got.ticks.len(), 30);
         assert!(
             r.full_events > 0,
             "a 1-tick queue behind a slow consumer fills"
@@ -321,24 +455,66 @@ mod tests {
         let p = Producer::spawn(machine(), cfg(2, 20));
         p.input(vec![0x90, 64, 90]);
         let got = collect_blocking(&p);
-        let r = p.finish();
-        assert_eq!(got.len(), 20);
+        let r = p.finish().unwrap();
+        assert_eq!(got.ticks.len(), 20);
         let live: Vec<_> = r.applied.iter().filter(|a| a.1 == [0x90, 64, 90]).collect();
         assert_eq!(live.len(), 1, "{:?}", r.applied);
         assert!(live[0].0 < 20);
     }
 
     #[test]
-    fn realtime_consumer_counts_underruns_and_takes_every_tick_in_order() {
-        // start time far in the past: every deadline is already due, so the run is not paced
+    fn a_faulting_machine_is_reported_to_both_consumers() {
+        let faulting = || {
+            let mut m = Machine::new();
+            m.bus.mem.write32(0xC000_0000, 0xE7F0_00F0); // undefined instruction
+            m.cpu.r[15] = 0xC000_0000;
+            m
+        };
+        let p = Producer::spawn(faulting(), cfg(4, 10));
+        let got = collect_blocking(&p);
+        assert!(
+            matches!(
+                got.end,
+                End::Fault {
+                    tick: 0,
+                    stop: Stop::Fault(_)
+                }
+            ),
+            "{got:?}"
+        );
+        assert_eq!(got.ticks.len(), 1, "the faulting tick's messages so far");
+        let r = p.finish().unwrap();
+        assert_eq!(r.produced, 0);
+        assert!(matches!(r.stop, Stop::Fault(_)));
+        let p = Producer::spawn(faulting(), cfg(4, 10));
+        let rep = consume_realtime(&p, Instant::now(), 10);
+        assert!(matches!(rep.end, End::Fault { tick: 0, .. }), "{rep:?}");
+        assert_eq!(rep.taken, 1);
+    }
+
+    #[test]
+    fn realtime_consumer_takes_every_tick_once_in_order_and_ends_complete() {
+        // t0 far in the past: every deadline is already due, so the consumer is not paced
         let t0 = Instant::now().checked_sub(Duration::from_secs(5)).unwrap();
         let p = Producer::spawn(machine(), cfg(8, 50));
         let rep = consume_realtime(&p, t0, 50);
-        let r = p.finish();
-        assert_eq!(rep.taken, 50);
+        let r = p.finish().unwrap();
+        assert_eq!((rep.taken, rep.end.clone()), (50, End::Complete));
         assert_eq!(r.produced, 50);
-        assert!(rep.max_ready <= 8 + 2, "{rep:?}");
-        assert!(rep.max_late_ms.is_finite());
+    }
+
+    #[test]
+    fn a_producer_slower_than_the_deadlines_counts_underruns_and_lateness() {
+        // 3 ms of wait per tick against a 1 ms deadline per tick: tick k is ready no earlier than
+        // 3 (k + 1) ms, so (nearly) every deadline is missed and the first tick is >= 2 ms late
+        let mut c = cfg(4, 10);
+        c.tick_delay = Duration::from_millis(3);
+        let p = Producer::spawn(machine(), c);
+        let rep = consume_realtime(&p, Instant::now(), 10);
+        p.finish().unwrap();
+        assert_eq!(rep.taken, 10);
+        assert!(rep.underruns >= 8, "{rep:?}");
+        assert!(rep.max_late_ms >= 2.0, "{rep:?}");
     }
 
     #[test]

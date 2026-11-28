@@ -29,8 +29,9 @@ pub fn thread_cycles() -> u64 {
     T0.get_or_init(Instant::now).elapsed().as_nanos() as u64
 }
 
-const KEYS8: [u8; 8] = [60, 62, 64, 65, 67, 69, 71, 72];
-const RESERVE_PAGES: usize = 16_384;
+pub const KEYS8: [u8; 8] = [60, 62, 64, 65, 67, 69, 71, 72];
+/// Arena pages reserved before a timed run (64 MB) so on-demand mapping never reallocates.
+pub const RESERVE_PAGES: usize = 16_384;
 
 fn act_none(_: &mut Machine) {}
 fn act_on1(m: &mut Machine) {
@@ -46,7 +47,7 @@ fn act_off8(m: &mut Machine) {
     KEYS8.iter().for_each(|k| m.send_midi(&note_off(*k, 0)));
 }
 
-type Action = fn(&mut Machine);
+pub type Action = fn(&mut Machine);
 
 /// Phase plan, same as `arm-lle-bench` (ticks scaled by `scale` percent).
 pub fn plan(scale: usize) -> [(&'static str, usize, Action); 6] {
