@@ -460,7 +460,7 @@ The ticks below mean the model exists and is tested. Which parts match the firmw
 - [ ] **Gate 3a — Live I/O, `.ns4b` store & OLED (`ns4-lle6`):** wire real-time MIDI, pedals, panel controls, ARM program store (`ns4-pyqg`), and real OLED framebuffers (`ns4-2gdc`)
   - [x] Engine-neutral half: wait-free SPSC event rings, MIDI / pedal / panel events and translation, lock-free OLED / LED telemetry, `LleInput` / `LleTelemetry` traits ([lle-io](specs/lle-io.md))
   - [ ] Wiring into ARM0 input queues, `.ns4b` program store and real OLED / LED data (blocked on `ns4-lle5`)
-- [ ] **Gate 3b — Opt-in LLE backend & D2/D119 decision (`ns4-lle7`):** selection seam done (`--engine lle` / `--precision exact|fast` / Settings toggle in `nd-matrix-1` and `nord-plugin`, fallback with notice, stub backend, D246 proposed); open: real LLE backend, real-time stability in DAW hosts, and the decision whether LLE retires firmware-derived HLE tables (`ns4-u8o2`)
+- [ ] **Gate 3b — Opt-in LLE backend & D2/D119 decision (`ns4-lle7`):** engine selector panel shows saved/effective/availability and the fallback reason (`engine_status`, `engine_panel`); selection seam done (`--engine lle` / `--precision exact|fast` / Settings toggle in `nd-matrix-1` and `nord-plugin`, fallback with notice, stub backend, D246 proposed); open: real LLE backend, real-time stability in DAW hosts, and the decision whether LLE retires firmware-derived HLE tables (`ns4-u8o2`)
 
 ## Legal & Licensing (`ns4-9wq1`)
 

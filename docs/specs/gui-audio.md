@@ -89,4 +89,8 @@ HLE (this spec's engine) is the default. The opt-in low-level engine (LLE) does 
 | Backend seam | `EngineChoice::precision`, set by `precision::apply_startup`; HLE ignores it |
 | Settings | Precision radio below the Engine radio; greyed with an explanation unless LLE is selected; the plugin shows it on the same page |
 
+### Engine selector panel (D246, `ns4-lle7`)
+
+The Engine block of Settings & Diagnostics > OS & Wave Tables (`nord-gui/src/engine_panel.rs`, shared with the plugin) shows, from `nord_core::engine_status::status_with(env, saved, os_update, probe)`: the saved choice (radio, written to the `engine` key with the other keys kept), what runs this session, any `--engine` / `NS4_ENGINE` override (flag, then environment, then saved, then HLE), whether the LLE engine exists in this build (the `probe` reason when not), and whether a Nord OS update file is set. It states that HLE ("Normal") is the default and always real time, and that LLE is exact but may not run in real time on every machine. An unknown saved or environment value reads as HLE and the note names it and its source. If LLE is chosen but cannot run, HLE keeps running and the notice says why (`resolve`); the app never switches silently. There is no hot switch (the engine is built once at start), so a change applies at the next start. Checked: unit tests on Linux (precedence, fallback reasons, config keys kept, dialog text). Not checked: visual layout on Windows and macOS.
+
 `ns4 firmware set|clear` keeps the saved engine key. An unknown engine value is reported and HLE runs. Status: seam implemented and unit-tested; LLE itself and real-time stability in DAW hosts are not.
