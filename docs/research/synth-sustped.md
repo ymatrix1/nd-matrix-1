@@ -39,6 +39,15 @@ Static scan of `bank0_CODE.bin` (v1.66, `tools/arm_xref.py dis`, capstone, one t
 
 So the flag is read by the ARM layer logic (matches the silent DSP side of s1), but the hold semantics (release timing, retrigger of a held key, pedal-up release) are still not confirmed against the firmware. Next step: run the edit-capture harness (`tools/arm_edit_capture.py`, needs the settled snapshot) with id `0xF8` at 0 and 1, diff the layer object memory to find the field the flag lands in, then find that field's readers in the note-off path.
 
+Run results (2026-11-28, `tools/arm_edit_capture.py` machinery, `tools/arm_keydown.py` rig, v1.66; derived numbers only):
+
+| Experiment | Result | Status |
+|---|---|---|
+| `Edt_Syn_kSustainEnable` 0 vs 1 on each Synth layer store, memory diff of the settled emulator | per layer exactly two bytes flip 0 to 1: `layer + 0x5EB8 + 2 (k - 4)` and its mirror `+ 0x290` (`k` = layer index 4..6), written by the change-detecting per-layer byte-table setter `0xC00C801C` (it compares the new byte with the old one and returns when equal); the rest of the diff is the value cell, scratch and stack | VERIFIED (run) |
+| Note On, CC64 down, Note Off, 60 ticks, CC64 up through the real MIDI parser (UART2), flag 0 vs 1 | DSP messages identical in every phase. Inconclusive: in the settled state without a program only the piano path runs (`piano_key_event` fires, `synth_voice_event` `0xC01EC690` never does), so the flag cannot show an effect | VERIFIED (run), no conclusion |
+
+Open: the same test needs a recalled program with an active Synth layer (`tools/arm_program_load.py` puts a factory `.ns4p` into the EEPROM image and boots the full machine, see `tools/arm_program_synth_velocity.py`), then Note On / CC64 / Note Off on UART2 and a diff of the Synth voice messages for flag 0 vs 1, plus the five exception programs.
+
 ## Implications
 
 - `--synth-sustain-pedal` can be promoted once the ARM hold logic is traced and a second clip with the pedal and a synth layer agrees.
