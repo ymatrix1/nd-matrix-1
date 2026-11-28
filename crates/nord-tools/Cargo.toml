@@ -13,6 +13,10 @@ nord-sharc = { path = "../nord-sharc" }
 nord-arm = { path = "../nord-arm" }
 serde_json = "1.0"
 
+[features]
+# Forwards the ARM0 native tier (docs/research/arm0-jit-design.md); default off.
+sb-native = ["nord-arm/sb-native"]
+
 [[bin]]
 name = "arm-lle-bench"
 path = "src/bin/arm_lle_bench.rs"
@@ -20,6 +24,14 @@ path = "src/bin/arm_lle_bench.rs"
 [[bin]]
 name = "kernel-bench"
 path = "src/bin/kernel_bench.rs"
+
+[[bin]]
+name = "arm-sb-bench"
+path = "src/bin/arm_sb_bench.rs"
+
+[[bin]]
+name = "arm-sb-ab"
+path = "src/bin/arm_sb_ab.rs"
 
 [[bin]]
 name = "uop-report"

@@ -7,4 +7,21 @@ publish.workspace = true
 repository.workspace = true
 description = "Native Rust ARM926EJ-S (ARMv5TE, ARM + Thumb) interpreter and Nord Stage 4 ARM0 machine model with idle skipping (LLE Gate 1a, ns4-lle2)."
 
+[features]
+default = []
+# Tier 3 of the ARM0 execution tiers (docs/research/arm0-jit-design.md): native code from the
+# superblock IR. Off by default; adds the crate's only dependencies and its only unsafe code.
+sb-native = [
+    "dep:cranelift-codegen",
+    "dep:cranelift-frontend",
+    "dep:cranelift-jit",
+    "dep:cranelift-module",
+    "dep:cranelift-native",
+]
+
 [dependencies]
+cranelift-codegen = { version = "0.116", optional = true }
+cranelift-frontend = { version = "0.116", optional = true }
+cranelift-jit = { version = "0.116", optional = true }
+cranelift-module = { version = "0.116", optional = true }
+cranelift-native = { version = "0.116", optional = true }
