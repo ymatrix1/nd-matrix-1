@@ -3,12 +3,21 @@
 //!
 //! OWNER: W1-RUN. The extent scan of [`super::code_ranges`] takes every non-zero parcel for code,
 //! so the data tables of a booted core are translated too and every store into them counts as
-//! `smc` (G2 wants 0). EMPIRICAL (local PNO core 2 image under the org preset, one steady pass,
-//! debug build, one-off probe test, not kept): the extent scan gave 13 ranges, 75,841 short words,
-//! 309 pages, and 1,137 of the 1,197 stores of the pass (95%) landed on those pages (the voice
-//! tables at `0x1801b8..` are non-zero data). The pcs the pass executed gave 5 ranges, 10,382
-//! words, 46 pages and 0 of the 1,197 stores on them. The probe translates only what the probed
-//! states run; code outside stays in the interpreter (exact, slower).
+//! `smc` (G2 wants 0). The probe translates only what the probed states run; code outside stays
+//! in the interpreter (exact, slower).
+//!
+//! ASSUMED that the probe ranges leave no store on a translated page of a real core: the claim
+//! rests on one observation that is not reproducible from the repository (a debug-build probe
+//! test on the local PNO core 2 image under the org preset, one steady pass, deleted afterwards:
+//! the extent scan gave 13 ranges, 75,841 short words, 309 pages and 1,137 of the 1,197 stores of
+//! the pass (95%) landed on those pages, the voice tables at `0x1801b8..` being non-zero data;
+//! the pcs the pass executed gave 5 ranges, 10,382 words, 46 pages and no store on them). What
+//! would confirm it, deterministic counters and no clock: with the user's own core image,
+//! `uop-report --image CORE2.bin --preset org --ranges extent` against the same command with
+//! `--ranges probe`; compare the `pages` of the build line (stderr) and the `smc` counter of the
+//! JSON (stdout), and record both in `docs/research/` (the local-only test
+//! `the_real_org_pass_is_exact_and_stores_on_no_translated_page_when_the_ranges_are_probed` in
+//! `uop_report/measure` asserts the probe half when `NORD_SHARC_ORG_IMAGE` is set).
 use super::arm::{CODE_WINDOW, RANGE_GAP, RANGE_TAIL};
 use crate::core::Core;
 use crate::runner::live_presets::Preset;

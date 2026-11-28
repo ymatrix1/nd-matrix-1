@@ -5,7 +5,7 @@
 //!
 //! OWNER: W1-RUN.
 use super::model::{model_cycles, Tier, BUDGET_CYCLES};
-use super::UopReport;
+use super::{UopReport, Window};
 use crate::core::UopBuildReport;
 
 /// `n / d`, 0 for an empty denominator (a run with no passes or no steps has no ratio).
@@ -62,19 +62,28 @@ pub fn build_summary(b: &UopBuildReport) -> String {
     )
 }
 
-/// The counter block a multi-core run prints after its table: a header naming how many passes the
-/// counters cover (warm-up included when the scheduler had no hook between the phases), one
-/// build line per core that was armed, then one [`UopReport::summary`] per core.
+/// The counter block a multi-core run prints after its table: a header naming which passes the
+/// counters cover (the `passes` measured ones, or, for a report of [`Window::All`], also the
+/// `warmup` ones), one build line per core that was armed, then one [`UopReport::summary`] per
+/// core and, for a profiled run, its block-length histogram.
 pub fn counters_text(
     builds: &[(String, Option<UopBuildReport>)],
     reports: &[UopReport],
     warmup: u32,
     passes: u32,
 ) -> String {
-    let mut out = format!(
-        "uop counters (deterministic, all {} passes, warm-up included):\n",
-        u64::from(warmup) + u64::from(passes)
-    );
+    let measured = reports.iter().all(|r| r.window == Window::Measured);
+    let mut out = if measured {
+        format!(
+            "uop counters (deterministic, the {passes} measured passes; the {warmup} warm-up \
+passes are not in them):\n"
+        )
+    } else {
+        format!(
+            "uop counters (deterministic, all {} passes, warm-up included):\n",
+            u64::from(warmup) + u64::from(passes)
+        )
+    };
     for (name, build) in builds {
         if let Some(b) = build {
             out += &format!("{name}: {}\n", build_summary(b));
@@ -82,20 +91,24 @@ pub fn counters_text(
     }
     for r in reports {
         out += &format!("{}\n", r.summary());
+        if let Some(h) = r.histogram_text() {
+            out += &format!("{}: {h}\n", r.label);
+        }
     }
     out
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::BlockHistogram;
     use super::*;
     use crate::core::UopStats;
 
     /// The ORG Core2 reference counters of design 9.1, with distinct exit and guard counts.
     fn golden_report() -> UopReport {
-        UopReport {
-            label: "ORG Core2".into(),
-            stats: UopStats {
+        UopReport::new(
+            "ORG Core2",
+            UopStats {
                 passes: 1,
                 blocks_run: 520,
                 uops: 8478,
@@ -105,7 +118,8 @@ mod tests {
                 guard_fail: [0, 0, 0, 0, 0, 0, 0, 0, 9],
                 ..UopStats::default()
             },
-        }
+            Window::Measured,
+        )
     }
 
     #[test]
@@ -119,9 +133,9 @@ model/pass tier1 341638 (x1.65) tier2 341638 (x1.65)"
         );
         assert!(!s.contains('\n'));
         // per pass: two passes of the same counters read the same
-        let two = UopReport {
-            label: "ORG Core2".into(),
-            stats: UopStats {
+        let two = UopReport::new(
+            "ORG Core2",
+            UopStats {
                 passes: 2,
                 blocks_run: 1040,
                 uops: 16956,
@@ -131,17 +145,14 @@ model/pass tier1 341638 (x1.65) tier2 341638 (x1.65)"
                 guard_fail: [0, 0, 0, 0, 0, 0, 0, 0, 18],
                 ..UopStats::default()
             },
-        };
+            Window::Measured,
+        );
         assert_eq!(two.summary().replacen("passes 2,", "passes 1,", 1), s);
     }
 
     #[test]
     fn the_summary_of_an_empty_run_has_no_nan_and_no_division_by_zero() {
-        let s = UopReport {
-            label: "idle".into(),
-            stats: UopStats::default(),
-        }
-        .summary();
+        let s = UopReport::new("idle", UopStats::default(), Window::Measured).summary();
         assert!(!s.contains("NaN") && !s.contains("inf"), "{s}");
         assert!(s.starts_with("idle: passes 0, blocks/pass 0.0"), "{s}");
     }
@@ -164,21 +175,21 @@ model/pass tier1 341638 (x1.65) tier2 341638 (x1.65)"
     #[test]
     fn the_counter_text_has_a_build_line_and_a_summary_per_core() {
         let reports = vec![
-            UopReport {
-                label: "A uop".into(),
-                stats: UopStats::default(),
-            },
-            UopReport {
-                label: "B uop".into(),
-                stats: UopStats::default(),
-            },
+            UopReport::new("A uop", UopStats::default(), Window::Measured),
+            UopReport::new("B uop", UopStats::default(), Window::Measured),
         ];
         let builds = vec![
             ("A".to_string(), Some(UopBuildReport::default())),
             ("B".to_string(), None),
         ];
         let t = counters_text(&builds, &reports, 16, 300);
-        assert!(t.starts_with("uop counters (deterministic, all 316 passes, warm-up included):\n"));
+        assert!(
+            t.starts_with(
+                "uop counters (deterministic, the 300 measured passes; the 16 warm-up passes \
+are not in them):\n"
+            ),
+            "{t}"
+        );
         assert!(t.contains("A: built 0 blocks"), "{t}");
         assert!(
             !t.contains("B: built"),
@@ -192,6 +203,32 @@ model/pass tier1 341638 (x1.65) tier2 341638 (x1.65)"
             t.lines().count(),
             4,
             "header, one build line, two summaries"
+        );
+    }
+
+    #[test]
+    fn a_report_that_covers_the_warm_up_says_so_in_the_header() {
+        let reports = vec![
+            UopReport::new("A uop", UopStats::default(), Window::Measured),
+            UopReport::new("B uop", UopStats::default(), Window::All),
+        ];
+        let t = counters_text(&[], &reports, 16, 300);
+        assert!(
+            t.starts_with("uop counters (deterministic, all 316 passes, warm-up included):\n"),
+            "one report with the warm-up in it is enough: {t}"
+        );
+    }
+
+    #[test]
+    fn a_profiled_report_prints_its_histogram_under_its_summary() {
+        let r = golden_report().with_block_steps(Some(BlockHistogram::from_lengths([12, 12, 1])));
+        let t = counters_text(&[], &[r], 2, 4);
+        let lines: Vec<&str> = t.lines().collect();
+        assert_eq!(lines.len(), 3, "{t}");
+        assert!(lines[1].starts_with("ORG Core2: passes 1,"), "{t}");
+        assert!(
+            lines[2].starts_with("ORG Core2: steps per block entry [1:1 9-12:2] (3 entries"),
+            "{t}"
         );
     }
 }

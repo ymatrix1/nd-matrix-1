@@ -8,16 +8,22 @@
 //! scheduler measures the compute side only: how long each core takes for a pass of its own
 //! (latency per core, and the tick wall time = the slowest core plus the barrier) when all cores
 //! run at the same time on separate host cores.
+//!
+//! This file holds the engines, the job and the report types; the threaded loop is in [`sched`]
+//! (re-exported here), where a panic in one core's pass ends the whole run with a message instead
+//! of leaving the barrier waiting for a count that never comes.
+mod sched;
+#[cfg(test)]
+mod support;
+
 use super::fx_run::FxDrive;
 use super::msg::{self, Msg};
 use super::pass::PassConfig;
 use super::system::{lean_pass, refresh_inputs, set_ping_pong};
 use super::uop_pass::{lean_pass_uop, lean_pass_uop_checked};
-use crate::core::Core;
-use crate::cpu_clock::ThreadClock;
-use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
-use std::sync::Arc;
-use std::time::Instant;
+use crate::core::{Core, UopStats};
+
+pub use sched::{run_ticks, run_ticks_with, PassFn};
 
 /// How a core runs its pass.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -32,7 +38,8 @@ pub enum Engine {
     /// blocks run through the handler table, the interpreter fills the gaps.
     Uop,
     /// [`Engine::Uop`] checked against the interpreter ([`lean_pass_uop_checked`]); a difference
-    /// panics. Allocates, for tests and tools only.
+    /// panics, which [`run_ticks`] turns into an error that names the core and the pass.
+    /// Allocates, for tests and tools only.
     UopChecked,
     /// [`Engine::Uop`] on a core enabled with `UopConfig::native` (the Cranelift tier, feature
     /// `uop-native`); the pass loop is the same, only the enabling differs.
@@ -178,6 +185,11 @@ pub struct CoreSeries {
     pub cpu_ns: Vec<u64>,
     /// Every pass returned to its poll loop.
     pub all_idle: bool,
+    /// The uop engine counters when the first measured pass was about to start (after the warm-up
+    /// passes, before their messages), all zero for an engine without counters. The counters the
+    /// run ended with minus this snapshot ([`UopStats::since`]) are the measured passes only: the
+    /// steady-state gates (`maintain_calls == 0`, `smc == 0`) must not see the warm-up.
+    pub uop_at_warmup: UopStats,
 }
 
 /// Result of a run: per-core series, tick wall times (publish to last core done) and the cores.
@@ -185,84 +197,6 @@ pub struct SchedReport {
     pub cores: Vec<CoreSeries>,
     pub tick_ns: Vec<u64>,
     pub jobs: Vec<PassJob>,
-}
-
-/// Runs `warmup + ticks` ticks of all `jobs` concurrently, one thread per job.
-pub fn run_ticks(jobs: Vec<PassJob>, warmup: u32, ticks: u32) -> Result<SchedReport, String> {
-    let total = u64::from(warmup + ticks);
-    let n = jobs.len() as u32;
-    // calibrate the thread CPU clock now (200 ms on the first call), not inside the first tick
-    // where it would stall every core at the barrier
-    let _ = crate::cpu_clock::ns_per_tick();
-    let epoch = Arc::new(AtomicU64::new(0));
-    let done = Arc::new(AtomicU32::new(0));
-    let mut handles = Vec::new();
-    for mut job in jobs {
-        let (epoch, done) = (epoch.clone(), done.clone());
-        handles.push(std::thread::spawn(move || {
-            let mut series = CoreSeries {
-                name: job.name.clone(),
-                all_idle: true,
-                ..CoreSeries::default()
-            };
-            let mut next_msg = 0;
-            job.msgs.sort_by_key(|m| m.pass);
-            for tick in 0..total {
-                let mut spins = 0u32;
-                while epoch.load(Ordering::Acquire) <= tick {
-                    spins += 1;
-                    if spins < 1 << 16 {
-                        std::hint::spin_loop();
-                    } else {
-                        std::thread::yield_now();
-                    }
-                }
-                let p = tick as u32;
-                if job.before_pass(p, &mut next_msg).is_err() {
-                    series.all_idle = false;
-                }
-                // both clocks: wall (the budget claim) and thread CPU (not inflated by a
-                // descheduled thread); the barrier tick below stays wall time
-                let t0 = ThreadClock::start();
-                let (steps, idle) = job.run_pass();
-                let cpu = t0.elapsed_ns();
-                series.steps.push(steps);
-                series.ns.push(t0.wall_ns());
-                series.cpu_ns.push(cpu);
-                series.all_idle &= idle;
-                done.fetch_add(1, Ordering::AcqRel);
-            }
-            (series, job)
-        }));
-    }
-    let mut tick_ns = Vec::with_capacity(total as usize);
-    for tick in 0..total {
-        done.store(0, Ordering::Release);
-        let t0 = Instant::now();
-        epoch.store(tick + 1, Ordering::Release);
-        let mut spins = 0u32;
-        while done.load(Ordering::Acquire) < n {
-            spins += 1;
-            if spins < 1 << 16 {
-                std::hint::spin_loop();
-            } else {
-                std::thread::yield_now();
-            }
-        }
-        tick_ns.push(t0.elapsed().as_nanos() as u64);
-    }
-    let mut cores = Vec::new();
-    let mut jobs = Vec::new();
-    for h in handles {
-        let (s, j) = h.join().map_err(|_| "a core thread panicked".to_string())?;
-        cores.push(s);
-        jobs.push(j);
-    }
-    Ok(SchedReport {
-        cores,
-        tick_ns,
-        jobs,
-    })
 }
 
 /// Mean, median, p99 and worst of `v` (ns), after dropping the first `skip` samples.
@@ -279,30 +213,8 @@ pub fn summarize(v: &[u64], skip: usize) -> (f64, f64, f64, f64) {
 
 #[cfg(test)]
 mod tests {
+    use super::support::poll_job;
     use super::*;
-    use crate::core::support::core_with;
-
-    /// A synthetic "pass": the poll loop at `idle` waits for the trigger word, a handler at `h`
-    /// does a few adds and jumps back. Built from raw parcels, no firmware.
-    fn poll_job(name: &str, engine: Engine) -> PassJob {
-        // 0x120000: NOP; NOP (the run starts at the entry and stays in this tiny loop)
-        let core = core_with(&[0x0001, 0x0001, 0x0001, 0x0001]);
-        PassJob {
-            name: name.into(),
-            core,
-            cfg: PassConfig {
-                trigger: 0xB_00E2,
-                idle_pc: 0x12_0000,
-                max_steps: 1000,
-                irq: None,
-            },
-            msgs: Vec::new(),
-            msg_base: 0,
-            ping_pong: None,
-            fx: None,
-            engine,
-        }
-    }
 
     #[test]
     fn summarize_orders_percentiles() {
@@ -311,28 +223,6 @@ mod tests {
         assert_eq!((mean, worst), (50.5, 100.0));
         assert!((med - 50.0).abs() <= 1.0 && p99 >= 99.0);
         assert_eq!(summarize(&v, 100), (0.0, 0.0, 0.0, 0.0));
-    }
-
-    #[test]
-    fn threads_run_every_tick_on_every_core_and_return_the_cores() {
-        let jobs = vec![poll_job("a", Engine::Interp), poll_job("b", Engine::Interp)];
-        let r = run_ticks(jobs, 2, 5).unwrap();
-        assert_eq!(r.tick_ns.len(), 7);
-        for c in &r.cores {
-            assert_eq!(c.steps.len(), 7, "{}", c.name);
-            assert_eq!(c.ns.len(), 7);
-        }
-        assert_eq!(r.jobs.len(), 2);
-    }
-
-    #[test]
-    fn an_fx_job_gets_its_drive_before_every_tick() {
-        let mut j = poll_job("fx2", Engine::Interp);
-        j.fx = Some(FxDrive::new(super::super::fx_run::FX2));
-        let r = run_ticks(vec![j], 0, 4).unwrap();
-        // counter shown for pass 3 is 3, the core's own copy is counter + 1
-        let mut c = r.jobs.into_iter().next().unwrap().core;
-        assert_eq!(c.dm_read(super::super::fx_run::SELF_COUNTER), Ok(4));
     }
 
     #[test]

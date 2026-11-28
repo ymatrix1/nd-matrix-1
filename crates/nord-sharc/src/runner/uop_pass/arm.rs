@@ -23,8 +23,12 @@ pub const CODE_WINDOW: Range<u32> = 0x10_0000..0x20_0000;
 /// `smc` counter (a data store on a code page).
 pub const RANGE_GAP: u32 = 256;
 /// Parcels added after the last non-zero parcel of a range, so the instruction that starts there
-/// is read whole. VERIFIED: a VISA instruction has at most 3 parcels (`visa::Insn::parcels` is
-/// `[u16; 3]`); test `a_three_parcel_instruction_with_zero_tail_parcels_is_covered`.
+/// is read whole. VERIFIED: no VISA instruction is longer than 3 parcels = `visa::classify` (the
+/// length the interpreter fetch of `core/exec.rs` uses; ISA-mode words are a fixed 3), checked by
+/// `no_instruction_is_longer_than_three_parcels` over all 65,536 first parcels and the three
+/// follow-up cases (none, a parcel without the 32-bit marker, a parcel with it): the longest is 3,
+/// so the tail is 3 - 1 = 2, max err 0. `a_three_parcel_instruction_with_zero_tail_parcels_is_covered`
+/// shows a 3-parcel instruction whose last two parcels are zero is inside the range.
 pub const RANGE_TAIL: u32 = 2;
 
 /// The short-word ranges of the non-zero code in the VISA window of `core`, in address order,
@@ -39,7 +43,11 @@ pub fn code_ranges(core: &Core) -> Vec<(u32, u32)> {
 
 /// Arms `core` for the pass loop: `idle_pc` becomes the stop pc (a block start, P7) and the short
 /// word `ranges` are translated with `cfg`. Call it once on a booted core, before the first pass;
-/// the pass loops keep the stop pc current afterwards.
+/// the pass loops keep the stop pc current afterwards. The stop pc is set BEFORE `enable_uop`
+/// because `enable_uop` keeps the value it finds and the translator reads it
+/// (`lower/translate.rs`): without it the pass idle pc is an interior pc of a block, and a pass
+/// could run past it (test `arming_makes_the_stop_pc_a_block_start_which_a_bare_enable_does_not`
+/// shows the retranslation after a code write cutting at it only when it was set here).
 pub fn arm_uop_ranges(
     core: &mut Core,
     cfg: UopConfig,
@@ -114,10 +122,9 @@ pub fn engine_named(name: &str) -> Option<Engine> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::support::{poll_core, CODE, POLL_PC};
     use super::*;
     use crate::core::support::core_with;
-
-    const CODE: u32 = 0x12_0000;
 
     /// Writes parcels through the short-word alias window, like a program load.
     fn put(c: &mut Core, at: u32, parcels: &[u16]) {
@@ -191,14 +198,24 @@ mod tests {
     fn a_three_parcel_instruction_with_zero_tail_parcels_is_covered() {
         // IF EQ JUMP 0x0: 0600 0000 0000, the longest instruction with two zero parcels
         let (_, len) = crate::visa::classify(0x0600, Some(0));
-        assert_eq!(
-            len as u32 - 1,
-            RANGE_TAIL,
-            "the tail is the longest instruction minus one"
-        );
+        assert_eq!(len as u32 - 1, RANGE_TAIL);
         let mut c = Core::new(&[]);
         put(&mut c, CODE, &[0x0600]);
         assert_eq!(code_ranges(&c), vec![(CODE, CODE + 3)]);
+    }
+
+    #[test]
+    fn no_instruction_is_longer_than_three_parcels() {
+        // the whole first-parcel space; the second parcel matters to `classify` only through the
+        // 32-bit marker (low 7 bits 0x3F), so none, an unmarked and a marked one cover it
+        let mut longest = 0;
+        for p0 in 0..=u16::MAX {
+            for p1 in [None, Some(0x0000), Some(0x003F)] {
+                longest = longest.max(crate::visa::classify(p0, p1).1);
+            }
+        }
+        assert_eq!(longest, 3, "the longest instruction");
+        assert_eq!(longest as u32 - 1, RANGE_TAIL, "the tail is that minus one");
     }
 
     #[test]
@@ -285,15 +302,52 @@ mod tests {
         let wide = arm_for(&mut all, Engine::Uop, 0, CODE + 4, None).unwrap();
         let (narrow, wide) = (narrow.unwrap(), wide.unwrap());
         assert!(c.uop_enabled() && all.uop_enabled());
-        assert!(narrow.insns <= wide.insns, "{narrow:?} against {wide:?}");
-        if wide.insns > 0 {
-            // a translating engine (not the skeleton, which builds no block): four of ten NOPs
-            assert!(narrow.insns < wide.insns, "{narrow:?} against {wide:?}");
-        }
+        // the translator is real: four of the ten NOPs are asked for
+        assert!(wide.insns > 0, "{wide:?}");
+        assert!(narrow.insns < wide.insns, "{narrow:?} against {wide:?}");
         // a range outside the window is the engine's error, as text, and leaves the engine off
         let mut bad = core_with(&[0x0001; 10]);
         let e = arm_for(&mut bad, Engine::Uop, 0, CODE, Some(&[(0, 4)])).unwrap_err();
         assert!(e.contains("outside the code window"), "{e}");
         assert!(!bad.uop_enabled());
+    }
+
+    /// A code write that leaves the code as it is, so the page is dirty and `uop_maintain` drops
+    /// and retranslates its blocks; returns the blocks that retranslation added.
+    fn retranslated(c: &mut Core) -> usize {
+        let word = c.dm_read(CODE / 2).unwrap();
+        c.dm_write(CODE / 2, word).unwrap();
+        assert!(c.uop_needs_maintenance(), "the write made the page dirty");
+        c.uop_maintain()
+    }
+
+    #[test]
+    fn arming_makes_the_stop_pc_a_block_start_which_a_bare_enable_does_not() {
+        // ten NOPs and the poll jump at POLL_PC. The translator reads `uop_run.stop_pc`
+        // (`lower/translate.rs`): with the pass idle pc known it cuts the NOP run in front of the
+        // poll instruction, so the poll core has more blocks than the same core enabled without
+        // it. `enable_uop` keeps the stop pc set before it (it saves and restores it), and the
+        // retranslation after a code write (`uop_maintain`, a program change or overlay load)
+        // reads it again: the retranslated poll program has the extra blocks only when
+        // `arm_uop_ranges` set the stop pc.
+        let (mut armed, mut bare) = (poll_core(), poll_core());
+        let ranges = code_ranges(&bare);
+        let built = arm_uop(&mut armed, UopConfig::default(), POLL_PC).unwrap();
+        let plain = bare.enable_uop(UopConfig::default(), &ranges).unwrap();
+        assert!(plain.blocks > 0, "the translator is real: {plain:?}");
+        assert_eq!(built.insns, plain.insns, "the same code is covered");
+        // not asserted strictly on the first build: `Core::enable_uop` clears the stop pc with
+        // `disable_uop` before it translates and restores it afterwards (drive.rs), so the first
+        // translation does not see it yet; `uop_begin_pass` repairs that (P7, W2-DRIVE)
+        assert!(built.blocks >= plain.blocks, "{built:?} against {plain:?}");
+        let (with_stop, without) = (retranslated(&mut armed), retranslated(&mut bare));
+        assert_eq!(
+            without as u32, plain.blocks,
+            "the bare engine retranslates exactly the blocks it had: one per PEy mode"
+        );
+        assert!(
+            with_stop > without,
+            "armed retranslated {with_stop} blocks, bare {without}: the stop pc is a block start"
+        );
     }
 }

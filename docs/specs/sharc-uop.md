@@ -2,7 +2,7 @@
 
 Status: **skeleton (W0)**. The module tree, types, driver, invalidation, verification harness and gate tooling exist and are tested; every lowering family is a stub that returns "not handled", so each instruction becomes an `Interp` uop and the engine is bit-exact by construction. Design, scores and work packages: [sharc-compiler-design](../research/sharc-compiler-design.md). Decision: [D260](../DECISIONS.md) (proposed).
 
-Code: `crates/nord-sharc/src/core/uop/`, `runner/uop_pass.rs`, `runner/uop_report.rs`, `crates/nord-tools/src/bin/uop_report.rs`, `tools/uop_gates.py`.
+Code: `crates/nord-sharc/src/core/uop/`, `runner/uop_pass/`, `runner/pass_sched/`, `runner/uop_report/`, `crates/nord-tools/src/bin/uop_report.rs` (+ `uop_report/`), `crates/nord-tools/src/bin/lle_sharc_bench.rs`, `tools/uop_gates.py`.
 
 ## 1. Scope and invariants
 
@@ -41,7 +41,8 @@ Code: `crates/nord-sharc/src/core/uop/`, `runner/uop_pass.rs`, `runner/uop_repor
 | `uop_begin_pass(idle_pc)`, `uop_take_fault`, `uop_set_stop_pc` | pass runner support. |
 | `uop_note_write(first_short, count)`, `uop_note_all()` | called from `invalidate_sram_cache` and `invalidate_code_cache`; early return while `uop_run.active` is false. |
 | `uop_revalidate_dirty`, `uop_maintain`, `uop_needs_maintenance`, `uop_dirty` | invalidation (section 5). |
-| `lean_pass_uop`, `lean_pass_uop_checked` | pass loops (`runner/uop_pass.rs`). |
+| `lean_pass_uop`, `lean_pass_uop_checked` | pass loops (`runner/uop_pass/`: `mod.rs` the engine loop, `checked.rs` the interpreter replay with `shadowed_with`, `diff_of`, `checked_with`; `*_entries` forms report each block entry to a callback for the histogram). |
+| `run_ticks`, `run_ticks_with` | threaded pass scheduler (`runner/pass_sched/`). A panic in a core's pass stops every core at once (shared abort flag) and returns `Err("core NAME panicked in pass N: ...")`; the bench exits non-zero. `CoreSeries::uop_at_warmup` is the counter snapshot taken when the first measured pass starts. |
 | `Engine::{Uop, UopChecked, UopNative}` | census and pass-scheduler selection; `#[default] Interp`. |
 
 ## 4. Entry guard and event split
@@ -71,13 +72,21 @@ Events raised inside a block follow design section 7.3: a system-register write 
 
 ## 6. Cost model and report
 
-`runner/uop_report.rs` turns counters into modeled host cycles. All costs are ASSUMED until gate K0: dispatch 6, transition 38, `Interp` step 100, Tier 1 work 42 per step, native 38 per step all-in. Reference: ORG Core2, 6,280 steps, 8,478 uops, 520 blocks, 125 `Interp` steps gives about 340k cycles (Tier 1) and about 236k to 246k (Tier 2). Tests pin both totals.
+`runner/uop_report/model.rs` turns counters into modeled host cycles. `steps_native` is a subset of `steps_uop` (native blocks are one kind of uop step; `UopStats` is frozen, so the contract is documented in `model.rs` and `tools/uop_gates.py`, which rejects a report with `steps_native > steps_uop`). All costs are ASSUMED until gate K0: dispatch 6, transition 38, `Interp` step 100, Tier 1 work 42 per step, native 38 per step all-in. Reference: ORG Core2, 6,280 steps, 8,478 uops, 520 blocks, 125 `Interp` steps gives about 340k cycles (Tier 1) and about 236k to 246k (Tier 2). Tests pin both totals.
 
 `uop-report` (nord-tools) prints one JSON object, schema 1, hand-written, counts only:
 
-`{"schema":1,"label":s,"stats":{passes, blocks_run, uops, steps_uop, steps_interp_uop, steps_core_step, steps_native, exits[6], guard_fail[9], smc, translations, poisoned, maintain_calls, shadow_checks, shadow_mismatch, shadow_skipped},"model":{tier1_cycles, tier2_cycles}}`
+`{"schema":1,"label":s,"window":"measured"|"all","replay":{checked, skipped},"stats":{passes, blocks_run, uops, steps_uop, steps_interp_uop, steps_core_step, steps_native, exits[6], guard_fail[9], smc, translations, poisoned, maintain_calls, shadow_checks, shadow_mismatch, shadow_skipped},"model":{tier1_cycles, tier2_cycles}[,"block_steps":{edges[11], counts[12], entries, steps, chained, empty}]}`
 
-The skeleton binary arms the engine on a synthetic NOP program (no firmware) and is the schema and wiring check; with firmware the same report comes from the runner that owns the core.
+| Member | Meaning |
+|---|---|
+| `window` | `measured`: the counters are the measured passes only (`uop-report` resets after the warm-up; `lle_sharc_bench` subtracts the snapshot it took when the first measured pass started). `all`: every pass, warm-up included. |
+| `replay` | passes of `uop-checked` replayed on the interpreter and found equal (`checked`) and passes it could not replay because the core has peripheral models (`skipped`). Separate from `stats.shadow_checks`, which stays the engine's own count of blocks checked. A run with `skipped > 0` has not shown exactness (`uop-report` exits 3). |
+| `block_steps` | block-length histogram of design 11.3, present for `uop-report` only: steps run by each block entry, bucketed by `edges` (inclusive upper bounds; `counts` has one more, open bucket). `entries` are bucketed entries, `chained` entries that ran 2 or more linked blocks, `empty` entries that bailed before a step. `entries + empty + 2 * chained <= blocks_run`, equal when nothing chained. Edges are ASSUMED. A static table of the translated blocks needs a read-only accessor on `core::uop` (see the work package notes). |
+
+`uop-report` runs `warmup + passes` passes on one thread (it can reset the counters between the phases); `lle_sharc_bench --uop-report FILE` runs the cores on their own threads and reports counters minus the warm-up snapshot. The report has no `block_steps` and no `replay` there.
+
+The default binary arms the engine on a synthetic poll program (no firmware) and is the schema and wiring check; with firmware (`--image`, `--preset`) the same report comes from the real pass of that core.
 
 ## 7. Gates (`tools/uop_gates.py`)
 
@@ -85,7 +94,7 @@ Reads the report JSON only; exit 0 pass, 1 fail, 2 bad input. All thresholds are
 
 | Gate | Condition |
 |---|---|
-| G2 | uops per step <= 1.35; `Interp` plus `Core::step` steps <= 6% of steps (fast share >= 90%); `Slow` exits <= 20 per pass; `maintain_calls == 0` and `smc == 0` in steady passes |
+| G2 | uops per step <= 1.35; `Interp` plus `Core::step` steps <= 6% of steps (fast share >= 90%); `Slow` exits <= 20 per pass; `maintain_calls == 0` and `smc == 0` in steady passes (evaluated only on a report whose `window` is `measured` or absent; a `window: "all"` report fails both, as the warm-up is where translations and revalidations are expected) |
 | K3 | modeled Tier 2 cycles per pass <= 290,000 (1.4 x 207,360) |
 
 The other gates of design section 12 need wall-clock or firmware runs and are evaluated by their owners (G1 by `verify/`, G3 and K4 by the A/B driver).
