@@ -1,7 +1,8 @@
 //! OWNER: W2-NMEM. Trace generators and comparison suites of the native control-flow tests
 //! (`cfg(test)`): the loop traces, the exit-form traces and the kill suite of the flow mutants.
 
-use super::super::lower_mem::harness::oracle::{run_case, Case, Tally};
+use super::super::lower_mem::harness::compare::{run_case, Case};
+use super::super::lower_mem::harness::oracle::Tally;
 use super::super::lower_mem::harness::{
     add_imm, compile_test, page_addr, random_state, HOOKED_R, RAM0, RAM1, RAM2,
 };

@@ -14,9 +14,11 @@
 //!
 //! [`test_lower`] is the lowerer the tests build with: memory and control uops go to this
 //! package's lowerers, and the few data-processing uops the traces need (`ADD_IMM`, `SUB_IMM`,
-//! `MOV_IMM`, `CMP_IMM`, `CMP_REG`) to [`dp_stub`], so the tests do not depend on W2-NDP.
+//! `MOV_IMM`, `CMP_IMM`, `CMP_REG`) to [`stub::dp_stub`], so the tests do not depend on W2-NDP.
 
+pub(crate) mod compare;
 pub(crate) mod oracle;
+pub(crate) mod stub;
 
 use super::super::available;
 use super::super::codegen::build_function_with;
@@ -29,8 +31,7 @@ use crate::cpu::Cpu;
 use crate::machine::sb::testkit::Rng;
 use crate::machine::sb::uop::{k, Exit, ExitKind, Sb, Uop};
 use crate::mem::{Mem, HOOK_R, HOOK_W};
-use cranelift_codegen::ir::condcodes::IntCC;
-use cranelift_codegen::ir::{types, InstBuilder};
+use stub::dp_stub;
 
 /// First guest address of the test world.
 pub(crate) const BASE: u32 = 0x9000_0000;
@@ -311,7 +312,7 @@ pub(crate) fn random_trace(rng: &mut Rng, structured: bool) -> Built {
     Built { sb, eq_guards }
 }
 
-/// The lowerer of the tests: this package's lowerers plus [`dp_stub`].
+/// The lowerer of the tests: this package's lowerers plus [`stub::dp_stub`].
 pub(crate) fn test_lower(cx: &mut NCtx<'_>, u: &Uop) -> Result<(), Unsupported> {
     match k::family(u.kind) {
         k::Family::Dp => dp_stub(cx, u),
@@ -319,50 +320,6 @@ pub(crate) fn test_lower(cx: &mut NCtx<'_>, u: &Uop) -> Result<(), Unsupported> 
         k::Family::Flow | k::Family::Fused => lower_flow(cx, u),
         k::Family::Invalid => Err(Unsupported),
     }
-}
-
-/// The few data-processing uops the traces need, lowered the plain way (non-S moves and adds,
-/// the compares with the usual `N Z C V` of `rn - op`); anything else is `Unsupported`.
-pub(crate) fn dp_stub(cx: &mut NCtx<'_>, u: &Uop) -> Result<(), Unsupported> {
-    match u.kind {
-        k::ADD_IMM | k::SUB_IMM => {
-            let a = cx.reg(u.rn);
-            let imm = i64::from(u.imm as i32);
-            let v = if u.kind == k::ADD_IMM {
-                cx.b.ins().iadd_imm(a, imm)
-            } else {
-                cx.b.ins().iadd_imm(a, -imm)
-            };
-            cx.set_reg(u.rd, v);
-        }
-        k::MOV_IMM => {
-            let v = cx.const32(u.imm);
-            cx.set_reg(u.rd, v);
-        }
-        k::CMP_IMM | k::CMP_REG => {
-            let a = cx.reg(u.rn);
-            let b = if u.kind == k::CMP_IMM {
-                cx.const32(u.imm)
-            } else {
-                cx.reg(u.rm)
-            };
-            let res = cx.b.ins().isub(a, b);
-            let n = cx.b.ins().ushr_imm(res, 31);
-            let z = cx.b.ins().icmp_imm(IntCC::Equal, res, 0);
-            let z = cx.b.ins().uextend(types::I32, z);
-            let c = cx.b.ins().icmp(IntCC::UnsignedGreaterThanOrEqual, a, b);
-            let c = cx.b.ins().uextend(types::I32, c);
-            let (x, y) = (cx.b.ins().bxor(a, b), cx.b.ins().bxor(a, res));
-            let v = cx.b.ins().band(x, y);
-            let v = cx.b.ins().ushr_imm(v, 31);
-            cx.set_flag(3, n);
-            cx.set_flag(2, z);
-            cx.set_flag(1, c);
-            cx.set_flag(0, v);
-        }
-        _ => return Err(Unsupported),
-    }
-    Ok(())
 }
 
 /// Build the function of `sb` with [`test_lower`], verify the IR and compile it. `None` when the

@@ -7,7 +7,8 @@ use super::lower_flow;
 use super::suite::{cond_suite, loop_case, loop_suite, loop_trace, pair_suite};
 use crate::machine::sb::native::emit::testing::build_and_verify;
 use crate::machine::sb::native::emit::Unsupported;
-use crate::machine::sb::native::lower_mem::harness::oracle::{run_case, Case, Tally};
+use crate::machine::sb::native::lower_mem::harness::compare::{run_case, Case};
+use crate::machine::sb::native::lower_mem::harness::oracle::Tally;
 use crate::machine::sb::native::lower_mem::harness::{
     add_imm, compile_test, native_or_skip, random_state, test_lower,
 };

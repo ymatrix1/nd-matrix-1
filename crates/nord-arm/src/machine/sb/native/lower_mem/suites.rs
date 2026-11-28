@@ -1,7 +1,8 @@
 //! OWNER: W2-NMEM. Block-transfer and shifted-offset comparison suites of the native memory
 //! tests (`cfg(test)`), kept apart from `tests.rs` so each file stays small.
 
-use super::harness::oracle::{run_case, Case, Tally};
+use super::harness::compare::{run_case, Case};
+use super::harness::oracle::Tally;
 use super::harness::*;
 use super::tests::one;
 use crate::machine::sb::exec_mem::{F_P, F_U, F_WB};

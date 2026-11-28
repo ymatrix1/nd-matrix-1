@@ -2,7 +2,8 @@
 //! against tier 2 where native code is available (otherwise each test prints why it skipped and
 //! asserts the fallback), and the mutation check of the memory and flow mutants.
 
-use super::harness::oracle::{run_case, same_state, Case, Slow, Tally};
+use super::harness::compare::{run_case, same_state, Case};
+use super::harness::oracle::{Slow, Tally};
 use super::harness::*;
 use super::lower_mem;
 use super::suites::{block_suite, shift_and_abs_suite};
