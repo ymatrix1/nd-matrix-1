@@ -703,8 +703,10 @@ pub struct PianoLayer {
     pub firmware_key_up: bool,
     /// Notes struck with the damper pedal down take the firmware voice list too (the same
     /// voices and gains as with the pedal up, `piano/pedal_voices.rs`, VERIFIED by the ARM run
-    /// `tools/arm_piano_pedal.py`) instead of the legacy damper-stroke path. Default `false`
-    /// (D22): the pedal-down key-up record placement is not decoded.
+    /// `tools/arm_piano_pedal.py`) instead of the legacy damper-stroke path. Default `true`
+    /// since D261 (issue #679: the legacy path starts one voice where the firmware starts two,
+    /// about 6 dB quieter); the pedal-down key-up record placement stays unmodelled and the
+    /// engine's own sustain logic releases the voices.
     pub firmware_pedal_voices: bool,
     /// Play the Soft / Mid / Bright timbre as the firmware does: a gain per note from the ROM tables of
     /// `kEq` (`piano/timbre_gain.rs`, VERIFIED by the ARM run, `docs/research/piano-timbre-gain.md`)
@@ -808,7 +810,7 @@ impl PianoLayer {
             firmware_touch: true,
             firmware_slew: false,
             firmware_key_up: false,
-            firmware_pedal_voices: false,
+            firmware_pedal_voices: true,
             firmware_timbre_gain: false,
             firmware_bus_scale: false,
             receiver_chain_scale: false,
@@ -2041,6 +2043,8 @@ mod tests {
 
         let mut layer = PianoLayer::new(48_000.0);
         layer.set_sound(Some(npno_sound));
+        // The legacy damper-stroke path (the default plays the firmware voice list, D261).
+        layer.firmware_pedal_voices = false;
         layer.set_damper_pedal(true, 100);
         layer.note_on(60, 90);
         assert_eq!(layer.voices[0].stroke_idx, Some(1));

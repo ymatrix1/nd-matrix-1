@@ -305,8 +305,9 @@ mod tests {
         assert!(layer.voices.iter().all(|v| !v.active), "release fades out");
     }
 
-    /// With the damper pedal down the firmware voice list (and with it the slew) is bypassed and
-    /// the legacy damper-stroke path plays the note: `chain + slew` clip replays mix both paths
+    /// With the pedal-down voices opted out (`firmware_pedal_voices = false`, the pre-D261
+    /// default) the firmware voice list (and with it the slew) is bypassed and the legacy
+    /// damper-stroke path plays the note: `chain + slew` clip replays mixed both paths
     /// (25 to 77 % of the Part A piano notes start with the pedal down,
     /// `docs/research/piano-decay-attack.md` s6).
     #[test]
@@ -314,6 +315,7 @@ mod tests {
         let image = two_voice_image();
         let mut layer = layer_with(&image, 3, true);
         layer.firmware_slew = true;
+        layer.firmware_pedal_voices = false;
         layer.set_damper_pedal(true, 64);
         layer.note_on(60, 64);
         let active: Vec<_> = layer.voices.iter().filter(|v| v.active).collect();
