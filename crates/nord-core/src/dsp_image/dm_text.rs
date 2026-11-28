@@ -279,34 +279,30 @@ mod tests {
 
     #[test]
     fn pick_shifts_takes_the_first_accepted_table_else_the_first_built() {
-        let tables: [&[Shift]; 3] = [&[], OS_V168, &[]];
-        let build = |s: &[Shift]| -> Result<usize, String> { Ok(s.len()) };
-        // table 1 (OS_V168, 2 pieces) is the first accepted
-        assert_eq!(pick_shifts(&tables, build, |n| *n == 2).unwrap(), 2);
-        // two accepted tables with different results: the first one wins, in order
-        let tagged: [&[Shift]; 3] = [&OS_V168[..1], OS_V168, &OS_V168[..1]];
-        let by_len = |s: &[Shift]| -> Result<usize, String> { Ok(s.len() * 10) };
-        assert_eq!(pick_shifts(&tagged, by_len, |_| true).unwrap(), 10);
-        assert_eq!(pick_shifts(&tagged, by_len, |n| *n == 20).unwrap(), 20);
-        // none accepted: the first built result, not the last (0, 20, 10 by table order)
-        let seq = std::cell::Cell::new(0usize);
-        let order = |_: &[Shift]| -> Result<usize, String> {
-            let k = seq.get();
-            seq.set(k + 1);
-            Ok([7, 8, 9][k])
-        };
-        assert_eq!(pick_shifts(&tagged, order, |_| false).unwrap(), 7);
-        // none accepted: the first table that built
-        assert_eq!(pick_shifts(&tables, build, |_| false).unwrap(), 0);
-        // the first table fails to build, the second is accepted
+        // asymmetric fixture: the result of slot i depends on the table, not on the call order
+        // (slot 0: 1 piece -> 10, slot 1: 2 pieces -> 20, slot 2: no piece -> 0)
+        let tables: [&[Shift]; 3] = [&OS_V168[..1], OS_V168, &[]];
+        let build = |s: &[Shift]| -> Result<usize, String> { Ok(s.len() * 10) };
+        // everything accepted: the first slot, not the last (reverse or last-wins would give 0)
+        assert_eq!(pick_shifts(&tables, build, |_| true).unwrap(), 10);
+        // slots 0 and 1 accepted: the first (reverse order would give 20)
+        assert_eq!(pick_shifts(&tables, build, |n| *n >= 10).unwrap(), 10);
+        // only slot 1 accepted
+        assert_eq!(pick_shifts(&tables, build, |n| *n == 20).unwrap(), 20);
+        // only the last slot accepted
+        assert_eq!(pick_shifts(&tables, build, |n| *n == 0).unwrap(), 0);
+        // none accepted: the first built result (10), not the last (0)
+        assert_eq!(pick_shifts(&tables, build, |_| false).unwrap(), 10);
+        // the first table fails to build: the second is accepted, or the second is the fallback
         let fail_first = |s: &[Shift]| -> Result<usize, String> {
-            if s.is_empty() {
+            if s.len() == 1 {
                 Err("no".into())
             } else {
-                Ok(s.len())
+                Ok(s.len() * 10)
             }
         };
-        assert_eq!(pick_shifts(&tables, fail_first, |_| true).unwrap(), 2);
+        assert_eq!(pick_shifts(&tables, fail_first, |_| true).unwrap(), 20);
+        assert_eq!(pick_shifts(&tables, fail_first, |_| false).unwrap(), 20);
         // nothing builds: the last error
         let e = pick_shifts(&tables, |_| Err::<usize, _>("bad".into()), |_| true).unwrap_err();
         assert_eq!(e, "bad");
