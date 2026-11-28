@@ -136,6 +136,8 @@ mod tests_fw_delay_time;
 #[cfg(test)]
 mod tests_fw_eq_chain;
 #[cfg(test)]
+mod tests_fw_eq_memo;
+#[cfg(test)]
 mod tests_fw_leslie_data;
 #[cfg(test)]
 mod tests_fw_leslie_golden;
