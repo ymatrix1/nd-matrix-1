@@ -27,6 +27,18 @@ Tags follow `.agents/rules/provenance-in-code.md`. The ARM program-load run (abo
 
 `cargo test -p nord-core --release --test real_bank_sustped` (needs the factory backup in `.reference/` or `NS4_FACTORY_BACKUP`; skips cleanly without it) loads all 384 factory programs of `Nord Stage 4 Factory Restore RevK v1.66.ns4b` through `Stage4Engine::apply_program` with `synth_sustain_program` on. Result: `pedals.sustped[4..7]` equals the decoded program bit for every program; the counts are 381 / 383 / 383 set and the five exceptions above are the only zeros. `python tools/synth_sustped.py` on the same file gives the same counts. VERIFIED (run). The OS v1.68 update was downloaded too, but the ARM harness addresses are v1.66 ones (`os-update-input.md`), so the ARM hold trace (follow-up 1) is still open.
 
+## 4. ARM consumer of `0xF8`: first trace (2026-11-28, OS v1.66)
+
+Static scan of `bank0_CODE.bin` (v1.66, `tools/arm_xref.py dis`, capstone, one throw-away scan script, no firmware bytes kept). VERIFIED (disassembly):
+
+| Item | Result |
+|---|---|
+| Subscription | the layer class constructor `0xC00166EC` subscribes its object to id `0xF8` with `0xC00D57F0(this, 0xF8)` at `0xC00168D0` (260 subscribe call sites in the image; `0xF8` once) and registers it again through `0xC00F05C4(this, 0xF8)` at `0xC0016BCC` |
+| Readers | two event handlers read the value with the store getter `0xC00D04D0` (id in `r2`): `0xC011D53C` at `0xC011E054` and `0xC0113758` at `0xC01138CC`. Both turn it into the boolean `value == 1` (`sub 1; clz; lsr 5`) next to `0xF6` (read the same way) and `0xF7` (a 0..9 switch), then go on to build layer configuration flags |
+| Pedal path | not found yet. The booleans are consumed inside these layer-configuration handlers; the note-off deferral (where a released key is kept while the pedal is down) is a later consumer of those flags and was not reached |
+
+So the flag is read by the ARM layer logic (matches the silent DSP side of s1), but the hold semantics (release timing, retrigger of a held key, pedal-up release) are still not confirmed against the firmware. Next step: run the edit-capture harness (`tools/arm_edit_capture.py`, needs the settled snapshot) with id `0xF8` at 0 and 1, diff the layer object memory to find the field the flag lands in, then find that field's readers in the note-off path.
+
 ## Implications
 
 - `--synth-sustain-pedal` can be promoted once the ARM hold logic is traced and a second clip with the pedal and a synth layer agrees.
