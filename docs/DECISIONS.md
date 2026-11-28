@@ -6,6 +6,7 @@ Each decision records **Context, Decision, Why, Alternatives, Impact**, plus **S
 
 | # | Date | Decision | Status |
 |---|---|---|---|
+| [D259](#d259-dev-and-test-builds-run-the-emulator-crates-at-opt-level-1-benchmarks-time-thread-cpu-and-an-interleaved-ab-driver-replaces-hand-run-rounds) | 2026-11-28 | Dev/test builds run the emulator crates at opt-level 1; benchmarks time thread CPU and an interleaved A/B driver replaces hand-run rounds | accepted |
 | [D258](#d258-sharc-aot-blocks-become-event-aware-stage-d1-stages-c-and-d2-are-not-built-because-every-remaining-row-is-below-the-noise-band-of-the-available-host-ns4-lle3) | 2026-11-28 | SHARC AOT blocks become event-aware (stage D1); stages C and D2 are not built because every remaining row is below the noise band of the available host (`ns4-lle3`) | accepted |
 | [D255](#d255-a-held-npno-note-loops-the-strokes-loop-region-and-decays-as-the-firmware-smp-voice-does-issue-640) | 2026-11-24 | A held `.npno` note loops the stroke's loop region and decays, as the firmware SMP voice does (issue #640); owner confirmation pending | accepted |
 | [D256](#d256-sharc-fast-tier-tolerance-is-proposed-step-count-output-snr-bounded-state-error-paired-simd-kernels-are-kept-as-api-with-no-call-site) | 2026-11-27 | SHARC fast tier tolerance is proposed (step count, output SNR, bounded state error); paired SIMD kernels are kept as API with no call site | proposed |
@@ -2720,6 +2721,15 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Alternatives:** Threaded dispatch only (rejected: per-instruction decode was not the dominant cost after the cache); host-code translation or superblocks (deferred: needs a design of its own, the tail is already bounded for a decoupled design); tick the criterion with a "mostly" qualifier (rejected); change the 200,000 budget to 300 k (rejected: no evidence either way).
 - **Limits:** About 2.0x, not 5x (interleaved A/B medians 93.5 to 187 M insns/s). Latency numbers come from a simulation driven by measured tick costs; the real-thread run on the shared machine is scheduling noise. The null-call cause is not isolated; the per-target message split is not recomputed. One firmware image, one program, one machine.
 - **Impact:** `crates/nord-arm` (`cpu/predecode.rs`, `cpu/arm_cached.rs`, `machine/{fastrun,metrics,paced,micro,probe}.rs`, changes in `mem.rs`, `cpu/arm*.rs`, `machine/{mod,idle,sysbus}.rs`), `crates/nord-tools/src/bin/arm_lle_bench.rs`, [specs/arm0-runtime.md](specs/arm0-runtime.md), [research/arm0-rust-runtime.md](research/arm0-rust-runtime.md), bean `ns4-lle2`. No change to the audio engine or default behaviour.
+
+### D259. Dev and test builds run the emulator crates at opt-level 1; benchmarks time thread CPU and an interleaved A/B driver replaces hand-run rounds
+
+- **Status:** accepted. **Decided by:** project owner brief "reduce benchmark times so we can implement and code faster" (2026-11-28).
+- **Context:** the emulator crates ran tests at opt-level 0 (76 s for three crates), every benchmark A/B needed 7 to 9 hand-run rounds on a quiet host, and several sessions share one machine.
+- **Decision:** `[profile.dev.package.{nord-core,nord-sharc,nord-arm}] opt-level = 1`; `nord_sharc::cpu_clock::ThreadClock` adds thread CPU time next to wall time in the per-core pass series, the ARM tick rows and the kernel bench (deadline statistics and "x of budget" stay wall time); `tools/bench_ab.py` runs interleaved A/B rounds with a band verdict and a compiler-load note.
+- **Why:** measured in `docs/research/build-bench-speed.md`: tests 76.5 s to 19.8 s, rebuild times unchanged. CPU time is not inflated by descheduling, which should allow fewer rounds for exploration (ASSUMED: the CPU-versus-wall spread under load was not measured; the protocol keeps 7 to 9 rounds for a decision).
+- **Alternatives:** a `codegen-units = 32` AOT profile (no gain, 94.9 s vs 91.3 s, not adopted); `sccache` as a global `RUSTC_WRAPPER` (changes every session's build, left to the owner); `opt-level = 2` or 3 (slower rebuilds, not measured); CI changes (out of scope, cost-neutral rule).
+- **Impact:** overflow checks and debug assertions stay on, so a test that relied on opt-level 0 timing is the only risk (none failed). Wall-clock rules for real-time budget claims are unchanged (quiet host, 7 to 9 rounds); the AOT compile time is unchanged.
 
 ### D252. The plugin's `library_program` defaults to `A:11`, `initialize` waits up to 15 s for it, and the parameter id is appended to the snapshot
 
