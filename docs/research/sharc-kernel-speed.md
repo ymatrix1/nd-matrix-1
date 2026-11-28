@@ -317,7 +317,7 @@ Core2, pass 16) and the loaded pass (ORG Core2 after the 912 messages, pass 16 a
 hundred state words differ by 1e-8 to 1e-5 absolute and 2e-5 relative, rising over the first 100 passes and then
 flat. The state-energy SNR (about 280 to 300 dB) is dominated by large-magnitude words and is not a useful figure.
 
-**Against the proposed tolerance (D251, proposed):**
+**Against the proposed tolerance (D252, proposed):**
 
 | # | Criterion | ORG Core2 | PNO Core2 |
 |---|---|---|---|
@@ -333,7 +333,7 @@ of audio) cannot show a drift that needs seconds (a pole near the unit circle, a
 1. An audio-producing stream (a PNO key stream with the model install, or an ORG voice that reaches the lanes; neither
    exists yet, `org-system-run.md` follow-up 2), at least 2 s of audio (about 43 400 passes).
 2. A null test of the fast against the exact output of that stream: SNR over the lanes per 4 096-sample window against
-   the D251 limits.
+   the D252 limits.
 3. A blind A/B listening test of the same stream on both modules.
 4. This table repeated for every module build, since the generated modules change with the lowering.
 

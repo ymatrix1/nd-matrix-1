@@ -5,7 +5,7 @@
 use super::ctx::{Fx, CAPTION};
 use crate::panel::prelude::Stage4PanelState;
 use crate::panel::ui_state::fx::{section_of_slot, slot_for, FocusSection, Unit};
-use crate::style::{LED_AMBER, LED_AMBER_DIM, LED_RED, LED_RED_DIM};
+use crate::style::{LED_ACCENT, LED_ACCENT_DIM, LED_AMBER, LED_AMBER_DIM};
 use crate::widgets::label;
 use egui::{pos2, Align2};
 use nord_panel::behaviour::Trigger;
@@ -28,7 +28,7 @@ pub(super) fn focus(f: &mut Fx, st: &mut Stage4PanelState) {
     let on = f.rect("fx.layer_effects_on");
     let all_on = st.fx_ui.chains[slot].all_on;
     // Left of the button: the header tab has no room above it.
-    f.led_left(on, all_on, LED_RED, LED_RED_DIM);
+    f.led_left(on, all_on, LED_ACCENT, LED_ACCENT_DIM);
     if f.button(
         "fx.layer_effects_on",
         on,

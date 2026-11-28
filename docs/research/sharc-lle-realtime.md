@@ -348,7 +348,7 @@ target/aot/release/lle_sharc_bench --engine aot --core PNOc2=target/sram/PNO/cor
 
 - Presets and message scripts for ORG Core1 (FX Core1/Core2 done in `ns4-lle4`); SY1SY2/SMP as ISR-driven jobs in `pass_sched`, so the 300-pass benchmark covers all five chips.
 - AOT module for PNO Core2: done (section "PNO Core2 AOT module"). Still open: a PNO Core2 message script for a loaded pass; a re-measure on a quiet host; lowering of the 475 generic `aot_step` steps and of the 14 refused block entries per pass (each below the noise band, see Step 4 there).
-- Fast-vs-Exact: measured 2026-11-27 on ORG and PNO Core2 with `fast_vs_exact` (state error 2e-5 relative, bounded; `sharc-kernel-speed.md`, D251). The SNR in dB of the output is still open: both streams are silent.
+- Fast-vs-Exact: measured 2026-11-27 on ORG and PNO Core2 with `fast_vs_exact` (state error 2e-5 relative, bounded; `sharc-kernel-speed.md`, D252). The SNR in dB of the output is still open: both streams are silent.
 - Listening/null test for the fast-f32 tier, only if the compute share of the pass becomes native.
 
 ## Reproduce

@@ -5,7 +5,7 @@
     330
   ],
   "sprites": {
-    "btn_black_down": {
+    "btn_accent_down": {
       "px": [
         802,
         4,
@@ -20,7 +20,7 @@
       ],
       "source": "html_css"
     },
-    "btn_black_up": {
+    "btn_accent_up": {
       "px": [
         4,
         236,
@@ -35,7 +35,7 @@
       ],
       "source": "html_css"
     },
-    "btn_grey_down": {
+    "btn_black_down": {
       "px": [
         132,
         236,
@@ -50,7 +50,7 @@
       ],
       "source": "html_css"
     },
-    "btn_grey_up": {
+    "btn_black_up": {
       "px": [
         260,
         236,
@@ -65,7 +65,7 @@
       ],
       "source": "html_css"
     },
-    "btn_red_down": {
+    "btn_grey_down": {
       "px": [
         388,
         236,
@@ -80,7 +80,7 @@
       ],
       "source": "html_css"
     },
-    "btn_red_up": {
+    "btn_grey_up": {
       "px": [
         516,
         236,

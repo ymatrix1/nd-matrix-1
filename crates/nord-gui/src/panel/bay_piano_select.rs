@@ -24,7 +24,7 @@ const PED_LED_SHIFT: f32 = 3.0;
 /// clear of the button bezel.
 const LED_ROW_DROP: f32 = 4.6;
 
-const RED: (Color32, Color32) = (LED_RED, LED_RED_DIM);
+const RED: (Color32, Color32) = (LED_ACCENT, LED_ACCENT_DIM);
 const AMBER: (Color32, Color32) = (LED_AMBER, LED_AMBER_DIM);
 
 /// Draw the Piano Select, acoustics, touch, comp, timbre and unison controls and the overlays.
@@ -157,8 +157,8 @@ fn draw_acoustics(
         p,
         pos2(soft.left() - SIDE_LED, soft.center().y),
         state.piano_ui.soft_release[l] && logic::acoustic_leds(state.piano_cat),
-        LED_RED,
-        LED_RED_DIM,
+        LED_ACCENT,
+        LED_ACCENT_DIM,
         2.2,
         clav,
     );
@@ -199,8 +199,8 @@ fn draw_acoustics(
         p,
         pos2(sr.left() - SIDE_LED, sr.center().y),
         state.string_res && logic::acoustic_leds(state.piano_cat),
-        LED_RED,
-        LED_RED_DIM,
+        LED_ACCENT,
+        LED_ACCENT_DIM,
         2.2,
         false,
     );

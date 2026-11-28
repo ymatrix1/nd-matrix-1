@@ -40,8 +40,8 @@ mod tests {
 
     #[test]
     fn test_widget_color_constants() {
-        assert_eq!(LED_RED.r(), 0xFF);
-        assert_eq!(LED_GREEN.g(), 0xE6);
+        assert_eq!(LED_ACCENT.r(), 0x35);
+        assert_eq!(LED_GREEN.g(), 0xE8);
     }
 
     #[test]

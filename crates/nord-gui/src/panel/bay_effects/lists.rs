@@ -83,7 +83,7 @@ impl Fx<'_> {
             };
             let supported = missing.is_empty();
             let (col, off) = if supported {
-                (LED_RED, LED_RED_DIM)
+                (LED_ACCENT, LED_ACCENT_DIM)
             } else {
                 (LED_AMBER, Color32::from_gray(52))
             };
