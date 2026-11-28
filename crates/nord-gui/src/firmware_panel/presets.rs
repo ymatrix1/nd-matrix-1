@@ -49,6 +49,7 @@ pub fn copy_engine(dst: &mut FirmwareOptions, src: &FirmwareOptions, engine: Eng
             dst.piano_firmware_level = src.piano_firmware_level;
             dst.piano_bus_scale = src.piano_bus_scale;
             dst.piano_touch = src.piano_touch;
+            dst.piano_pedal_voices = src.piano_pedal_voices;
             dst.piano_slew = src.piano_slew;
             dst.piano_chain_scale = src.piano_chain_scale;
             dst.piano_layer_law = src.piano_layer_law;
@@ -109,6 +110,8 @@ mod tests {
         // D142 synth velocity, D165 piano Touch, D166 arpeggiator walk and morph law
         let c = classic();
         assert!(!c.synth_velocity_fw && !c.piano_touch);
+        // D262: the pedal-down firmware voice list is a default flip too (issue #679).
+        assert!(!c.piano_pedal_voices && firmware().piano_pedal_voices);
         assert!(!c.arp_firmware && !c.arp_firmware_gate && !c.firmware_morph);
         // D223: the firmware resonance position is a default flip too.
         assert!(!c.synth_fw_resonance && firmware().synth_fw_resonance);

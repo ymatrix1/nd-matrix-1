@@ -321,8 +321,10 @@ pub struct FirmwareOptions {
     /// `--piano-keyup-fw`: `PianoLayer::firmware_key_up` (firmware key-up ratio and decay on the
     /// engine envelope path, opt-in; D226).
     pub piano_key_up: bool,
-    /// `--firmware-piano-pedal-voices`: `PianoLayer::firmware_pedal_voices` (notes struck with
-    /// the damper pedal down take the firmware voice list, VERIFIED by the ARM run; opt-in, D22).
+    /// `--firmware-piano-pedal-voices` / `--legacy-piano-pedal-voices`:
+    /// `PianoLayer::firmware_pedal_voices` (notes struck with the damper pedal down take the
+    /// firmware voice list, VERIFIED by the ARM run; on by default since D262, issue #679;
+    /// `--legacy-piano-pedal-voices` and `--legacy-all` play the damper-stroke path).
     pub piano_pedal_voices: bool,
     /// `--firmware-piano-timbre`: `PianoLayer::firmware_timbre_gain` (the Soft / Mid / Bright timbre as
     /// the per-note gain of the firmware ROM tables, VERIFIED by the ARM run; opt-in, D22).
@@ -479,7 +481,7 @@ impl Default for FirmwareOptions {
             piano_touch: true,
             piano_slew: false,
             piano_key_up: false,
-            piano_pedal_voices: false,
+            piano_pedal_voices: true,
             piano_timbre_gain: false,
             piano_chain_scale: false,
             piano_layer_law: false,
@@ -547,6 +549,7 @@ impl FirmwareOptions {
             synth_velocity_fw: false,
             piano_firmware_level: false,
             piano_touch: false,
+            piano_pedal_voices: false,
             fx_rate_match: false,
             synth_layer_law: false,
             measured_tick: false,
@@ -577,7 +580,7 @@ impl FirmwareOptions {
             piano_touch: true,
             piano_slew: false,
             piano_key_up: false,
-            piano_pedal_voices: false,
+            piano_pedal_voices: true,
             piano_timbre_gain: false,
             piano_chain_scale: false,
             piano_layer_law: false,
@@ -699,6 +702,9 @@ impl FirmwareOptions {
         o.piano_slew |= has("--piano-slew-fw");
         o.piano_key_up |= has("--piano-keyup-fw");
         o.piano_pedal_voices |= has("--firmware-piano-pedal-voices");
+        if has("--legacy-piano-pedal-voices") {
+            o.piano_pedal_voices = false;
+        }
         o.piano_timbre_gain |= has("--firmware-piano-timbre");
         o.piano_chain_scale |= has("--firmware-piano-chain");
         o.piano_layer_law |= has("--firmware-piano-layer-law");
@@ -1262,8 +1268,8 @@ impl FirmwareOptions {
         if self.piano_key_up {
             parts.push("piano-keyup".into());
         }
-        if self.piano_pedal_voices {
-            parts.push("piano-pedal-voices".into());
+        if !self.piano_pedal_voices {
+            parts.push("legacy-piano-pedal-voices".into());
         }
         if self.piano_timbre_gain {
             parts.push("piano-timbre".into());
@@ -1492,14 +1498,25 @@ mod tests {
         o.apply_to(&mut e);
         assert!(e.piano_a.firmware_touch && e.piano_b.firmware_touch);
         assert!(
-            !o.piano_pedal_voices,
-            "the pedal-down firmware voices are opt-in"
+            o.piano_pedal_voices && !o.summary().contains("legacy-piano-pedal-voices"),
+            "the pedal-down firmware voices are the default since D262 (issue #679)"
         );
-        let pedal = FirmwareOptions::from_args(&args(&["--firmware-piano-pedal-voices"])).unwrap();
-        assert!(pedal.piano_pedal_voices && pedal.summary().contains("piano-pedal-voices"));
-        let mut e = Stage4Engine::new(48_000.0);
-        pedal.apply_to(&mut e);
         assert!(e.piano_a.firmware_pedal_voices && e.piano_b.firmware_pedal_voices);
+        assert!(FirmwareOptions::firmware_all().piano_pedal_voices);
+        assert!(!FirmwareOptions::legacy_all().piano_pedal_voices);
+        let legacy = FirmwareOptions::from_args(&args(&["--legacy-piano-pedal-voices"])).unwrap();
+        assert!(
+            !legacy.piano_pedal_voices && legacy.summary().contains("legacy-piano-pedal-voices")
+        );
+        let mut e = Stage4Engine::new(48_000.0);
+        legacy.apply_to(&mut e);
+        assert!(!e.piano_a.firmware_pedal_voices && !e.piano_b.firmware_pedal_voices);
+        let wins = FirmwareOptions::from_args(&args(&[
+            "--firmware-piano-pedal-voices",
+            "--legacy-piano-pedal-voices",
+        ]))
+        .unwrap();
+        assert!(!wins.piano_pedal_voices, "the legacy flag wins");
         assert!(!o.piano_timbre_gain, "the firmware timbre gain is opt-in");
         let timbre = FirmwareOptions::from_args(&args(&["--firmware-piano-timbre"])).unwrap();
         assert!(timbre.piano_timbre_gain && timbre.summary().contains("piano-timbre"));
@@ -1613,6 +1630,7 @@ mod tests {
         for flag in [
             "legacy-synth-velocity",
             "legacy-piano-touch",
+            "legacy-piano-pedal-voices",
             "legacy-morph",
             "legacy-arp",
         ] {
