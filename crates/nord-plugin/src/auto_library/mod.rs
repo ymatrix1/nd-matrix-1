@@ -13,9 +13,13 @@
 
 mod archive;
 mod handled;
+mod log;
 #[cfg(test)]
 pub(crate) mod support;
 mod worker;
+
+pub use log::log_path;
+pub(crate) use log::report;
 
 use crate::loader::LoadSender;
 use crossbeam_channel::{bounded, Sender};
@@ -25,7 +29,9 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-/// Requests the audio thread may queue before the oldest are dropped (only the last one counts).
+/// Requests the audio thread may queue before it is refused (`try_send` fails on a full queue,
+/// so the newest request is the one left out, and `process()` sends it again on the next block;
+/// the worker handles only the newest request it finds, so scrubbed ones in between are skipped).
 /// ASSUMED: a host scrubbing an automation lane sends fewer than this per worker turn.
 const REQUEST_CAPACITY: usize = 8;
 /// How long a load waits for `process()` to drain the queue before it gives up. ASSUMED:
@@ -34,10 +40,6 @@ pub(crate) const QUEUE_WAIT: Duration = Duration::from_secs(30);
 /// How long the first load waits for the OS update tables to finish installing. ASSUMED:
 /// above the parse time of the OS update file on a desktop (about 1 s).
 pub(crate) const WAVE_TABLES_WAIT: Duration = Duration::from_secs(5);
-/// `plugin.log` is emptied when it is larger than this at the next message. ASSUMED: a year of
-/// sessions stays well under it.
-const LOG_CAP: u64 = 1 << 20;
-
 /// Where an instance finds its library: the user's saved one (the plugin in a host), or a given
 /// path or none (tests and tools that host the plugin without wanting a multi-second load).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -135,40 +137,6 @@ impl Drop for LibraryLink {
     }
 }
 
-/// Where the worker's messages go besides stderr (a DAW shows neither): `plugin.log` next to
-/// the saved settings (`%APPDATA%\ns4\plugin.log` on Windows), appended; emptied once it
-/// passes [`LOG_CAP`].
-pub fn log_path() -> Option<PathBuf> {
-    Some(
-        nord_core::user_config::default_config_path()?
-            .parent()?
-            .join("plugin.log"),
-    )
-}
-
-/// Prints `msg` on stderr and appends it to [`log_path`] (silently when that fails).
-pub(crate) fn report(msg: &str) {
-    eprintln!("nd matrix 1: {msg}");
-    if let Some(p) = log_path() {
-        append_capped(&p, msg, LOG_CAP);
-    }
-}
-
-/// Appends a line to `path`, emptying the file first when it is already larger than `cap`.
-fn append_capped(path: &std::path::Path, msg: &str, cap: u64) {
-    use std::io::Write;
-    let oversized = std::fs::metadata(path).is_ok_and(|m| m.len() > cap);
-    let file = std::fs::OpenOptions::new()
-        .create(true)
-        .append(!oversized)
-        .write(true)
-        .truncate(oversized)
-        .open(path);
-    if let Ok(mut f) = file {
-        let _ = writeln!(f, "{msg}");
-    }
-}
-
 /// The saved library of this user: `NS4_LIBRARY`, else the path `ns4 library set` stored.
 pub fn saved_library() -> Option<PathBuf> {
     let env = std::env::var(nord_core::library_setting::LIBRARY_ENV).ok();
@@ -181,7 +149,6 @@ mod tests {
     use super::support::{drain_until, two_program_backup, write_two_program_backup};
     use super::*;
     use crate::loader::{load_queue, LoadJob};
-    use std::path::Path;
     use std::time::Instant;
 
     #[test]
@@ -383,26 +350,5 @@ mod tests {
         let p = PathBuf::from("x.ns4b");
         assert_eq!(LibrarySource::Path(p.clone()).path(), Some(p));
         assert_eq!(LibrarySource::default(), LibrarySource::Saved);
-    }
-
-    #[test]
-    fn the_log_sits_next_to_the_settings_and_is_emptied_past_the_cap() {
-        if let Some(p) = log_path() {
-            assert_eq!(p.file_name().and_then(|s| s.to_str()), Some("plugin.log"));
-            assert_eq!(
-                p.parent(),
-                nord_core::user_config::default_config_path()
-                    .as_deref()
-                    .and_then(Path::parent)
-            );
-        }
-        let log = std::env::temp_dir().join(format!("nd-autolib-log-{}.log", std::process::id()));
-        let _ = std::fs::remove_file(&log);
-        append_capped(&log, "one", 16);
-        append_capped(&log, "two", 16);
-        assert_eq!(std::fs::read_to_string(&log).unwrap(), "one\ntwo\n");
-        append_capped(&log, "three", 6);
-        assert_eq!(std::fs::read_to_string(&log).unwrap(), "three\n");
-        let _ = std::fs::remove_file(&log);
     }
 }

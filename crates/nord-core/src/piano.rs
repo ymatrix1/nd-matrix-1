@@ -704,7 +704,7 @@ pub struct PianoLayer {
     /// Notes struck with the damper pedal down take the firmware voice list too (the same
     /// voices and gains as with the pedal up, `piano/pedal_voices.rs`, VERIFIED by the ARM run
     /// `tools/arm_piano_pedal.py`) instead of the legacy damper-stroke path. Default `true`
-    /// since D261 (issue #679: the legacy path starts one voice where the firmware starts two,
+    /// since D262 (issue #679: the legacy path starts one voice where the firmware starts two,
     /// about 6 dB quieter); the pedal-down key-up record placement stays unmodelled and the
     /// engine's own sustain logic releases the voices.
     pub firmware_pedal_voices: bool,
@@ -2043,7 +2043,7 @@ mod tests {
 
         let mut layer = PianoLayer::new(48_000.0);
         layer.set_sound(Some(npno_sound));
-        // The legacy damper-stroke path (the default plays the firmware voice list, D261).
+        // The legacy damper-stroke path (the default plays the firmware voice list, D262).
         layer.firmware_pedal_voices = false;
         layer.set_damper_pedal(true, 100);
         layer.note_on(60, 90);

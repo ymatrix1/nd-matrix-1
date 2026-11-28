@@ -110,7 +110,7 @@ mod tests {
         // D142 synth velocity, D165 piano Touch, D166 arpeggiator walk and morph law
         let c = classic();
         assert!(!c.synth_velocity_fw && !c.piano_touch);
-        // D261: the pedal-down firmware voice list is a default flip too (issue #679).
+        // D262: the pedal-down firmware voice list is a default flip too (issue #679).
         assert!(!c.piano_pedal_voices && firmware().piano_pedal_voices);
         assert!(!c.arp_firmware && !c.arp_firmware_gate && !c.firmware_morph);
         // D223: the firmware resonance position is a default flip too.

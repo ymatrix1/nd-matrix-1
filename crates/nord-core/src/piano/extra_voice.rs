@@ -305,7 +305,7 @@ mod tests {
         assert!(layer.voices.iter().all(|v| !v.active), "release fades out");
     }
 
-    /// With the pedal-down voices opted out (`firmware_pedal_voices = false`, the pre-D261
+    /// With the pedal-down voices opted out (`firmware_pedal_voices = false`, the pre-D262
     /// default) the firmware voice list (and with it the slew) is bypassed and the legacy
     /// damper-stroke path plays the note: `chain + slew` clip replays mixed both paths
     /// (25 to 77 % of the Part A piano notes start with the pedal down,

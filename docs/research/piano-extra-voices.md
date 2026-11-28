@@ -15,7 +15,7 @@ Tags follow `.agents/rules/provenance-in-code.md`.
 | Extra voice by class | s3 table: damper-down stroke when the root has one (grands and uprights), else a second normal stroke at velocity position `T + 20` (EP, Wurlitzer, EGrand, Bright Grand); none on classes 4, 7, 14, 15, 16 | VERIFIED (s2 run, 38 sounds) |
 | **Damper-down voice list** | with the sustain pedal down (CC64 = 127 on UART2 before the note-on) the firmware runs the **same level calls** as with the pedal up: same stroke records, same Q23 gains, same number of voices, on every one of the 38 factory sounds (s2). The pedal changes only the release: the note-off is held and the pedal-up writes the key-up record | VERIFIED (run) |
 | Engine, default | pedal-down notes bypass the firmware list and use the legacy damper-stroke path (D79 / `extra_voice.rs`): not what the firmware does | VERIFIED (against s2) |
-| Engine, default since D261 | `PianoLayer::firmware_pedal_voices`: pedal-down notes start the same voices as pedal-up notes (and take the slew when `--piano-slew-fw` is on); `--legacy-piano-pedal-voices` restores the damper-stroke path. Issue #679: the legacy path was 6.0 to 6.5 dB quieter (one voice for two). `render_hash` unchanged | engine behaviour tested |
+| Engine, default since D262 | `PianoLayer::firmware_pedal_voices`: pedal-down notes start the same voices as pedal-up notes (and take the slew when `--piano-slew-fw` is on); `--legacy-piano-pedal-voices` restores the damper-stroke path. Issue #679: the legacy path was 6.0 to 6.5 dB quieter (one voice for two). `render_hash` unchanged | engine behaviour tested |
 
 ## 2. Method and reproduction
 
@@ -103,9 +103,9 @@ Reading: tag VERIFIED (deterministic census, tests in `piano_voice_census.rs` an
 
 - Single-note hardware recording with and without pedal: the level of the extra (damper-down) voice and the pedal key-up behaviour.
 - Decode the SMP key-up record placement under the pedal (`1.0` words) if the clips show a release difference.
-- Default of the pedal-down voices decided: on (D261, issue #679). `--piano-slew-fw` and the chain stay opt-in; the key-up record placement under the pedal is still open.
+- Default of the pedal-down voices decided: on (D262, issue #679). `--piano-slew-fw` and the chain stay opt-in; the key-up record placement under the pedal is still open.
 
-## 8. Pedal-down level on real sounds (D261, issue #679)
+## 8. Pedal-down level on real sounds (D262, issue #679)
 
 Checked 2026-11-28 with OS v1.66 (`tools/nord_os_urls.py 1.66`, unpacked with `ns4 inspect --unpack`) and the factory backup RevK v1.66, both under `.reference/`.
 

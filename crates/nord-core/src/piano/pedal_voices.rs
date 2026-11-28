@@ -5,7 +5,7 @@
 //! same Q23 gains) as without the pedal; the pedal only changes when the voices are released
 //! (the note-off is held, the pedal-up releases). So `start_firmware_voices` can serve
 //! pedal-down notes; the engine's sustain logic (`note_off`, `set_damper_pedal`) already holds
-//! and releases the voices it starts. On by default since D261 (issue #679: the legacy
+//! and releases the voices it starts. On by default since D262 (issue #679: the legacy
 //! damper-stroke path started one voice where the firmware starts two, so a note struck with the
 //! pedal down was about 6 dB quieter); `PianoLayer::firmware_pedal_voices = false` restores it.
 
@@ -68,7 +68,7 @@ mod tests {
     fn pedal_down_voices_are_the_default_and_the_flag_restores_the_legacy_path() {
         assert!(
             PianoLayer::new(48_000.0).firmware_pedal_voices,
-            "default since D261"
+            "default since D262"
         );
         let mut layer = layer(false);
         layer.set_damper_pedal(true, 64);

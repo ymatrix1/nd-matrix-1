@@ -34,6 +34,20 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
     };
     painter.rect_filled(rect.expand(1.5), 2.0, Color32::from_rgb(10, 11, 13));
     painter.rect_filled(rect, 1.5, OLED_BG);
+    // With the firmware fonts the content is laid out on the real 128 x 64 grid, rasterised and
+    // shown as a smoothly scaled texture (no uneven strokes at fractional zoom).
+    crate::panel::oled_fb::paint(painter, rect, "program", fg, |p, r| {
+        paint_content(p, r, text, dim);
+    });
+}
+
+/// The display content (no bezel) laid out in `rect`; `oled_fb::paint` calls it on 128 x 64.
+pub(crate) fn paint_content(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
+    let fg = if dim {
+        Color32::from_rgb(80, 100, 120)
+    } else {
+        Color32::from_rgb(150, 190, 230)
+    };
     let h = rect.height();
     // Screen pixels per display pixel (the display is 128 x 64).
     let cell = rect.width() / 128.0;
@@ -190,8 +204,9 @@ pub fn paint(painter: &Painter, rect: Rect, text: &OledText, dim: bool) {
         line(top + g.name_y, &text.sub, f_sub);
         painter.line_segment(
             [
-                pos2(rect.left() + 1.0, top + g.rule_y),
-                pos2(rect.right() - 1.0, top + g.rule_y),
+                // VERIFIED (ARM pixel check): the rule spans the whole width, pixels 0 to 127.
+                pos2(rect.left(), top + g.rule_y),
+                pos2(rect.right(), top + g.rule_y),
             ],
             Stroke::new(0.5_f32, fg),
         );

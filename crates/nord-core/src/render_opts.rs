@@ -323,7 +323,7 @@ pub struct FirmwareOptions {
     pub piano_key_up: bool,
     /// `--firmware-piano-pedal-voices` / `--legacy-piano-pedal-voices`:
     /// `PianoLayer::firmware_pedal_voices` (notes struck with the damper pedal down take the
-    /// firmware voice list, VERIFIED by the ARM run; on by default since D261, issue #679;
+    /// firmware voice list, VERIFIED by the ARM run; on by default since D262, issue #679;
     /// `--legacy-piano-pedal-voices` and `--legacy-all` play the damper-stroke path).
     pub piano_pedal_voices: bool,
     /// `--firmware-piano-timbre`: `PianoLayer::firmware_timbre_gain` (the Soft / Mid / Bright timbre as
@@ -1499,7 +1499,7 @@ mod tests {
         assert!(e.piano_a.firmware_touch && e.piano_b.firmware_touch);
         assert!(
             o.piano_pedal_voices && !o.summary().contains("legacy-piano-pedal-voices"),
-            "the pedal-down firmware voices are the default since D261 (issue #679)"
+            "the pedal-down firmware voices are the default since D262 (issue #679)"
         );
         assert!(e.piano_a.firmware_pedal_voices && e.piano_b.firmware_pedal_voices);
         assert!(FirmwareOptions::firmware_all().piano_pedal_voices);
