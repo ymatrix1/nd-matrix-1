@@ -64,6 +64,13 @@ pub trait LleInput {
     /// Applies one event (the engine writes it into the ARM0 input queues). Real-time safe.
     fn handle_event(&mut self, event: LleEvent);
 
+    /// Applies one event that happened `offset` samples into the current audio block (the host
+    /// MIDI timestamp). The default ignores the offset; an engine that renders sample-accurately
+    /// overrides it. Real-time safe.
+    fn handle_event_at(&mut self, _offset: u32, event: LleEvent) {
+        self.handle_event(event);
+    }
+
     /// Applies up to [`MAX_EVENTS_PER_DRAIN`] queued events in order; returns how many queued
     /// events it consumed.
     ///
@@ -161,6 +168,17 @@ mod tests {
         assert_eq!(m.drain(&mut eng.events), 4);
         assert_eq!(m.seen, notes);
         assert_eq!(m.drain(&mut eng.events), 0);
+    }
+
+    #[test]
+    fn handle_event_at_defaults_to_handle_event() {
+        let mut m = Mock::default();
+        let e = LleEvent::ProgramChange {
+            channel: 1,
+            program: 9,
+        };
+        m.handle_event_at(77, e);
+        assert_eq!(m.seen, [e]);
     }
 
     #[test]
