@@ -59,6 +59,9 @@ jit = [
     "dep:cranelift-module",
     "dep:cranelift-native",
 ]
+# Native (Cranelift) tier of the uop engine, `core/uop/native/` (docs/specs/sharc-uop.md, D260).
+# Off by default; it only reuses the `jit` dependencies, no new crate.
+uop-native = ["jit"]
 
 [dependencies]
 cranelift-codegen = { version = "0.116", optional = true }

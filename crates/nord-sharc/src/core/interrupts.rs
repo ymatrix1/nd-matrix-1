@@ -37,9 +37,9 @@ const PUSHES_STATUS: [u8; 5] = [4, 8, 9, 10, 32];
 
 /// An interrupt whose service routine is running.
 #[derive(Clone, Copy, Debug)]
-struct Serviced {
-    vector: u8,
-    status_pushed: bool,
+pub(super) struct Serviced {
+    pub(super) vector: u8,
+    pub(super) status_pushed: bool,
 }
 
 /// State of the interrupt controller.
@@ -47,20 +47,20 @@ pub(super) struct IrqState {
     pub irptl: u32,
     /// LIRPTL latch bits 0-9 and mask bits 10-19 (the mask pointers 20-29 are derived).
     pub lirptl: u32,
-    serviced: Vec<Serviced>,
+    pub(super) serviced: Vec<Serviced>,
     pub idle: bool,
     pub ivt_base: u32,
     /// Short-word window `[window_lo, window_lo + window_len)` fetched in ISA parcel order.
     pub(super) window_lo: u32,
     pub window_len: u32,
     /// External interrupts scheduled as `(cycle, vector)`, ascending.
-    scheduled: Vec<(u64, u8)>,
+    pub(super) scheduled: Vec<(u64, u8)>,
     /// Cycles spent without executing an instruction (entry latency, idle fast-forward).
     pub stall: u64,
     /// Instruction count at which `step` must look at the controller again (0 = at the next
     /// step): the next event cycle minus the stall cycles, so the hot path compares one counter.
     pub due: u64,
-    wake_at: u64,
+    pub(super) wake_at: u64,
     pub taken: u64,
 }
 

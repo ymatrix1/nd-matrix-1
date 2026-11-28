@@ -46,10 +46,10 @@ pub(super) struct SysState {
     pub(super) astat_extra: [u32; 2],
     pub(super) status: Vec<[u32; 3]>,
     pub(super) pc_overflow: bool,
-    flags_reg: u32,
+    pub(super) flags_reg: u32,
     /// Levels of the FLAG0-15 pins as driven from outside (see `set_flag_input`).
-    flag_pins: u16,
-    px: u64,
+    pub(super) flag_pins: u16,
+    pub(super) px: u64,
 }
 
 impl SysState {

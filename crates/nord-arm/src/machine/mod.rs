@@ -19,6 +19,7 @@ pub mod panel;
 mod probe;
 pub mod producer;
 mod runstats;
+pub mod sb;
 pub mod sysbus;
 pub mod system;
 pub mod uart;
