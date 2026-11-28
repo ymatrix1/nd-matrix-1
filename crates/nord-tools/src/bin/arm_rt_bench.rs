@@ -14,10 +14,9 @@
 //! `150000,200000,300000,456000`), `PHASE_SCALE`, `RT_RUNS`, `RATE` (M insns/s for the queue), `QUEUE` (forces
 //! the queue size in ticks).
 
+use nord_arm::machine::consumer::{collect_blocking, consume_realtime, queue_ticks_for};
 use nord_arm::machine::metrics::digest_messages;
-use nord_arm::machine::producer::{
-    collect_blocking, consume_realtime, queue_ticks_for, Config, Producer,
-};
+use nord_arm::machine::producer::{Config, Producer};
 use nord_tools::arm_bench::{boot, run_all, script, total_ticks};
 use std::time::{Duration, Instant};
 

@@ -4,6 +4,7 @@
 //! `inject_irq`) with zero Python callbacks: every hook is a native enum arm.
 
 pub mod boot;
+pub mod consumer;
 pub mod dsp_return;
 mod fastrun;
 pub mod grouper;
