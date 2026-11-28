@@ -11,6 +11,7 @@ pub mod cbin;
 pub mod dsp_image;
 pub mod engine;
 pub mod engine_select;
+pub mod engine_status;
 pub mod firmware;
 pub mod firmware_setting;
 pub mod fx;

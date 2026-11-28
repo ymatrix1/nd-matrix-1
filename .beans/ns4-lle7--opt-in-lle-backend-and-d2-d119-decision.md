@@ -24,9 +24,13 @@ Users can select the real-time LLE backend when they supply their own OS update 
 - [ ] Record the architectural decision updating D2/D119 in `docs/DECISIONS.md` (D246 written as `proposed`; the final decision waits for Gate 3 evidence and the user) and coordinate with `ns4-u8o2` / `ns4-eh57` on retiring firmware-derived HLE tables
 - [x] User-selectable SHARC float precision `Exact` / `Fast` (`--precision`, `NS4_PRECISION`, saved key, Settings radio enabled only with LLE; plumbed to the stub backend seam; Fast tolerance still to be measured by `ns4-lle3`)
 - [x] Unit tests for engine selection and missing-firmware fallback
+- [x] Engine selector panel shows the saved choice, the choice that runs this session (with any `--engine` / `NS4_ENGINE` override), LLE availability in the build and update-file presence, explains that LLE is exact but may not be real time, never switches silently, applies at next start (`engine_status`, `engine_panel`)
 
 ## Out of Scope
 Shipping any firmware or sample files; paid counsel review.
 
 ## Notes (selection half, 2026-11-23)
 Done in this branch: `engine_select` (EngineKind, stub LleBackend, resolve and fallback), `engine` config key, `--engine` in `ns4` and `nd-matrix-1`, Engine toggle in the shared OS & Wave Tables panel (standalone and plugin), D246 proposed, specs and roadmap. Open: the real backend (blocked by lle5/lle6), DAW-host stability, the final D2/D119 decision, and `ns4-u8o2` / `ns4-eh57` coordination (gated on Gate 3).
+
+## Notes (selector panel, 2026-11-28)
+Added `nord_core::engine_status` (lenient read of env and saved value, effective choice, availability) and extended `engine_panel` to show it. No second enum: `EngineKind::{Hle, Lle}` is the Normal/LLE choice. Not checked: visual layout on Windows and macOS (Linux only).
