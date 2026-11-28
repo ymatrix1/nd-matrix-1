@@ -165,13 +165,28 @@ mod tests {
         );
         let mut fctx = FunctionBuilderContext::new();
         let mut cx = NCtx::new(&mut func, &mut fctx, &t);
-        for kind in [k::ADD_IMM, k::LDR_IMM, k::EXIT, k::CMP_GUARD_I] {
+        for kind in [k::LDR_IMM, k::EXIT, k::CMP_GUARD_I] {
             assert_eq!(
                 lower_uop(&mut cx, &Uop::new(kind, 0x1000)),
                 Err(Unsupported),
                 "kind {kind}"
             );
         }
+        // A data-processing kind that touches r15 stays unsupported (I2).
+        let mut pc_add = Uop::new(k::ADD_IMM, 0x1000);
+        (pc_add.rd, pc_add.rn) = (15, 1);
+        assert_eq!(
+            lower_uop(&mut cx, &pc_add),
+            Err(Unsupported),
+            "ADD_IMM rd=r15"
+        );
+        let mut add = Uop::new(k::ADD_IMM, 0x1000);
+        (add.rd, add.rn, add.imm) = (1, 1, 1);
+        assert_eq!(
+            lower_uop(&mut cx, &add),
+            Ok(()),
+            "ADD_IMM is routed to lower_dp"
+        );
         cx.exit_generic(0x1000);
         cx.finish();
         verify(&func);
