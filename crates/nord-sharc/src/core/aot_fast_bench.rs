@@ -7,6 +7,7 @@
 //! Provenance: no constants; the checksum equality between `Fast` and `Reference` over the same
 //! slice is the integration check (see the test).
 use super::aot_fast::{fast_add, fast_mul};
+use super::aot_simd::{fast_add2, fast_mul2};
 use super::float::{self, Mode, Out};
 
 /// Which implementation a batch call runs.
@@ -14,6 +15,9 @@ use super::float::{self, Mode, Out};
 pub enum Kernel {
     /// The native-width kernels of `aot_fast.rs`.
     Fast,
+    /// The paired kernels of `aot_simd.rs`: two consecutive operand pairs per call (the PEx and
+    /// PEy elements of a SIMD-mode instruction), same checksum as `Fast`.
+    Pair,
     /// The `u128` reference kernels of `float.rs` / `float_mul.rs`.
     Reference,
     /// No arithmetic: loop and checksum overhead only.
@@ -71,6 +75,14 @@ pub fn fold_add(pairs: &[(u64, u64)], sub: bool, trunc: bool, r32: bool, k: Kern
         Kernel::Fast => pairs
             .iter()
             .for_each(|&(a, b)| acc = fold(acc, fast_add(a, b, sub, m))),
+        Kernel::Pair => pairs
+            .iter()
+            .step_by(2)
+            .zip(pairs.iter().skip(1).step_by(2))
+            .for_each(|(p, q)| {
+                let o = fast_add2([p.0, q.0], [p.1, q.1], sub, m);
+                acc = fold(fold(acc, o[0]), o[1]);
+            }),
         Kernel::Reference => pairs
             .iter()
             .for_each(|&(a, b)| acc = fold(acc, float::add(a, b, sub, false, m))),
@@ -89,6 +101,14 @@ pub fn fold_mul(pairs: &[(u64, u64)], trunc: bool, r32: bool, k: Kernel) -> u64 
         Kernel::Fast => pairs
             .iter()
             .for_each(|&(a, b)| acc = fold(acc, fast_mul(a, b, m))),
+        Kernel::Pair => pairs
+            .iter()
+            .step_by(2)
+            .zip(pairs.iter().skip(1).step_by(2))
+            .for_each(|(p, q)| {
+                let o = fast_mul2([p.0, q.0], [p.1, q.1], m);
+                acc = fold(fold(acc, o[0]), o[1]);
+            }),
         Kernel::Reference => pairs
             .iter()
             .for_each(|&(a, b)| acc = fold(acc, float::mul(a, b, m))),
@@ -121,7 +141,15 @@ mod tests {
                     fold_add(&pairs, sub, trunc, r32, Kernel::Fast),
                     fold_add(&pairs, sub, trunc, r32, Kernel::Reference)
                 );
+                assert_eq!(
+                    fold_add(&pairs, sub, trunc, r32, Kernel::Pair),
+                    fold_add(&pairs, sub, trunc, r32, Kernel::Reference)
+                );
             }
+            assert_eq!(
+                fold_mul(&pairs, trunc, r32, Kernel::Pair),
+                fold_mul(&pairs, trunc, r32, Kernel::Reference)
+            );
             assert_eq!(
                 fold_mul(&pairs, trunc, r32, Kernel::Fast),
                 fold_mul(&pairs, trunc, r32, Kernel::Reference)
