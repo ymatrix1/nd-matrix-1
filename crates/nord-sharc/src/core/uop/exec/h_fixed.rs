@@ -19,10 +19,9 @@ mod tests {
 
     #[test]
     fn the_skeleton_registers_nothing() {
-        let mut t = vec![bail_handler as Handler; 0x500];
+        let marker: Handler = bail_handler;
+        let mut t = vec![marker; 0x500];
         register(&mut t);
-        assert!(t
-            .iter()
-            .all(|h| *h as usize == bail_handler as *const () as usize));
+        assert!(t.iter().all(|h| *h as usize == marker as usize));
     }
 }

@@ -30,19 +30,25 @@ pub(crate) fn register(t: &mut [Handler]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::uop::types::KindFamily;
+    use crate::core::uop::types::{KindFamily, Uop, UopCtx};
 
+    /// Distinct body so the linker cannot fold it with `bail_handler`.
+    unsafe extern "C" fn marker_handler(_: *mut UopCtx, _: *const Uop) -> u32 {
+        0xFEED
+    }
+
+    /// Compares handler pointers only against a copy of the same value (function addresses of
+    /// separately named items are not guaranteed to be identical across codegen units).
     #[test]
     fn registration_writes_only_the_core_range() {
-        let marker: Handler = bail_handler;
+        let marker: Handler = marker_handler;
         let mut t = vec![marker; usize::from(UopKind::MAX)];
         register(&mut t);
-        assert!(KindFamily::Core
-            .range()
-            .contains(&usize::from(UopKind::BAIL.0)));
-        assert_eq!(
-            t[usize::from(UopKind::BAIL.0)] as usize,
-            bail_handler as *const () as usize
-        );
+        let bail = usize::from(UopKind::BAIL.0);
+        assert!(KindFamily::Core.range().contains(&bail));
+        for (i, h) in t.iter().enumerate() {
+            let untouched = *h as usize == marker as usize;
+            assert_eq!(untouched, i != bail, "slot {i:#x}");
+        }
     }
 }
