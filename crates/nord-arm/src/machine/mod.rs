@@ -15,6 +15,7 @@ pub mod micro;
 pub mod paced;
 pub mod panel;
 mod probe;
+pub mod producer;
 mod runstats;
 pub mod sysbus;
 pub mod system;

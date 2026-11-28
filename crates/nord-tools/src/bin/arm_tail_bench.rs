@@ -14,114 +14,9 @@
 //! machine is shared. The state hash and the message digest of every run are compared across runs
 //! of the same budget.
 
-use nord_arm::machine::idle::IdleStats;
-use nord_arm::machine::metrics::{digest_messages, percentile, tail};
-use nord_arm::machine::uart::{note_off, note_on};
-use nord_arm::machine::{Machine, RunStats, Stop};
-use std::time::Instant;
-
-/// CPU cycles consumed by the calling thread (immune to preemption by other processes, unlike wall
-/// clock; still sensitive to SMT and cache contention). Wall clock on other platforms.
-#[cfg(windows)]
-pub fn thread_cycles() -> u64 {
-    extern "system" {
-        fn GetCurrentThread() -> isize;
-        fn QueryThreadCycleTime(thread: isize, cycles: *mut u64) -> i32;
-    }
-    let mut c = 0u64;
-    // SAFETY: both calls are plain Win32 queries on the current thread with a valid out pointer.
-    unsafe { QueryThreadCycleTime(GetCurrentThread(), &mut c) };
-    c
-}
-
-#[cfg(not(windows))]
-pub fn thread_cycles() -> u64 {
-    use std::sync::OnceLock;
-    static T0: OnceLock<Instant> = OnceLock::new();
-    T0.get_or_init(Instant::now).elapsed().as_nanos() as u64
-}
-
-const KEYS8: [u8; 8] = [60, 62, 64, 65, 67, 69, 71, 72];
-const RESERVE_PAGES: usize = 16_384;
-
-fn act_none(_: &mut Machine) {}
-fn act_on1(m: &mut Machine) {
-    m.send_midi(&note_on(KEYS8[0], 100, 0));
-}
-fn act_off1(m: &mut Machine) {
-    m.send_midi(&note_off(KEYS8[0], 0));
-}
-fn act_on8(m: &mut Machine) {
-    KEYS8.iter().for_each(|k| m.send_midi(&note_on(*k, 100, 0)));
-}
-fn act_off8(m: &mut Machine) {
-    KEYS8.iter().for_each(|k| m.send_midi(&note_off(*k, 0)));
-}
-
-type Action = fn(&mut Machine);
-
-/// Phase plan, same as `arm-lle-bench` (ticks scaled by `scale` percent).
-pub fn plan(scale: usize) -> [(&'static str, usize, Action); 6] {
-    let n = |x: usize| (x * scale / 100).max(1);
-    [
-        ("load", n(800), act_none),
-        ("idle", n(300), act_none),
-        ("key1 on", n(200), act_on1),
-        ("key1 off", n(200), act_off1),
-        ("key8 on", n(200), act_on8),
-        ("key8 off", n(200), act_off8),
-    ]
-}
-
-/// One run of all phases at one budget.
-#[derive(Default)]
-pub struct Run {
-    pub ms: Vec<f64>,
-    pub cyc: Vec<u64>,
-    pub exec: Vec<u64>,
-    pub stats: RunStats,
-    pub digest: u64,
-    pub state: u64,
-    pub phase_ticks: Vec<usize>,
-}
-
-pub fn run_all(base: &Machine, budget: u64, scale: usize) -> Run {
-    let mut m = base.clone();
-    let (mut run, mut idle, mut buf) = (
-        Run::default(),
-        IdleStats::default(),
-        Vec::with_capacity(4096),
-    );
-    let mut msgs = Vec::new();
-    let s0 = m.stats;
-    for (_, ticks, action) in plan(scale) {
-        run.phase_ticks.push(ticks);
-        for i in 0..ticks {
-            let e0 = idle.executed;
-            buf.clear();
-            let (t, c0) = (Instant::now(), thread_cycles());
-            if i == 0 {
-                action(&mut m);
-            }
-            let s = m.run_tick_idle(budget, &mut idle);
-            m.drain_messages_into(&mut buf);
-            run.ms.push(t.elapsed().as_secs_f64() * 1e3);
-            run.cyc.push(thread_cycles() - c0);
-            assert!(matches!(s, Stop::Budget), "{s:?}");
-            run.exec.push(idle.executed - e0);
-            msgs.extend_from_slice(&buf);
-        }
-    }
-    run.stats = m.stats.since(&s0);
-    run.digest = digest_messages(&msgs);
-    run.state = m.state_hash();
-    run
-}
-
-/// `[min, median, max]` of the samples.
-pub fn spread(v: &[f64]) -> [f64; 3] {
-    [percentile(v, 0.0), percentile(v, 0.5), percentile(v, 1.0)]
-}
+use nord_arm::machine::metrics::{percentile, tail};
+use nord_arm::machine::{Machine, Stop};
+use nord_tools::arm_bench::{boot, plan, run_all, spread, Run};
 
 fn fmt(s: [f64; 3], prec: usize) -> String {
     format!("{:.p$} [{:.p$} .. {:.p$}]", s[1], s[0], s[2], p = prec)
@@ -265,15 +160,7 @@ fn main() {
     let code = std::fs::read(&a[1]).expect("code");
     let sram = std::fs::read(&a[2]).expect("sram");
     let eeprom = std::fs::read(&a[3]).expect("eeprom image");
-    let mut m = Machine::new();
-    m.prepare_system(&code, &sram).expect("init array");
-    m.bus.i2c.as_mut().unwrap().load_image(&eeprom);
-    let (n, _, stop) = m.boot_system(1_500_000_000, &mut IdleStats::default());
-    println!("boot: {stop:?} {n} virtual insns");
-    m.install_dsp_ports();
-    m.install_dsp_return();
-    m.enable_real_timer();
-    m.bus.mem.reserve_pages(RESERVE_PAGES);
+    let m = boot(&code, &sram, &eeprom);
     if std::env::var("PROFILE").is_ok() {
         return profile(&m, budgets[0], scale);
     }
@@ -351,16 +238,8 @@ fn profile(base: &Machine, budget: u64, scale: usize) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
-    fn plan_keeps_every_phase_at_any_scale() {
-        assert_eq!(plan(100).map(|p| p.1), [800, 300, 200, 200, 200, 200]);
-        assert!(plan(0).iter().all(|p| p.1 == 1));
-    }
-
-    #[test]
-    fn spread_is_min_median_max() {
-        assert_eq!(spread(&[3.0, 1.0, 2.0]), [1.0, 2.0, 3.0]);
+    fn budgets_default_list_is_the_four_plausible_budgets() {
+        assert_eq!("150000,200000,300000,456000".split(',').count(), 4);
     }
 }
