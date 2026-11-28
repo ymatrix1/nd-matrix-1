@@ -18,7 +18,7 @@ fn editor() -> (EditorState, LoadReceiver) {
     let (tx, _notes) = note_queue(8);
     let (load_tx, load_rx) = load_queue(8);
     (
-        EditorState::new(index, tx, load_tx, Default::default()),
+        EditorState::with_library(index, tx, load_tx, Default::default(), None),
         load_rx,
     )
 }

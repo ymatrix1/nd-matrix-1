@@ -9,7 +9,7 @@ use nord_gui::firmware_panel::{self, FirmwarePanelState, HeadlessRequest};
 use nord_gui::library::BackupLibraryState;
 use nord_gui::panel::{render_stage4_panel, Stage4PanelState};
 use nord_gui::screenshot::{self, ShotPlan};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -102,6 +102,68 @@ struct Stage4App {
     min_width_sent: f32,
 }
 
+/// The backups the app opens at start: the `--backup` files win (several merge, D239), else the
+/// saved sound library (`ns4 library set`, `NS4_LIBRARY`), the same one the DAW plugin plays
+/// from, so the panel's program list is filled without a `.ns4b` next to the executable. Empty
+/// leaves the library empty (the path field still offers a `.ns4b` found in the working
+/// directory).
+fn startup_backups(cli: Vec<PathBuf>, saved: Option<PathBuf>) -> Vec<PathBuf> {
+    if cli.is_empty() {
+        saved.into_iter().collect()
+    } else {
+        cli
+    }
+}
+
+/// The program the app loads at start: `--program A:14` wins; else, like the hardware, which
+/// boots into a program, the first location `A:11` of the opened library, so the display shows
+/// a name and the keys sound without a dial turn. A `--program <file.ns4p>` or no open library
+/// loads nothing.
+fn startup_slot(slot: Option<String>, program_file: bool, library_open: bool) -> Option<String> {
+    if slot.is_some() {
+        slot
+    } else if program_file || !library_open {
+        None
+    } else {
+        Some("A:11".to_string())
+    }
+}
+
+/// Appends `line` to `app.log` next to the settings file (`%APPDATA%\\ns4` on Windows), the
+/// desktop app's counterpart of the plugin's `plugin.log`: a double-clicked app has no console,
+/// so what it found at start (the saved library, the program it loaded) is readable afterwards.
+/// A log that cannot be written is ignored.
+fn app_log(line: &str) {
+    if let Some(dir) = nord_core::user_config::default_config_path()
+        .and_then(|c| c.parent().map(Path::to_path_buf))
+    {
+        app_log_to(&dir.join("app.log"), line);
+    }
+}
+
+/// Appends one timestamped line to `path`, creating it; errors are ignored.
+fn app_log_to(path: &Path, line: &str) {
+    use std::io::Write;
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
+        let _ = writeln!(f, "[{secs}] {line}");
+    }
+}
+
+/// The saved library of `ns4 library set` (`NS4_LIBRARY` overrides it; `none` disables it).
+fn saved_library() -> Option<PathBuf> {
+    let env = std::env::var(nord_core::library_setting::LIBRARY_ENV).ok();
+    let config = nord_core::user_config::default_config_path();
+    nord_core::library_setting::effective_path(env.as_deref(), config.as_deref())
+}
+
 impl Stage4App {
     fn new(cc: &eframe::CreationContext<'_>, cli: CliArgs) -> Self {
         nord_gui::style::setup_nord_visuals(&cc.egui_ctx);
@@ -132,7 +194,7 @@ impl Stage4App {
                 .map(|t| ShotPlan::new(t, cli.screenshot_section, cli.screenshot_scale)),
             shot_requested: false,
             frame_count: 0,
-            headless_load: nord_gui::headless_load::HeadlessLoad::new(cli.initial_slot.as_deref()),
+            headless_load: nord_gui::headless_load::HeadlessLoad::default(),
             firmware: FirmwarePanelState::new(cli.firmware),
             os_update: nord_gui::os_update_panel::OsUpdatePanel::new(
                 nord_core::user_config::default_config_path(),
@@ -149,6 +211,7 @@ impl Stage4App {
             app.state.view = plan.view();
         }
 
+        let program_file = cli.initial_program.is_some();
         if let Some(path) = cli.initial_program {
             if let Ok(bytes) = std::fs::read(&path) {
                 let stem = path.file_stem().and_then(|s| s.to_str());
@@ -157,16 +220,43 @@ impl Stage4App {
                 eprintln!("[GUI] Could not read program file: {}", path.display());
             }
         }
-        for path in &cli.initial_backups {
-            match app.library.add_backup_path(path) {
-                Ok(_) => app
+        let explicit = !cli.initial_backups.is_empty();
+        let saved = saved_library();
+        app_log(&format!(
+            "start: saved library {} ({}; {} = {:?})",
+            saved
+                .as_deref()
+                .map_or("none".to_string(), |p| p.display().to_string()),
+            nord_core::user_config::default_config_path().map_or(
+                "no settings file path".to_string(),
+                |c| format!("settings {} exists={}", c.display(), c.is_file())
+            ),
+            nord_core::library_setting::LIBRARY_ENV,
+            std::env::var(nord_core::library_setting::LIBRARY_ENV).ok(),
+        ));
+        for path in startup_backups(cli.initial_backups, saved) {
+            match app.library.add_backup_path(&path) {
+                Ok(_) if explicit => app
                     .debug_dialog
                     .open_tab(nord_gui::debug_dialog::DebugTab::Library),
+                Ok(_) => {
+                    println!("[GUI] Opened the saved library: {}", path.display());
+                    app_log(&format!(
+                        "opened library {} ({} programs)",
+                        path.display(),
+                        app.library.programs.len()
+                    ));
+                }
                 Err(e) => {
                     eprintln!("[GUI] Could not open backup '{}': {e}", path.display());
+                    app_log(&format!("could not open library {}: {e}", path.display()));
                     app.library.error_message = Some(e);
                 }
             }
+        }
+        if let Some(slot) = startup_slot(cli.initial_slot, program_file, app.library.is_open()) {
+            app_log(&format!("startup program {slot}"));
+            app.headless_load = nord_gui::headless_load::HeadlessLoad::new(Some(&slot));
         }
         if let Some(path) = cli.initial_piano {
             app.library.request_piano_file(path, false);
@@ -794,6 +884,54 @@ wrote {}",
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_app_log_appends_timestamped_lines_and_ignores_an_unwritable_path() {
+        let dir = std::env::temp_dir().join(format!("nd-app-log-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let log = dir.join("app.log");
+        app_log_to(&log, "first");
+        app_log_to(&log, "second");
+        let text = std::fs::read_to_string(&log).expect("log written");
+        let lines: Vec<&str> = text.lines().collect();
+        assert_eq!(lines.len(), 2);
+        assert!(lines[0].starts_with('[') && lines[0].ends_with("] first"));
+        assert!(lines[1].ends_with("] second"));
+        std::fs::remove_dir_all(&dir).ok();
+        app_log_to(&dir.join("missing").join("app.log"), "dropped"); // no parent: ignored
+    }
+
+    #[test]
+    fn the_startup_program_is_the_cli_slot_else_a11_of_an_open_library() {
+        let a14 = Some("A:14".to_string());
+        assert_eq!(startup_slot(a14.clone(), false, true), a14.clone());
+        assert_eq!(startup_slot(a14.clone(), true, false), a14);
+        assert_eq!(startup_slot(None, false, true), Some("A:11".to_string()));
+        assert_eq!(
+            startup_slot(None, true, true),
+            None,
+            "a program file was given"
+        );
+        assert_eq!(
+            startup_slot(None, false, false),
+            None,
+            "no library to load from"
+        );
+    }
+
+    #[test]
+    fn the_startup_backups_are_the_cli_ones_else_the_saved_library() {
+        let cli = PathBuf::from("given.ns4b");
+        let more = PathBuf::from("more.ns4b");
+        let saved = PathBuf::from("saved.ns4b");
+        assert_eq!(
+            startup_backups(vec![cli.clone(), more.clone()], Some(saved.clone())),
+            vec![cli.clone(), more]
+        );
+        assert_eq!(startup_backups(vec![cli.clone()], None), vec![cli]);
+        assert_eq!(startup_backups(vec![], Some(saved.clone())), vec![saved]);
+        assert!(startup_backups(vec![], None).is_empty());
+    }
 
     #[test]
     fn test_app_icon_is_valid_64x64_rgba() {

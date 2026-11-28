@@ -28,8 +28,9 @@ The **Nord Stage 4 DAW Plugin** (`nord-plugin`) brings the 3-engine, 7-layer Nor
 | **PreSonus Studio One** | CLAP, VST3 | Intended; host routing not verified | Transport tempo is read in processing | Not host-tested |
 | **FL Studio** | CLAP, VST3 | Intended; host routing not verified | Transport tempo is read in processing | Top bar and program load checked by hand 2026-11-22 (7.9); the rest not host-tested |
 | **Steinberg Cubase / Nuendo** | VST3 | Intended; host routing not verified | Transport tempo is read in processing | Not host-tested |
+| **SoundCraft** (Windows) | VST3 | Not verified | Not verified | `library_program` restored from a saved project and rendered by a bounce, checked by hand 2026-11-23 (7.11); no plugin window in this host; the rest not host-tested |
 
-Release archives (see [RELEASING.md](RELEASING.md)) ship with this file and a README that states the plugin is not DAW-verified; update both when a host test result is recorded.
+Release archives (see [RELEASING.md](RELEASING.md)) ship with this file and a README that names the hosts checked by hand (SoundCraft, FL Studio) and states that no other host is verified; update both when a host test result is recorded.
 
 This is a target compatibility matrix, not a report of completed DAW validation. Section 7 lists exactly what was verified headlessly (no DAW), with command lines, and the manual smoke test that remains. Automated tests cover the plugin code and engine integration; they do not replace loading the built plugin in each host.
 
@@ -225,8 +226,8 @@ Drives the `Plugin` trait the way nih-plug's wrappers do (initialize, process pe
 
 | Item | Why |
 |---|---|
-| Any DAW (Reaper, Bitwig, Live, Cubase, Studio One, Logic) | No host available; section 3 stays "not host-tested". FL Studio: only the top bar and program load, see 7.9 |
-| VST3 | Validated headlessly with the Steinberg `validator` (7.10). Not loaded in any VST3 host |
+| Any DAW (Reaper, Bitwig, Live, Cubase, Studio One, Logic) | No host available; section 3 stays "not host-tested". FL Studio: only the top bar and program load, see 7.9. SoundCraft: only the library program and a bounce, see 7.11 |
+| VST3 | Validated headlessly with the Steinberg `validator` (7.10). Loaded by hand only in FL Studio (7.9) and SoundCraft (7.11) |
 | Standalone wrapper (`nd-matrix-1-standalone`) | Needs an audio device; not run |
 | AUv2 | Needs macOS and `clap-wrapper` |
 | Automation lanes, project save/load, editor open/close, HiDPI, window resize in a host | Need a host |
@@ -298,5 +299,18 @@ Manual host checklist (owner, one VST3 host is enough for a first pass; compare 
 5. Automate `master_level` and an Organ drawbar with a write lane; play back: the panel knob follows. Move a parameter in the host's generic UI: the panel follows. Automation written with the old build still drives the same parameters.
 6. Save the project, close the host, reopen: values, editor size and layer scene return. Duplicate the track: the copy keeps its own state.
 7. Remove the plugin during playback and with the editor open: no crash.
-8. Record host name, version, OS and the result of every line here.
 
+### 7.11 SoundCraft 0.20.1, library program and bounce (`ns4-lp7q`, 2026-11-23)
+
+Manual check by the contributor on Windows 11, VST3 release build of branch `feat/plugin-sound-library` (`cargo xtask bundle nord-plugin --release`, the bundle copied to `%LOCALAPPDATA%\Programs\Common\VST3\nord-plugin.vst3`). SoundCraft hosts no VST3 editor windows, so the plugin can only be driven through its host parameters; a bounce builds three fresh instances without the offline flag and renders at once, which is what the wait in `initialize` is for.
+
+Setup: the Nord Stage 4 Factory Restore RevK v1.66 backup saved with `ns4 library set` (384 programs) and the Nord OS v1.66 update saved with `ns4 firmware set`; ND Matrix 1 on one instrument track; a held C major chord bounced to a file three times; the integrated loudness (LUFS) of each bounce, as recorded in PR #628 (one measurement each, the meter is not recorded).
+
+| Check | Result |
+|---|---|
+| Plugin appears after a rescan and instantiates on a track; `Program` (`library_program`) is in the host's parameter list as `Off`, `A:11`..`H:88` | Worked |
+| No library saved: the bounce plays the built-in engine | -14.1 LUFS |
+| Library saved, `Program` at its default `A:11` (NS4 Palette): the bounce differs from the built-in engine | -17.1 LUFS |
+| `Program` set to `A:14` (B3 Chords n Solo), project saved and reopened, bounced: the restored value is rendered | -10.9 LUFS |
+
+The three numbers show that the three renders are different programs, nothing more. Not covered: automation of `Program`, the editor (no window in this host), CLAP in SoundCraft, projects saved with a build before this parameter existed, other hosts.

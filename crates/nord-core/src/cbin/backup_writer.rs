@@ -16,14 +16,14 @@ use std::fs::File;
 use std::io::{self, BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
-const EOCD_SIG: [u8; 4] = [0x50, 0x4B, 0x05, 0x06];
+pub(crate) const EOCD_SIG: [u8; 4] = [0x50, 0x4B, 0x05, 0x06];
 const CDH_SIG: [u8; 4] = [0x50, 0x4B, 0x01, 0x02];
 const LFH_SIG: [u8; 4] = [0x50, 0x4B, 0x03, 0x04];
 const CDH_FIXED: usize = 46;
 const FLAG_DATA_DESCRIPTOR: u16 = 0x0008;
 const FLAG_UTF8_NAME: u16 = 0x0800;
 /// DOS date 1980-01-01, used for entries the writer adds.
-const DOS_DATE_EPOCH: u16 = 0x0021;
+pub(crate) const DOS_DATE_EPOCH: u16 = 0x0021;
 const COPY_CHUNK: usize = 1 << 20;
 
 /// One change to an archive.
@@ -94,7 +94,7 @@ impl<W: Write> Out<'_, W> {
     }
 }
 
-fn u32_offset(v: u64, what: &str) -> Result<u32, CbinError> {
+pub(crate) fn u32_offset(v: u64, what: &str) -> Result<u32, CbinError> {
     u32::try_from(v)
         .ok()
         .filter(|&x| x != u32::MAX)
@@ -106,7 +106,7 @@ fn u32_offset(v: u64, what: &str) -> Result<u32, CbinError> {
 }
 
 /// Local file header + data of a `ZIP_STORED` entry.
-fn local_entry(
+pub(crate) fn local_entry(
     version: [u8; 2],
     flags: u16,
     time: u16,
@@ -133,7 +133,12 @@ fn local_entry(
 }
 
 /// Central directory record of a freshly added entry.
-fn new_central_record(name: &str, data: &[u8], local_offset: u32, flags: u16) -> Vec<u8> {
+pub(crate) fn new_central_record(
+    name: &str,
+    data: &[u8],
+    local_offset: u32,
+    flags: u16,
+) -> Vec<u8> {
     let mut v = Vec::with_capacity(CDH_FIXED + name.len());
     v.extend_from_slice(&CDH_SIG);
     v.extend_from_slice(&20u16.to_le_bytes()); // version made by

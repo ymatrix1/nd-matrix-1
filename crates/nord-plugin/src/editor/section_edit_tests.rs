@@ -30,7 +30,7 @@ fn editor() -> EditorState {
     let (tx, _rx) = note_queue(8);
     let (load_tx, load_rx) = crate::loader::load_queue(8);
     std::mem::forget(load_rx); // keep the queue connected; these tests do not read it
-    let mut st = EditorState::new(index, tx, load_tx, Default::default());
+    let mut st = EditorState::with_library(index, tx, load_tx, Default::default(), None);
     // These tests exercise the classic panel's bays (the baked panel draws no bay widgets).
     st.panel.use_baked_plate = false;
     st

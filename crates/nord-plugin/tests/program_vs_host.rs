@@ -68,6 +68,7 @@ fn config() -> BufferConfig {
 fn activate() -> NdMatrix1Plugin {
     let mut plugin = NdMatrix1Plugin::default();
     let layout = &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0];
+    plugin.library_source = nord_plugin::auto_library::LibrarySource::None;
     assert!(plugin.initialize(layout, &config(), &mut Init));
     plugin
 }
@@ -286,6 +287,7 @@ fn an_old_session_restores_its_touch_and_mod2_as_before() {
         }
     }
     let layout = &NdMatrix1Plugin::AUDIO_IO_LAYOUTS[0];
+    plugin.library_source = nord_plugin::auto_library::LibrarySource::None;
     assert!(plugin.initialize(layout, &config(), &mut Init));
     let mut ctx = new_ctx();
     process(&mut plugin, &mut ctx);
