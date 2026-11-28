@@ -55,15 +55,37 @@ pub const OS_V168: &[Shift] = &[
 /// Every offset table to try, in order: the offsets as written (v1.66), then each later version.
 pub const KNOWN_SHIFTS: [&[Shift]; 2] = [&[], OS_V168];
 
-fn shifted(off: u32, shifts: &[Shift]) -> Result<u32, String> {
+fn shifted(off: u32, len: u32, shifts: &[Shift]) -> Result<u32, String> {
     if shifts.is_empty() {
         return Ok(off);
     }
     let s = shifts
         .iter()
-        .find(|s| (s.from..s.to).contains(&off))
+        .find(|s| s.from <= off && off.saturating_add(len) <= s.to)
         .ok_or_else(|| format!("offset {off:#x} is outside the known layout of this OS version"))?;
     Ok((i64::from(off) + i64::from(s.delta)) as u32)
+}
+
+/// The first of `tables` (offsets as written first, then each later OS) whose `build` result
+/// satisfies `accept`. When none is accepted the result of the first table that built is returned
+/// (the caller's guard then reports it); when none built, the last error.
+pub fn pick_shifts<T>(
+    tables: &[&[Shift]],
+    mut build: impl FnMut(&[Shift]) -> Result<T, String>,
+    accept: impl Fn(&T) -> bool,
+) -> Result<T, String> {
+    let mut first = None;
+    let mut last_err = String::from("no offset table to try");
+    for shifts in tables {
+        match build(shifts) {
+            Ok(v) if accept(&v) => return Ok(v),
+            Ok(v) => {
+                first.get_or_insert(v);
+            }
+            Err(e) => last_err = e,
+        }
+    }
+    first.ok_or(last_err)
 }
 
 /// DM image text of the `keep` ranges `(base, words)` of the flat core `sram` image, after the
@@ -110,7 +132,7 @@ pub fn dm_image_text_shifted(
                 let (a, n, off) = (
                     hex(addr, line)?,
                     hex(count, line)? as usize,
-                    shifted(hex(offset, line)?, shifts)?,
+                    shifted(hex(offset, line)?, 4 * hex(count, line)?, shifts)?,
                 );
                 let bytes = code
                     .get(off as usize..off as usize + 4 * n)
@@ -231,7 +253,7 @@ mod tests {
         )
         .unwrap_err();
         assert!(e.contains("outside the known layout"), "{e}");
-        assert_eq!(shifted(0x2A_7000, &[]).unwrap(), 0x2A_7000);
+        assert_eq!(shifted(0x2A_7000, 4, &[]).unwrap(), 0x2A_7000);
     }
 
     #[test]
@@ -239,8 +261,42 @@ mod tests {
         for w in OS_V168.windows(2) {
             assert!(w[0].from < w[0].to && w[0].to <= w[1].from);
         }
-        assert_eq!(shifted(0x2A_765C, OS_V168).unwrap(), 0x2A_79C4);
-        assert_eq!(shifted(0x44_4187, OS_V168).unwrap(), 0x44_4527);
+        assert_eq!(shifted(0x2A_765C, 4, OS_V168).unwrap(), 0x2A_79C4);
+        assert_eq!(shifted(0x44_4187, 4, OS_V168).unwrap(), 0x44_4527);
         assert_eq!(KNOWN_SHIFTS[0].len(), 0);
+    }
+
+    #[test]
+    fn a_range_that_runs_past_its_shift_piece_is_unknown() {
+        let sh = [Shift {
+            from: 0x10,
+            to: 0x20,
+            delta: 0x20,
+        }];
+        assert_eq!(shifted(0x10, 0x10, &sh).unwrap(), 0x30);
+        assert!(shifted(0x1C, 8, &sh).is_err());
+    }
+
+    #[test]
+    fn pick_shifts_takes_the_first_accepted_table_else_the_first_built() {
+        let tables: [&[Shift]; 3] = [&[], OS_V168, &[]];
+        let build = |s: &[Shift]| -> Result<usize, String> { Ok(s.len()) };
+        // table 1 (OS_V168, 2 pieces) is the first accepted
+        assert_eq!(pick_shifts(&tables, build, |n| *n == 2).unwrap(), 2);
+        // none accepted: the first table that built
+        assert_eq!(pick_shifts(&tables, build, |_| false).unwrap(), 0);
+        // the first table fails to build, the second is accepted
+        let fail_first = |s: &[Shift]| -> Result<usize, String> {
+            if s.is_empty() {
+                Err("no".into())
+            } else {
+                Ok(s.len())
+            }
+        };
+        assert_eq!(pick_shifts(&tables, fail_first, |_| true).unwrap(), 2);
+        // nothing builds: the last error
+        let e = pick_shifts(&tables, |_| Err::<usize, _>("bad".into()), |_| true).unwrap_err();
+        assert_eq!(e, "bad");
+        assert!(pick_shifts::<usize>(&[], build, |_| true).is_err());
     }
 }

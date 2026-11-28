@@ -33,7 +33,7 @@ def words(code: bytes) -> tuple[int, ...]:
 
 # Address-like constants (literal pool words) move with the image; they match as wildcards.
 WILDCARDS = ((0xC000_0000, 0xC060_0000), (0x8000_0000, 0x8010_0000))
-ANY_ADDRESS = 0xFFFF_FFFF
+ANY_ADDRESS = 1 << 32  # outside the 32-bit word range: no real constant equals it
 
 
 def mask(word: int) -> int:

@@ -6,10 +6,17 @@
 //! A new version is added by running `python tools/fw_addr_map.py OLD NEW <addresses>` (it
 //! matches instruction windows with the branch offsets masked) and filling one more constant.
 //!
-//! Provenance: V166 values are the harness addresses used since `tools/arm_emu.py` (ASSUMED /
-//! EMPIRICAL as tagged in `boot.rs`; the boot reaches the main loop). V168 values are EMPIRICAL:
-//! derived by `tools/fw_addr_map.py` from the V166 ones; the boot and the null-call and message
-//! counts of `arm-lle-bench` on the v1.68 image are the check (see the research note).
+//! Provenance (all values; the harness has no other source of them):
+//! - `V166`: EMPIRICAL. The addresses of `tools/arm_emu.py`, `arm_boot.py`, `arm_boot_full.py`,
+//!   `arm_steady.py`, `arm_panel.py` and `arm_dsp_return.py` (found by disassembly and runs in
+//!   the Unicorn harness; the earlier per-constant notes read ASSUMED where the routine was
+//!   not disassembled). Check: `arm-lle-bench` boots the v1.66 image to `main_loop`
+//!   (232,822,686 virtual instructions) with 25 null calls.
+//! - `V168`: EMPIRICAL. Derived from `V166` with `tools/fw_addr_map.py` (masked instruction
+//!   windows; data cells through their literal loads). Check: `arm-lle-bench` boots the v1.68
+//!   image to `main_loop` (232,822,685 virtual instructions), 25 null calls, equal message counts
+//!   per phase (`docs/research/os-1-68-vs-1-66.md` s4 and s7). Not checked one address at a time.
+//!   The WAVE registry address the mapper gives equals the one found by a layout scan.
 
 /// Harness addresses of one OS version (all in the `bank0_CODE` image or its BSS).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

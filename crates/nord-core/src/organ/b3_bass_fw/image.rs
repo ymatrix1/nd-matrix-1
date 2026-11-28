@@ -21,7 +21,7 @@
 //! `NS4_WAVE_TABLES` set).
 
 use super::Row;
-use crate::dsp_image::dm_text::{dm_image_text_shifted, Shift, KNOWN_SHIFTS};
+use crate::dsp_image::dm_text::{dm_image_text_shifted, pick_shifts, Shift, KNOWN_SHIFTS};
 use crate::dsp_image::{self, cache::ImageCache, ldr};
 use crate::organ::sharc_rows::routine_rows;
 use crate::render_opts_wave::WAVE_TABLES_ENV;
@@ -120,25 +120,15 @@ impl BassImage {
         } else {
             &KNOWN_SHIFTS[..1]
         };
-        let mut built = None;
-        let mut last_err = String::new();
-        for shifts in tables {
-            match dm_image_text_shifted(sram, code, &KEEP, delta, shifts) {
-                Ok((csv, words)) => {
-                    let ok = !guard
-                        || (words == WORDS
-                            && crate::firmware_setting::fnv1a64(csv.as_bytes()) == IMAGE_FNV);
-                    built = Some((csv, words));
-                    if ok {
-                        break;
-                    }
-                }
-                Err(e) => last_err = e,
-            }
-        }
-        let Some((csv, words)) = built else {
-            return Err(last_err);
-        };
+        let (csv, words) = pick_shifts(
+            tables,
+            |shifts| dm_image_text_shifted(sram, code, &KEEP, delta, shifts),
+            |(csv, words)| {
+                !guard
+                    || (*words == WORDS
+                        && crate::firmware_setting::fnv1a64(csv.as_bytes()) == IMAGE_FNV)
+            },
+        )?;
         if guard
             && ((gen.len(), proc.len()) != ROWS
                 || words != WORDS
@@ -146,7 +136,7 @@ impl BassImage {
         {
             return Err(format!(
                 "unsupported Nord OS version: the Bass routines have {} and {} rows and the image \
-                 {words} DM words, expected {} and {} rows and {WORDS} words (OS v1.66)",
+                 {words} DM words, expected {} and {} rows and {WORDS} words (OS v1.66 or v1.68)",
                 gen.len(),
                 proc.len(),
                 ROWS.0,

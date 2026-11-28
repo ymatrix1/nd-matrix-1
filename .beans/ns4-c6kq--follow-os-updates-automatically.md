@@ -3,13 +3,13 @@
 title: Follow OS updates automatically
 status: todo
 type: task
-created_at: 2026-11-28T02:50:32Z
-updated_at: 2026-11-28T02:50:32Z
+created_at: 2026-11-27T12:00:00Z
+updated_at: 2026-11-27T12:00:00Z
 parent: ns4-lle1
 ---
 
 ## Context
-OS v1.68 (2026-11-26) was a recompile of v1.66 ([os-1-68-vs-1-66](docs/research/os-1-68-vs-1-66.md), D253): the DSP images were identical, the ARM side moved. Layout scans (WAVE registry, fonts, DSP image chain) already follow updates; the Rust ARM0 harness (`nord-arm` `Layout`) and the Bass `A` line offsets need one derived table per version.
+OS v1.68 (2026-11-26) was a recompile of v1.66 ([os-1-68-vs-1-66](docs/research/os-1-68-vs-1-66.md), D257): the DSP images were identical, the ARM side moved. Layout scans (WAVE registry, fonts, DSP image chain) already follow updates; the Rust ARM0 harness (`nord-arm` `Layout`) and the Bass `A` line offsets need one derived table per version.
 
 ## Higher Goal
 A new Nord OS update works with no code change: the app and tools read the user's own update file and find every address they need.

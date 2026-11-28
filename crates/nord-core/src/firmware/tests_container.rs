@@ -214,4 +214,7 @@ fn os_version_reads_the_byte_after_the_top_header() {
     raw[0x21] = 0xA6;
     assert_eq!(os_version(&raw), Some(166));
     assert_eq!(os_version(&raw[..0x21]), None);
+    // not a container: the first word is not the 0x20 header size
+    raw[0..4].copy_from_slice(&[1, 2, 3, 4]);
+    assert_eq!(os_version(&raw), None);
 }

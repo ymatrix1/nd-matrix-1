@@ -81,6 +81,8 @@ pub struct Machine {
     pub predecode: bool,
     /// Firmware addresses of the loaded OS version (`load_firmware` picks it from the image).
     pub layout: layout::Layout,
+    /// Whether `load_firmware` recognised the image length (`false`: the default layout is a guess).
+    pub layout_known: bool,
 }
 
 impl Default for Machine {
@@ -108,6 +110,7 @@ impl Machine {
             code: CodeCache::default(),
             predecode: true,
             layout: layout::Layout::V166,
+            layout_known: false,
         }
     }
 

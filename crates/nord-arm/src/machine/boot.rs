@@ -43,7 +43,23 @@ impl Machine {
         m.write_bytes(SRAM_BASE, sram);
         m.map(STACK_TOP - 0x10_0000, 0x20_0000);
         m.map(FAKE_BASE, FAKE_SIZE);
-        self.layout = Layout::detect(code).unwrap_or(self.layout);
+        match Layout::detect(code) {
+            Some(l) => {
+                self.layout = l;
+                self.layout_known = true;
+            }
+            None => {
+                self.layout_known = false;
+                // a real image (not a test stub) of an unknown OS: the v1.66 addresses would hit
+                // other code, so say so; callers can check `layout_known`
+                if code.len() >= 1 << 20 {
+                    eprintln!(
+                        "nord-arm: unknown bank0_CODE length {} (known: OS v1.66, v1.68); using the                          v1.66 addresses, the boot will most likely fail. Add a Layout with                          tools/fw_addr_map.py",
+                        code.len()
+                    );
+                }
+            }
+        }
         self.install_dsp_ports();
     }
 
@@ -240,11 +256,13 @@ mod tests {
         let mut m = Machine::new();
         m.load_firmware(&vec![0u8; Layout::V168.image_len], &[]);
         assert_eq!(m.layout.version, 168);
+        assert!(m.layout_known);
         assert_eq!(m.read32(Layout::V168.port_object_ptr), FAKE_BASE);
         assert_eq!(m.hooks[&Layout::V168.flow_control], Hook::Return(1));
         // an unknown image keeps the layout in force (v1.66 by default)
         let mut m = Machine::new();
         m.load_firmware(&[0u8; 16], &[]);
         assert_eq!(m.layout.version, 166);
+        assert!(!m.layout_known);
     }
 }
