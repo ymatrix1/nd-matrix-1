@@ -51,7 +51,7 @@ impl SfzRegionSpec {
     /// Default rule (ASSUMED, chosen): SFZ's `loop_mode` default is `no_loop` (the default only
     /// changes for loop points embedded in the sample file, which `parse_wav_mono` does not
     /// read), so a region loops only for an explicit `loop_continuous` / `loop_sustain`;
-    /// `loop_start` / `loop_end` alone (the behaviour before D250, where they were parsed and
+    /// `loop_start` / `loop_end` alone (the behaviour before D252, where they were parsed and
     /// unused) stay inert. What would confirm it: the SFZ format text for `loop_mode`.
     ///
     /// The SFZ `loop_end` is the last sample **inside** the loop (inclusive), the engine wraps at

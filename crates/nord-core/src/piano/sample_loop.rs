@@ -3,7 +3,7 @@
 //! The SMP state machine (`docs/research/smp-slew.md` s3, VERIFIED runs) wraps the stream counter
 //! by the loop length `F-7` once it reaches the loop end `F-8`, and frees a voice only at
 //! `F-9` (the end of a non-looping stream). `.npno` strokes carry the loop (`NpnoStroke`):
-//! a held note therefore never reaches the stream end, it repeats the last third of its sample
+//! a held note therefore never reaches the stream end, it repeats the stroke's loop region
 //! until the key-up. Inside the loop region (counter above `F-8 - F-7`) the slew rate word is
 //! `F+6` instead of `F+7`, a steeper decay: each repetition is quieter
 //! (`docs/research/piano-sample-end.md`, issue #640).
