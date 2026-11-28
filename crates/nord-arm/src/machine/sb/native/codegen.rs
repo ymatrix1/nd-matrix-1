@@ -165,13 +165,16 @@ mod tests {
         );
         let mut fctx = FunctionBuilderContext::new();
         let mut cx = NCtx::new(&mut func, &mut fctx, &t);
-        for kind in [k::ADD_IMM, k::LDR_IMM, k::EXIT, k::CMP_GUARD_I] {
+        // data processing is still a stub here (W2-NDP), and a fused compare needs its lowerer
+        for kind in [k::ADD_IMM, k::CMP_GUARD_I] {
             assert_eq!(
                 lower_uop(&mut cx, &Uop::new(kind, 0x1000)),
                 Err(Unsupported),
                 "kind {kind}"
             );
         }
+        // the memory family reaches `lower_mem` (W2-NMEM): a load of r0 from [r0] lowers
+        assert_eq!(lower_uop(&mut cx, &Uop::new(k::LDR_IMM, 0x1000)), Ok(()));
         cx.exit_generic(0x1000);
         cx.finish();
         verify(&func);
