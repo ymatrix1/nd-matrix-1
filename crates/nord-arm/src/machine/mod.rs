@@ -11,6 +11,7 @@ pub mod grouper;
 mod hooks;
 pub mod i2c;
 pub mod idle;
+pub mod layout;
 pub mod metrics;
 pub mod micro;
 pub mod paced;
@@ -84,6 +85,10 @@ pub struct Machine {
     pub predecode: bool,
     /// Work counters of the run loops (executed instructions are derived from `cpu.insns`).
     pub stats: RunStats,
+    /// Firmware addresses of the loaded OS version (`load_firmware` picks it from the image).
+    pub layout: layout::Layout,
+    /// Whether `load_firmware` recognised the image length (`false`: the default layout is a guess).
+    pub layout_known: bool,
 }
 
 impl Default for Machine {
@@ -111,6 +116,8 @@ impl Machine {
             code: CodeCache::default(),
             predecode: true,
             stats: RunStats::default(),
+            layout: layout::Layout::V166,
+            layout_known: false,
         }
     }
 

@@ -332,6 +332,49 @@ CARGO_TARGET_DIR=target/aot cargo build --release -p nord-tools --bin lle_sharc_
 target/aot/release/lle_sharc_bench --engine aot --core PNOc2=target/sram/PNO/core2_sram.bin,org,,PNO2
 ```
 
+## Stages C and D: event-aware blocks (D1) and what was not built (2026-11-28, `ns4-lle3`)
+
+Question: do event-split blocks (D1), then superblocks (D2) and static analysis (C1 to C3) of [sharc-lowering-v2](sharc-lowering-v2.md) bring ORG Core2 exact to x2.5? Tags: EMPIRICAL unless stated.
+
+### D1 result (deterministic, `lle_sharc_bench --profile`, per pass; `AOT DIFF OK` 1:1 for both modules)
+
+| Counter | ORG2 (v1) | ORG2E (D1) | PNO2 (v1) | PNO2E (D1) |
+|---|---:|---:|---:|---:|
+| refused block entries | 14 | 0 | 14 | 0 |
+| interpreter steps after a refusal | 255 | 0 | 255 | 0 |
+| native steps | 5 047 | 5 286 | 3 047 | 3 286 |
+| generic `aot_step` steps | 481 | 496 | 475 | 490 |
+| diff coverage of audio passes | 95.62% | 99.97% | 93.69% | 100.00% |
+| diff block misses (all passes) | 4 206 | 5 | 4 201 | 0 |
+
+The 15 extra generic steps are the 15 steps of the former interpreted tails that are generic forms. The "native steps" row is the static bookkeeping of `aot_enter` (each call adds the block's compiled native count), so it counts steps that an event path ran on the interpreter as native; the real figure is the new counter `ev_steps` (steps run by the event paths): **4 807 over boot + 300 passes for both ORG2E and PNO2E (at most 16 per pass, against 255 interpreter steps per pass in v1)**.
+
+Strengthened diff (review of #688): the strict state compared every 20 000 steps now also covers `imask`, `irq.taken`, `irq.stall`, `irq.idle`, `irq.window_len` and `pending` (`irq.due` is not compared: it is derived from the next event cycle and the lowered-op unit tests do not step the controller). `AOT DIFF OK` holds for ORG2, ORG2E, PNO2, PNO2E. **The real passes take no interrupt: 0 interrupts taken and 0 splits in all four runs** (the events are timer and controller pokes), so the `SPLIT` path (an interrupt taken at an event) is exercised only by `aot2/ev_blocks.rs` (hand-built blocks equal to the interpreter with the event at every position on a delayed branch and a loop end, and with a scheduled interrupt), not by the firmware run. Generated source: ORG2 672 584 B, ORG2E 714 465 B (+6.2%); PNO2 628 160 B, PNO2E 666 164 B (+6.0%). 
+
+| Single-module `sharc_jit_diff` build (release, loaded host, 2 builds each, seconds) | ORG2 | ORG2E |
+|---|---:|---:|
+| `cargo build` wall time | 105, 135 | 106, 107 |
+| executable size | 1 400 320 B | 1 446 912 B (+46 592 B, +3.3%) |
+
+Compile time is not measurably different (bands overlap, host loaded). Code bytes grew 3.3% of the executable (+6% of generated source): one `steps >= irq.due` compare per handler and per generic step, and one pre-check per batch.
+
+### Wall-clock: not separable from noise
+
+Every round ran on a saturated host (`LoadPercentage` 88 to 100%, 5 to 17 cargo/rustc/link processes), so absolute figures are x4 to x7 over budget instead of the x3.5 to x3.9 of quiet runs and carry no claim. Interleaved A/B in one binary (9 rounds, 2 warm-up, p50 us of the pass, median (min..max)):
+
+| Core | v1 | D1 | Reading |
+|---|---|---|---|
+| ORG Core2 exact | 282.3 (266.9..297.2) | 268.5 (231.7..307.7) | within noise (bands overlap) |
+| PNO Core2 exact | 210.2 (165.4..224.4) | 184.8 (163.6..203.3) | within noise (bands overlap) |
+
+Mean-us runs (9 rounds, ORG2 341.8 (319.1..427.9), ORG2E 321.5 (283.5..440.3)) agree in direction and are also within noise. D1 is kept on the deterministic counters (refusals and interpreter steps after a refusal fall, `ev_steps` is small); wall-clock is **not shown to regress and not shown to help**: with these bands a 10 to 15% regression cannot be excluded. A quiet-host re-measure is needed before the `perf` claim is made.
+
+### Why D2 and C1 to C3 were not built
+
+By the profiles (shares inflated by the profiler, so upper bounds): generic `aot_step` forms 490 steps = at most 14% of the PNO pass and 8% of ORG (`Move:Other(4b)` 172 steps, `DirectMem` 72, `DagMem` 48, `Move:Other(4a)` 46), block entry/exit 5%, loop glue 1 to 8%. Each lowering slice (one MemXfer form with its random-state test against the interpreter) is worth under 4%; direct chaining of blocks (D2) replaces only the dispatcher's search, not the guard or the code check, so under 3%; constants and range proofs (C1, C2) act inside native steps whose cost is instruction fetch of shared handlers (code bytes per step is the budget, see the bounded experiment). All are below the 3% quiet and 14% loaded min-max bands of this host, so by the stop rule none can be shown, and none was built. **ORG Core2 exact at or below x2.5 is not reached**; the last quiet measurement (stage B, 158.9..164.4 us) is x3.5, the host here cannot give a better one. Re-measure D1 on a quiet host before building anything further.
+
+Reproduce: `target/lle/gen.sh` (modules incl. `--ev`), `target/lle/build.sh OUT`, then `NORD_SHARC_AOT_TAG=ORG2E sharc_jit_diff IMG $(cat org2.run) --aot-top 999 --chunk 20000` and `lle_sharc_bench --engine aot --profile --core ORGc2=...,ORG2E` (scripts are local, same commands as "Reproduce" below with `sharc-aot --ev`).
+
 ## Alternatives (what to do instead)
 
 - **HLE hybrid** (recommended by the numbers): run LLE only for cores that fit the budget and keep the Rust HLE engines for the rest. On these measurements only PNO Core1 (x1.6 over, closest) could ever fit; ORG/PNO Core2 are x7 to x8 over.
@@ -347,7 +390,7 @@ target/aot/release/lle_sharc_bench --engine aot --core PNOc2=target/sram/PNO/cor
 ## Follow-ups
 
 - Presets and message scripts for ORG Core1 (FX Core1/Core2 done in `ns4-lle4`); SY1SY2/SMP as ISR-driven jobs in `pass_sched`, so the 300-pass benchmark covers all five chips.
-- AOT module for PNO Core2: done (section "PNO Core2 AOT module"). Still open: a PNO Core2 message script for a loaded pass; a re-measure on a quiet host; lowering of the 475 generic `aot_step` steps and of the 14 refused block entries per pass (each below the noise band, see Step 4 there).
+- AOT module for PNO Core2: done (section "PNO Core2 AOT module"). Still open: a PNO Core2 message script for a loaded pass; a re-measure on a quiet host; lowering of the 475 generic `aot_step` steps (below the noise band, see Step 4 there). The 14 refused block entries per pass are gone with the event-aware blocks (D258, section "Stages C and D").
 - Fast-vs-Exact: measured 2026-11-27 on ORG and PNO Core2 with `fast_vs_exact` (state error 2e-5 relative, bounded; `sharc-kernel-speed.md`, D256). The SNR in dB of the output is still open: both streams are silent.
 - Listening/null test for the fast-f32 tier, only if the compute share of the pass becomes native.
 

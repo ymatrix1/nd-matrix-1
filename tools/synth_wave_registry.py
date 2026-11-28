@@ -76,6 +76,27 @@ def parse(code: bytes, start: int = REGISTRY) -> list[Entry]:
     return out
 
 
+def find_registry(code: bytes, minimum: int = WAVE_COUNT) -> int:
+    """Address of record 0: `REGISTRY` (OS v1.66) when `minimum` records hold there, else the
+    first 4-aligned address that does (OS v1.68 has it at `0xC02FD850`); `REGISTRY` if none."""
+    if len(parse(code, REGISTRY)) >= minimum:
+        return REGISTRY
+    n = len(code)
+    for off in range(0, n - RECORD_BYTES * minimum, 4):
+        # cheap reject on the two fixed words before the full parse
+        if (
+            struct.unpack_from("<2I", code, off + 8)[0] != 8
+            or struct.unpack_from("<I", code, off + 16)[0] != ROWS_WORDS
+        ):
+            continue
+        try:
+            if len(parse(code, LOAD_BASE + off)) >= minimum:
+                return LOAD_BASE + off
+        except (ValueError, struct.error):
+            continue
+    return REGISTRY
+
+
 def build_l2(code: bytes, entry: Entry) -> tuple[list[int], list[int]]:
     """`(rows, samples)` of the DSP layout of one table (PM rows and L2 samples, int16 values)."""
     rows_in = [_word(code, entry.rows_ptr + 4 * i) for i in range(ROWS_WORDS)]
@@ -121,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - thin CLI
     if ns.code is None:
         ap.error("code image required")
     code = ns.code.read_bytes()
-    entries = parse(code)
+    entries = parse(code, find_registry(code))
     if ns.boot_check:
         import synth_super24_tables as boot
 

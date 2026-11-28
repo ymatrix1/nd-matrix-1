@@ -15,6 +15,9 @@ use super::fw_super2::Super24Tables;
 use crate::firmware::FirmwareContainer;
 
 const LOAD_BASE: u32 = 0xC000_0000;
+/// VERIFIED (v1.66 `bank0_CODE`, `tools/synth_wave_registry.py`): where the registry sits in OS
+/// v1.66. OS v1.68 has it at `0xC02FD850` (+0x3A0, `docs/research/os-1-68-vs-1-66.md`). Only a
+/// first guess now: `find_registry` scans for the layout when the guess is wrong.
 const REGISTRY_ADDR: u32 = 0xC02F_D4B0;
 const RECORD_BYTES: usize = 28;
 const ROWS_WORDS: usize = 0x200;
@@ -37,8 +40,13 @@ fn word(code: &[u8], addr: u32) -> Result<u32, String> {
 }
 
 /// DSP layout `(rows, words)` of record `k`; `boot` supplies the FIR and biquad tables.
-fn build(code: &[u8], k: usize, boot: &Super24Tables) -> Result<Super24Tables, String> {
-    let rec = REGISTRY_ADDR + (RECORD_BYTES * k) as u32;
+fn build(
+    code: &[u8],
+    registry: u32,
+    k: usize,
+    boot: &Super24Tables,
+) -> Result<Super24Tables, String> {
+    let rec = registry + (RECORD_BYTES * k) as u32;
     let f = |j: u32| word(code, rec + 4 * j);
     let (end, eight, rows_ptr, n, data_ptr, count) = (f(1)?, f(2)?, f(3)?, f(4)?, f(5)?, f(6)?);
     if eight != 8 || n as usize != ROWS_WORDS || end != rows_ptr + 4 * ROWS_WORDS as u32 {
@@ -88,9 +96,45 @@ fn build(code: &[u8], k: usize, boot: &Super24Tables) -> Result<Super24Tables, S
     })
 }
 
+/// True when record `k` at `registry` has the registry layout (`end == rows + 4 * 512`, `8`, `512`)
+/// and its pointers fall inside the image.
+fn record_ok(code: &[u8], registry: u32, k: usize) -> bool {
+    let rec = registry + (RECORD_BYTES * k) as u32;
+    let f = |j: u32| word(code, rec + 4 * j).ok();
+    let (Some(end), Some(eight), Some(rows), Some(n), Some(data)) = (f(1), f(2), f(3), f(4), f(5))
+    else {
+        return false;
+    };
+    let top = LOAD_BASE.saturating_add(code.len() as u32);
+    eight == 8
+        && n as usize == ROWS_WORDS
+        && end == rows.wrapping_add(4 * ROWS_WORDS as u32)
+        && (LOAD_BASE..top).contains(&rows)
+        && (LOAD_BASE..top).contains(&data)
+}
+
+/// Address of record 0 of the registry: the v1.66 address when it still validates, else the first
+/// 4-aligned address where all `WAVE_TABLES` records validate (runtime discovery, so the next OS
+/// update needs no code change).
+fn find_registry(code: &[u8]) -> Result<u32, String> {
+    let all_ok = |at: u32| (0..WAVE_TABLES).all(|k| record_ok(code, at, k));
+    if all_ok(REGISTRY_ADDR) {
+        return Ok(REGISTRY_ADDR);
+    }
+    let last = code.len().saturating_sub(RECORD_BYTES * WAVE_TABLES);
+    (0..last)
+        .step_by(4)
+        .map(|o| LOAD_BASE + o as u32)
+        .find(|&at| record_ok(code, at, 0) && all_ok(at))
+        .ok_or_else(|| "registry record 0 has a foreign layout".to_string())
+}
+
 /// All 46 tables from a `bank0_CODE` image.
 pub fn tables_from_code(code: &[u8], boot: &Super24Tables) -> Result<Vec<Super24Tables>, String> {
-    (0..WAVE_TABLES).map(|k| build(code, k, boot)).collect()
+    let registry = find_registry(code)?;
+    (0..WAVE_TABLES)
+        .map(|k| build(code, registry, k, boot))
+        .collect()
 }
 
 /// All 46 tables from a file: the official OS update (`.exe`, `.dmg`, or a `.zip` holding one),
@@ -138,6 +182,11 @@ pub(crate) mod tests {
 
     /// A code image whose registry holds `WAVE_TABLES` copies of one two-band table.
     pub(crate) fn image() -> Vec<u8> {
+        image_at(REGISTRY_ADDR)
+    }
+
+    /// Same image with the registry at `registry`.
+    pub(crate) fn image_at(registry: u32) -> Vec<u8> {
         let mut img = vec![0u8; 0x40_0000];
         let put = |img: &mut Vec<u8>, addr: u32, w: u32| {
             let o = (addr - LOAD_BASE) as usize;
@@ -155,7 +204,7 @@ pub(crate) mod tests {
             }
         }
         for k in 0..WAVE_TABLES as u32 {
-            let rec = REGISTRY_ADDR + 28 * k;
+            let rec = registry + 28 * k;
             let vals = [0, rows_at + 0x800, 8, rows_at, 0x200, data_at, 9];
             for (j, v) in vals.iter().enumerate() {
                 put(&mut img, rec + 4 * j as u32, *v);
@@ -190,6 +239,17 @@ pub(crate) mod tests {
         img[o] = 9;
         assert!(tables_from_code(&img, &boot()).is_err());
         assert!(tables_from_code(&[0u8; 16], &boot()).is_err());
+    }
+
+    #[test]
+    fn a_registry_at_another_address_is_found_by_its_layout() {
+        let a = tables_from_code(&image(), &boot()).unwrap();
+        for moved in [0xC02F_D850u32, 0xC02F_D4B4, 0xC033_0000] {
+            let b = tables_from_code(&image_at(moved), &boot()).unwrap();
+            assert_eq!(a.len(), b.len());
+            assert_eq!(a[5].rows, b[5].rows);
+            assert_eq!(a[5].wave, b[5].wave);
+        }
     }
 
     #[test]

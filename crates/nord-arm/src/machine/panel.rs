@@ -5,6 +5,7 @@
 //! strobe store at `0x60000015` selects the column. Every other CS2 store is a display frame byte
 //! and is only counted here (the OLED controller model is `ns4-lle6`).
 
+use super::layout::Layout;
 use std::collections::BTreeSet;
 
 /// ASSUMED: front-panel chip select 2 window, strobe and status words (`tools/arm_panel.py`).
@@ -12,22 +13,31 @@ pub const CS2_BASE: u32 = 0x6000_0000;
 pub const CS2_END: u32 = CS2_BASE + 0x1000;
 pub const STROBE_ADDRESS: u32 = 0x6000_0015;
 pub const PANEL_STATUS: [u32; 2] = [0x6000_0010, 0x6000_0020];
-/// EMPIRICAL: panel detection routine `0xC024D648..0xC024D710` (`tools/arm_panel.py`); the
-/// boot of `arm-lle-bench` needs "present" answers inside it.
-pub const DETECT_RANGE: (u32, u32) = (0xC024_D648, 0xC024_D710);
 /// ASSUMED: a present key-matrix port reads `0x80` inside the detection routine.
 pub const PRESENT: u8 = 0x80;
-/// EMPIRICAL: boot wait loop that needs the timer interrupt (`tools/arm_panel.py`); the boot of
-/// `arm-lle-bench` stalls there without the injected interrupt.
-pub const WAIT_LOOP: (u32, u32) = (0xC007_5D38, 0xC007_5D50);
 
 /// Key matrix: `(strobe, port, bit)` triples held low.
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct KeyMatrix {
+    /// EMPIRICAL: panel detection routine `[start, end)` (`tools/arm_panel.py`, from the
+    /// `Layout`); the boot of `arm-lle-bench` needs "present" answers inside it.
+    pub detect_range: (u32, u32),
     pub strobe: u8,
     pub held: BTreeSet<(u8, u8, u8)>,
     /// Stores to CS2 other than the strobe (display bytes).
     pub display_writes: u64,
+}
+
+impl Default for KeyMatrix {
+    /// Detection range of OS v1.66; `Machine::attach_board` sets the one of the loaded OS.
+    fn default() -> Self {
+        Self {
+            detect_range: Layout::V166.detect_range,
+            strobe: 0,
+            held: BTreeSet::new(),
+            display_writes: 0,
+        }
+    }
 }
 
 impl KeyMatrix {
@@ -53,7 +63,7 @@ impl KeyMatrix {
     /// The four bytes of the status port at `base` for a read executed at `pc`
     /// (`arm_panel.panel_block`).
     pub fn block(&self, pc: u32, base: u32) -> [u8; 4] {
-        if (DETECT_RANGE.0..DETECT_RANGE.1).contains(&pc) {
+        if (self.detect_range.0..self.detect_range.1).contains(&pc) {
             return [PRESENT, 0, 0, 0];
         }
         let port = if base == PANEL_STATUS[0] { 0 } else { 1 };

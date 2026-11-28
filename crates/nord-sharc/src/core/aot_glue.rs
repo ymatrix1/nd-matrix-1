@@ -84,6 +84,22 @@ impl Core {
         }
     }
 
+    /// [`Core::aot_sig`] for an event-aware block (`aot2/events.rs`): `due` is not part of the
+    /// signature because every item of such a block compares `steps` with the live `due`.
+    #[inline(always)]
+    pub(super) fn aot_sig_ev(&self) -> AotSig {
+        AotSig {
+            due: 0,
+            ..self.aot_sig()
+        }
+    }
+
+    /// [`Core::aot_sig_changed`] for an event-aware block.
+    #[inline(always)]
+    pub(super) fn aot_sig_changed_ev(&self, sig: &AotSig) -> bool {
+        self.aot_sig_ev() != *sig
+    }
+
     /// True when guarded state differs from `sig` (see [`AotSig`]), e.g. after an instruction of
     /// a whole-pass block wrote the interrupt controller or the mode bits.
     #[inline(always)]
