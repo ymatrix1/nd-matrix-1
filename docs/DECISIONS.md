@@ -2728,7 +2728,7 @@ The rate matches in all three; the score of the clock word is better than flag o
 - **Limits:** Control positions, counts, indices, parameter IDs and layout JSON structure are unchanged (the layout json moved a few pixels because the silkscreen font changed). Colours and shapes are `ASSUMED` design choices; the only measured property is contrast (`style.rs` tests). Whether the result is different enough in law is a question for counsel, not a verified claim (LEGAL.md). Silkscreen text depends on fonts installed on the baking machine (`Cascadia Mono` / `Consolas`); the committed PNGs are the source of truth and a re-bake on Windows with Edge reproduced them byte for byte (sha256 equal). The Rust-drawn parts (OLED text, LEDs, pressed keys) use the new tokens; the vector fallback panel recolours through the same tokens but keeps its old shapes.
 - **Impact:** `prototypes/panel-mock/` (styles, panel.js, index.html), `tools/bake_panel_from_html.py`, `crates/nord-gui/assets/baked/*`, `crates/nord-gui/src/style.rs`, `baked.rs`, `panel/baked_view.rs`, `panel/baked_buttons.rs`, `identity_tests.rs` (new), the Blender proof (`assets/blender/build_proof.py`, `assets/panel/proof/*`), `specs/visual-style-and-panel.md` s1, s2, s9; `docs/img/gui/overview.png`; `LEGAL.md` follow-ups; `ROADMAP.md`.
 
-### D252. The unified LLE engine is a virtual-clock, single-thread, offline orchestrator in `crates/nord-lle`; the ARM timer tick owns time
+### D253. The unified LLE engine is a virtual-clock, single-thread, offline orchestrator in `crates/nord-lle`; the ARM timer tick owns time
 
 - **Status:** proposed 2026-11-27
 - **Decided by:** agent (bean `ns4-lle5`); owner to confirm.
