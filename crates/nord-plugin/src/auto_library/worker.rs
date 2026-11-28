@@ -53,10 +53,13 @@ pub(super) struct Worker {
     /// The OS update tables were waited for once and did not come: do not wait again.
     wave_wait_failed: bool,
     /// The project's library reference: the path to follow (restored late, or chosen in the
-    /// editor) and where the status is reported (D261).
+    /// editor) and where the status is reported (D262).
     state: Option<Arc<LibraryPersist>>,
     /// The request to try again because the library file was not there, with its generation.
     retry: Option<(u64, i32)>,
+    /// Tests: `load` panics for this location (a decoder bug the guard in `handle` must survive).
+    #[cfg(test)]
+    panic_on_load: Option<u16>,
 }
 
 impl Worker {
@@ -79,6 +82,8 @@ impl Worker {
             samples: HashMap::new(),
             wave_bank_sent: false,
             wave_wait_failed: false,
+            #[cfg(test)]
+            panic_on_load: None,
         }
     }
 
@@ -105,6 +110,20 @@ impl Worker {
                 return;
             }
             self.retry = None;
+            self.handle(want);
+            if self.retry.is_some() {
+                self.retry = Some((generation, want));
+            }
+            self.done.record(generation, want);
+        }
+    }
+
+    /// Handles one request. A panic in a decoder (a hostile or corrupt library) is caught and
+    /// reported like any failed load, so the caller still records the generation: without that
+    /// the thread would die, later requests would go unanswered and every `initialize` would
+    /// wait out its whole timeout.
+    fn handle(&mut self, want: i32) {
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             self.follow_state();
             if let Some(flat) = location(want) {
                 match self.load(flat) {
@@ -114,13 +133,23 @@ impl Worker {
                     }
                     Err(e) => {
                         report(&format!("program {} not loaded ({e})", label(want)));
-                        self.note_missing(generation, want);
+                        self.note_missing();
                     }
                 }
             } else if want == 0 {
                 self.unload();
             }
-            self.done.record(generation, want);
+        }));
+        if let Err(payload) = result {
+            let what = payload
+                .downcast_ref::<&str>()
+                .map(|s| (*s).to_string())
+                .or_else(|| payload.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "unknown panic".to_string());
+            report(&format!(
+                "program {} not loaded (the decoder panicked: {what})",
+                label(want)
+            ));
         }
     }
 
@@ -140,14 +169,14 @@ impl Worker {
     }
 
     /// A failed load because the file is not there: say so and try again in a few seconds.
-    fn note_missing(&mut self, generation: u64, want: i32) {
+    fn note_missing(&mut self) {
         if self.path.is_file() {
             return;
         }
         if let Some(s) = &self.state {
             s.set_status(LibraryStatus::Missing(self.path.display().to_string()));
         }
-        self.retry = Some((generation, want));
+        self.retry = Some((0, 0));
     }
 
     /// A load worked: a `Missing` status is over.
@@ -209,6 +238,10 @@ impl Worker {
 
     /// Decodes the program at `flat` and its sounds, then queues them. Returns the program name.
     fn load(&mut self, flat: u16) -> Result<String, String> {
+        #[cfg(test)]
+        if self.panic_on_load == Some(flat) {
+            panic!("injected decoder panic at {flat}");
+        }
         let lib = self.open()?;
         let entry = lib
             .slots
@@ -362,6 +395,7 @@ impl Worker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::auto_library::support::two_program_backup;
     use crate::loader::load_queue;
 
     fn worker(loads: LoadSender, closed: Arc<AtomicBool>) -> Worker {
@@ -400,5 +434,44 @@ mod tests {
         w.closed.store(true, Ordering::SeqCst);
         assert_eq!(w.check_open(), Err(CLOSING.to_string()));
         assert!(w.load(0).is_err());
+    }
+
+    #[test]
+    fn a_decoder_panic_is_reported_and_the_next_request_is_still_handled() {
+        let path = two_program_backup("panic");
+        let (tx, rx) = load_queue(16);
+        let done = Arc::new(Handled::default());
+        let mut w = Worker::new(
+            path.clone(),
+            tx,
+            Arc::clone(&done),
+            Arc::new(AtomicBool::new(false)),
+        );
+        // Program 1 is location 0 (A:11); the panic hits it, program 2 (A:12) loads normally.
+        w.panic_on_load = location(1);
+        let (req_tx, req_rx) = crossbeam_channel::bounded(8);
+        let thread = std::thread::spawn(move || w.run(req_rx));
+
+        req_tx.send((1, 1)).unwrap();
+        let t = Instant::now();
+        assert!(
+            done.wait(1, 1, Duration::from_secs(10)),
+            "recorded as handled"
+        );
+        assert!(t.elapsed() < Duration::from_secs(5), "not the 15 s timeout");
+        assert!(rx.is_empty(), "the panicking load queued nothing");
+
+        req_tx.send((2, 2)).unwrap();
+        assert!(
+            done.wait(2, 2, Duration::from_secs(10)),
+            "the worker survived and handled the next request"
+        );
+        assert!(matches!(rx.pop(), Some(LoadJob::Program(p)) if p.name == "Second"));
+
+        req_tx.send((3, 0)).unwrap(); // Off works after a panic too: the thread is alive
+        assert!(done.wait(3, 0, Duration::from_secs(10)));
+        drop(req_tx);
+        thread.join().expect("the worker thread did not die");
+        let _ = std::fs::remove_file(&path);
     }
 }

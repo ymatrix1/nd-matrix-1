@@ -74,7 +74,7 @@ pub fn create(
     // as the editor (and therefore the index) exists.
     // The index also tells the panel which groups a loaded program owns (`program_hold.rs`).
     let index = Arc::new(ParamIndex::new(params.as_ref()).with_program_hold(params.clone()));
-    // The project's library first (D261), else the user's saved one.
+    // The project's library first (D262), else the user's saved one.
     let library = params
         .library_state
         .path()

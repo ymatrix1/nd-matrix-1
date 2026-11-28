@@ -29,7 +29,7 @@ impl NdMatrix1Plugin {
         self.request_library_program()
     }
 
-    /// The library file this instance opens (D261): `NS4_LIBRARY`, else the path saved with the
+    /// The library file this instance opens (D262): `NS4_LIBRARY`, else the path saved with the
     /// project, else the user's library. A project path that is gone is kept (the worker tries
     /// again and the editor says `library not found`); the file a project used is recorded in
     /// its state so the next save carries it. A path that changed since the last call asks the

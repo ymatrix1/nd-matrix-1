@@ -1,4 +1,4 @@
-//! The worker follows the path of the project state (D261): a path restored or chosen after it
+//! The worker follows the path of the project state (D262): a path restored or chosen after it
 //! started is used for the next request, and a library that is not there is tried again.
 
 use super::support::{drain_until, two_program_backup, write_two_program_backup};

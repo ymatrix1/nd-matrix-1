@@ -1,7 +1,7 @@
-//! What a host project remembers about the sound library (D261): the `.ns4b` path with a cheap
+//! What a host project remembers about the sound library (D262): the `.ns4b` path with a cheap
 //! identity check, and which parameter groups the user had edited on top of the loaded program.
 //!
-//! Before D261 the project saved only the `library_program` parameter. The library path lived in
+//! Before D262 the project saved only the `library_program` parameter. The library path lived in
 //! the per-user `config.json` (`ns4 library set`), so a project opened on a machine without that
 //! setting, or after the library moved, started in the built-in fallback, and the restored edits
 //! were overwritten by the program the library worker loaded (`ProgramHold::hold` takes the

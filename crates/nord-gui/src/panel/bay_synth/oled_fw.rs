@@ -186,16 +186,43 @@ pub(super) fn mixed_case(s: &str) -> String {
         .join(" ")
 }
 
-/// Paints the waveform page when it applies; `false` leaves the display to the fallback painter.
-pub(crate) fn paint(p: &Painter, disp: Rect, v: &OledView, title: &str) -> bool {
-    let Graphic::Wave { name, ctrl, icon } = &v.graphic else {
-        return false;
+/// The three fonts of the page when it applies (else the fallback painter keeps the display).
+fn prepare(v: &OledView) -> Option<(Font, Font, Font)> {
+    let Graphic::Wave { icon, .. } = &v.graphic else {
+        return None;
     };
     if v.title != "OSC WAVEFORM" || matches!(icon, Icon::Sample) {
-        return false;
+        return None;
     }
-    let (Some(bar), Some(big), Some(small)) = (font(F_BAR), font(F_NAME), font(F_SMALL)) else {
+    Some((font(F_BAR)?, font(F_NAME)?, font(F_SMALL)?))
+}
+
+/// Paints the waveform page when it applies (through the smoothly scaled frame buffer);
+/// `false` leaves the display to the fallback painter.
+pub(crate) fn paint(p: &Painter, disp: Rect, v: &OledView, title: &str) -> bool {
+    let Some((bar, big, small)) = prepare(v) else {
         return false;
+    };
+    crate::panel::oled_fb::paint(p, disp, "synth", FG_OLED, |p, r| {
+        draw(p, r, v, title, &bar, &big, &small);
+    });
+    true
+}
+
+/// [`paint`] straight onto `disp` (the pixel checks rasterise it themselves).
+#[cfg(test)]
+pub(crate) fn paint_direct(p: &Painter, disp: Rect, v: &OledView, title: &str) -> bool {
+    let Some((bar, big, small)) = prepare(v) else {
+        return false;
+    };
+    draw(p, disp, v, title, &bar, &big, &small);
+    true
+}
+
+/// The waveform page laid out in `disp` (128 x 64 when called by the frame buffer).
+fn draw(p: &Painter, disp: Rect, v: &OledView, title: &str, bar: &Font, big: &Font, small: &Font) {
+    let Graphic::Wave { name, ctrl, icon } = &v.graphic else {
+        return;
     };
     let g = Grid {
         disp,
@@ -208,29 +235,29 @@ pub(crate) fn paint(p: &Painter, disp: Rect, v: &OledView, title: &str) -> bool 
     // title bar: lit rows 0..10, unlit title centred at y = 2
     g.block(p, (0, 0, 128, 11), FG_OLED);
     text(
-        &bar,
+        bar,
         g.at(centred(63, bar.text_width(title) as i32), 2),
         Align2::LEFT_TOP,
         title,
         8.0,
         OLED_BG,
     );
-    text(&big, g.at(1, 14), Align2::LEFT_TOP, name, 11.0, FG_OLED);
+    text(big, g.at(1, 14), Align2::LEFT_TOP, name, 11.0, FG_OLED);
     if let Some((label, value)) = ctrl.split_once(": ") {
         // VERIFIED (ARM `Shape Triangle` frame): the label (`Shape:`, 5 px font, y = 29) and the
         // value (`0.0`, 7 px font, y = 27, from x = 42) are two widgets; the column of the value
         // is ASSUMED to be fixed for the other labels.
         text(
-            &small,
+            small,
             g.at(1, 29),
             Align2::LEFT_TOP,
             &format!("{}:", mixed_case(label)),
             5.0,
             FG_OLED,
         );
-        text(&bar, g.at(42, 27), Align2::LEFT_TOP, value, 8.0, FG_OLED);
+        text(bar, g.at(42, 27), Align2::LEFT_TOP, value, 8.0, FG_OLED);
     } else if !ctrl.is_empty() {
-        text(&small, g.at(1, 29), Align2::LEFT_TOP, ctrl, 5.0, FG_OLED);
+        text(small, g.at(1, 29), Align2::LEFT_TOP, ctrl, 5.0, FG_OLED);
     }
     let (px, py, pw, ph) = PIC;
     for (x, y) in picture_pixels(*icon, pw, ph) {
@@ -245,7 +272,7 @@ pub(crate) fn paint(p: &Painter, disp: Rect, v: &OledView, title: &str) -> bool 
         };
         let value = mixed_case(&s.value);
         text(
-            &small,
+            small,
             g.at(
                 centred_value(VALUE_COLS[i], small.text_width(&value) as i32),
                 49,
@@ -277,7 +304,7 @@ pub(crate) fn paint(p: &Painter, disp: Rect, v: &OledView, title: &str) -> bool 
                 let left = centred(COLS[i], w).clamp(0, 128 - w);
                 g.block(p, (left, 57, w, 7), color);
                 text(
-                    &small,
+                    small,
                     g.at(left + 2, 59),
                     Align2::LEFT_TOP,
                     s.label,
@@ -287,7 +314,6 @@ pub(crate) fn paint(p: &Painter, disp: Rect, v: &OledView, title: &str) -> bool 
             }
         }
     }
-    true
 }
 
 /// OLED pixel colour (same as `graphics::FG`).

@@ -1,4 +1,4 @@
-//! Host project round trip of the library reference (D261, issue #669): the state blob the
+//! Host project round trip of the library reference (D262, issue #669): the state blob the
 //! host saves is read back into a fresh instance, which reopens the library, tolerates a missing
 //! path and keeps the edits the user made over the program.
 
@@ -83,7 +83,7 @@ fn the_blob_holds_a_path_and_a_hash_and_no_library_bytes() {
 fn a_state_without_the_new_key_loads_and_uses_the_users_library() {
     let file = two_program_backup("proj-old");
     let mut old = saved_project(&file);
-    old.remove("library-state"); // a project saved before D261
+    old.remove("library-state"); // a project saved before D262
     let mut b = project_with(Some(file.clone()));
     restore(&b, &old);
     initialize(&mut b);

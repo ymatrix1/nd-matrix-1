@@ -1,4 +1,4 @@
-//! Keeps the host project in step with the editor's Library tab (D261, issue #669): the
+//! Keeps the host project in step with the editor's Library tab (D262, issue #669): the
 //! `.ns4b` the user opened and the program they loaded become the project's saved library path
 //! and `library_program`, and a library that cannot be found is said so in the tab.
 

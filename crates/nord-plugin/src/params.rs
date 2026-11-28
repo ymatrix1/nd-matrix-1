@@ -172,7 +172,7 @@ pub struct Stage4Params {
     pub program_hold: crate::program_hold::ProgramHold,
 
     /// Library path, identity and the edits armed over the program, saved with the project
-    /// (D261). Not a host parameter.
+    /// (D262). Not a host parameter.
     #[persist = "library-state"]
     pub library_state: std::sync::Arc<crate::library_state::LibraryPersist>,
 

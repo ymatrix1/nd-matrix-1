@@ -114,7 +114,7 @@ impl ProgramOverrides {
         std::sync::Arc::clone(&self.armed)
     }
 
-    /// Arms the flags in `mask` after a program load: a restored project's host values win (D261).
+    /// Arms the flags in `mask` after a program load: a restored project's host values win (D262).
     pub fn arm(&self, mask: u32) {
         self.armed.fetch_or(mask, Relaxed);
     }

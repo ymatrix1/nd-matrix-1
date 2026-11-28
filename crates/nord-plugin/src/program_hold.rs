@@ -259,7 +259,7 @@ impl ProgramHold {
     }
 
     /// Arms the held groups in `mask` again: a restored project's edits win over the program the
-    /// library just loaded (D261). Call after [`Self::hold`].
+    /// library just loaded (D262). Call after [`Self::hold`].
     pub fn arm(&self, mask: u32) {
         self.armed.fetch_or(mask & self.held.load(Relaxed), Relaxed);
     }

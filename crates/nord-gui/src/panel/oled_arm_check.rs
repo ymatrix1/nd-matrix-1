@@ -15,10 +15,9 @@
 use super::bay_program::oled::{compose, Summary};
 use super::bay_program::oled_paint;
 use super::bay_synth::oled_fw;
+use super::oled_fb;
 use crate::panel::prelude::*;
 use crate::panel::ui_state::ProgramUi;
-use egui::epaint::Shape;
-use egui::Pos2;
 use std::path::PathBuf;
 
 const W: usize = 128;
@@ -28,56 +27,12 @@ const FG: Color32 = Color32::from_rgb(150, 190, 230);
 /// A 128 x 64 monochrome frame, row-major.
 type Frame = Vec<bool>;
 
-fn paint_shape(frame: &mut Frame, origin: Pos2, shape: &Shape) {
-    match shape {
-        Shape::Vec(v) => v.iter().for_each(|s| paint_shape(frame, origin, s)),
-        Shape::Rect(r) => {
-            let lit = r.fill == FG;
-            for y in 0..H {
-                for x in 0..W {
-                    let c = origin + vec2(x as f32 + 0.5, y as f32 + 0.5);
-                    if r.rect.contains(c) {
-                        frame[y * W + x] = lit;
-                    }
-                }
-            }
-        }
-        Shape::LineSegment { points, stroke } if points[0].y == points[1].y => {
-            // a horizontal rule: the row nearest to the line, lit
-            let y = (points[0].y - origin.y).floor();
-            let (x0, x1) = (points[0].x.min(points[1].x), points[0].x.max(points[1].x));
-            if (0.0..H as f32).contains(&y) && stroke.color == FG {
-                for x in 0..W {
-                    let cx = origin.x + x as f32 + 0.5;
-                    if cx >= x0 - 0.5 && cx <= x1 + 0.5 {
-                        frame[y as usize * W + x] = true;
-                    }
-                }
-            }
-        }
-        _ => {}
-    }
-}
-
-/// Runs `body` with a painter and a 128 x 64 rectangle and rasterises what it painted.
+/// Rasterises what `body` paints on a 128 x 64 rectangle (a pixel is lit from half coverage).
 fn raster(body: impl FnOnce(&Painter, Rect)) -> Frame {
-    let ctx = egui::Context::default();
-    let mut body = Some(body);
-    let mut origin = Pos2::ZERO;
-    let out = ctx.run(egui::RawInput::default(), |ctx| {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            let (rect, _) = ui.allocate_exact_size(vec2(W as f32, H as f32), Sense::hover());
-            origin = rect.min;
-            if let Some(f) = body.take() {
-                f(&ui.painter().clone(), rect);
-            }
-        });
-    });
-    let mut frame = vec![false; W * H];
-    for s in &out.shapes {
-        paint_shape(&mut frame, origin, &s.shape);
-    }
-    frame
+    oled_fb::render(FG, body)
+        .iter()
+        .map(|v| *v >= 0.5)
+        .collect()
 }
 
 /// Parses the harness dump (`#` lit, `.` dark, 64 lines of 128).
@@ -168,7 +123,7 @@ fn the_home_screen_matches_the_arm_frame() {
         ..Default::default()
     };
     let text = compose(&ui, &sum);
-    let ours = raster(|p, rect| oled_paint::paint(p, rect, &text, false));
+    let ours = raster(|p, rect| oled_paint::paint_content(p, rect, &text, false));
     let regions = [
         ("title A:11", (0, 0, W, 17)),
         ("name <empty>", (0, 17, W, 33)),
@@ -216,7 +171,7 @@ fn the_home_screen_with_the_bars_matches_the_arm_frame() {
         ..Default::default()
     };
     let text = compose(&ui, &sum);
-    let ours = raster(|p, rect| oled_paint::paint(p, rect, &text, false));
+    let ours = raster(|p, rect| oled_paint::paint_content(p, rect, &text, false));
     let regions = [
         ("title and name", (0, 0, W, 33)),
         ("organ row text", (9, 35, 64, 45)),
@@ -268,7 +223,7 @@ fn the_synth_waveform_page_matches_the_arm_frame() {
         ],
     };
     let ours = raster(|p, rect| {
-        oled_fw::paint(p, rect, &view, "OSC WAVEFORM");
+        oled_fw::paint_direct(p, rect, &view, "OSC WAVEFORM");
     });
     let regions = [
         ("title bar", (0, 0, W, 11)),
@@ -434,7 +389,7 @@ fn the_other_waveform_pages_match_the_arm_frames() {
             ],
         };
         let ours = raster(|p, rect| {
-            oled_fw::paint(p, rect, &view, "OSC WAVEFORM");
+            oled_fw::paint_direct(p, rect, &view, "OSC WAVEFORM");
         });
         let mut regions = vec![("title bar", (0, 0, W, 11)), ("name", (0, 11, W, 26))];
         if var.ctrl_known {
