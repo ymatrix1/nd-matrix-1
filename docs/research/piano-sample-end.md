@@ -46,7 +46,7 @@ Stroke 502 (voice 1): same behaviour (counter 151,898 at pass 96,000, 130,206 at
 
 Real time of stroke 513: 162,505 / 1.596 passes x 2 / 43,402.34 Hz = 4.69 s to the loop end, a 1.56 s loop (key 60 of Astoria Grand).
 
-## 4. What the engine does now (D252)
+## 4. What the engine does now (D255)
 
 | Part | Engine | Evidence |
 |---|---|---|
@@ -80,7 +80,7 @@ Method (repeatable, local-only; the library and the output stay out of git, D20 
 
 ## Implications
 
-- The abrupt cut of #640 was the missing loop, not a library limit. D243 (fade) is superseded for `.npno` strokes by D252 (owner confirmation of the reversal pending); the fade stays as the tail rule of strokes without loop points.
+- The abrupt cut of #640 was the missing loop, not a library limit. D243 (fade) is superseded for `.npno` strokes by D255 (owner confirmation of the reversal pending); the fade stays as the tail rule of strokes without loop points.
 - A looped note decays 4.2 dB/s: low notes (longer strokes, same rate) outlast high notes by their stroke length, as the reporter expects.
 - OQ20 (end-of-sample behaviour) is answered for the sample end; the level at loop entry against the hardware stays open.
 
@@ -88,4 +88,4 @@ Method (repeatable, local-only; the library and the output stay out of git, D20 
 
 1. A hardware recording of a 10 s held note (known velocity) to confirm the level at loop entry, the `F+7` hold decay and the audible loop seam (predictor history after the wrap).
 2. Verify the `i16` at `0x38` law (pitch scaling, other sounds): `tools/smp_stream_end.py loop-words` on a note 7 semitones above the root and on a second sound.
-3. ~~Apply `F+6` inside `--piano-slew-fw`~~ done (D252, `SlewVoice::set_rate`).
+3. ~~Apply `F+6` inside `--piano-slew-fw`~~ done (D255, `SlewVoice::set_rate`).
