@@ -11,6 +11,7 @@
 //! Operand pairs are generated from a fixed seed, so every build times identical data.
 
 use nord_sharc::core::aot_fast_bench::{fold_add, fold_mul, Kernel};
+use nord_sharc::cpu_clock::{ns_per_tick, ticks};
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -97,60 +98,6 @@ fn median(v: &mut [f64]) -> f64 {
     v[v.len() / 2]
 }
 
-/// Thread CPU clock, so time the thread spends descheduled (other builds share this machine) is
-/// not counted. Ticks are converted to ns with `ns_per_tick`, calibrated against the wall clock.
-#[cfg(windows)]
-mod clock {
-    extern "system" {
-        fn GetCurrentThread() -> isize;
-        fn QueryThreadCycleTime(thread: isize, cycles: *mut u64) -> i32;
-    }
-
-    pub fn ticks() -> u64 {
-        let mut c = 0u64;
-        // SAFETY: both calls are plain Win32 queries on the current thread pseudo-handle; `c` is a
-        // valid out pointer.
-        unsafe { QueryThreadCycleTime(GetCurrentThread(), &mut c) };
-        c
-    }
-}
-
-#[cfg(not(windows))]
-mod clock {
-    /// Wall-clock nanoseconds (no per-thread cycle counter without extra dependencies).
-    pub fn ticks() -> u64 {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_or(0, |d| d.as_nanos() as u64)
-    }
-}
-
-/// ns per clock tick: wall time over TSC ticks on x86-64 Windows (the thread cycle counter counts
-/// TSC-rate cycles), 1.0 elsewhere (the fallback clock already counts ns).
-fn ns_per_tick() -> f64 {
-    static CAL: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *CAL.get_or_init(calibrate)
-}
-
-fn calibrate() -> f64 {
-    #[cfg(all(windows, target_arch = "x86_64"))]
-    {
-        // SAFETY: `rdtsc` has no preconditions.
-        let (t0, c0) = (Instant::now(), unsafe { std::arch::x86_64::_rdtsc() });
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        let (dt, dc) = (
-            t0.elapsed().as_nanos() as f64,
-            unsafe { std::arch::x86_64::_rdtsc() } - c0,
-        );
-        dt / dc as f64
-    }
-    #[cfg(not(all(windows, target_arch = "x86_64")))]
-    {
-        1.0
-    }
-}
-
 /// CPU ns per pair of `f` over `pairs`, one value per run.
 fn time(pairs: &[(u64, u64)], runs: usize, f: &dyn Fn(&Pairs) -> u64) -> Vec<f64> {
     let npt = ns_per_tick();
@@ -160,11 +107,11 @@ fn time(pairs: &[(u64, u64)], runs: usize, f: &dyn Fn(&Pairs) -> u64) -> Vec<f64
     let reps = ((RUN_NS / one) as usize).clamp(1, 20_000);
     let mut out = Vec::new();
     for run in 0..=runs {
-        let t = clock::ticks();
+        let t = ticks();
         for _ in 0..reps {
             sink ^= black_box(f(black_box(pairs)));
         }
-        let ns = (clock::ticks() - t) as f64 * npt / (reps * pairs.len()) as f64;
+        let ns = (ticks() - t) as f64 * npt / (reps * pairs.len()) as f64;
         if run > 0 {
             out.push(ns); // run 0 is the warm-up
         }
