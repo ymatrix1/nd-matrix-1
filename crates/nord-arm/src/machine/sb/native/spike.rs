@@ -3,8 +3,9 @@
 //! `return_call_indirect` in the `Tail` calling convention, entered once from Rust through a
 //! thunk in the host's C ABI.
 //!
-//! What it proves, on every CI host where [`super::available`] is true: executable memory can be
-//! allocated and called, the host accepts `return_call_indirect` (Cranelift allows tail calls
+//! What it proves, on every CI host where [`super::host_runs_native`] is true (a target not yet
+//! proven for [`super::available`] included, so the CI run is the evidence): executable memory
+//! can be allocated and called, the host accepts `return_call_indirect` (Cranelift allows tail calls
 //! only between `Tail` functions, so the chain is `Tail` and the entry is a C-ABI thunk), the
 //! chain really is a jump (millions of hops run on a 256 KiB thread stack; a call chain would
 //! overflow it), and the module moves to another thread (`Send`). Every function reads the next
@@ -195,7 +196,7 @@ pub fn tail_call_ping_pong(iterations: u64) -> Option<SpikeReport> {
 /// [`tail_call_ping_pong`] with the chain style as a parameter (the negative control uses
 /// [`Chain::Calls`]).
 pub fn ping_pong(chain: Chain, iterations: u64) -> Option<SpikeReport> {
-    if !super::available() {
+    if !super::host_runs_native() {
         return None;
     }
     let iterations = iterations.max(1);
@@ -336,7 +337,7 @@ mod tests {
         match spike(Chain::Tail, 4_000_000) {
             None => {
                 assert!(
-                    !super::super::available() || !TAIL_TARGET_PROVEN,
+                    !super::super::host_runs_native() || !TAIL_TARGET_PROVEN,
                     "a proven target must run the spike"
                 );
                 eprintln!("tail-call spike: not run (native unavailable or module refused)");
@@ -351,7 +352,7 @@ mod tests {
 
     #[test]
     fn a_chain_of_plain_calls_is_caught_by_the_stack_pointer_check() {
-        if !super::super::available() {
+        if !super::super::host_runs_native() {
             assert_eq!(ping_pong(Chain::Calls(CallConv::SystemV), 10), None);
             return;
         }
@@ -375,7 +376,7 @@ mod tests {
 
     #[test]
     fn a_chain_of_one_two_and_three_hops_ends_at_the_right_function() {
-        if !super::super::available() {
+        if !super::super::host_runs_native() {
             assert_eq!(tail_call_ping_pong(3), None);
             return;
         }

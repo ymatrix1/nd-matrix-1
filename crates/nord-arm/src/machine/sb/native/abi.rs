@@ -246,7 +246,7 @@ mod native_access {
     #[test]
     fn a_native_page_table_access_agrees_with_mem_on_every_page_kind() {
         if !available() {
-            assert!(Jit::new().is_none() || !crate::machine::sb::native::rt::probe());
+            crate::machine::sb::native::emit::testing::assert_fallback();
             return;
         }
         let mut jit = Jit::new().unwrap();

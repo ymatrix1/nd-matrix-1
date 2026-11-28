@@ -59,7 +59,7 @@ fn panics(f: impl FnOnce()) -> bool {
 #[test]
 fn a_hand_written_function_runs_through_run_with_the_refreshed_memory_pointers() {
     if !available() {
-        assert!(Jit::new().is_none() || !super::rt::probe());
+        super::emit::testing::assert_fallback();
         return;
     }
     let mut jit = Jit::new().expect("available() implies a module");

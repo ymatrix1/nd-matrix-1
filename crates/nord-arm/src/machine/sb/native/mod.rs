@@ -4,8 +4,10 @@
 //! Spec: design note section 9. One `Sb` becomes one `extern "C" fn(*mut Cpu, *mut NativeCtl) ->
 //! u32`; registers and flags are Cranelift variables, memory goes through the page table with
 //! side exits to the interpreter, exits store the dirty state and leave through the driver.
-//! [`available`] is the runtime probe: when it is false (no executable memory, a hardened
-//! runtime, an unsupported host) there is no backend and everything runs on tier 2, exactly.
+//! [`available`] is the runtime decision: when it is false (an unproven target, no executable
+//! memory, a hardened runtime, an unsupported host) there is no backend and everything runs on
+//! tier 2, exactly. It is true only on a target listed in [`NATIVE_TARGET_PROVEN`] where the
+//! host probe ([`host_runs_native`]) also passes.
 //!
 //! | File | Owner |
 //! |---|---|
@@ -16,8 +18,9 @@
 //!
 //! Plumbing for the later packages: [`rt::Jit`] compiles (`compile(sb)`, `define_native(func)`)
 //! and runs (`run(&native, cpu, mem, limit)`, the only safe entry), [`emit::NCtx`] is the
-//! emission vocabulary, `emit::testing` the helpers of native tests, [`tail_calls_available`]
-//! gates chaining v2.
+//! emission vocabulary (registers, flags, exits, the trace and the lowerer's position in it,
+//! predicated blocks, the loop back-edge), `emit::testing` the helpers of native tests,
+//! [`tail_calls_available`] gates chaining v2.
 
 pub mod abi;
 pub mod backend;
@@ -41,19 +44,44 @@ pub use emit::{NCtx, Unsupported};
 
 use std::sync::OnceLock;
 
-/// Whether native code can run on this host: executable memory can be allocated and a compiled
-/// function called. The first caller runs [`rt::probe`], every later caller reads the cached
-/// answer; nothing is persisted (D129). A false answer means no `NativeBackend` exists and the
-/// driver stays on tier 2.
-pub fn available() -> bool {
+/// Targets on which the native tier is proven, so [`available`] may be true there.
+///
+/// VERIFIED for Windows x86_64: the whole `machine::sb::native` suite (module, executable memory,
+/// C-ABI call, exits, `Send`, the tail-call spike) ran on a Windows 11 x86_64 host (cranelift
+/// 0.116.1). Ubuntu x86_64 and macOS (x86_64 and arm64) are ASSUMED to work (the same
+/// Cranelift code path) and stay out until the CI run of the same suite is green on them; the
+/// spike (`spike::ping_pong`) and [`host_runs_native`] run on every host regardless, so that CI
+/// run produces the evidence. Add a target here only with that evidence, in the same commit as
+/// `spike::TAIL_TARGET_PROVEN` if chaining is proven too (a test checks the order). Design note
+/// 9: an unproven target keeps `available()` false.
+pub const NATIVE_TARGET_PROVEN: bool = cfg!(all(windows, target_arch = "x86_64"));
+
+/// Whether this host can run native code at all, proven target or not: executable memory can be
+/// allocated and a compiled function called ([`rt::probe`]). The first caller probes, every
+/// later caller reads the cached answer; nothing is persisted (D129). The spike and the evidence
+/// tests use this; the product asks [`available`].
+pub fn host_runs_native() -> bool {
     static ANSWER: OnceLock<bool> = OnceLock::new();
     *ANSWER.get_or_init(rt::probe)
+}
+
+/// The decision of [`available`]: native code runs only on a proven target whose host passes the
+/// probe.
+const fn gate(proven: bool, host_runs: bool) -> bool {
+    proven && host_runs
+}
+
+/// Whether the native tier may be used on this host: the target is proven
+/// ([`NATIVE_TARGET_PROVEN`]) and the host runs native code ([`host_runs_native`]). A false
+/// answer means no `NativeBackend` exists and the driver stays on tier 2.
+pub fn available() -> bool {
+    gate(NATIVE_TARGET_PROVEN, host_runs_native())
 }
 
 /// Whether trace chaining may use `return_call_indirect` (design note 9, stage 2 of T3): native
 /// code is available, the target is one the spike proved ([`spike::TAIL_TARGET_PROVEN`]) and the
 /// ping-pong of [`spike::tail_call_ping_pong`] ran clean on this host. False means chaining v1,
-/// the dispatcher return. Cached like [`available`].
+/// the dispatcher return. Cached like [`host_runs_native`].
 pub fn tail_calls_available() -> bool {
     static ANSWER: OnceLock<bool> = OnceLock::new();
     *ANSWER.get_or_init(|| {
@@ -68,22 +96,42 @@ pub fn tail_calls_available() -> bool {
 
 #[cfg(test)]
 mod tests {
+    use super::emit::testing::assert_fallback;
     use super::*;
 
     #[test]
-    fn availability_is_the_probe_and_the_backend_follows_it() {
-        assert_eq!(available(), rt::probe());
-        assert_eq!(available(), available(), "the answer is cached");
+    fn availability_is_the_gate_over_the_proven_target_and_the_host_probe() {
+        assert_eq!(available(), gate(NATIVE_TARGET_PROVEN, rt::probe()));
+        assert_eq!(available(), host_runs_native() && NATIVE_TARGET_PROVEN);
+        assert_eq!(
+            host_runs_native(),
+            host_runs_native(),
+            "the answer is cached"
+        );
         assert_eq!(NativeBackend::new().is_some(), available());
+    }
+
+    #[test]
+    fn an_unproven_target_keeps_native_unavailable_whatever_the_host_can_do() {
+        for (proven, host) in [(false, false), (false, true), (true, false), (true, true)] {
+            assert_eq!(gate(proven, host), proven && host, "{proven} {host}");
+        }
+        assert!(
+            !gate(false, true),
+            "a host that runs native code is not enough"
+        );
+        assert!(
+            !gate(true, false),
+            "a proven target on a host without executable memory"
+        );
     }
 
     #[test]
     fn where_native_code_is_unavailable_there_is_neither_a_backend_nor_chaining() {
         if available() {
-            assert!(rt::Jit::new().is_some());
+            assert!(rt::Jit::new().is_some() && NativeBackend::new().is_some());
         } else {
-            assert!(NativeBackend::new().is_none());
-            assert!(!tail_calls_available());
+            assert_fallback();
         }
     }
 
@@ -98,5 +146,9 @@ mod tests {
                 "an unproven target keeps chaining v1"
             );
         }
+        assert!(
+            !spike::TAIL_TARGET_PROVEN || NATIVE_TARGET_PROVEN,
+            "a target proven for tail calls is proven for native code first"
+        );
     }
 }

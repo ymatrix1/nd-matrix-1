@@ -376,7 +376,7 @@ mod tests {
     #[test]
     fn the_raw_entry_point_of_a_defined_function_is_callable_where_native_is_available() {
         if !super::super::available() {
-            assert!(!probe(), "the fallback: no native code, no backend");
+            crate::machine::sb::native::emit::testing::assert_fallback();
             return;
         }
         let mut jit = Jit::new().expect("available() implies a module");
@@ -394,6 +394,6 @@ mod tests {
     fn the_probe_is_deterministic_and_its_tag_fits_an_i32_constant() {
         assert_eq!(i64::from(PROBE_TAG as i32), i64::from(PROBE_TAG));
         assert_eq!(probe(), probe(), "the probe is deterministic");
-        assert_eq!(probe(), super::super::available());
+        assert_eq!(probe(), super::super::host_runs_native());
     }
 }
