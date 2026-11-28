@@ -40,7 +40,9 @@ pub struct IdleStats {
     pub wfi: u64,
 }
 
-fn same_state(a: &Cpu, b: &Cpu) -> bool {
+/// The equality the skip rule is built on (`pub(super)`: `sb::idle` and `sb::loopwatch` compare with
+/// the same function instead of a copy).
+pub(super) fn same_state(a: &Cpu, b: &Cpu) -> bool {
     a.r == b.r && a.cpsr() == b.cpsr() && a.spsr == b.spsr && a.cp15_ctrl == b.cp15_ctrl
 }
 
@@ -57,7 +59,8 @@ impl Machine {
         out
     }
 
-    fn probe_loop(&mut self, start: &Cpu, n: u64) -> (Option<u64>, Option<Stop>) {
+    /// The probe loop of [`Machine::probe_idle`] (`pub(super)`: stage 1 of idle v2 reuses it).
+    pub(super) fn probe_loop(&mut self, start: &Cpu, n: u64) -> (Option<u64>, Option<Stop>) {
         for i in 1..=n {
             let pc = self.cpu.r[15];
             if Some(pc) == self.stop_pc {

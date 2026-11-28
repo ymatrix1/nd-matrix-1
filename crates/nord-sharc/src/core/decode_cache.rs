@@ -501,6 +501,7 @@ impl Core {
         if let Some(jit) = self.jit.as_deref_mut() {
             jit.invalidate_range(first_short, count);
         }
+        self.uop_note_write(first_short, count);
     }
 
     /// Invalidates the entire decode cache in O(1) by advancing the code generation.
@@ -509,6 +510,7 @@ impl Core {
         self.code_gen = self.code_gen.wrapping_add(1).max(1);
         self.sram_code_nw_lo = u32::MAX;
         self.sram_code_nw_hi = 0;
+        self.uop_note_all();
     }
 }
 

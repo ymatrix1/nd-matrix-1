@@ -24,6 +24,8 @@ The value is saved with the project, so a reopened project loads the same progra
 ## What to expect
 
 - Adding the instrument, or opening a project, waits a few seconds while the program's banks decode (a factory grand piano is 218 MB); instances of the same program share one decode. The wait stops after 15 seconds and the program then arrives while the host runs. `NS4_LIBRARY=none` in the host's environment switches the library off for that run.
+- Each instance waits for its own program, one after the other as the host initialises them: a project with several instances that all have to decode (different programs, or a slow disk) waits for each in turn, up to 15 seconds per instance, though instances of the same program share one decode. After a wait that ran out, the project still opens; the program arrives while the host runs.
+- If the decoder fails on a program (a damaged or hostile library), the plugin logs it in `plugin.log` and keeps playing; later program changes still work.
 - A library file replaced while the host runs (a new `ns4 library set` target at the same path, or a re-export) is read again at the next program request; the banks decoded from the old file are let go.
 - The editor opens the saved library's directory when its window is created, on the host's UI thread: 32 ms for a synthetic zip of 512 programs and 5 000 sound entries (debug build, `editor/library_open_tests.rs`). Sounds are not read until a program asks for them.
 

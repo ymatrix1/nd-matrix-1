@@ -32,6 +32,8 @@ pub(super) struct AotBlock {
     pub dynamic: bool,
     /// Little-endian bytes of the parcels `start..exit`.
     pub code: &'static [u8],
+    /// Event-aware block (`aot2/events.rs`): an event due inside it does not refuse the entry.
+    pub ev: bool,
     pub run: fn(&mut Core) -> Result<(), Fault>,
 }
 
@@ -48,6 +50,15 @@ pub struct AotHotStats {
     pub misses: u64,
     /// Calls that left a block early because an interpreter item changed guarded state.
     pub bails: u64,
+    /// Steps run on the interpreter by the event paths of event-aware blocks (`aot2/events.rs`):
+    /// a due event, and the whole batch an event falls into. These are inside `native_steps` (the
+    /// block's static count), so `native_steps - ev_steps` is what really ran natively.
+    pub ev_steps: u64,
+    /// Calls of event-aware blocks that ended early through `SPLIT` (an interrupt was taken or the
+    /// pc left the straight line at an event). Also counted in `bails`.
+    pub splits: u64,
+    /// Interrupts taken by the core (`irq.taken`, whole life of the core).
+    pub taken: u64,
 }
 
 impl AotHotStats {
@@ -59,6 +70,9 @@ impl AotHotStats {
             native_steps: self.native_steps - earlier.native_steps,
             misses: self.misses - earlier.misses,
             bails: self.bails - earlier.bails,
+            ev_steps: self.ev_steps - earlier.ev_steps,
+            splits: self.splits - earlier.splits,
+            taken: self.taken - earlier.taken,
         }
     }
 }
@@ -69,6 +83,16 @@ pub(super) struct AotHot {
     per_block: Vec<AotHotStats>,
     total: AotHotStats,
     fault: Option<Fault>,
+}
+
+/// The module `enable_aot_hot` and `aot_generated_ranges` pick from: the embedded module named by
+/// the environment variable `NORD_SHARC_AOT_TAG` when set (so `sharc_jit_diff --aot-top` can diff
+/// any embedded module), else the first one.
+fn selected_blocks() -> &'static [AotBlock] {
+    std::env::var("NORD_SHARC_AOT_TAG")
+        .ok()
+        .and_then(|t| gen::by_tag(&t))
+        .unwrap_or_else(gen::blocks)
 }
 
 impl Core {
@@ -101,7 +125,7 @@ impl Core {
             && self.site_hits.is_empty()
             && self.irq.window_len == 0
             && !self.irq.idle
-            && self.steps + n <= self.irq.due
+            && (b.ev || self.steps + n <= self.irq.due)
             && self
                 .loops
                 .last()
@@ -117,8 +141,14 @@ impl Core {
         (b.start..b.last).contains(&end) || (end == b.last && !b.dynamic)
     }
 
+    /// The entry guard alone, for the tests of `aot2/ev_blocks.rs`.
+    #[cfg(test)]
+    pub(super) fn aot_try_ready_for_test(&self, b: &AotBlock) -> bool {
+        self.aot_ready(b)
+    }
+
     /// Installs `blocks` (any order) as the enabled set and builds the entry bitmap.
-    fn aot_install(&mut self, mut blocks: Vec<AotBlock>) {
+    pub(super) fn aot_install(&mut self, mut blocks: Vec<AotBlock>) {
         blocks.sort_by_key(|b| b.start);
         blocks.dedup_by_key(|b| b.start);
         let (lo, hi) = match (blocks.first(), blocks.last()) {
@@ -147,7 +177,7 @@ impl Core {
     /// when this binary has no generated block for one of them or the loaded code differs from
     /// the code it was generated from. Generated blocks not listed stay off.
     pub fn enable_aot_hot(&mut self, ranges: &[(u32, u32)]) -> Result<(), String> {
-        let all = gen::blocks();
+        let all = selected_blocks();
         if all.is_empty() {
             return Err("built without a generated AOT block (set NORD_SHARC_AOT_HOT=<file from sharc-aot --hot/--ranges> and rebuild)".into());
         }
@@ -195,7 +225,10 @@ impl Core {
 
     /// Ranges `(start, last)` of every block this binary embeds (empty for a stub build).
     pub fn aot_generated_ranges() -> Vec<(u32, u32)> {
-        gen::blocks().iter().map(|b| (b.start, b.last)).collect()
+        selected_blocks()
+            .iter()
+            .map(|b| (b.start, b.last))
+            .collect()
     }
 
     /// Turns the hook off again.
@@ -216,7 +249,14 @@ impl Core {
 
     /// Counters summed over the enabled blocks.
     pub fn aot_hot_stats(&self) -> AotHotStats {
-        self.aot_hot.as_deref().map(|h| h.total).unwrap_or_default()
+        self.aot_hot
+            .as_deref()
+            .map(|h| AotHotStats {
+                ev_steps: self.aot_ev_steps,
+                taken: self.irq.taken,
+                ..h.total
+            })
+            .unwrap_or_default()
     }
 
     /// `(start, last, steps, native steps, counters)` of each enabled block.
@@ -271,7 +311,14 @@ impl Core {
         }
         let s0 = self.steps;
         let t = super::aot_prof::aot_prof_on().then(super::aot_prof::tsc);
-        let res = (b.run)(self);
+        let mut split = false;
+        let res = match (b.run)(self) {
+            Err(f) if f == super::aot2::events::SPLIT => {
+                split = true;
+                Ok(())
+            }
+            r => r,
+        };
         if let Some(t) = t {
             super::aot_prof::prof_run(super::aot_prof::tsc() - t);
         }
@@ -283,6 +330,7 @@ impl Core {
                 st.steps += done;
                 st.native_steps += if bailed { 0 } else { u64::from(b.native) };
                 st.bails += u64::from(bailed);
+                st.splits += u64::from(split);
             }
             h.fault = res.err();
         }
@@ -327,6 +375,7 @@ mod tests {
             native: 0,
             dynamic: false,
             code: &[1, 0, 1, 0],
+            ev: false,
             run: run2,
         }
     }
@@ -415,6 +464,9 @@ mod tests {
             native_steps: 40,
             misses: 3,
             bails: 1,
+            ev_steps: 7,
+            splits: 2,
+            taken: 5,
         };
         let b = AotHotStats {
             calls: 2,
@@ -422,11 +474,19 @@ mod tests {
             native_steps: 10,
             misses: 1,
             bails: 0,
+            ev_steps: 3,
+            splits: 1,
+            taken: 4,
         };
         let d = a.since(&b);
         assert_eq!(
             (d.calls, d.steps, d.native_steps, d.misses, d.bails),
             (3, 30, 30, 2, 1)
+        );
+        assert_eq!(
+            (d.ev_steps, d.splits, d.taken),
+            (4, 1, 1),
+            "the three event counters subtract too"
         );
     }
 

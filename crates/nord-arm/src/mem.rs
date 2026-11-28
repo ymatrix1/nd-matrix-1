@@ -7,6 +7,9 @@
 //!
 //! ASSUMED: all pages are readable, writable and executable (the harness never sets permissions).
 
+#[cfg(feature = "sb-native")]
+pub mod raw;
+
 pub const PAGE_SHIFT: u32 = 12;
 pub const PAGE_SIZE: usize = 1 << PAGE_SHIFT;
 const PAGES: usize = 1 << (32 - PAGE_SHIFT);

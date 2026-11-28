@@ -19,6 +19,8 @@
 mod addr_hash;
 mod alu;
 mod aot;
+#[path = "../aot2/mod.rs"]
+mod aot2;
 mod aot_emit;
 mod aot_fadd;
 mod aot_fast;
@@ -33,6 +35,11 @@ mod aot_native;
 mod aot_pe;
 pub mod aot_prof;
 mod aot_round;
+mod aot_simd;
+mod aot_simd_core;
+mod aot_simd_lanes;
+#[cfg(test)]
+mod aot_simd_sweep;
 mod aot_state;
 mod aot_whole;
 mod arith_loop;
@@ -105,6 +112,10 @@ pub(crate) mod support;
 mod sysregs;
 mod timer;
 mod types;
+// W0 skeleton: stubs are wired by their work packages (docs/specs/sharc-uop.md); the allow goes
+// away when the last stub is wired (W3-DOC).
+#[allow(dead_code, unused_imports)]
+mod uop;
 mod vectors;
 
 use crate::visa::Insn;
@@ -115,6 +126,9 @@ pub use aot_lower::{AotTier, InsnClass};
 use types::sign_extend;
 pub use types::{Fault, Flags};
 use types::{LoopFrame, Pending};
+pub use uop::{
+    shadow_run_with, ExactDiff, Exit, Shadow, UopBuildReport, UopConfig, UopError, UopStats,
+};
 pub use vectors::{vector_by_name, VECTOR_COUNT};
 
 /// Bytes of the flat SRAM image: index = `address & 0x7FFFFF` (loader address), byte `2 * short`.
@@ -242,6 +256,12 @@ pub struct Core {
     /// Set when a lowered AOT store left the internal SRAM (`aot_mem.rs`); the generated block
     /// then re-checks its guard signature.
     aot_slow: bool,
+    /// Optional uop engine: translated blocks and handler table ([`uop`], D260); `None` while off.
+    uop: Option<Box<uop::UopHot>>,
+    /// Counters, flags and code-page bitmap of the uop engine; inert while it is off.
+    uop_run: uop::UopRun,
+    /// Steps run by the event paths of event-aware AOT blocks (`aot2/events.rs`).
+    aot_ev_steps: u64,
     /// Optional Level-2 Cranelift JIT engine (allocated lazily on first `run_jit`).
     #[cfg(feature = "jit")]
     jit: Option<Box<jit::JitEngine>>,

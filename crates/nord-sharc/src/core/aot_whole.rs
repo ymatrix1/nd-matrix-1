@@ -293,6 +293,20 @@ impl Core {
         if steps == 0 {
             return Err(format!("empty block at 0x{start:x}"));
         }
+        let mut at = start;
+        let spans = items
+            .iter()
+            .map(|it| {
+                let first = at;
+                for _ in 0..match it {
+                    Item::Batch(ops) => ops.len(),
+                    _ => 1,
+                } {
+                    at += self.whole_decode(at).0;
+                }
+                (first, at)
+            })
+            .collect();
         Ok(Lowered {
             start,
             last: last_start,
@@ -300,6 +314,7 @@ impl Core {
             steps,
             code,
             items,
+            spans,
             dynamic_exit: ended,
         })
     }
@@ -351,8 +366,20 @@ impl Core {
         forced: &[u32],
         tier: AotTier,
     ) -> Result<String, String> {
+        self.emit_whole_pass_rust_ev(executed, forced, tier, false)
+    }
+
+    /// [`Core::emit_whole_pass_rust`]; `ev` makes the blocks event-aware (`aot2/events.rs`): a
+    /// timer or interrupt event due inside a block no longer refuses it.
+    pub fn emit_whole_pass_rust_ev(
+        &self,
+        executed: &BTreeMap<u32, bool>,
+        forced: &[u32],
+        tier: AotTier,
+        ev: bool,
+    ) -> Result<String, String> {
         let blocks = self.lower_whole_pass(executed, forced)?;
-        Ok(super::aot_emit::emit_module(&blocks, tier))
+        Ok(super::aot_emit::emit_module(&blocks, tier, ev))
     }
 }
 
@@ -373,6 +400,23 @@ mod tests {
             pc += c.fetch(pc).insn.len as u32;
         }
         m
+    }
+
+    #[test]
+    fn item_spans_tile_the_block_and_a_batch_spans_all_its_instructions() {
+        let mut p = Vec::new();
+        for _ in 0..3 {
+            p.extend_from_slice(&ADD);
+        }
+        p.extend_from_slice(&[0x083e, 0x043f]); // JUMP (M8, I8) (DB)
+        p.extend_from_slice(&[0x0001, 0x0001]);
+        let c = core_with(&p);
+        let ex = executed(&c, 6);
+        let b = &c.lower_whole_pass(&ex, &[]).unwrap()[0];
+        assert_eq!(b.spans.len(), b.items.len());
+        assert_eq!(b.spans[0], (c.pc, c.pc + 9), "the batch of three ADDs");
+        assert!(b.spans.windows(2).all(|w| w[0].1 == w[1].0), "contiguous");
+        assert_eq!(b.spans.last().unwrap().1, b.exit);
     }
 
     #[test]

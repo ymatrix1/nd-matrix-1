@@ -22,8 +22,9 @@ use nord_arm::machine::metrics::{
 };
 use nord_arm::machine::paced::{consume, produce, Flight};
 use nord_arm::machine::system::Message;
-use nord_arm::machine::uart::{note_off, note_on};
 use nord_arm::machine::{Machine, Stop};
+use nord_sharc::cpu_clock::ThreadClock;
+use nord_tools::arm_bench::{plan, RESERVE_PAGES};
 use std::time::Instant;
 
 /// ASSUMED: ARM instructions per 1 ms tick (`tools/arm_steady.py` INSNS_PER_TICK); the
@@ -36,14 +37,14 @@ fn tick_insns() -> u64 {
         .and_then(|v| v.parse().ok())
         .unwrap_or(TICK_DEFAULT)
 }
-const KEYS8: [u8; 8] = [60, 62, 64, 65, 67, 69, 71, 72];
-/// Arena pages reserved before the timed run (64 MB) so on-demand mapping never reallocates.
-const RESERVE_PAGES: usize = 16_384;
 
 /// Per-tick measurements of one phase.
 struct Row {
     name: &'static str,
+    /// Wall time per tick: the deadline statistics (>1 ms, backlog) use this.
     ms: Vec<f64>,
+    /// Thread CPU time per tick (wall time where `ThreadClock::is_cpu_time()` is false).
+    cpu_ms: Vec<f64>,
     executed: Vec<u64>,
     device_reads: Vec<u64>,
     arena_growth: Vec<usize>,
@@ -61,6 +62,7 @@ fn run_phase(
     let mut row = Row {
         name,
         ms: Vec::with_capacity(ticks),
+        cpu_ms: Vec::with_capacity(ticks),
         executed: Vec::new(),
         device_reads: Vec::new(),
         arena_growth: Vec::new(),
@@ -73,13 +75,14 @@ fn run_phase(
     for i in 0..ticks {
         let (dev0, arena0, exec0) = (m.bus.device_reads, m.bus.mem.arena_bytes(), stats.executed);
         buf.clear();
-        let t = Instant::now();
+        let t = ThreadClock::start();
         if i == 0 {
             action(m);
         }
         let s = m.run_tick_idle(tick_insns(), stats);
         m.drain_messages_into(&mut buf);
-        row.ms.push(t.elapsed().as_secs_f64() * 1e3);
+        row.cpu_ms.push(t.elapsed_ms());
+        row.ms.push(t.wall_ns() as f64 / 1e6);
         assert!(
             matches!(s, Stop::Budget),
             "{name} tick {i}: {s:?} pc={:#x}",
@@ -104,6 +107,7 @@ fn run_phase_full(
     let mut row = Row {
         name,
         ms: Vec::new(),
+        cpu_ms: Vec::new(),
         executed: Vec::new(),
         device_reads: Vec::new(),
         arena_growth: Vec::new(),
@@ -113,47 +117,19 @@ fn run_phase_full(
     let mut buf = Vec::new();
     for i in 0..ticks {
         buf.clear();
-        let t = Instant::now();
+        let t = ThreadClock::start();
         if i == 0 {
             action(m);
         }
         let s = m.run_tick(tick_insns());
         m.drain_messages_into(&mut buf);
-        row.ms.push(t.elapsed().as_secs_f64() * 1e3);
+        row.cpu_ms.push(t.elapsed_ms());
+        row.ms.push(t.wall_ns() as f64 / 1e6);
         assert!(matches!(s, Stop::Budget), "{name} tick {i}: {s:?}");
         row.msgs_per_tick.push(buf.len());
         row.msgs.extend_from_slice(&buf);
     }
     row
-}
-
-fn act_none(_: &mut Machine) {}
-fn act_on1(m: &mut Machine) {
-    m.send_midi(&note_on(KEYS8[0], 100, 0));
-}
-fn act_off1(m: &mut Machine) {
-    m.send_midi(&note_off(KEYS8[0], 0));
-}
-fn act_on8(m: &mut Machine) {
-    KEYS8.iter().for_each(|k| m.send_midi(&note_on(*k, 100, 0)));
-}
-fn act_off8(m: &mut Machine) {
-    KEYS8.iter().for_each(|k| m.send_midi(&note_off(*k, 0)));
-}
-
-type Action = fn(&mut Machine);
-
-/// The six phases (ticks scaled by `scale` percent) with the MIDI action sent at each phase start.
-fn plan(scale: usize) -> [(&'static str, usize, Action); 6] {
-    let n = |x: usize| (x * scale / 100).max(1);
-    [
-        ("load", n(800), act_none),
-        ("idle", n(300), act_none),
-        ("key1 on", n(200), act_on1),
-        ("key1 off", n(200), act_off1),
-        ("key8 on", n(200), act_on8),
-        ("key8 off", n(200), act_off8),
-    ]
 }
 
 /// `PACED=1`: the six phases on a producer thread at one tick per wall-clock ms, messages through
@@ -241,7 +217,7 @@ fn report(rows: &[Row]) {
         let over = r.ms.iter().filter(|x| **x > 1.0).count();
         let (run, backlog) = tail(&r.ms);
         println!(
-            "{:<9} {:>6}  {:>7.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>3} ({:>4.1}%)  {:>4}  {:>10.2}  {:>14.0}  {:>6}",
+            "{:<9} {:>6}  {:>7.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>6.3}  {:>3} ({:>4.1}%)  {:>4}  {:>10.2}  {:>14.0}  {:>6}  {:>10.3}  {:>10.3}",
             r.name,
             r.ms.len(),
             mean,
@@ -254,7 +230,9 @@ fn report(rows: &[Row]) {
             run,
             backlog,
             r.executed.iter().sum::<u64>() as f64 / r.ms.len() as f64,
-            r.msgs.len()
+            r.msgs.len(),
+            r.cpu_ms.iter().sum::<f64>() / r.cpu_ms.len().max(1) as f64,
+            r.cpu_ms.iter().copied().fold(0.0, f64::max)
         );
     }
     let (run, backlog) = tail(&all);

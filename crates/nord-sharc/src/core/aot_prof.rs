@@ -206,7 +206,7 @@ impl Core {
             "delayed branch pending"
         } else if self.irq.window_len != 0 || self.irq.idle {
             "interrupt window / idle"
-        } else if self.steps + n > self.irq.due {
+        } else if !b.ev && self.steps + n > self.irq.due {
             "interrupt controller event due inside block"
         } else if self
             .loops

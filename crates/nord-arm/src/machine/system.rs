@@ -1,11 +1,11 @@
 //! Full-board boot: panel, I2C EEPROMs, UART2 MIDI (`tools/arm_screens.py::Session`,
 //! `tools/arm_keydown.py`, `tools/arm_panel.py::boot_with_panels`).
 
-use super::boot::{APP_THUNK, CHUNK, MAIN_LOOP, TIMER_IRQ};
+use super::boot::{CHUNK, TIMER_IRQ};
 pub use super::grouper::Message;
 use super::idle::IdleStats;
-use super::panel::{KeyMatrix, WAIT_LOOP};
-use super::uart::{Uart2, BOARD_ATTACH, UART2_IRQ};
+use super::panel::KeyMatrix;
+use super::uart::{Uart2, UART2_IRQ};
 use super::{Hook, Machine, Stop, SENTINEL, STACK_TOP};
 
 impl Machine {
@@ -13,10 +13,13 @@ impl Machine {
     /// board-present hook. `prepare` must have run with the UI stubs removed first, see
     /// [`Machine::prepare_system`].
     pub fn attach_board(&mut self) {
-        self.bus.panel = Some(KeyMatrix::default());
+        self.bus.panel = Some(KeyMatrix {
+            detect_range: self.layout.detect_range,
+            ..KeyMatrix::default()
+        });
         self.bus.i2c = Some(super::i2c::I2cBus::new());
         self.bus.uart2 = Some(Uart2::default());
-        self.add_hook(BOARD_ATTACH, Hook::BoardPresent);
+        self.add_hook(self.layout.board_attach, Hook::BoardPresent);
     }
 
     /// `prepare(display_stubs=False)` + board models: the display objects run for real.
@@ -24,8 +27,8 @@ impl Machine {
         self.load_firmware(code, sram);
         self.install_boot_stubs();
         // the panel link needs the display routines unstubbed (arm_boot_full.install_ui_stubs)
-        self.hooks.remove(&0xC001_B67C);
-        self.hooks.remove(&0xC001_B9D0);
+        self.hooks.remove(&self.layout.event_insert);
+        self.hooks.remove(&self.layout.text_measure);
         self.run_init_array()?;
         self.attach_board();
         Ok(())
@@ -37,8 +40,8 @@ impl Machine {
         self.cpu.r[13] = STACK_TOP - 0x1000;
         self.cpu.r[14] = SENTINEL;
         self.cpu.thumb = false;
-        self.cpu.r[15] = APP_THUNK;
-        self.stop_pc = Some(MAIN_LOOP);
+        self.cpu.r[15] = self.layout.app_thunk;
+        self.stop_pc = Some(self.layout.main_loop);
         let start = self.cpu.insns;
         let mut irqs = 0;
         let stop = loop {
@@ -51,7 +54,7 @@ impl Machine {
                 break s;
             }
             let pc = self.cpu.r[15];
-            if (WAIT_LOOP.0..=WAIT_LOOP.1).contains(&pc) {
+            if (self.layout.wait_loop.0..=self.layout.wait_loop.1).contains(&pc) {
                 self.inject_irq(TIMER_IRQ);
                 irqs += 1;
             }
@@ -120,8 +123,9 @@ mod tests {
         m.attach_board();
         assert!(m.bus.panel.is_some() && m.bus.i2c.is_some() && m.bus.uart2.is_some());
         m.cpu.r[0] = 0x2000;
-        m.cpu.r[15] = BOARD_ATTACH;
-        m.bus.mem.write32(BOARD_ATTACH, 0xE1A0_0000);
+        let attach = m.layout.board_attach;
+        m.cpu.r[15] = attach;
+        m.bus.mem.write32(attach, 0xE1A0_0000);
         m.run(1, 0, None);
         assert_eq!(m.bus.mem.read8(0x2012), 1);
         assert_eq!(m.bus.mem.read8(0x2013), 1);

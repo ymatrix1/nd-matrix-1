@@ -12,19 +12,31 @@ use super::fx_run::FxDrive;
 use super::msg::{self, Msg};
 use super::pass::PassConfig;
 use super::system::{lean_pass, refresh_inputs, set_ping_pong};
+use super::uop_pass::{lean_pass_uop, lean_pass_uop_checked};
 use crate::core::Core;
+use crate::cpu_clock::ThreadClock;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
 /// How a core runs its pass.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Engine {
-    /// The interpreter ([`Core::step`] to the poll loop).
+    /// The interpreter ([`Core::step`] to the poll loop). The default.
+    #[default]
     Interp,
     /// The whole-pass AOT blocks enabled on the core (`Core::enable_aot_tag`), the interpreter for
     /// any pc outside them.
     Aot,
+    /// The uop engine, Tier 1 ([`Core::enable_uop`], D260, `docs/specs/sharc-uop.md`): translated
+    /// blocks run through the handler table, the interpreter fills the gaps.
+    Uop,
+    /// [`Engine::Uop`] checked against the interpreter ([`lean_pass_uop_checked`]); a difference
+    /// panics. Allocates, for tests and tools only.
+    UopChecked,
+    /// [`Engine::Uop`] on a core enabled with `UopConfig::native` (the Cranelift tier, feature
+    /// `uop-native`); the pass loop is the same, only the enabling differs.
+    UopNative,
 }
 
 /// [`lean_pass`] with the AOT block hook: blocks run whole, the interpreter fills the gaps.
@@ -140,6 +152,14 @@ impl PassJob {
         match self.engine {
             Engine::Interp => lean_pass(&mut self.core, &self.cfg),
             Engine::Aot => lean_pass_aot(&mut self.core, &self.cfg),
+            Engine::Uop | Engine::UopNative => lean_pass_uop(&mut self.core, &self.cfg),
+            Engine::UopChecked => {
+                let (steps, idle, diff) = lean_pass_uop_checked(&mut self.core, &self.cfg);
+                if let Some(d) = diff {
+                    panic!("uop pass differs from the interpreter: {d}");
+                }
+                (steps, idle)
+            }
         }
     }
 }
@@ -150,8 +170,12 @@ pub struct CoreSeries {
     pub name: String,
     /// Steps of each pass (warm-up included).
     pub steps: Vec<u64>,
-    /// Pass latency in ns (the pass only, not the message delivery), warm-up included.
+    /// Pass latency in WALL ns (the pass only, not the message delivery), warm-up included. The
+    /// "x of budget" claim uses this.
     pub ns: Vec<u64>,
+    /// The same passes in thread CPU ns (equal to `ns` where there is no thread counter, see
+    /// `cpu_clock::ThreadClock::is_cpu_time`); a loaded host does not inflate it.
+    pub cpu_ns: Vec<u64>,
     /// Every pass returned to its poll loop.
     pub all_idle: bool,
 }
@@ -167,6 +191,9 @@ pub struct SchedReport {
 pub fn run_ticks(jobs: Vec<PassJob>, warmup: u32, ticks: u32) -> Result<SchedReport, String> {
     let total = u64::from(warmup + ticks);
     let n = jobs.len() as u32;
+    // calibrate the thread CPU clock now (200 ms on the first call), not inside the first tick
+    // where it would stall every core at the barrier
+    let _ = crate::cpu_clock::ns_per_tick();
     let epoch = Arc::new(AtomicU64::new(0));
     let done = Arc::new(AtomicU32::new(0));
     let mut handles = Vec::new();
@@ -194,11 +221,14 @@ pub fn run_ticks(jobs: Vec<PassJob>, warmup: u32, ticks: u32) -> Result<SchedRep
                 if job.before_pass(p, &mut next_msg).is_err() {
                     series.all_idle = false;
                 }
-                let t0 = Instant::now();
+                // both clocks: wall (the budget claim) and thread CPU (not inflated by a
+                // descheduled thread); the barrier tick below stays wall time
+                let t0 = ThreadClock::start();
                 let (steps, idle) = job.run_pass();
-                let ns = t0.elapsed().as_nanos() as u64;
+                let cpu = t0.elapsed_ns();
                 series.steps.push(steps);
-                series.ns.push(ns);
+                series.ns.push(t0.wall_ns());
+                series.cpu_ns.push(cpu);
                 series.all_idle &= idle;
                 done.fetch_add(1, Ordering::AcqRel);
             }
@@ -303,6 +333,23 @@ mod tests {
         // counter shown for pass 3 is 3, the core's own copy is counter + 1
         let mut c = r.jobs.into_iter().next().unwrap().core;
         assert_eq!(c.dm_read(super::super::fx_run::SELF_COUNTER), Ok(4));
+    }
+
+    #[test]
+    fn engine_default_is_interp() {
+        assert_eq!(Engine::default(), Engine::Interp);
+        assert_eq!(poll_job("d", Engine::default()).engine, Engine::Interp);
+    }
+
+    #[test]
+    fn uop_engines_without_blocks_equal_the_interpreter() {
+        let mut a = poll_job("i", Engine::Interp);
+        let want = a.run_pass();
+        for engine in [Engine::Uop, Engine::UopChecked, Engine::UopNative] {
+            let mut b = poll_job("u", engine);
+            assert_eq!(b.run_pass(), want, "{engine:?}");
+            assert_eq!(a.core.state_mismatch(&b.core), None, "{engine:?}");
+        }
     }
 
     #[test]
