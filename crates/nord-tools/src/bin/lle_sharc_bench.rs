@@ -105,16 +105,17 @@ fn main() -> Result<(), String> {
     );
     let _ = writeln!(
         out,
-        "core | engine | idle | steps/pass | mean us | p50 us | p99 us | worst us | mean/budget"
+        "core | engine | idle | steps/pass | mean us | p50 us | p99 us | worst us | mean/budget | cpu mean us"
     );
     let mut total_mean = 0.0;
     for (c, j) in r.cores.iter().zip(&r.jobs) {
         let (mean, med, p99, worst) = summarize(&c.ns, warmup as usize);
         let steps = summarize(&c.steps, warmup as usize).0;
+        let cpu_mean = summarize(&c.cpu_ns, warmup as usize).0;
         total_mean += mean;
         let _ = writeln!(
             out,
-            "{} | {:?} | {} | {:.0} | {:.1} | {:.1} | {:.1} | {:.1} | x{:.2}",
+            "{} | {:?} | {} | {:.0} | {:.1} | {:.1} | {:.1} | {:.1} | x{:.2} | {:.1}",
             c.name,
             j.engine,
             c.all_idle,
@@ -123,7 +124,8 @@ fn main() -> Result<(), String> {
             med / 1e3,
             p99 / 1e3,
             worst / 1e3,
-            mean / 1e3 / budget_us
+            mean / 1e3 / budget_us,
+            cpu_mean / 1e3
         );
     }
     let (mean, med, p99, worst) = summarize(&r.tick_ns, warmup as usize);
