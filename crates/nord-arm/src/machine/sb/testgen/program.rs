@@ -21,6 +21,9 @@
 
 use super::asm::{self as a, AL};
 use super::blocks::Gen;
+use super::faults::guarded_fault;
+#[cfg(test)]
+use super::faults::is_fault_word;
 use super::parts::{callees, straight_word, tail, with_cond};
 use super::CODE;
 use crate::machine::sb::testkit::state::{attach_boards, DATA_A, DATA_B, STACK};
@@ -176,6 +179,8 @@ fn pool(rng: &mut Rng) -> Vec<u32> {
         let word = straight_word(rng);
         w.push(if rng.chance(5) {
             with_cond(word, rng.below(13))
+        } else if rng.chance(8) {
+            guarded_fault(rng) // a store can copy it over the program
         } else {
             word
         });
@@ -312,6 +317,20 @@ mod tests {
                 CODE + 4 * (p.segment(CODE).len() as u32 - 1),
                 TAIL_AT
             )
+        );
+    }
+
+    #[test]
+    fn the_pool_holds_a_fault_word_among_its_patch_words_now_and_then() {
+        let mut with = 0;
+        for seed in 0..200 {
+            let w = pool(&mut Rng::new(seed));
+            assert_eq!(w.len(), POOL_WORDS);
+            with += u32::from(w[PATCH_IDX..].iter().any(|w| is_fault_word(*w)));
+        }
+        assert!(
+            (80..=190).contains(&with),
+            "{with} of 200 pools hold a fault word to be patched in"
         );
     }
 

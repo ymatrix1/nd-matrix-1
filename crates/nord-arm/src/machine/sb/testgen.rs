@@ -9,17 +9,22 @@
 //! * [`structured_program`] (`testgen/program.rs`, constructs in `blocks.rs` and `parts.rs`): the
 //!   L1 generator of design note 8: loops, `bl`/`bx lr` pairs, conditional runs, literal loads,
 //!   stores into the own page, the next word and a literal the code loaded, device accesses,
-//!   Thumb entry, undefined words (`asm::UNDEFINED` in a program via [`random_of`]). A [`Program`]
-//!   becomes a machine with [`machine_from`].
+//!   Thumb entry, and words that fault (undefined, `swi`, `wfi`: `testgen/faults.rs`, as a body
+//!   construct, inside a callee, or as a patch word a store copies over the program). A
+//!   [`Program`] becomes a machine with [`machine_from`].
 //! * [`random_of`] / [`Family`] (`testgen/words.rs`): one word of each instruction family, with
 //!   the shift amounts, addressing modes and register aliasing of design note 8, L0.
 //! * [`Schedule`] / [`schedule_vs_oracle`] (`testgen/schedule.rs`): slices with budgets,
 //!   `until`/`stop_pc` addresses and hooks added between them, compared with the oracle slice
 //!   by slice.
+//! * [`budget_sweep`] / [`sweep_vs_oracle`] (`testgen/sweep.rs`): every budget of a range as a
+//!   two-slice schedule, so the budget expires at every instruction position (design note 8:
+//!   "budgets 1..7 and 1..400").
 //! * [`asm`]: the encoders the generators build on.
 //! * [`lowered_vs_step`] / [`uops_vs_step`]: one instruction (or a hand-built trace for it)
 //!   through the lowering and the T2 executor against `Cpu::step`, with registers, flags, fault,
-//!   the ordered bus access log and `bus.pc` compared. This is the helper of the lowering and
+//!   the ordered bus access log and `bus.pc` compared ([`compare_outcome`], itself tested part by
+//!   part in `testgen/comparator.rs`). This is the helper of the lowering and
 //!   executor work packages (W1-DP, W1-MEM, W1-XALU, W1-XMEM, W2-XCORE) and of L0 in `difftest`.
 //!   The `_run` forms also count what the oracle did into a `DiffRun`.
 //! * [`drive_traces`]: the tier stack without a cache, as a copy of the outer loop of
@@ -33,11 +38,15 @@
 pub(crate) mod asm;
 mod blocks;
 #[cfg(test)]
+mod comparator;
+#[cfg(test)]
 mod coverage;
+mod faults;
 mod mixed;
 mod parts;
 pub(crate) mod program;
 pub(crate) mod schedule;
+pub(crate) mod sweep;
 pub(crate) mod words;
 
 use super::config::SbConfig;
@@ -45,16 +54,17 @@ use super::decode::{decode, lower_or_generic, LowerCtx};
 use super::exec::run_sb;
 use super::lower_flow::{lower_flow, Flow, FlowCtx};
 use super::testkit::oracle::oracle_trace_on;
-use super::testkit::{CpuSnap, DiffRun, LogBus};
+use super::testkit::{CpuSnap, DiffRun, LogBus, TraceRun};
 use super::trace::{build, BuildOpts};
 use super::uop::{k, Exit, ExitKind, Sb, Uop};
-use crate::cpu::Cpu;
+use crate::cpu::{Cpu, Fault};
 use crate::machine::{Machine, Stop};
 use crate::mem::HOOK_X;
 
 pub(crate) use mixed::{random_program, random_word, tiny_loop};
 pub(crate) use program::{machine_from, structured_program, Program};
 pub(crate) use schedule::{random_schedule, schedule_vs_oracle, SchedStats, Schedule};
+pub(crate) use sweep::{budget_sweep, sweep_vs_oracle};
 pub(crate) use words::{random_of, Family};
 
 /// Base address of generated programs.
@@ -140,19 +150,36 @@ pub(crate) fn uops_vs_step_run(
     let mut left = 4u64;
     run_sb(&mut cb, &mut bb, sb, &mut left, false);
     let rb = cb.fault.take();
-    let (sa, sbn) = (CpuSnap::of(&t.cpu, t.fault), CpuSnap::of(&cb, rb));
+    compare_outcome(word, &t, &cb, rb, &bb, left)
+}
+
+/// The comparison of [`uops_vs_step_run`], on what the executor left behind: its CPU `cb` and
+/// fault `rb`, its bus `bb` and the budget `left` of the 4 instructions it was given, against the
+/// oracle's trace `t` of the one instruction `word`. `Err` names the first difference: the CPU
+/// state, then the ordered access log (kind, address, value and `pc` of every access), then
+/// `bus.pc` and `left` (one instruction retired). Separate from the run so that a test can
+/// perturb each part of an outcome on its own (`testgen/comparator.rs`).
+pub(crate) fn compare_outcome(
+    word: u32,
+    t: &TraceRun,
+    cb: &Cpu,
+    rb: Option<Fault>,
+    bb: &LogBus,
+    left: u64,
+) -> Result<(), String> {
+    let pc = t.bus.pc;
+    let (sa, sbn) = (CpuSnap::of(&t.cpu, t.fault), CpuSnap::of(cb, rb));
     if let Some(d) = sa.diff(&sbn) {
         return Err(format!("word {word:#010x} at {pc:#x}: {d}"));
     }
-    if t.bus.log != bb.log {
+    if let Some(d) = t.bus.diff(bb) {
         return Err(format!(
-            "word {word:#010x}: access logs differ\n step: {:x?}\n sb:   {:x?}",
-            t.bus.log, bb.log
+            "word {word:#010x} at {pc:#x}: access logs differ: {d}"
         ));
     }
     if (t.bus.pc, left) != (bb.pc, 3) {
         return Err(format!(
-            "word {word:#010x}: bus.pc {:#x} vs {:#x}, left {left}",
+            "word {word:#010x} at {pc:#x}: bus.pc {:#x} vs {:#x}, left {left}",
             t.bus.pc, bb.pc
         ));
     }
@@ -361,5 +388,11 @@ mod tests {
         assert!(run.stats.slices >= 1 && run.stats.slices <= 3);
         let _: SchedStats = run.stats;
         let _: Schedule = s;
+        assert_eq!(budget_sweep(1..=7, 9).len(), 7);
+        let swept = sweep_vs_oracle(&m, 1..=3, 20, || {
+            |m: &mut Machine, n, u, st| m.run(n, u, st)
+        })
+        .unwrap();
+        assert_eq!(swept.slices, 6);
     }
 }

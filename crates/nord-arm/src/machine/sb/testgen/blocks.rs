@@ -1,12 +1,14 @@
 //! OWNER: W1-VGEN. The constructs of the structured L1 programs (design note 8, L1): counted
 //! loops, `bl` and `bx lr` pairs, conditional runs, literal loads, stores into the own page, the
 //! next word and a literal the code loaded, device accesses, Thumb entry and status register
-//! moves. [`Gen`] appends them to one program body; `program.rs` wraps the body in a layout.
+//! moves, and a word that faults now and then. [`Gen`] appends them to one program body;
+//! `program.rs` wraps the body in a layout.
 //!
 //! The register contract is in `parts.rs`; every construct keeps it, so any sequence of
 //! constructs is a program that stays in its memory map and whose loops end.
 
 use super::asm::{self as a, AL};
+use super::faults::guarded_fault;
 use super::parts::{straight_word, with_cond, CONDS};
 use super::program::{FAR_AT, FUNC_AT, FUNC_IDX, LIT_AT};
 use super::CODE;
@@ -101,6 +103,17 @@ impl<'a> Gen<'a> {
         let (cond, at) = (self.rng.pick(&CONDS), self.at());
         self.jump(cond, at + 4 + 4 * k as u32);
         self.straight(k);
+    }
+
+    /// A word that faults (`faults.rs`), two times in three conditional, after a compare that
+    /// decides whether it is taken: the program ends here in some runs and goes on in others.
+    /// `block` places it only after the first 24 words, so a program has run before it faults.
+    pub fn fault_site(&mut self) {
+        let cmp = a::cmp_imm(self.rng.below(8), self.rng.below(8));
+        self.push(cmp);
+        let w = guarded_fault(self.rng);
+        self.push(w);
+        self.straight(1);
     }
 
     /// A counted loop in `r11 + depth`: `mov rc,#n; L: body; subs rc,rc,#1; bne L`, or the
@@ -230,6 +243,7 @@ impl<'a> Gen<'a> {
             84..=87 => self.psr(),
             88..=92 => self.indexed(),
             93..=95 => self.jump_literal(),
+            96 if self.w.len() >= 24 => self.fault_site(),
             _ => self.simple(),
         }
     }

@@ -6,7 +6,8 @@
 use super::program::{machine_from, structured_program, FUNC_AT, SPIN_AT};
 use super::CODE;
 use crate::cpu::predecode::{decode_arm, op};
-use crate::machine::sb::testkit::Rng;
+use crate::cpu::Fault;
+use crate::machine::sb::testkit::{compare_runs, oracle_run, Rng, Run};
 use crate::machine::{Hook, Machine, Stop};
 use std::collections::BTreeMap;
 
@@ -87,7 +88,10 @@ fn generated_programs_run_long_and_cover_every_instruction_class_and_construct()
     );
     assert!(messages >= 3, "DSP messages sent by {messages} programs");
     assert!(device >= 25, "device reads in {device} programs");
-    assert!(faulted <= 40, "faults are the exception ({faulted} of 80)");
+    assert!(
+        (5..=40).contains(&faulted),
+        "faults are the exception, but they happen ({faulted} of 80)"
+    );
 }
 
 #[test]
@@ -126,4 +130,48 @@ fn a_hook_set_in_the_program_changes_what_it_does() {
     plain.run(2000, 0, None);
     hooked.run(2000, 0, None);
     assert_ne!(plain.state_hash(), hooked.state_hash());
+}
+
+#[test]
+fn generated_programs_fault_now_and_then_with_every_kind_of_fault_word() {
+    let (mut undefined, mut swi, mut wfi, mut late, mut faulted) = (0, 0, 0, 0, 0);
+    let mut compared = 0;
+    for seed in 0..200 {
+        let p = structured_program(&mut Rng::new(seed), 40 + seed as usize % 100);
+        let mut m = machine_from(&p, false);
+        let (_, _, stop) = profile(&mut m, 4000);
+        let Some(Stop::Fault(f)) = stop else {
+            continue;
+        };
+        faulted += 1;
+        late += u32::from(m.cpu.insns >= 20);
+        match f {
+            Fault::Undefined { .. } => undefined += 1,
+            Fault::Swi { .. } => swi += 1,
+            Fault::Wfi => wfi += 1,
+        }
+        // the faulting run is the same on tier 1: the fault is reported with the same state
+        let want = oracle_run(&machine_from(&p, false), 4000, 0, None);
+        let mut t1 = machine_from(&p, true);
+        let res = t1.run(4000, 0, None);
+        let got = Run::of(t1, res);
+        compare_runs(&want, &got).unwrap_or_else(|e| panic!("seed {seed}: {e}"));
+        compared += u32::from(matches!(want.why, Stop::Fault(g) if g == f));
+    }
+    assert!(
+        (10..=70).contains(&faulted),
+        "{faulted} of 200 programs faulted"
+    );
+    assert!(
+        undefined >= 5 && swi >= 5 && wfi >= 5,
+        "undefined {undefined}, swi {swi}, wfi {wfi}"
+    );
+    assert!(
+        late >= 8,
+        "{late} faults came after 20 instructions or more"
+    );
+    assert_eq!(
+        compared, faulted,
+        "every faulting run was compared on tier 1"
+    );
 }

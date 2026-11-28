@@ -14,6 +14,7 @@
 //! | `r14` | link register |
 
 use super::asm::{self as a, AL};
+use super::faults::plant;
 use super::program::{FAR_AT, FUNC_AT, POOL, SPIN_AT, TAIL_AT};
 use crate::machine::sb::testkit::Rng;
 
@@ -242,6 +243,11 @@ pub(super) fn callees(rng: &mut Rng) -> Vec<(u32, Vec<u32>)> {
     for (i, at) in FAR_AT.iter().enumerate() {
         let kind = [0, 2, 3, 4][i];
         out.push((*at, function(rng, kind, *at, FAR_AT[0])));
+    }
+    for (_, f) in out.iter_mut() {
+        if rng.chance(25) {
+            plant(rng, f); // a fault inside a callee (`faults.rs`)
+        }
     }
     out
 }

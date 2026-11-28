@@ -87,13 +87,14 @@ pub(crate) struct SchedRun {
     pub got: Machine,
 }
 
-/// `n` slices for `p`: budgets from a handful of instructions to a few thousand, an `until` and
-/// a `stop_pc` at a mark of the program now and then, and in one slice of three a hook at a mark.
+/// `n` slices for `p`: budgets from one instruction to a few thousand (three in ten below 20),
+/// an `until` and a `stop_pc` at a mark of the program now and then, and in one slice of three a
+/// hook at a mark. The dense sweep of every small budget is [`super::budget_sweep`].
 pub(crate) fn random_schedule(rng: &mut Rng, p: &Program, n: usize) -> Schedule {
     let slices = (0..n)
         .map(|_| {
             let budget = match rng.below(10) {
-                0..=2 => rng.range(1, 9),
+                0..=2 => rng.range(1, 20),
                 3..=6 => rng.range(20, 200),
                 7..=8 => rng.range(200, 1000),
                 _ => rng.range(1000, 3000),
@@ -198,6 +199,10 @@ mod tests {
         }
         let all: Vec<Slice> = (0..40).flat_map(|s| setup(s).2.slices).collect();
         assert!(all.iter().any(|s| s.budget < 9) && all.iter().any(|s| s.budget >= 1000));
+        assert!(
+            all.iter().any(|s| (9..20).contains(&s.budget)),
+            "the budgets between 9 and 19 are drawn too"
+        );
         assert!(all.iter().any(|s| s.hook.is_some()) && all.iter().any(|s| s.stop.is_some()));
         assert!(all.iter().any(|s| s.until != 0));
     }

@@ -8,13 +8,16 @@
 //! the I2C, panel and UART2 models, the hook-visible counters (`heap_top`, null calls, `wfi`) and
 //! the [`Stop`] reason. Each field has a test that mutates it and expects the diff to name it,
 //! and `Snapshot::diff` destructures the struct without `..`, so a field added to [`Snapshot`]
-//! and not compared is a compile error: the comparator cannot silently ignore one.
+//! and not compared is a compile error: the comparator cannot silently ignore one. `live.rs`
+//! checks the other half: that [`snapshot`] reads each field from the live machine.
 //!
 //! Memory is compared by `Mem::state_hash` (zero and unmapped pages hash alike: mapping is not
 //! state); [`mem_diff`] names the differing words when the hashes differ.
 
 mod boards;
 mod cpu;
+#[cfg(test)]
+mod live;
 
 pub(crate) use boards::{I2cSnap, PanelSnap, UartSnap};
 pub(crate) use cpu::CpuSnap;
