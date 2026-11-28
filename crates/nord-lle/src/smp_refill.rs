@@ -13,8 +13,13 @@ use std::collections::BTreeMap;
 
 /// VERIFIED (`nsmp4-and-npno-cnsp-codec.md` s3.2): file byte = `0x2C` + u32 at stroke `+8`.
 pub const CNSP_BASE: u32 = 0x2C;
-/// Stroke table offset, record size, channel count and stroke count offsets in a `.npno`
-/// (`tools/arm_smp_flash.py`; VERIFIED there on 4 files, ASSUMED to hold for every `.npno`).
+/// Stroke table offset, record size, channel count and stroke count offsets in a `.npno`.
+///
+/// ASSUMED: copied from `tools/arm_smp_flash.py`, which was checked on 4 files. The check proves
+/// the Python port, not these offsets for every `.npno`, and no test here reads a real `.npno`
+/// (tests use [`tests::fake_npno`], which is laid out from these same constants). Confirm by
+/// running `parse_strokes` over the user's `.npno` files and comparing the stroke count with the
+/// file's own directory.
 pub const STROKE_TABLE: usize = 0x756;
 pub const STROKE_SIZE: usize = 0x76;
 pub const CHANNELS_AT: usize = 0x64A;
@@ -78,9 +83,9 @@ pub struct SmpRefill {
     strokes: Vec<Stroke>,
     by_frames: BTreeMap<u32, Vec<usize>>,
     last: BTreeMap<u32, u32>,
-    /// Directory index of the file placed last.
+    /// Directory index of the file placed last; set by [`SmpRefill::confirm_placed`] only.
     pub rec11: Option<u32>,
-    /// Descriptors seen, of which obeying the page law, of which placed.
+    /// Descriptors seen, of which obeying the page law, of which placed (confirmed).
     pub descriptors: u64,
     pub law_ok: u64,
     pub placed: u64,
@@ -109,8 +114,10 @@ impl SmpRefill {
         &self.strokes
     }
 
-    /// Feed one SMP message; returns the directory index to place when a new descriptor that
-    /// obeys the page law appeared.
+    /// Feed one SMP message; returns the directory index to place when a descriptor that obeys
+    /// the page law appeared and is not the file placed last. It does not record the placement:
+    /// the caller runs `place` and then calls [`SmpRefill::confirm_placed`] on success, so a
+    /// failed `place` is not counted as placed and the same descriptor is offered again.
     pub fn observe(&mut self, word: u32, value: u32) -> Option<u32> {
         self.last.insert(word, value);
         let cands = self.by_frames.get(&value)?;
@@ -127,9 +134,13 @@ impl SmpRefill {
         if self.rec11 == Some(rec11) {
             return None;
         }
+        Some(rec11)
+    }
+
+    /// Records that `place(rec11)` succeeded.
+    pub fn confirm_placed(&mut self, rec11: u32) {
         self.rec11 = Some(rec11);
         self.placed += 1;
-        Some(rec11)
     }
 }
 
@@ -183,8 +194,20 @@ mod tests {
         assert_eq!(r.observe(0x9_3000, 5), None, "rec[-11]");
         assert_eq!(r.observe(0x9_3001, 7), None, "rec[-10]");
         assert_eq!(r.observe(0x9_3002, 4321), Some(5), "rec[-9] = frame count");
+        assert_eq!(
+            (r.rec11, r.placed),
+            (None, 0),
+            "observe alone places nothing"
+        );
+        assert_eq!(
+            r.observe(0x9_3002, 4321),
+            Some(5),
+            "a failed place is offered again"
+        );
+        r.confirm_placed(5);
         assert_eq!(r.observe(0x9_3002, 4321), None, "same file again");
-        assert_eq!((r.descriptors, r.law_ok, r.placed), (2, 2, 1));
+        assert_eq!((r.descriptors, r.law_ok, r.placed), (3, 3, 1));
+        assert_eq!(r.rec11, Some(5));
         // a wrong page number is counted but not placed
         let mut r = SmpRefill::new(&npno).unwrap();
         r.observe(0x9_3000, 5);

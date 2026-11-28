@@ -2792,7 +2792,7 @@ dependencies = [
 
 [[package]]
 name = "nord-lle"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "nord-arm",
  "nord-core",

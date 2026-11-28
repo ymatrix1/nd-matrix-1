@@ -437,5 +437,11 @@ fn a_bad_smp_descriptor_is_counted_and_skipped_and_the_engine_keeps_running() {
     e.bind_smp(npno).unwrap();
     e.run_ticks(5).unwrap();
     assert_eq!((e.stats.bad_descriptors, e.fault()), (1, None));
+    let r = e.smp_refill().unwrap();
+    assert_eq!(
+        (r.placed, r.rec11),
+        (0, None),
+        "a failed place is not placed"
+    );
     assert!(e.bind_smp(vec![0u8; 1]).is_err());
 }

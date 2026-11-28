@@ -13,6 +13,10 @@ use std::collections::BTreeMap;
 /// Chip names by comm index.
 pub const CHIP_NAMES: [&str; 5] = ["FX", "PNO", "ORG", "SY", "SMP"];
 /// Data words in one core window (`0x28000000 + 4 w`, `w < 2^20`).
+///
+/// ASSUMED: the address map is VERIFIED (`arm-dsp-live-link.md`), but the `2^20` limit is copied
+/// from `tools/arm_dsp_route.py` and no firmware or test fixes it. Confirm by checking that no
+/// ARM write in a long run is counted as skipped for a word at or above it (`Dest::Skipped`).
 pub const DM_WORDS: u32 = 0x10_0000;
 const SYS_BASE: u32 = 0x2800_0000;
 const CORE2_BASE: u32 = 0x2880_0000;

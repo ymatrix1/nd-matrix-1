@@ -5,10 +5,17 @@
 //! `1,388,875 / 1,536,000`. The passes owed after `t` ticks are `floor(t * NUM / DEN)`: integer
 //! arithmetic only, so equal inputs give equal pass schedules on every host.
 
-/// Numerator of passes per ARM tick. VERIFIED: arithmetic of `tools/arm_dsp_link.py`
-/// (`PASS_NUM`), same check as [`passes_due`] test `matches_the_python_harness_values`.
+/// Numerator of passes per ARM tick.
+///
+/// ASSUMED: the ratio is `F / 2 / 24,000` with `F = 1,388,875 / 32` Hz and 2 frames per pass
+/// (`dsp-frame-rate.md`). The 24 kHz tick is a firmware constant (`arm-tick-timers.md`, D130,
+/// VERIFIED in code) but the board's 24 MHz input clock behind it is ASSUMED (`arm-tick-timers.md`
+/// s5). The test `matches_the_python_harness_values` shows only that this port equals
+/// `tools/arm_dsp_link.py`, which proves the implementation, not the hardware. Confirm by
+/// measuring the ARM tick period on the unit.
 pub const PASS_NUM: u64 = 1_388_875;
-/// Denominator of passes per ARM tick (`tools/arm_dsp_link.py` `PASS_DEN`).
+/// Denominator of passes per ARM tick (`tools/arm_dsp_link.py` `PASS_DEN`); ASSUMED as
+/// [`PASS_NUM`].
 pub const PASS_DEN: u64 = 1_536_000;
 
 /// Passes elapsed after `ticks` ARM timer ticks.

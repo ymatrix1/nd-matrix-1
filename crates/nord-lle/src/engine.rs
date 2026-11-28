@@ -21,6 +21,10 @@ use nord_sharc::runner::live_flash;
 use std::time::Instant;
 
 /// Comm index of the SMP chip.
+///
+/// ASSUMED: the comm order FX 0, PNO 1, ORG 2, SY 3, SMP 4 follows the image download order and no
+/// code proves it (`arm-param-messages.md` s3). Confirm by logging `comm` at `0xC006CA48` on a
+/// message that carries an SMP descriptor.
 pub const SMP_COMM: u8 = 4;
 
 /// Arithmetic of the DSP passes.
@@ -229,9 +233,12 @@ impl<A: ArmHost> LleEngine<A> {
                 let core = self.bus.nodes_mut()[node]
                     .core_mut()
                     .ok_or("SMP node has no core")?;
-                // a descriptor is firmware data: a bad one is counted and skipped, not fatal
+                // a descriptor is firmware data: a bad one is counted and skipped, not fatal,
+                // and is not recorded as placed (it is offered again if the firmware repeats it)
                 if live_flash::place(core, rec11).is_err() {
                     self.stats.bad_descriptors += 1;
+                } else if let Some((_, r)) = &mut self.refill {
+                    r.confirm_placed(rec11);
                 }
             }
         }
