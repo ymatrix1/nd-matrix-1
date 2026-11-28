@@ -31,3 +31,9 @@ def test_ids_rise_with_version_and_probes_exclude_known_ids():
 def test_main_lists(capsys):
     assert n.main(["1.52"]) == 0
     assert "documents/899/" in capsys.readouterr().out
+
+
+def test_v168_is_listed_with_its_document_id():
+    assert n.url("1.68") == (
+        "https://www.nordkeyboards.com/wt/documents/1120/Update%20Nord%20Stage%204%20OS%20v1.68.zip"
+    )

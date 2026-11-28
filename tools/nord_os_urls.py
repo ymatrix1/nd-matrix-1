@@ -14,6 +14,9 @@ zip holds one ``.exe``. Firmware resource: see ``docs/research/dsp-image-hunt.md
 
 Provenance: every id below is VERIFIED by a ``HEAD`` request that returned ``302`` on 2026-11-12
 (v1.44 and v1.46 came from the user, v1.66 from the vendor downloads page).
+v1.68 (id 1120) was added on 2026-11-28 from a link the user gave; the download returned 200 with a
+7,213,093 B zip holding `Update Nord Stage 4 OS v1.68.exe`. The ARM harness addresses are v1.66 ones
+(`docs/research/os-update-input.md`), so use v1.66 for ARM traces.
 Ids marked ``None`` are not found yet (probed ranges are in ``PROBED``).
 """
 
@@ -35,6 +38,7 @@ DOCS: dict[str, tuple[int | None, str]] = {
     "1.62": (947, "zip"),
     "1.64": (949, "zip"),
     "1.66": (1042, "zip"),
+    "1.68": (1120, "zip"),
 }
 
 # Vendor downloads page lists the current OS as consecutive ids: 1041 = .dmg, 1042 = .zip.
