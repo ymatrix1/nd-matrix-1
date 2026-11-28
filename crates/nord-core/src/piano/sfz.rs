@@ -177,7 +177,8 @@ fn apply_sfz_opcode(spec: &mut SfzRegionSpec, key: &str, val: &str) {
                 spec.loop_end = Some(v);
             }
         }
-        "loop_mode" => spec.loop_mode = LoopMode::parse(val),
+        // An unknown value keeps the inherited mode (a typo must not silently end a group's loop).
+        "loop_mode" => spec.loop_mode = LoopMode::parse(val).or(spec.loop_mode),
         _ => {}
     }
 }
@@ -347,6 +348,17 @@ mod tests {
         assert_eq!(spec(lc).loop_points(0), None);
         // An unknown mode leaves the default (`no_loop`).
         assert_eq!(spec("loop_mode=bogus loop_end=9").loop_points(500), None);
+    }
+
+    #[test]
+    fn an_unknown_loop_mode_keeps_the_inherited_mode() {
+        let regions = parse_sfz_regions(
+            "<group> loop_mode=loop_continuous loop_end=99
+             <region> sample=a.wav loop_mode=loopcontinuous
+             <region> sample=b.wav loop_mode=no_loop",
+        );
+        assert_eq!(regions[0].loop_points(1000), Some((0, 100)));
+        assert_eq!(regions[1].loop_points(1000), None);
     }
 
     #[test]
