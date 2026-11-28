@@ -168,6 +168,9 @@ pub struct SchedReport {
 pub fn run_ticks(jobs: Vec<PassJob>, warmup: u32, ticks: u32) -> Result<SchedReport, String> {
     let total = u64::from(warmup + ticks);
     let n = jobs.len() as u32;
+    // calibrate the thread CPU clock now (200 ms on the first call), not inside the first tick
+    // where it would stall every core at the barrier
+    let _ = crate::cpu_clock::ns_per_tick();
     let epoch = Arc::new(AtomicU64::new(0));
     let done = Arc::new(AtomicU32::new(0));
     let mut handles = Vec::new();
