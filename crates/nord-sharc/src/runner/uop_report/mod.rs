@@ -4,25 +4,68 @@
 //!
 //! OWNER: W1-RUN. Every number is a count, never a time, so `tools/uop_gates.py` can evaluate the
 //! structural gates (G2) and the model gates (K3) without a benchmark. The JSON field names are
-//! stable (schema [`SCHEMA`], pinned by `the_json_of_schema_1_is_pinned_byte_for_byte` here and
-//! by `test_the_rust_golden_report_validates` in `tools/tests/test_uop_gates.py`):
+//! stable (schema [`SCHEMA`], pinned by `the_json_of_schema_1_is_pinned_byte_for_byte` in
+//! [`json`] and by `test_the_rust_golden_report_validates` in `tools/tests/test_uop_gates.py`):
 //! [`UopReport::to_json`] is hand-written (this crate has no dependencies) and `nord-tools`'
 //! `uop-report` and `lle_sharc_bench` print it. The costs are in [`model`], the single-thread
-//! measuring loop that produces steady-state counters in [`measure`].
+//! measuring loop that produces steady-state counters in [`measure`], the block-length histogram
+//! in [`hist`].
+//!
+//! A report says which passes its counters cover ([`Window`]): the steady-state gates
+//! (`maintain_calls == 0`, `smc == 0`) are only meaningful on the measured passes, so a report
+//! that includes the warm-up is marked `all` and the gate evaluator refuses to read them from it.
+//! The checked engine's replay counts ([`Replay`]) are report fields of their own: they count
+//! passes, while `stats.shadow_checks` keeps the engine's meaning (blocks checked).
+pub mod hist;
+mod json;
 pub mod measure;
 pub mod model;
 mod summary;
 
+pub use hist::BlockHistogram;
 pub use model::{
     model_cycles, Tier, BUDGET_CYCLES, DISPATCH, INTERP_STEP, NATIVE_PER_STEP, TRANSITION,
     WORK_PER_STEP,
 };
-pub use summary::{build_summary, counters_text};
+pub use summary::{build_summary, counters_text, mean_block_steps};
 
 use crate::core::{Core, UopStats};
 
-/// Schema version of the JSON; bump when a field is renamed or removed.
+/// Schema version of the JSON; bump when a field is renamed or removed (a field added is not a
+/// new schema: the gate evaluator ignores what it does not know).
 pub const SCHEMA: u32 = 1;
+
+/// Which passes the counters of a report cover.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Window {
+    /// The measured passes only: the warm-up passes were reset away or subtracted. What the
+    /// steady-state gates need.
+    Measured,
+    /// Every pass since the engine was armed, warm-up included: a first-pass `maintain_calls` or
+    /// `smc` is in it, so the steady-state gates cannot be read from it.
+    All,
+}
+
+impl Window {
+    /// The name in the JSON: `measured` or `all`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Window::Measured => "measured",
+            Window::All => "all",
+        }
+    }
+}
+
+/// Passes the `uop-checked` engine replayed on the interpreter, among the measured ones. Pass
+/// counts, not the engine's block counts (`UopStats::shadow_checks`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Replay {
+    /// Passes replayed and found equal to the interpreter.
+    pub checked: u64,
+    /// Passes that could not be replayed (the core has peripheral models) and so were not
+    /// compared: a run with `skipped > 0` has not shown exactness.
+    pub skipped: u64,
+}
 
 /// The counters of one measured run, ready to print.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -30,62 +73,55 @@ pub struct UopReport {
     /// Free text naming the run (core, state); JSON-escaped on output.
     pub label: String,
     pub stats: UopStats,
+    /// Which passes `stats` covers.
+    pub window: Window,
+    /// Passes of the checked engine that were compared; zero for the other engines.
+    pub replay: Replay,
+    /// Steps per block entry, when the run was profiled (`measure`; the timed benchmark is not).
+    pub block_steps: Option<BlockHistogram>,
 }
 
 impl UopReport {
-    /// The report of `core`'s counters since `enable_uop` or the last `uop_reset_stats`.
-    pub fn from_core(label: &str, core: &Core) -> Self {
+    /// A report of `stats` with the given window, no replay and no histogram.
+    pub fn new(label: &str, stats: UopStats, window: Window) -> Self {
         UopReport {
             label: label.to_string(),
-            stats: core.uop_stats(),
+            stats,
+            window,
+            replay: Replay::default(),
+            block_steps: None,
         }
     }
 
-    /// The report as one JSON object with the stable field names of schema [`SCHEMA`].
-    pub fn to_json(&self) -> String {
-        let s = &self.stats;
-        let list = |v: &[u64]| v.iter().map(u64::to_string).collect::<Vec<_>>().join(",");
-        let label: String = self
-            .label
-            .chars()
-            .flat_map(|c| match c {
-                '"' | '\\' => vec!['\\', c],
-                c if c.is_control() => vec![' '],
-                c => vec![c],
-            })
-            .collect();
-        format!(
-            "{{\"schema\":{SCHEMA},\"label\":\"{label}\",\"stats\":{{\
-\"passes\":{},\"blocks_run\":{},\"uops\":{},\"steps_uop\":{},\"steps_interp_uop\":{},\
-\"steps_core_step\":{},\"steps_native\":{},\"exits\":[{}],\"guard_fail\":[{}],\"smc\":{},\
-\"translations\":{},\"poisoned\":{},\"maintain_calls\":{},\"shadow_checks\":{},\
-\"shadow_mismatch\":{},\"shadow_skipped\":{}}},\
-\"model\":{{\"tier1_cycles\":{},\"tier2_cycles\":{}}}}}",
-            s.passes,
-            s.blocks_run,
-            s.uops,
-            s.steps_uop,
-            s.steps_interp_uop,
-            s.steps_core_step,
-            s.steps_native,
-            list(&s.exits),
-            list(&s.guard_fail),
-            s.smc,
-            s.translations,
-            s.poisoned,
-            s.maintain_calls,
-            s.shadow_checks,
-            s.shadow_mismatch,
-            s.shadow_skipped,
-            model_cycles(s, Tier::One),
-            model_cycles(s, Tier::Two),
-        )
+    /// The report of `core`'s counters since `enable_uop` or the last `uop_reset_stats`: every
+    /// pass since then, so the window is [`Window::All`] (a caller that reset the counters at the
+    /// first measured pass makes it [`UopReport::new`] with [`Window::Measured`]).
+    pub fn from_core(label: &str, core: &Core) -> Self {
+        Self::new(label, core.uop_stats(), Window::All)
     }
 
-    /// Several reports as one JSON array (what `tools/uop_gates.py` reads for a multi-core run).
-    pub fn list_json(reports: &[UopReport]) -> String {
-        let items: Vec<String> = reports.iter().map(UopReport::to_json).collect();
-        format!("[{}]", items.join(","))
+    /// The measured passes of a run that could not reset the counters between the warm-up and the
+    /// measurement (the threaded scheduler): `now` minus the `warm` snapshot taken when the first
+    /// measured pass was about to start.
+    pub fn measured(label: &str, now: &UopStats, warm: &UopStats) -> Self {
+        Self::new(label, now.since(warm), Window::Measured)
+    }
+
+    /// With the replay counts of a checked run.
+    pub fn with_replay(mut self, replay: Replay) -> Self {
+        self.replay = replay;
+        self
+    }
+
+    /// With the block-length histogram of a profiled run.
+    pub fn with_block_steps(mut self, hist: Option<BlockHistogram>) -> Self {
+        self.block_steps = hist;
+        self
+    }
+
+    /// The histogram as one line for a person, when the run was profiled.
+    pub fn histogram_text(&self) -> Option<String> {
+        self.block_steps.as_ref().map(BlockHistogram::text)
     }
 }
 
@@ -93,157 +129,86 @@ impl UopReport {
 mod tests {
     use super::*;
 
-    /// The ORG Core2 reference counters of design 9.1.
-    fn org_core2() -> UopStats {
+    fn stats(passes: u64, smc: u64) -> UopStats {
         UopStats {
+            passes,
+            smc,
+            maintain_calls: passes,
+            steps_uop: 10 * passes,
+            ..UopStats::default()
+        }
+    }
+
+    #[test]
+    fn a_report_reads_the_counters_of_a_core_and_says_they_cover_every_pass() {
+        let c = Core::new(&[]);
+        let r = UopReport::from_core("idle", &c);
+        assert_eq!((r.label.as_str(), r.stats), ("idle", UopStats::default()));
+        assert_eq!(r.window, Window::All);
+        assert_eq!((r.replay, r.block_steps), (Replay::default(), None));
+    }
+
+    #[test]
+    fn the_measured_report_is_the_counters_after_the_warm_up_snapshot() {
+        let warm = stats(3, 7); // the warm-up had a maintenance and 7 smc stores per pass
+        let end = UopStats {
+            smc: 7, // none after it
+            maintain_calls: 3,
+            ..stats(8, 7)
+        };
+        let r = UopReport::measured("steady", &end, &warm);
+        assert_eq!(r.window, Window::Measured);
+        assert_eq!(
+            (r.stats.passes, r.stats.smc, r.stats.maintain_calls),
+            (5, 0, 0),
+            "the warm-up's smc and maintenance are not the steady state's"
+        );
+        assert_eq!(r.stats.steps_uop, 50);
+        // all of it, when nothing was snapshotted
+        assert_eq!(
+            UopReport::measured("w", &end, &UopStats::default()).stats,
+            end
+        );
+    }
+
+    #[test]
+    fn the_window_names_are_the_json_names() {
+        assert_eq!(Window::Measured.name(), "measured");
+        assert_eq!(Window::All.name(), "all");
+    }
+
+    #[test]
+    fn builders_set_only_their_own_field() {
+        let base = UopReport::new("b", stats(1, 0), Window::Measured);
+        let replay = Replay {
+            checked: 4,
+            skipped: 1,
+        };
+        let h = BlockHistogram::from_lengths([3]);
+        let r = base
+            .clone()
+            .with_replay(replay)
+            .with_block_steps(Some(h.clone()));
+        assert_eq!((r.replay, r.block_steps.as_ref()), (replay, Some(&h)));
+        assert_eq!(
+            (r.label.as_str(), r.stats, r.window),
+            ("b", base.stats, base.window)
+        );
+        assert_eq!(base.histogram_text(), None);
+        assert!(r.histogram_text().unwrap().contains("3:1"));
+        assert_eq!(r.with_block_steps(None).histogram_text(), None);
+    }
+
+    #[test]
+    fn the_model_re_exports_keep_their_old_paths() {
+        let org = UopStats {
             passes: 1,
             blocks_run: 520,
             uops: 8478,
             steps_uop: 6280,
             steps_interp_uop: 125,
             ..UopStats::default()
-        }
-    }
-
-    /// Schema 1 of [`org_core2`] with `exits [1,2,3,4,5,6]` and the label `ORG Core2`. Copied
-    /// into `tools/tests/test_uop_gates.py` (`GOLDEN`), which feeds it to the gate evaluator:
-    /// change both or neither.
-    const GOLDEN: &str = "{\"schema\":1,\"label\":\"ORG Core2\",\"stats\":{\"passes\":1,\
-\"blocks_run\":520,\"uops\":8478,\"steps_uop\":6280,\"steps_interp_uop\":125,\
-\"steps_core_step\":0,\"steps_native\":0,\"exits\":[1,2,3,4,5,6],\
-\"guard_fail\":[0,0,0,0,0,0,0,0,9],\"smc\":0,\"translations\":0,\"poisoned\":0,\
-\"maintain_calls\":0,\"shadow_checks\":0,\"shadow_mismatch\":0,\"shadow_skipped\":0},\
-\"model\":{\"tier1_cycles\":341638,\"tier2_cycles\":341638}}";
-
-    fn golden_report() -> UopReport {
-        UopReport {
-            label: "ORG Core2".into(),
-            stats: UopStats {
-                exits: [1, 2, 3, 4, 5, 6],
-                guard_fail: [0, 0, 0, 0, 0, 0, 0, 0, 9],
-                ..org_core2()
-            },
-        }
-    }
-
-    #[test]
-    fn the_json_of_schema_1_is_pinned_byte_for_byte() {
-        assert_eq!(golden_report().to_json(), GOLDEN);
-        assert_eq!(SCHEMA, 1);
-    }
-
-    #[test]
-    fn the_json_has_stable_field_names_and_escapes_the_label() {
-        let r = UopReport {
-            label: "ORG \"Core2\"\n".into(),
-            ..golden_report()
         };
-        let j = r.to_json();
-        for key in [
-            "\"schema\":1",
-            "\"label\":\"ORG \\\"Core2\\\" \"",
-            "\"passes\":1",
-            "\"blocks_run\":520",
-            "\"uops\":8478",
-            "\"steps_uop\":6280",
-            "\"steps_interp_uop\":125",
-            "\"steps_core_step\":0",
-            "\"steps_native\":0",
-            "\"exits\":[1,2,3,4,5,6]",
-            "\"guard_fail\":[0,0,0,0,0,0,0,0,9]",
-            "\"smc\":0",
-            "\"translations\":0",
-            "\"poisoned\":0",
-            "\"maintain_calls\":0",
-            "\"shadow_checks\":0",
-            "\"shadow_mismatch\":0",
-            "\"shadow_skipped\":0",
-            "\"model\":{\"tier1_cycles\":",
-            "\"tier2_cycles\":",
-        ] {
-            assert!(j.contains(key), "missing {key} in {j}");
-        }
-        assert!(j.starts_with('{') && j.ends_with("}}"));
-    }
-
-    #[test]
-    fn every_counter_is_in_the_json_under_its_own_name() {
-        // a distinct value per counter: a swapped or dropped field shows
-        let s = UopStats {
-            passes: 11,
-            blocks_run: 12,
-            uops: 13,
-            steps_uop: 14,
-            steps_interp_uop: 15,
-            steps_core_step: 16,
-            steps_native: 17,
-            exits: [21, 22, 23, 24, 25, 26],
-            guard_fail: [31, 32, 33, 34, 35, 36, 37, 38, 39],
-            smc: 41,
-            translations: 42,
-            poisoned: 43,
-            maintain_calls: 44,
-            shadow_checks: 45,
-            shadow_mismatch: 46,
-            shadow_skipped: 47,
-        };
-        let j = UopReport {
-            label: String::new(),
-            stats: s,
-        }
-        .to_json();
-        for (name, v) in [
-            ("passes", 11),
-            ("blocks_run", 12),
-            ("uops", 13),
-            ("steps_uop", 14),
-            ("steps_interp_uop", 15),
-            ("steps_core_step", 16),
-            ("steps_native", 17),
-            ("smc", 41),
-            ("translations", 42),
-            ("poisoned", 43),
-            ("maintain_calls", 44),
-            ("shadow_checks", 45),
-            ("shadow_mismatch", 46),
-            ("shadow_skipped", 47),
-        ] {
-            assert!(
-                j.contains(&format!("\"{name}\":{v},")) || j.contains(&format!("\"{name}\":{v}}}")),
-                "{name} in {j}"
-            );
-        }
-        assert!(j.contains("\"exits\":[21,22,23,24,25,26]"));
-        assert!(j.contains("\"guard_fail\":[31,32,33,34,35,36,37,38,39]"));
-    }
-
-    #[test]
-    fn a_list_of_reports_is_one_json_array() {
-        let a = golden_report();
-        let b = UopReport {
-            label: "PNO Core2".into(),
-            ..golden_report()
-        };
-        assert_eq!(
-            UopReport::list_json(&[a.clone(), b.clone()]),
-            format!("[{},{}]", a.to_json(), b.to_json())
-        );
-        assert_eq!(
-            UopReport::list_json(std::slice::from_ref(&a)),
-            format!("[{}]", a.to_json())
-        );
-        assert_eq!(UopReport::list_json(&[]), "[]");
-    }
-
-    #[test]
-    fn a_report_reads_the_counters_of_a_core() {
-        let c = Core::new(&[]);
-        let r = UopReport::from_core("idle", &c);
-        assert_eq!((r.label.as_str(), r.stats), ("idle", UopStats::default()));
-    }
-
-    #[test]
-    fn the_model_re_exports_keep_their_old_paths() {
         assert_eq!(
             (
                 DISPATCH,
@@ -254,6 +219,7 @@ mod tests {
             ),
             (6, 38, 100, 42, 38)
         );
-        assert_eq!(model_cycles(&org_core2(), Tier::One), 341_638);
+        assert_eq!(model_cycles(&org, Tier::One), 341_638);
+        assert_eq!(SCHEMA, 1);
     }
 }

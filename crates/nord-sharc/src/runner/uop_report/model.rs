@@ -36,6 +36,13 @@ pub enum Tier {
 
 /// Modeled host cycles for the counters `s` (deterministic, ASSUMED costs above). Saturating, so
 /// a corrupt counter cannot panic a debug build.
+///
+/// Counter contract: `steps_native` is a SUBSET of `steps_uop` (`UopStats` says `steps_uop` counts
+/// "steps accounted by uops (of any kind)" and a native block is one more kind; `config.rs` is
+/// frozen, so the contract lives here and in `tools/uop_gates.py`). The native steps are therefore
+/// among the fast steps (`steps_uop - steps_interp_uop`) and never added to the step total; a
+/// counter above the fast steps is clamped to them, not charged twice. `tools/uop_gates.py`
+/// rejects such a report (`steps_native > steps_uop`) rather than clamping it.
 pub fn model_cycles(s: &UopStats, tier: Tier) -> u64 {
     let interp = s.steps_interp_uop.saturating_add(s.steps_core_step);
     let fast = s.steps_uop.saturating_sub(s.steps_interp_uop);
