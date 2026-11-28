@@ -39,6 +39,11 @@ pub enum Engine {
     /// Level-2 Cranelift JIT ([`Core::run_jit`]) for the same number of steps the interpreter took.
     #[cfg(feature = "jit")]
     Jit,
+    /// The uop engine (`core/uop`, D260) armed on the probe code and run for the steps the
+    /// interpreter took. Steps it does not lower fall back to [`Core::step`].
+    Uop,
+    /// [`Engine::Uop`], and the dumped state must equal the interpreter's (a mismatch is an error).
+    UopChecked,
 }
 
 fn case_run(
@@ -115,6 +120,28 @@ fn case_run(
             ),
             steps as u64,
         ));
+    }
+    if engine == Engine::UopChecked {
+        let (got, n) = case_run(Engine::Uop, f, scr, setup, parcels, state, chunks)?;
+        let (want, _) = case_run(Engine::Interp, f, scr, setup, parcels, state, chunks)?;
+        if got != want {
+            return Err(format!(
+                "uop state differs from the interpreter: {got} vs {want}"
+            ));
+        }
+        return Ok((got, n));
+    }
+    if engine == Engine::Uop {
+        // the interpreter run of the same case gives the step count; the uop engine then runs
+        // exactly that. A range the engine rejects leaves it off, so the case runs interpreted.
+        let n = case_run(Engine::Interp, f, scr, setup, parcels, state, chunks)?.1;
+        let _ = c.enable_uop(super::UopConfig::default(), &[(f.entry, f.exit)]);
+        if let Some(fault) = c.run_uop(n) {
+            return Err(format!("uop fault {fault:?}"));
+        }
+        if c.pc != f.exit {
+            return Err(format!("uop stopped at pc {:x}, not the exit", c.pc));
+        }
     }
     #[cfg(feature = "jit")]
     if engine == Engine::Jit {

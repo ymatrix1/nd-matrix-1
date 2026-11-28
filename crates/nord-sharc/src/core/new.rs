@@ -74,6 +74,8 @@ impl Core {
             aot_span: 0,
             aot_bits: Box::default(),
             aot_slow: false,
+            uop: None,
+            uop_run: uop::UopRun::new(),
             #[cfg(feature = "jit")]
             jit: None,
         };

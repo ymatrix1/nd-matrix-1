@@ -3,13 +3,13 @@ use super::sdram::Sdram;
 use super::{Core, IOP_WORDS, SRAM_BYTES};
 
 /// Normal-word addresses backed by the flat SRAM image (blocks 1 to 3 of the ADSP-21489).
-const SRAM_WORDS: std::ops::Range<u32> = 0x9_0000..0x10_0000;
+pub(super) const SRAM_WORDS: std::ops::Range<u32> = 0x9_0000..0x10_0000;
 
 /// Short-word (16-bit) data addresses backed by the flat SRAM image: a data access in this range
 /// moves one 16-bit word (zero-extended on reads, low half on writes) at byte `2 * addr`.
 /// VERIFIED: the SY1SY2/SMP boot kernel reads the received word `DM(0x92003)` as the shorts
 /// `DM(0x124006)` and `DM(0x124007)` (`tools/adi_dis.py --isa`, ISA words `0x8C0ED`, `0x8C0F0`).
-const SHORT_WORDS: std::ops::Range<u32> = 0x10_0000..0x20_0000;
+pub(super) const SHORT_WORDS: std::ops::Range<u32> = 0x10_0000..0x20_0000;
 
 /// Byte offset of normal-word address `addr` in the flat SRAM image, if it is backed by SRAM.
 #[inline]

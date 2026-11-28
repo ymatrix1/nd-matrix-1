@@ -20,3 +20,7 @@ path = "src/bin/arm_lle_bench.rs"
 [[bin]]
 name = "kernel-bench"
 path = "src/bin/kernel_bench.rs"
+
+[[bin]]
+name = "uop-report"
+path = "src/bin/uop_report.rs"
