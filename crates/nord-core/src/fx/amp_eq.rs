@@ -74,10 +74,15 @@ impl LayerFxChain {
             fw_eq::counts_of_db(self.eq_mid_db)
         };
         let treble = fw_eq::counts_of_db(self.eq_treble_db);
-        let freq = fw_eq::freq_index_of_hz(self.eq_mid_freq_hz);
         match &mut self.fw_eq {
-            Some(st) => st.set(bass, mid, treble, freq, false),
-            slot => *slot = Some(fw_eq::FwEqStage::new(bass, mid, treble, freq)),
+            Some(st) => {
+                let freq = st.freq_index_of_hz(self.eq_mid_freq_hz);
+                st.set(bass, mid, treble, freq, false);
+            }
+            slot => {
+                let freq = fw_eq::freq_index_of_hz(self.eq_mid_freq_hz);
+                *slot = Some(fw_eq::FwEqStage::new(bass, mid, treble, freq));
+            }
         }
         if let Some(st) = &mut self.fw_eq {
             [*l, *r] = st.process_frame([*l, *r]);
