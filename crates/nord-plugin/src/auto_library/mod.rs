@@ -283,21 +283,26 @@ mod tests {
     }
 
     #[test]
-    fn off_and_missing_locations_queue_nothing_and_the_newest_request_wins() {
+    fn off_unloads_missing_locations_queue_nothing_and_the_newest_request_wins() {
         let path = two_program_backup("skip");
         let (tx, rx) = load_queue(16);
         let link = LibraryLink::start(Some(path.clone()), tx).expect("worker");
+        // Off queues one `Unload` (the plugin restores the built-in engine state).
         assert!(link.request(0));
+        assert!(link.wait_handled(0, Duration::from_secs(10)));
+        assert!(matches!(rx.pop(), Some(LoadJob::Unload)));
+        assert!(rx.is_empty());
+        // An empty location loads nothing.
         assert!(link.request(300));
-        std::thread::sleep(Duration::from_millis(300));
-        assert!(rx.is_empty(), "Off and an empty location load nothing");
+        assert!(link.wait_handled(300, Duration::from_secs(10)));
+        assert!(rx.is_empty(), "an empty location loads nothing");
         assert!(link.request(2));
         assert!(link.request(1));
-        let jobs = drain_until(&rx, 6);
+        assert!(link.wait_handled(1, Duration::from_secs(10)));
         let _ = std::fs::remove_file(&path);
-        match jobs.first() {
-            Some(LoadJob::Program(p)) => assert_eq!(p.name, "First"),
-            other => panic!("{other:?}"),
+        let mut jobs = Vec::new();
+        while let Some(j) = rx.pop() {
+            jobs.push(j);
         }
         // The worker may have served both or only the newest; either way the last is "First".
         let names: Vec<String> = jobs

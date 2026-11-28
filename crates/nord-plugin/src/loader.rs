@@ -53,6 +53,10 @@ pub enum LoadJob {
     /// The WAVE stage of the three synth layers on or off (`SynthLayer::wave_bank`), set by the
     /// library worker once the OS update tables are installed. Holds no parameter group.
     WaveBank(bool),
+    /// `library_program` went to Off: drop the program and both sound banks sets and hand the
+    /// engine back to the host parameters (D252). Allocates nothing; what it drops goes to the
+    /// bin. Firmware options and the WAVE stage stay.
+    Unload,
 }
 
 /// Producer end, owned by the editor.
@@ -172,6 +176,28 @@ impl Loaded {
             LoadJob::WaveBank(on) => {
                 set_wave_bank(engine, on);
                 self.wave_bank = Some(on);
+            }
+            LoadJob::Unload => {
+                for slot_b in [false, true] {
+                    self.apply(
+                        LoadJob::Piano {
+                            slot_b,
+                            sound: None,
+                        },
+                        engine,
+                        params,
+                        bin,
+                    );
+                }
+                for layer in 0..self.samples.len() {
+                    self.apply(LoadJob::Sample { layer, sound: None }, engine, params, bin);
+                }
+                if let Some(old) = self.program.take() {
+                    bin.put(Garbage::Program(old));
+                }
+                // The next block's sync writes every host parameter group again; the firmware
+                // switches stay the firmware panel's.
+                params.program_hold.release(Group::PROGRAM);
             }
         }
     }
@@ -320,6 +346,35 @@ mod tests {
             matches!(&got[0], Garbage::Program(old) if (old.organ.layer_a_level - 0.3).abs() < 1e-6)
         );
         assert!((loaded.program.as_ref().unwrap().organ.layer_a_level - 0.6).abs() < 1e-6);
+    }
+
+    #[test]
+    fn an_unload_job_drops_the_program_and_banks_and_releases_the_hold() {
+        let p = params();
+        let mut e = Stage4Engine::new(48_000.0);
+        let mut loaded = Loaded::default();
+        let (bin, reaper) = garbage::channel();
+        loaded.apply(LoadJob::Program(program(0.3)), &mut e, &p, &bin);
+        loaded.apply(
+            LoadJob::Piano {
+                slot_b: false,
+                sound: Some(piano("Grand")),
+            },
+            &mut e,
+            &p,
+            &bin,
+        );
+        assert!(p.program_hold.owned_by_program(Group::Synth));
+        let _ = reaper.try_iter().count();
+        loaded.apply(LoadJob::Unload, &mut e, &p, &bin);
+        assert!(loaded.program.is_none());
+        assert!(loaded.pianos.iter().all(Option::is_none));
+        assert!(loaded.samples.iter().all(Option::is_none));
+        assert!(p.program_hold.runs(Group::Synth));
+        assert!(
+            reaper.try_iter().count() >= 2,
+            "program and bank are binned"
+        );
     }
 
     #[test]

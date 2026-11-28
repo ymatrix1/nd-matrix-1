@@ -19,6 +19,8 @@ pub mod fx_params;
 pub mod fx_selectors;
 pub mod fx_sharing_params;
 pub mod fx_variation_params;
+#[cfg(test)]
+mod library_off_tests;
 pub mod library_select;
 pub mod loader;
 pub mod menu_extra_params;

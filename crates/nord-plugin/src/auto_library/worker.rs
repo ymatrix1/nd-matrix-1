@@ -80,8 +80,21 @@ impl Worker {
                     Ok(name) => report(&format!("program {} loaded: {name}", label(want))),
                     Err(e) => report(&format!("program {} not loaded ({e})", label(want))),
                 }
+            } else if want == 0 {
+                self.unload();
             }
             self.done.record(generation, want);
+        }
+    }
+
+    /// Off: the engine goes back to the host parameters (`LoadJob::Unload`); the banks kept here
+    /// are released too.
+    fn unload(&mut self) {
+        self.pianos.clear();
+        self.samples.clear();
+        match self.push(LoadJob::Unload) {
+            Ok(()) => report("program Off: library program released"),
+            Err(e) => report(&format!("program Off not applied ({e})")),
         }
     }
 
