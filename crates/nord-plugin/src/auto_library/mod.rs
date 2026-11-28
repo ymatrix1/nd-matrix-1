@@ -23,7 +23,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 /// Requests the audio thread may queue before the oldest are dropped (only the last one counts).
 /// ASSUMED: a host scrubbing an automation lane sends fewer than this per worker turn.
@@ -182,6 +182,7 @@ mod tests {
     use super::*;
     use crate::loader::{load_queue, LoadJob};
     use std::path::Path;
+    use std::time::Instant;
 
     #[test]
     fn a_request_decodes_the_program_at_that_location_with_empty_sound_slots() {

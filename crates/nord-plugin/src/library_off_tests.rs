@@ -90,8 +90,10 @@ fn program_name(plugin: &NdMatrix1Plugin) -> Option<String> {
 #[test]
 fn selecting_off_releases_the_library_program_and_its_hold() {
     let path = two_program_backup("off-release");
-    let mut plugin = NdMatrix1Plugin::default();
-    plugin.library_source = LibrarySource::Path(path.clone());
+    let mut plugin = NdMatrix1Plugin {
+        library_source: LibrarySource::Path(path.clone()),
+        ..Default::default()
+    };
     initialize(&mut plugin);
     assert_eq!(program_name(&plugin).as_deref(), Some("First"), "A:11");
     assert!(plugin.params.program_hold.owned_by_program(Group::Synth));
@@ -112,8 +114,10 @@ fn selecting_off_releases_the_library_program_and_its_hold() {
 #[test]
 fn a_project_saved_with_off_reopens_without_the_default_program() {
     let path = two_program_backup("off-saved");
-    let mut plugin = NdMatrix1Plugin::default();
-    plugin.library_source = LibrarySource::Path(path.clone());
+    let mut plugin = NdMatrix1Plugin {
+        library_source: LibrarySource::Path(path.clone()),
+        ..Default::default()
+    };
     set_program(&mut plugin, 0); // the host restored the saved state before `initialize`
     initialize(&mut plugin);
     block(&mut plugin);
@@ -127,8 +131,10 @@ fn a_state_saved_without_the_parameter_keeps_the_default_a11() {
     // A project saved before `library_program` existed has no stored value: the parameter stays
     // at its default and the first program of the library loads (D252, guide).
     let path = two_program_backup("off-migrate");
-    let mut plugin = NdMatrix1Plugin::default();
-    plugin.library_source = LibrarySource::Path(path.clone());
+    let mut plugin = NdMatrix1Plugin {
+        library_source: LibrarySource::Path(path.clone()),
+        ..Default::default()
+    };
     assert_eq!(plugin.params.library_program.value(), 1);
     initialize(&mut plugin);
     let _ = std::fs::remove_file(&path);
