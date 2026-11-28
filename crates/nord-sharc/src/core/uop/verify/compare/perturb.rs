@@ -8,7 +8,8 @@ use crate::core::Core;
 pub(in crate::core) type Perturbation = (&'static str, fn(&mut Core));
 
 /// The table, in [`FIELDS`] order. The `sram` entry flips a byte far from the code window, the
-/// `sdram` and `device` entries store through the window's own accessors.
+/// `sdram` and `device` entries store through the window's own accessors, the `periph` entries
+/// attach a model and the census (the snapshot holds no peripheral state, see `snap.rs`).
 pub(in crate::core) fn perturbations() -> Vec<Perturbation> {
     use crate::core::interrupts::Serviced;
     use crate::core::types::{LoopFrame, Pending};
@@ -27,6 +28,15 @@ pub(in crate::core) fn perturbations() -> Vec<Perturbation> {
         }),
         ("f40_y", |c| {
             c.fx_y.tag[2] = c.s[2];
+            c.fx_y.lo[2] = 1;
+        }),
+        ("fx_x", |c| {
+            // stale (tag unequal to R2) with a nonzero byte: the effective value does not move
+            c.fx.tag[2] = c.r[2] ^ 1;
+            c.fx.lo[2] = 1;
+        }),
+        ("fx_y", |c| {
+            c.fx_y.tag[2] = c.s[2] ^ 1;
             c.fx_y.lo[2] = 1;
         }),
         ("mr", |c| c.mr[1] += 1),
@@ -79,6 +89,8 @@ pub(in crate::core) fn perturbations() -> Vec<Perturbation> {
         ("skipped", |c| c.skipped += 1),
         ("device_io", |c| c.device_writes += 1),
         ("sdram_io", |c| c.sdram_reads += 1),
+        ("periph", |c| c.enable_ringdma()),
+        ("periph_log", |c| c.enable_access_log()),
         ("iop", |c| c.iop[5] ^= 1),
         ("isa_code", |c| c.isa_code.push(0x1234)),
         ("device", |c| {

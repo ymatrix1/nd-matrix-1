@@ -1,4 +1,5 @@
-//! Snapshot and restore of every field `exact_diff` compares, except SRAM and IOP.
+//! Snapshot and restore of every field `exact_diff` compares, except SRAM, IOP and the peripheral
+//! models (`periph`, `periph_log`).
 //!
 //! OWNER: W1-VERIFY. A snapshot allocates (it is taken by tools, shadow mode and translation
 //! validation, never on the audio path): a few KB of registers and stacks, plus a copy of the
@@ -6,17 +7,20 @@
 //! image when one is loaded. SRAM and IOP are not captured: shadow mode logs stores in an undo log
 //! instead (design 4.5 rule 4 and 6.6), and tests that restore after a memory write undo it
 //! themselves. The device store, SDRAM and ISA words are captured because the shadow check
-//! restores into a fresh core and then compares everything, and nothing logs their stores.
+//! restores into a fresh core and then compares everything, and nothing logs their stores. The
+//! peripheral models cannot be captured (most are neither `Clone` nor readable), which is why
+//! shadow mode, translation validation and `UopChecked` skip cores that have them (design risk 6).
 //!
-//! Its tests apply every perturbation of `compare/perturb.rs` and of `compare/coverage.rs` except
-//! the two memory ones and check that `restore` brings back a state `exact_diff` calls identical,
-//! so a field added to the comparator without a snapshot slot fails here.
+//! Its tests apply every perturbation of `compare/perturb.rs` and every row of `compare/rows.rs`
+//! except the two memory images and the peripheral names, and check that `restore` brings back a
+//! state `exact_diff` calls identical, so a field added to the comparator without a snapshot slot
+//! fails here.
 use crate::core::addr_hash::DeviceMap;
 use crate::core::interrupts::Serviced;
 use crate::core::types::{Flags, LoopFrame, Pending};
 use crate::core::Core;
 
-/// Everything `exact_diff` compares except SRAM and IOP.
+/// Everything `exact_diff` compares except SRAM, IOP and the peripheral models.
 #[derive(Clone, Debug)]
 pub struct CoreSnap {
     pc: u32,
@@ -183,6 +187,12 @@ mod tests {
         fill_astat_extra, fill_fifo, fill_stacks, fill_state, fill_sticky, Rng,
     };
 
+    /// Whether a snapshot holds the field `exact_diff` reports under `name`: not the two memory
+    /// images the caller undoes, and not the peripheral models.
+    fn snapshotted(name: &str) -> bool {
+        !matches!(name, "sram" | "iop" | "periph" | "periph_log")
+    }
+
     /// A core with every kind of state the snapshot must carry, from one seed.
     fn filled(seed: u64) -> Core {
         let mut c = Core::new(&[]);
@@ -212,7 +222,7 @@ mod tests {
         let snap = CoreSnap::capture(&a);
         let mut applied = Vec::new();
         for (name, perturb) in perturbations() {
-            if name == "sram" || name == "iop" {
+            if !snapshotted(name) {
                 continue;
             }
             perturb(&mut a);
@@ -224,6 +234,8 @@ mod tests {
             "isa_code",
             "banks",
             "f40_y",
+            "fx_x",
+            "fx_y",
             "irq_serviced",
         ] {
             assert!(applied.contains(&covered), "{covered} is perturbed");
@@ -241,7 +253,7 @@ mod tests {
     #[test]
     fn each_perturbation_alone_is_undone_by_restore() {
         for (name, perturb) in perturbations() {
-            if name == "sram" || name == "iop" {
+            if !snapshotted(name) {
                 continue;
             }
             let (mut a, b) = (Core::new(&[]), Core::new(&[]));
@@ -257,9 +269,9 @@ mod tests {
     fn every_nested_field_has_a_snapshot_slot() {
         // the coverage rows change one sub-field each (timer.seen, banks.l, loop frame fields, ...)
         let rows = nested_rows();
-        assert!(rows.len() > 70);
+        assert!(rows.len() > 90);
         for seed in [0, 3, 8] {
-            for (s, f, name, perturb) in &rows {
+            for (s, f, name, perturb) in rows.iter().filter(|r| snapshotted(r.2)) {
                 let (mut a, b) = (prepared_filled(seed), prepared_filled(seed));
                 let snap = CoreSnap::capture(&a);
                 perturb(&mut a);

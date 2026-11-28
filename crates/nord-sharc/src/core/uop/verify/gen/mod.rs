@@ -10,7 +10,7 @@
 //! |---|---|
 //! | `rng` | [`Rng`], [`EDGE_WORDS`], [`edge_word`] |
 //! | `program` | [`core_with_code`], [`CODE_PC`], [`PROGRAM_POOL`], [`random_program`], [`random_program_from`] |
-//! | `state` | [`fill_state`] (registers, flags, float MODE1 bits) and the fillers of the hidden state: [`fill_sticky`], [`fill_astat_extra`], [`fill_fifo`], [`fill_stacks`] |
+//! | `state` | [`fill_state`] (registers, flags, float MODE1 bits) and the fillers of the hidden state: [`fill_sticky`], [`fill_astat_extra`], [`fill_fifo`], [`fill_stacks`], [`fill_stale_ext`] (float extensions of an older register value) |
 //! | `census` | `census_encodings` (tests only): the valid instruction encodings of the committed census, per kind |
 //!
 //! A family draws its programs from its own table, or from `census_encodings` filtered to its
@@ -27,7 +27,9 @@ mod state;
 pub use census::census_encodings;
 pub use program::{core_with_code, random_program, random_program_from, CODE_PC, PROGRAM_POOL};
 pub use rng::{edge_word, Rng, EDGE_WORDS};
-pub use state::{fill_astat_extra, fill_fifo, fill_stacks, fill_state, fill_sticky};
+pub use state::{
+    fill_astat_extra, fill_fifo, fill_stacks, fill_stale_ext, fill_state, fill_sticky,
+};
 
 #[cfg(test)]
 mod tests {

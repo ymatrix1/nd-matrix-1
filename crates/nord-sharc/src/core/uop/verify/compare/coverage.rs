@@ -3,17 +3,13 @@
 //! The comparator is only as good as its field list, and `Core` grows (a hidden state added next
 //! quarter would silently escape every differential test). This file reads the declaration of
 //! `Core` and of each struct the comparator opens field by field, and demands that every field is
-//! either perturbed here and detected under a name of `FIELDS`, or listed as `Skip` with the
-//! reason it is not compared. A field added to one of those structs fails
-//! `every_core_field_is_compared_or_skipped` (or its nested twin) until its row is added.
+//! either perturbed (`rows.rs`) and detected under a name of `FIELDS`, or listed as `Skip` with
+//! the reason it is not compared. A field added to one of those structs fails
+//! `every_core_field_is_compared_or_skipped` (or its nested twin) until its row is added. A
+//! `FIELDS` name that several `Core` fields feed (`skipped`, `device_io`, `sdram_io`: each a tuple
+//! of counters) needs one row per feeding field, or dropping one member would go unseen.
+use super::rows::{nested_rows, prepared, prepared_filled};
 use super::{exact_diff, FIELDS};
-use crate::core::float_ops::ExtFile;
-use crate::core::interrupts::Serviced;
-use crate::core::types::{LoopFrame, Pending};
-use crate::core::uop::verify::gen::{
-    fill_astat_extra, fill_fifo, fill_stacks, fill_state, fill_sticky, Rng,
-};
-use crate::core::Core;
 use std::collections::BTreeSet;
 
 const CORE_SRC: &str = include_str!("../../../mod.rs");
@@ -28,11 +24,14 @@ const STRUCTS: &[(&str, &str)] = &[
     ("LoopFrame", include_str!("../../../types.rs")),
     ("Pending", include_str!("../../../types.rs")),
     ("BitFifo", include_str!("../../../bitfifo.rs")),
+    ("Periph", include_str!("../../../periph/mod.rs")),
+    ("Access", include_str!("../../../periph/access_log.rs")),
 ];
 
 /// What `exact_diff` does with a `Core` field.
 enum Cover {
-    /// Compared under this name of `FIELDS`.
+    /// Compared under this name of `FIELDS`. When another `Core` field feeds the same name, each
+    /// has its own `Core` row in `rows.rs`.
     Field(&'static str),
     /// Compared through the fields of the struct of this name (rows of `nested_rows`).
     Nested(&'static str),
@@ -67,130 +66,12 @@ const CORE: &[(&str, Cover)] = &[
     ("pending", Nested("Pending")), ("irq", Nested("IrqState")), ("timer", Nested("TimerState")),
     ("sys", Nested("SysState")), ("banks", Nested("Banks")), ("cb_wrap", Field("cb_wrap")),
     ("isa_code", Field("isa_code")),
-    ("periph", Skip("peripheral models have no comparator; their traffic is compared as device_io and shadow mode skips such cores")),
+    ("periph", Nested("Periph")),
     ("decode_cache", Skip(CACHE)), ("code_gen", Skip(CACHE)), ("sram_code_nw_lo", Skip(CACHE)),
     ("sram_code_nw_hi", Skip(CACHE)), ("aot_hot", Skip(CACHE)), ("aot_lo", Skip(CACHE)),
     ("aot_span", Skip(CACHE)), ("aot_bits", Skip(CACHE)), ("aot_slow", Skip(CACHE)),
     ("uop", Skip(CACHE)), ("uop_run", Skip(CACHE)), ("jit", Skip(CACHE)),
 ];
-
-/// `(struct, field, FIELDS name, perturbation)`. A struct that exists once per processing element
-/// has a second set of rows under `Name(y)`. Perturbations assume [`prepared`].
-pub(in crate::core) type Row = (&'static str, &'static str, &'static str, fn(&mut Core));
-
-/// Makes the extension of register `n` live with an effective low byte unlike the one before.
-fn bump_ext(fx: &mut ExtFile, r: u32, n: usize) {
-    let eff = if fx.tag[n] == r { fx.lo[n] } else { 0 };
-    fx.tag[n] = r;
-    fx.lo[n] = eff ^ 0x5A;
-}
-
-pub(in crate::core) fn nested_rows() -> Vec<Row> {
-    let mut v: Vec<Row> = Vec::new();
-    macro_rules! rows {
-        ($($s:literal . $f:literal => $name:literal : |$c:ident| $e:expr);* $(;)?) => {
-            $( v.push(($s, $f, $name, |$c| { $e; })); )*
-        };
-    }
-    rows! {
-        "IrqState"."irptl" => "irptl": |c| c.irq.irptl ^= 1;
-        "IrqState"."lirptl" => "lirptl": |c| c.irq.lirptl ^= 1;
-        "IrqState"."serviced" => "irq_serviced": |c| c.irq.serviced.push(Serviced { vector: 2, status_pushed: true });
-        "IrqState"."idle" => "irq_idle": |c| c.irq.idle = !c.irq.idle;
-        "IrqState"."ivt_base" => "irq_ivt_base": |c| c.irq.ivt_base ^= 0x100;
-        "IrqState"."window_lo" => "irq_window_lo": |c| c.irq.window_lo ^= 1;
-        "IrqState"."window_len" => "irq_window_len": |c| c.irq.window_len ^= 1;
-        "IrqState"."scheduled" => "irq_scheduled": |c| c.irq.scheduled.push((9, 2));
-        "IrqState"."stall" => "irq_stall": |c| c.irq.stall ^= 1;
-        "IrqState"."due" => "irq_due": |c| c.irq.due ^= 1;
-        "IrqState"."wake_at" => "irq_wake_at": |c| c.irq.wake_at ^= 1;
-        "IrqState"."taken" => "irq_taken": |c| c.irq.taken ^= 1;
-        "Serviced"."vector" => "irq_serviced": |c| c.irq.serviced[0].vector ^= 1;
-        "Serviced"."status_pushed" => "irq_serviced": |c| c.irq.serviced[0].status_pushed ^= true;
-        "TimerState"."tcount" => "timer": |c| c.timer.tcount ^= 1;
-        "TimerState"."tperiod" => "timer": |c| c.timer.tperiod ^= 1;
-        "TimerState"."running" => "timer": |c| c.timer.running = !c.timer.running;
-        "TimerState"."base_cycle" => "timer": |c| c.timer.base_cycle ^= 1;
-        "TimerState"."base_count" => "timer": |c| c.timer.base_count ^= 1;
-        "TimerState"."seen" => "timer": |c| c.timer.seen ^= 1;
-        "SysState"."stky" => "stky": |c| c.sys.stky[1] ^= 1;
-        "SysState"."astat_extra" => "astat_extra": |c| c.sys.astat_extra[0] ^= 1;
-        "SysState"."status" => "sys_status": |c| c.sys.status[0][2] ^= 1;
-        "SysState"."pc_overflow" => "pc_overflow": |c| c.sys.pc_overflow = !c.sys.pc_overflow;
-        "SysState"."flags_reg" => "flags_reg": |c| c.sys.flags_reg ^= 1;
-        "SysState"."flag_pins" => "flag_pins": |c| c.sys.flag_pins ^= 1;
-        "SysState"."px" => "px": |c| c.sys.px ^= 1 << 40;
-        "Banks"."r" => "banks": |c| c.banks.r[7] ^= 1;
-        "Banks"."s" => "banks": |c| c.banks.s[7] ^= 1;
-        "Banks"."i" => "banks": |c| c.banks.i[7] ^= 1;
-        "Banks"."m" => "banks": |c| c.banks.m[7] ^= 1;
-        "Banks"."l" => "banks": |c| c.banks.l[7] ^= 1;
-        "Banks"."b" => "banks": |c| c.banks.b[7] ^= 1;
-        "ExtFile"."tag" => "f40_x": |c| bump_ext(&mut c.fx, c.r[5], 5);
-        "ExtFile"."lo" => "f40_x": |c| bump_ext(&mut c.fx, c.r[6], 6);
-        "ExtFile(y)"."tag" => "f40_y": |c| bump_ext(&mut c.fx_y, c.s[5], 5);
-        "ExtFile(y)"."lo" => "f40_y": |c| bump_ext(&mut c.fx_y, c.s[6], 6);
-        "BitFifo"."bff" => "fifo": |c| c.flags.fifo.bff ^= 1 << 63;
-        "BitFifo"."wrp" => "fifo": |c| c.flags.fifo.wrp ^= 1;
-        "BitFifo(y)"."bff" => "fifo_y": |c| c.flags_y.fifo.bff ^= 1 << 63;
-        "BitFifo(y)"."wrp" => "fifo_y": |c| c.flags_y.fifo.wrp ^= 1;
-        "Flags"."fifo" => "fifo": |c| c.flags.fifo.wrp ^= 2;
-        "Flags(y)"."fifo" => "fifo_y": |c| c.flags_y.fifo.wrp ^= 2;
-        "LoopFrame"."start" => "loops": |c| c.loops[0].start ^= 1;
-        "LoopFrame"."end" => "loops": |c| c.loops[0].end ^= 1;
-        "LoopFrame"."remaining" => "loops": |c| c.loops[0].remaining ^= 1;
-        "LoopFrame"."term" => "loops": |c| c.loops[0].term = c.loops[0].term.map_or(Some(3), |_| None);
-        "LoopFrame"."check" => "loops": |c| c.loops[0].check ^= 1;
-        "LoopFrame"."exit_in" => "loops": |c| c.loops[0].exit_in ^= 1;
-        "LoopFrame"."skip_after" => "loops": |c| c.loops[0].skip_after ^= true;
-        "LoopFrame"."cs_depth" => "loops": |c| c.loops[0].cs_depth ^= 1;
-        "LoopFrame"."detached" => "loops": |c| c.loops[0].detached ^= true;
-        "Pending"."slots" => "pending": |c| c.pending.as_mut().unwrap().slots ^= 1;
-        "Pending"."target" => "pending": |c| c.pending.as_mut().unwrap().target ^= 1;
-        "Pending"."call" => "pending": |c| c.pending.as_mut().unwrap().call ^= true;
-    }
-    macro_rules! flags {
-        ($($f:ident),*) => {
-            $(
-                v.push(("Flags", stringify!($f), "flags", |c| c.flags.$f = !c.flags.$f));
-                v.push(("Flags(y)", stringify!($f), "flags_y", |c| c.flags_y.$f = !c.flags_y.$f));
-            )*
-        };
-    }
-    flags!(az, an, av, ac, ai, as_, tf, sz, sv, ss);
-    v
-}
-
-/// A core whose stacks and queues hold one element each, so the rows can change one field of it.
-fn prepared() -> Core {
-    let mut c = Core::new(&[]);
-    c.loops.push(LoopFrame::default());
-    c.pending = Some(Pending {
-        slots: 2,
-        target: 9,
-        call: false,
-    });
-    c.irq.serviced.push(Serviced {
-        vector: 1,
-        status_pushed: false,
-    });
-    c.irq.scheduled.push((1, 1));
-    c.sys.status.push([1, 2, 3]);
-    c.call_stack.push(4);
-    c
-}
-
-/// [`prepared`] with every filler of `gen` applied, from one seed.
-pub(in crate::core) fn prepared_filled(seed: u64) -> Core {
-    let mut c = prepared();
-    let mut rng = Rng::new(seed);
-    fill_state(&mut c, &mut rng, seed.is_multiple_of(2));
-    fill_sticky(&mut c, &mut rng);
-    fill_astat_extra(&mut c, &mut rng);
-    fill_fifo(&mut c, &mut rng);
-    fill_stacks(&mut c, &mut rng, 3, 2);
-    c
-}
 
 /// Field names of `pub struct NAME {` in `src` (rustfmt layout: one field per line, four spaces).
 fn struct_fields(src: &str, name: &str) -> Vec<String> {
@@ -328,9 +209,41 @@ fn compared_names_exist_and_every_comparator_field_is_fed_by_some_core_field() {
 }
 
 #[test]
+fn every_core_field_that_shares_a_compared_name_has_its_own_row() {
+    let rows = nested_rows();
+    let feeders = |n: &str| {
+        let fed = |c: &Cover| matches!(c, Field(m) if *m == n);
+        CORE.iter().filter(|(_, c)| fed(c)).count()
+    };
+    let mut shared = 0;
+    for (field, cover) in CORE {
+        let Field(n) = cover else { continue };
+        if feeders(n) > 1 {
+            shared += 1;
+            assert!(
+                rows.iter().any(|r| (r.0, r.1, r.2) == ("Core", *field, *n)),
+                "{field} shares {n} with another field and has no `Core` row"
+            );
+        }
+    }
+    assert!(
+        shared >= 6,
+        "skipped, device_io and sdram_io are shared: {shared}"
+    );
+    for r in rows.iter().filter(|r| r.0 == "Core") {
+        assert!(
+            CORE.iter()
+                .any(|(f, c)| *f == r.1 && matches!(c, Field(n) if *n == r.2)),
+            "stale `Core` row {}",
+            r.1
+        );
+    }
+}
+
+#[test]
 fn each_nested_perturbation_is_detected_under_its_name_on_zero_and_filled_states() {
     let rows = nested_rows();
-    assert!(rows.len() > 70, "{} rows", rows.len());
+    assert!(rows.len() > 90, "{} rows", rows.len());
     for seed in 0..4u64 {
         for (s, f, name, perturb) in &rows {
             let make = || {

@@ -3,20 +3,26 @@
 //! OWNER: W1-VERIFY. The interpreter is the oracle, so this comparator is deliberately wider than
 //! `Core::state_mismatch` (which cannot see the call stack contents, the loop frames, the pending
 //! delayed branch, the interrupt controller, the timer, the inactive register banks, the bit FIFO
-//! on its own, the float extension of stale registers or the memory). Design 4.6.
+//! on its own, the hidden float extension (`fx_x`, `fx_y`: the raw low byte and its tag, which a
+//! bank swap or a direct register write leaves behind) or the memory). Design 4.6.
 //!
 //! Compared memory (`memory.rs`): SRAM with the short-word alias window, the IOP window, the
 //! dense SDRAM delay-line window, the sparse device store and the ISA-mode word image.
 //!
+//! Peripherals (`periph.rs`): which models are attached and the access census when the host
+//! enabled it. The internal state of a model is not compared (most models cannot be read), so
+//! lockstep on a core with peripherals enables the census on both cores.
+//!
 //! Not compared, with the reason (the list is the `Skip` rows of `coverage.rs`, which fails when a
 //! `Core` field is neither compared nor listed): configuration no instruction writes (`lenient`,
 //! `fast_float`, `sharc_plus`, the scripted `preset` reads), diagnostic logs (`watch_*`,
-//! `rwatch_*`, `trace_*`, `skipped_pcs`, `site_hits`), caches and engines (`decode_cache`,
-//! `code_gen`, `aot_*`, `uop*`, `jit`) and the peripheral models, whose observable traffic is
-//! compared through `device_io`. A core under comparison must be configured alike.
+//! `rwatch_*`, `trace_*`, `skipped_pcs`, `site_hits`) and caches and engines (`decode_cache`,
+//! `code_gen`, `aot_*`, `uop*`, `jit`). A core under comparison must be configured alike.
 //!
 //! Tests: `perturb.rs` perturbs every name of `FIELDS`; `coverage.rs` reads the `Core` source,
-//! lists every field of `Core` and of the structs `exact_diff` opens, and perturbs each of them.
+//! lists every field of `Core` and of the structs `exact_diff` opens, and `rows.rs` perturbs each
+//! sub-field of them, including each member of the shared counter names (`skipped`, `device_io`,
+//! `sdram_io`).
 use crate::core::Core;
 use memory::{device_diff, sdram_diff, slice_diff};
 use std::fmt;
@@ -24,13 +30,16 @@ use std::fmt;
 #[cfg(test)]
 mod coverage;
 mod memory;
+mod periph;
 #[cfg(test)]
 mod perturb;
+#[cfg(test)]
+mod rows;
 
 #[cfg(test)]
-pub(in crate::core) use coverage::{nested_rows, prepared_filled};
-#[cfg(test)]
 pub(in crate::core) use perturb::{perturbations, Perturbation};
+#[cfg(test)]
+pub(in crate::core) use rows::{nested_rows, prepared_filled};
 
 /// The first field in which two cores differ and its two values.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -62,6 +71,8 @@ pub const FIELDS: &[&str] = &[
     "b",
     "f40_x",
     "f40_y",
+    "fx_x",
+    "fx_y",
     "mr",
     "mr_y",
     "fifo",
@@ -101,6 +112,8 @@ pub const FIELDS: &[&str] = &[
     "skipped",
     "device_io",
     "sdram_io",
+    "periph",
+    "periph_log",
     "iop",
     "isa_code",
     "device",
@@ -116,6 +129,17 @@ fn effective_f40(c: &Core, y: bool) -> [u64; 16] {
         let lo = if fx.tag[n] == r[n] { fx.lo[n] } else { 0 };
         u64::from(r[n]) << 8 | u64::from(lo)
     })
+}
+
+/// The hidden float extension as the file keeps it, per register: the raw low byte and, where
+/// that byte is not zero, the tag it belongs to. A stale extension (tag unequal to the register)
+/// reads as zero but a bank swap or a write that does not clear it can make it live again, so two
+/// cores that agree on the effective value can still diverge later. The tag of a zero byte is
+/// left out: live or stale it reads as zero and every writer overwrites or clears both, so no
+/// program can tell the two apart.
+fn raw_ext(c: &Core, y: bool) -> [(u8, u32); 16] {
+    let fx = if y { &c.fx_y } else { &c.fx };
+    std::array::from_fn(|n| (fx.lo[n], if fx.lo[n] != 0 { fx.tag[n] } else { 0 }))
 }
 
 fn banks_of(c: &Core) -> [[u32; 16]; 6] {
@@ -173,6 +197,8 @@ pub fn exact_diff(a: &Core, b: &Core) -> Option<ExactDiff> {
     same!("b", a.b, b.b);
     same!("f40_x", effective_f40(a, false), effective_f40(b, false));
     same!("f40_y", effective_f40(a, true), effective_f40(b, true));
+    same!("fx_x", raw_ext(a, false), raw_ext(b, false));
+    same!("fx_y", raw_ext(a, true), raw_ext(b, true));
     same!("mr", a.mr, b.mr);
     same!("mr_y", a.mr_y, b.mr_y);
     same!("fifo", a.flags.fifo, b.flags.fifo);
@@ -224,6 +250,8 @@ pub fn exact_diff(a: &Core, b: &Core) -> Option<ExactDiff> {
         (a.sdram_reads, a.sdram_writes),
         (b.sdram_reads, b.sdram_writes)
     );
+    same!("periph", periph::models(a), periph::models(b));
+    same!("periph_log", periph::log(a), periph::log(b));
     // the memory images, cheapest first and only when everything before them matched
     slice_diff("iop", &a.iop, &b.iop)
         .or_else(|| slice_diff("isa_code", &a.isa_code, &b.isa_code))
@@ -250,15 +278,71 @@ mod tests {
         assert_eq!((FIELDS[0], FIELDS[FIELDS.len() - 1]), ("pc", "sram"));
     }
 
+    /// A core whose register `n` of PEx holds `r` with the extension `(tag, lo)`.
+    fn with_ext(n: usize, r: u32, tag: u32, lo: u8) -> Core {
+        let mut c = Core::new(&[]);
+        c.r[n] = r;
+        (c.fx.tag[n], c.fx.lo[n]) = (tag, lo);
+        c
+    }
+
     #[test]
-    fn a_stale_float_extension_is_not_a_difference_but_a_live_one_is() {
+    fn a_stale_nonzero_extension_is_a_difference_a_dead_one_is_not() {
+        // stale, same byte, same tag: identical
+        let (a, b) = (with_ext(4, 5, 9, 0xAB), with_ext(4, 5, 9, 0xAB));
+        assert_eq!(exact_diff(&a, &b), None);
+        // stale, the byte differs: the effective value is the same, the hidden state is not
+        let b = with_ext(4, 5, 9, 0);
+        assert_eq!(effective_f40(&a, false), effective_f40(&b, false));
+        let d = exact_diff(&a, &b).expect("the raw byte differs");
+        assert_eq!(d.field, "fx_x", "{d}");
+        // stale, same nonzero byte, another tag: a swap back to either value reads differently
+        let b = with_ext(4, 5, 10, 0xAB);
+        assert_eq!(exact_diff(&a, &b).map(|d| d.field), Some("fx_x"));
+        // a zero byte reads as zero whether the tag matches the register or not
+        let (live, stale) = (with_ext(4, 5, 5, 0), with_ext(4, 5, 9, 0));
+        assert_eq!(exact_diff(&live, &stale), None);
+        // live against stale with the same byte: the effective value differs, reported first
+        let live = with_ext(4, 5, 5, 0xAB);
+        assert_eq!(exact_diff(&live, &a).map(|d| d.field), Some("f40_x"));
+        // the second processing element has its own pair of names
         let (mut a, b) = (Core::new(&[]), Core::new(&[]));
-        a.fx.lo[4] = 9; // tag 0 equals r[4] = 0 here, so the extension is live until r[4] moves
-        a.r[4] = 5;
-        let mut b2 = b;
-        b2.r[4] = 5;
-        assert_eq!(exact_diff(&a, &b2), None, "stale lo reads as zero in both");
-        a.fx.tag[4] = 5;
-        assert_eq!(exact_diff(&a, &b2).map(|d| d.field), Some("f40_x"));
+        (a.fx_y.tag[7], a.fx_y.lo[7]) = (9, 3); // stale: S7 is 0
+        assert_eq!(exact_diff(&a, &b).map(|d| d.field), Some("fx_y"));
+    }
+
+    #[test]
+    fn a_handler_that_clears_a_stale_extension_the_interpreter_keeps_is_caught_at_once() {
+        // R3 holds the float F with the extension 0xAB (live); the secondary file holds X.
+        const F: u32 = 0x3F80_0000;
+        // VERIFIED: SRRFL is MODE1 bit 10 and exchanges R0-R7 and S0-S7 with the inactive file
+        // (`banks.rs` FILE_SETS); the assertion on `banks.r[3]` below fails if that changes.
+        const SRRFL: u32 = 1 << 10;
+        let make = || {
+            let mut c = Core::new(&[]);
+            c.r[3] = F;
+            c.banks.r[3] = 0x4000_0000;
+            (c.fx.tag[3], c.fx.lo[3]) = (F, 0xAB);
+            c
+        };
+        let (mut interp, mut uop) = (make(), make());
+        for c in [&mut interp, &mut uop] {
+            c.set_mode1(c.mode1 ^ SRRFL); // R3 now holds X, the extension is stale and still 0xAB
+        }
+        assert_eq!((interp.r[3], interp.banks.r[3]), (0x4000_0000, F));
+        assert_eq!((interp.banks.r[3], interp.fx.lo[3]), (F, 0xAB));
+        uop.fx.lo[3] = 0; // the handler cleared it
+        assert_eq!(
+            effective_f40(&interp, false),
+            effective_f40(&uop, false),
+            "the effective view that state_mismatch reads is blind to this"
+        );
+        let d = exact_diff(&interp, &uop).expect("the hidden byte differs");
+        assert_eq!(d.field, "fx_x", "{d}");
+        // the swap back would have made the difference architectural
+        for c in [&mut interp, &mut uop] {
+            c.set_mode1(c.mode1 ^ SRRFL);
+        }
+        assert_eq!(exact_diff(&interp, &uop).map(|d| d.field), Some("f40_x"));
     }
 }

@@ -1,6 +1,7 @@
 //! State fillers: registers, flags and float MODE1 bits ([`fill_state`], unchanged since the
 //! skeleton so recorded seeds keep their meaning) and the hidden state that decides a flag or an
-//! exception: the sticky bits, the ASTAT extras, the shifter bit FIFO and the stacks.
+//! exception: the sticky bits, the ASTAT extras, the shifter bit FIFO, the stacks and the float
+//! extensions that belong to an older value of their register.
 //! OWNER: W1-VERIFY.
 //!
 //! The hidden-state fillers go through the same writes a program makes (the universal register
@@ -56,6 +57,48 @@ pub fn fill_state(c: &mut Core, rng: &mut Rng, simd: bool) {
     c.mode1 = (c.mode1 & !(float_bits | (1 << 21))) | (rng.next_u32() & float_bits);
     if simd {
         c.mode1 |= 1 << 21;
+    }
+}
+
+/// Leaves float extensions that belong to an older value of their register: a nonzero low byte
+/// whose tag is not the register's value, in both processing elements. `fill_state` builds live
+/// extensions (tag equal to the register) or none, so this state is never reached from it, yet the
+/// interpreter reaches it: a bank swap (`SRRFL`, `SRRFH`) exchanges `r` and `s` with the inactive
+/// file but not the extension, and a direct register write leaves the byte behind. Swapping back
+/// makes the extension live again, which is why a handler that clears it too early differs only
+/// later.
+///
+/// Every register of a file is stale with probability 1/4, and one register per file always is, so
+/// a family fuzz that wants the state has it from every seed. Half of the stale registers are tied
+/// to the swap: the inactive copy of the register holds the tag, so exchanging the file brings the
+/// extension back to life. The tag is an edge word or random, never the register's own value.
+/// ASSUMED: the 1/4 and 1/2 weights are plain mixes; `stale_extension_filler_...` shows every
+/// seed gets a stale register per file and that the tied ones come alive on a swap.
+pub fn fill_stale_ext(c: &mut Core, rng: &mut Rng) {
+    let files = [
+        (&c.r, &mut c.banks.r, &mut c.fx),
+        (&c.s, &mut c.banks.s, &mut c.fx_y),
+    ];
+    for (live, inactive, fx) in files {
+        let forced = rng.below(16) as usize;
+        for n in 0..16 {
+            if n != forced && rng.below(4) != 0 {
+                continue;
+            }
+            let mut tag = if rng.below(2) == 0 {
+                edge_word(rng)
+            } else {
+                rng.next_u32()
+            };
+            if tag == live[n] {
+                tag ^= 1;
+            }
+            if rng.below(2) == 0 {
+                inactive[n] = tag;
+            }
+            fx.tag[n] = tag;
+            fx.lo[n] = 1 + rng.below(255) as u8;
+        }
     }
 }
 
@@ -241,6 +284,51 @@ mod tests {
         let mut c = Core::new(&[]);
         fill_fifo(&mut c, &mut Rng::new(5));
         assert_ne!(c.flags.fifo, c.flags_y.fifo, "the two PEs draw separately");
+    }
+
+    #[test]
+    fn stale_extension_filler_leaves_dead_bytes_that_a_bank_swap_brings_back() {
+        const SWAP_BOTH_HALVES: u32 = 1 << 10 | 1 << 7; // SRRFL and SRRFH
+        let (mut stale, mut tied) = (0, 0);
+        for seed in 1..40 {
+            let mut c = Core::new(&[]);
+            fill_stale_ext(&mut c, &mut Rng::new(seed));
+            for (r, fx) in [(&c.r, &c.fx), (&c.s, &c.fx_y)] {
+                let dead: Vec<usize> = (0..16).filter(|&n| fx.lo[n] != 0).collect();
+                assert!(
+                    !dead.is_empty(),
+                    "seed {seed}: a stale register in each file"
+                );
+                for &n in &dead {
+                    assert_ne!(fx.tag[n], r[n], "seed {seed}: R{n} is stale");
+                }
+                stale += dead.len();
+            }
+            // nothing is live, so the effective 40-bit values are the plain registers
+            assert!((0..16).all(|n| c.f40(n) == u64::from(c.r[n]) << 8));
+            let (inactive, tag, lo) = (c.banks.r, c.fx.tag, c.fx.lo);
+            c.set_mode1(c.mode1 ^ SWAP_BOTH_HALVES);
+            for n in (0..16).filter(|&n| lo[n] != 0 && inactive[n] == tag[n]) {
+                assert_eq!(c.r[n], tag[n], "seed {seed}: the swap brought the tag back");
+                assert_eq!(
+                    c.f40(n) & 0xFF,
+                    u64::from(lo[n]),
+                    "seed {seed}: R{n} is live"
+                );
+                tied += 1;
+            }
+        }
+        assert!(stale > 100 && tied > 30, "stale {stale}, tied {tied}");
+    }
+
+    #[test]
+    fn stale_extension_filler_is_deterministic_per_seed_and_seeds_differ() {
+        let (mut a, mut b) = (Core::new(&[]), Core::new(&[]));
+        fill_stale_ext(&mut a, &mut Rng::new(11));
+        fill_stale_ext(&mut b, &mut Rng::new(11));
+        assert_eq!(exact_diff(&a, &b), None);
+        fill_stale_ext(&mut b, &mut Rng::new(12));
+        assert_eq!(exact_diff(&a, &b).map(|d| d.field), Some("fx_x"));
     }
 
     #[test]
