@@ -4,12 +4,23 @@
 //! semantics of the `0 | 1` case of `Cpu::arm_mul`. With S the N and Z flags come from the
 //! result and C and V are left alone (ARMv5). `rd`, `rn` (the accumulator), `rm` and `rs` are
 //! registers `0..=14` (I2), every source is read before `rd` is written, so `rd == rm`,
-//! `rd == rs` and `rn == rd` are all exact. No kind id exists for it yet: the design keeps
-//! multiplies `GENERIC` and reserves ids `108..=111`, so [`exec_dp`](super::exec_dp) does not
-//! dispatch here. When ids are allocated the executor arm is `exec_mul::<ACC, S>(r, f, u)` and
-//! the lowerer fills `u.rd` (instruction bits 19..16), `u.rn` (15..12), `u.rs` (11..8), `u.rm`.
+//! `rd == rs` and `rn == rd` are all exact. The lowerer fills `u.rd` (instruction bits 19..16),
+//! `u.rn` (15..12), `u.rs` (11..8), `u.rm` (3..0).
 //!
-//! Mutation sites 314 and 315 (see `MUTANTS` in the parent module).
+//! Entry points: [`exec_mul`] is the const-generic arm (`ACC`, `S` known statically), and
+//! [`exec_mul_with`] the same arm with `(acc, s)` as run-time flags, so a caller that learns the
+//! pair from a kind id needs no const-generic dispatch of its own.
+//!
+//! Reachability: the frozen contract allocates no kind id for multiplies (`uop.rs` note, `k.rs`:
+//! ids `108..=111` are reserved and `unreachable!` in an executor), so [`exec_dp`](super::exec_dp)
+//! does not dispatch here and `k::family` maps no id to this arm; a guest `mul` is `GENERIC`
+//! today. Making it reachable takes edits to files this package does not own: allocate the ids
+//! (`uop/k.rs`: constants, `family`, `DEFINED`, `COUNT`), route multiplies out of
+//! `LowerFamily::Generic` (`decode.rs::lower_family`), emit them in `lower_dp.rs`, and call
+//! `exec_mul_with` from the `run_sb` arm (`exec.rs`). Until then `W2-NDP` has no kind to lower
+//! for `mul`.
+//!
+//! Mutation sites 314, 315 and 316 (see `MUTANTS` in the parent module).
 
 use super::{mutant, nz, put, reg, Regs};
 use crate::machine::sb::uop::Uop;
@@ -26,6 +37,18 @@ pub fn exec_mul<const ACC: bool, const S: bool>(r: &mut Regs, f: &mut u8, u: &Uo
     put(r, u.rd, v);
     if S && !mutant(315) {
         *f = nz(v) | (*f & 3);
+    }
+}
+
+/// [`exec_mul`] with `(acc, s)` chosen at run time: `acc` selects `MLA`, `s` the flag-setting form.
+#[inline]
+pub fn exec_mul_with(r: &mut Regs, f: &mut u8, u: &Uop, acc: bool, s: bool) {
+    let (acc, s) = if mutant(316) { (s, acc) } else { (acc, s) };
+    match (acc, s) {
+        (false, false) => exec_mul::<false, false>(r, f, u),
+        (true, false) => exec_mul::<true, false>(r, f, u),
+        (false, true) => exec_mul::<false, true>(r, f, u),
+        (true, true) => exec_mul::<true, true>(r, f, u),
     }
 }
 
@@ -85,6 +108,13 @@ mod tests {
                 "mul acc {ACC} s {S} {u:?}: got r {r:x?} f {f:04b}, want r {:x?} f {:04b}",
                 want.r,
                 want.nzcv()
+            ));
+        }
+        let (mut r2, mut f2) = (cpu.r, pack_flags(cpu));
+        exec_mul_with(&mut r2, &mut f2, u, ACC, S);
+        if (r2, f2) != (r, f) {
+            return Err(format!(
+                "exec_mul_with({ACC}, {S}) differs from exec_mul {u:?}"
             ));
         }
         seen.cases += 1;

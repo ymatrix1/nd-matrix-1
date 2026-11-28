@@ -18,9 +18,11 @@
 //!   and `imm` or `rm`; `TST_IMM` follows the form-0 `sh` bit 0 convention, `TST_REG` leaves C;
 //! * `r15` is never read or written (I2): every register field is `0..=14` (`debug_assert!`).
 //!
-//! `exec_mul` (child module `mul`) is the MUL/MLA arm. No kind id exists for it yet (the design
-//! keeps multiplies `GENERIC`, ids `108..=111` are reserved), so `exec_dp` does not dispatch to
-//! it; it is complete and tested so that allocating the ids later is a one-line registration.
+//! `exec_mul` / `exec_mul_with` (child module `mul`) are the MUL/MLA arm. No kind id exists for
+//! it (the frozen contract keeps multiplies `GENERIC`, ids `108..=111` are reserved), so
+//! `exec_dp` does not dispatch to it and it is not reachable from `run_sb`: that takes edits to
+//! files this package does not own, listed in `mul.rs`. The arm is complete and tested so that
+//! allocating the ids later is one call.
 //!
 //! Registered statically in `exec::run_sb` (family `k::Family::Dp`). The signature is frozen.
 //!
@@ -40,7 +42,7 @@ use super::uop::{k, Uop};
 use crate::cpu::alu::{add_c, shift};
 
 mod mul;
-pub use mul::exec_mul;
+pub use mul::{exec_mul, exec_mul_with};
 
 #[cfg(test)]
 mod diff;
@@ -83,6 +85,7 @@ pub(crate) const MUTANTS: &[(u32, &str)] = &[
     (313, "tst_reg_clears_c"),
     (314, "mla_drops_accumulator"),
     (315, "muls_flags_not_written"),
+    (316, "mul_with_swaps_acc_and_s"),
 ];
 
 /// Register `i` (`0..=14`).
