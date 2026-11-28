@@ -232,13 +232,25 @@ fn render_hash(
 /// VERIFIED: recorded by running this test body on `main` before the bridge existed
 /// (same `render_hash` body in a scratch test binary, printed `0x7fbcedeaa5919a1c`), 2 channels x
 /// 48 blocks x 128 frames at 48 kHz, default scene, OmniSplit.
+/// Float output differs between platforms (libm, FMA), so the recorded value is only checked on
+/// Linux x86_64 (macOS CI printed another hash for the same script); every platform compares the
+/// bridge variants against a baseline rendered in the same process instead.
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 const GOLDEN_HASH: u64 = 0x7fbc_edea_a591_9a1c;
+
+/// Hash of the script with the bridge off, rendered here (the path without the bridge).
+fn baseline_hash() -> u64 {
+    let mut plugin = activate();
+    assert_eq!(plugin.lle.state(), BridgeState::Off);
+    render_hash(&mut plugin, |_, _| {})
+}
 
 #[test]
 fn bridge_off_is_byte_identical_to_the_path_without_it() {
-    let mut plugin = activate();
-    assert_eq!(plugin.lle.state(), BridgeState::Off);
-    assert_eq!(render_hash(&mut plugin, |_, _| {}), GOLDEN_HASH);
+    let first = baseline_hash();
+    assert_eq!(first, baseline_hash(), "the render is deterministic");
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    assert_eq!(first, GOLDEN_HASH, "differs from the hash recorded on main");
 }
 
 #[test]
@@ -251,7 +263,7 @@ fn requested_without_an_engine_keeps_the_normal_engine_and_the_same_audio() {
         plugin.lle.status_text(),
         Some("LLE engine not available in this build")
     );
-    assert_eq!(render_hash(&mut plugin, |_, _| {}), GOLDEN_HASH);
+    assert_eq!(render_hash(&mut plugin, |_, _| {}), baseline_hash());
     assert_eq!(plugin.lle.overflow_count(), 0);
 }
 
@@ -266,7 +278,7 @@ fn an_active_bridge_does_not_change_the_audio_and_keeps_sample_offsets() {
         drain_stamped(&mut fake, &mut ends.events);
         assert_eq!(p.lle.overflow_count(), 0);
     });
-    assert_eq!(hash, GOLDEN_HASH, "forwarding must not touch the audio");
+    assert_eq!(hash, baseline_hash(), "forwarding must not touch the audio");
     // Block-relative offsets and order, exactly as the script sent them.
     let offsets: Vec<u32> = fake.log().iter().map(|e| e.0).collect();
     assert_eq!(offsets, [0, 37, 90, 5, 20, 20, 1, 50, 127, 0]);

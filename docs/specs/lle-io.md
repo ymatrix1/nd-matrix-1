@@ -81,7 +81,7 @@ Bridge tests:
 |---|---|
 | `lle_bridge::tests::*` | off by default; `engine_select` precedence (env over saved, unknown value off); unavailable state forwards nothing; order and offsets of every forwarded kind; wildcard and polyphonic pressure dropped; overflow counted and one resync; moved parameter becomes one panel event; loopback telemetry reaches the reader |
 | `lle_bridge::stamped::tests::*`, `fake::tests::*` | wire round trip with offsets, no event uses the offset bytes, bounded drain, fake log and loopback |
-| `tests/lle_bridge.rs` `bridge_off_is_byte_identical_to_the_path_without_it` | 2 x 48 x 128 frames of a fixed MIDI script hash to `GOLDEN_HASH`, recorded on `main` before the bridge existed |
+| `tests/lle_bridge.rs` `bridge_off_is_byte_identical_to_the_path_without_it` | 2 x 48 x 128 frames of a fixed MIDI script hash to the bridge-off baseline rendered in the same process (also `GOLDEN_HASH`, recorded on `main`, checked on Linux x86_64 only: float output differs on macOS) |
 | `tests/lle_bridge.rs` `requested_without_an_engine_...`, `an_active_bridge_does_not_change_the_audio_...` | same hash with the bridge unavailable or active; script offsets `[0, 37, 90, 5, 20, 20, 1, 50, 127, 0]` reach the backend in order |
 | `tests/lle_bridge.rs` `a_flooded_ring_...`, `process_with_an_active_bridge_...allocates_nothing` | 64 events into 4 slots: 60 counted, `process()` returns; 300 blocks with an attached backend and telemetry polling make 0 allocator calls |
 
