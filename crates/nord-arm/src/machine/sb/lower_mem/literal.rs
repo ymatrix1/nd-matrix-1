@@ -97,8 +97,11 @@ pub(super) fn lower(cx: &mut LowerCtx<'_>) -> Option<Uop> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::semantics::{check_on, unmutated};
     use super::*;
-    use crate::machine::sb::decode::decode;
+    use crate::machine::sb::decode::{decode, lower_or_generic, Lowered};
+    use crate::machine::sb::testkit::{random_cpu, Rng};
+    use crate::machine::sb::trace::BuildOpts;
 
     #[test]
     fn the_loaded_value_follows_the_interpreter_rotate_align_and_extend_rules() {
@@ -145,6 +148,46 @@ mod tests {
             0xE19F_00B1, // ldrh r0,[pc,r1]  (register offset)
         ] {
             assert_eq!(lit(no), None, "{no:#010x}");
+        }
+    }
+
+    /// A literal that writes `pc` back is not one: `lower` declines before it calls `fold`, and
+    /// the registry emits `GENERIC`. The same word without the write-back folds and equals
+    /// `Cpu::step`, so the decline is the write-back's doing and not a refusal of every literal.
+    #[test]
+    fn a_literal_load_that_writes_the_pc_back_stays_generic_where_the_plain_one_folds() {
+        let mut rng = Rng::new(0x79);
+        let opts = BuildOpts {
+            fold_literals: true,
+            ..BuildOpts::default()
+        };
+        for (plain, pre_wb, post) in [
+            (0xE59F_0004, 0xE5BF_0004, 0xE49F_0004), // ldr r0,[pc,#4] | [pc,#4]! | [pc],#4
+            (0xE55F_0004, 0xE57F_0004, 0xE45F_0004), // ldrb r0,[pc,#-4] | ! | post-indexed
+            (0xE1DF_00B2, 0xE1FF_00B2, 0xE0DF_00B2), // ldrh r0,[pc,#2] | ! | post-indexed
+        ] {
+            for pc in [0x1000, 0xC000_0FFC, 0xFFFF_FFF8] {
+                let (seed, cpu) = (rng.next(), random_cpu(&mut rng, pc));
+                let seen = check_on(plain, cpu.clone(), seed, true, unmutated)
+                    .unwrap_or_else(|e| panic!("{e}"));
+                assert!(seen.is_some_and(|s| s.folded), "{plain:#010x} at {pc:#x}");
+                for word in [pre_wb, post] {
+                    let mut out = Vec::new();
+                    let mut fold =
+                        |a: u32| -> Option<u32> { panic!("fold({a:#x}) for {word:#010x}") };
+                    let lowered = lower_or_generic(&mut LowerCtx {
+                        insn: decode(pc, word),
+                        out: &mut out,
+                        fold: &mut fold,
+                        opts: &opts,
+                    });
+                    assert_eq!(lowered, Lowered::Generic, "{word:#010x} at {pc:#x}");
+                    assert_eq!(out, vec![Uop::generic(word, pc, 0)]);
+                    let seen = check_on(word, cpu.clone(), seed, true, unmutated)
+                        .unwrap_or_else(|e| panic!("{e}"));
+                    assert!(seen.is_none(), "{word:#010x} must not lower");
+                }
+            }
         }
     }
 }

@@ -3,8 +3,9 @@
 //! uops, because the real executor belongs to W1-XMEM). Every test counts what it exercised and
 //! asserts a floor, and one test proves the comparator catches a wrongly packed field.
 
-use super::words::{block, half, literal, single, wild};
+use super::words::{block, half, literal, rrx, single, wild};
 use super::{model, FLAG_P, FLAG_U, FLAG_WB, MUTANTS};
+use crate::cpu::Cpu;
 use crate::machine::sb::config::SbConfig;
 use crate::machine::sb::decode::{decode, lower_or_generic, LowerCtx, Lowered};
 use crate::machine::sb::mutants;
@@ -14,12 +15,12 @@ use crate::machine::sb::uop::{holds, k, Uop};
 
 /// What one lowered case did.
 #[derive(Default, Clone, Copy, Debug)]
-struct Seen {
-    loads: u32,
-    stores: u32,
-    wrote_back: bool,
-    skipped: bool,
-    folded: bool,
+pub(super) struct Seen {
+    pub(super) loads: u32,
+    pub(super) stores: u32,
+    pub(super) wrote_back: bool,
+    pub(super) skipped: bool,
+    pub(super) folded: bool,
 }
 
 #[derive(Default, Debug)]
@@ -50,11 +51,11 @@ impl Tally {
 /// A deliberate corruption of the lowered uops (the comparator test).
 type Mutation = fn(&mut [Uop]);
 
-fn unmutated(_: &mut [Uop]) {}
+pub(super) fn unmutated(_: &mut [Uop]) {}
 
 /// `word` at `pc` on a random state from `rng`: the registry's uops (after `mutate`) under the
 /// model against `Cpu::step`. `Ok(None)` when the registry left it to `GENERIC`.
-fn check(
+pub(super) fn check(
     word: u32,
     pc: u32,
     rng: &mut Rng,
@@ -63,6 +64,18 @@ fn check(
 ) -> Result<Option<Seen>, String> {
     let seed = rng.next();
     let cpu = random_cpu(rng, pc);
+    check_on(word, cpu, seed, fold, mutate)
+}
+
+/// [`check`] on the given state `cpu` (its `r15` is the instruction's address) and bus fill `seed`.
+pub(super) fn check_on(
+    word: u32,
+    cpu: Cpu,
+    seed: u32,
+    fold: bool,
+    mutate: Mutation,
+) -> Result<Option<Seen>, String> {
+    let pc = cpu.r[15];
     // three equal memories, each holding the instruction itself (a load may read its own word)
     let (mut ba, mut bb, mut oracle) = (LogBus::new(seed), LogBus::new(seed), LogBus::new(seed));
     for bus in [&mut ba, &mut bb, &mut oracle] {
@@ -89,6 +102,10 @@ fn check(
     ca.step(&mut ba)
         .map_err(|f| format!("{word:#010x}: {f:?}"))?;
     let (mut cb, mut i, mut seen) = (cpu.clone(), 0, Seen::default());
+    // A straight-line instruction leaves the pc at the next word, and no memory uop writes `r15`
+    // (I2), so the model starts there: a uop that wrote the pc (a write-back of `pc`), or an
+    // instruction the interpreter takes as a jump, then shows as a difference in `r15`.
+    cb.r[15] = pc.wrapping_add(4);
     let flags = cb.nzcv() as u8;
     while i < out.len() {
         let u = out[i];
@@ -98,12 +115,12 @@ fn check(
                 seen.skipped = true;
             }
         } else {
-            model::run(&mut cb.r, cb.c, &mut bb, &u);
+            model::run(&mut cb.r, &mut bb, &u);
         }
         i += 1;
     }
     let what = format!("{word:#010x} at {pc:#x} lowered to {out:?}");
-    if ca.r[..15] != cb.r[..15] {
+    if ca.r != cb.r {
         return Err(format!("{what}: registers {:x?} != {:x?}", ca.r, cb.r));
     }
     seen.folded = out.iter().any(|u| u.kind == k::MOV_IMM);
@@ -302,6 +319,24 @@ fn the_comparison_catches_a_wrongly_packed_field() {
     }
 }
 
+#[test]
+fn the_comparison_sees_a_uop_that_writes_the_pc() {
+    // `ldr r0,[pc,#4]` folds to `MOV_IMM r0 = v`. r0 already holds v, so the mutant that retargets
+    // the uop to r15 leaves r0..r14 equal and only the comparison of r15 can tell it apart.
+    fn rd_pc(v: &mut [Uop]) {
+        v.iter_mut().for_each(|u| u.rd = 15);
+    }
+    let (pc, word, seed) = (0x1000, 0xE59F_0004, 0x77);
+    let v = LogBus::new(seed).peek32(pc + 12);
+    assert_ne!(v, pc + 4, "the literal must not equal the next pc");
+    let mut cpu = random_cpu(&mut Rng::new(0x77), pc);
+    cpu.r[0] = v;
+    let good = check_on(word, cpu.clone(), seed, true, unmutated);
+    assert!(matches!(good, Ok(Some(s)) if s.folded), "{good:?}");
+    let err = check_on(word, cpu, seed, true, rd_pc).expect_err("a write to the pc must show");
+    assert!(err.contains("registers"), "{err}");
+}
+
 /// The semantic checks of this package as one oracle: the first divergence is the `Err`.
 fn suite(rounds: u32) -> Result<(), String> {
     let mut rng = Rng::new(0x75);
@@ -315,6 +350,14 @@ fn suite(rounds: u32) -> Result<(), String> {
         let (word, pc) = (wild(&mut rng), pick_pc(&mut rng));
         check(word, pc, &mut rng, round % 2 == 0, unmutated)
             .map_err(|e| format!("{round}: {e}"))?;
+        // RRX needs the carry flag no memory uop has: it never lowers (mutant 124 lowers it, and
+        // the model then refuses it)
+        let (word, pc) = (rrx(&mut rng), pick_pc(&mut rng));
+        let seen =
+            check(word, pc, &mut rng, true, unmutated).map_err(|e| format!("{round}: {e}"))?;
+        if seen.is_some() {
+            return Err(format!("{round}: the RRX word {word:#010x} was lowered"));
+        }
     }
     Ok(())
 }

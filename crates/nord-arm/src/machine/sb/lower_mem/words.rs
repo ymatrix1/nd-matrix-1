@@ -36,7 +36,18 @@ pub(super) fn single(rng: &mut Rng, load: bool, byte: bool, reg: bool) -> (u32, 
     ];
     let (p, u, w) = (rng.chance(2), rng.chance(2), rng.chance(2));
     let (rn, rd, rm) = (rng.below(15), rng.below(15), rng.below(15));
-    let (ty, amount, off) = (rng.below(4), rng.below(32), offset(rng, 12));
+    let ty = rng.below(4);
+    // Boundary amounts get extra weight: LSR #0 and ASR #0 (= 32) and the largest amount.
+    let mut amount = if rng.chance(6) {
+        rng.pick(&[0, 1, 31])
+    } else {
+        rng.below(32)
+    };
+    if reg && ty == 3 && amount == 0 {
+        // ROR #0 is RRX: it needs the carry flag and is never lowered (`rrx` builds those words)
+        amount = 1 + rng.below(31);
+    }
+    let off = offset(rng, 12);
     let low = if reg { amount << 7 | ty << 5 | rm } else { off };
     let word = cond(rng)
         | 1 << 26
@@ -57,6 +68,41 @@ pub(super) fn single(rng: &mut Rng, load: bool, byte: bool, reg: bool) -> (u32, 
         want.imm = off;
     }
     (word, want)
+}
+
+/// The six forms of a register-offset word/byte transfer that carry `ROR #0` (RRX), the one shift
+/// `lower_mem` leaves to the interpreter: `ldr`, `str`, `ldrb`, `strb` pre-indexed, `ldr` with
+/// write-back and `ldr` post-indexed, all `[r1, r2, rrx]`.
+pub(super) const RRX: [(u32, &str); 6] = [
+    (0xE791_0062, "ldr r0,[r1,r2,rrx]"),
+    (0xE781_0062, "str r0,[r1,r2,rrx]"),
+    (0xE7D1_0062, "ldrb r0,[r1,r2,rrx]"),
+    (0xE7C1_0062, "strb r0,[r1,r2,rrx]"),
+    (0xE7B1_0062, "ldr r0,[r1,r2,rrx]! (write-back)"),
+    (0xE691_0062, "ldr r0,[r1],r2,rrx (post-indexed)"),
+];
+
+/// A random register-offset word/byte transfer with `ROR #0` (RRX) and every register field below
+/// r15, so the shift is the only reason for it to stay `Generic`.
+pub(super) fn rrx(rng: &mut Rng) -> u32 {
+    let (p, u, byte, w, load) = (
+        rng.chance(2),
+        rng.chance(2),
+        rng.chance(2),
+        rng.chance(2),
+        rng.chance(2),
+    );
+    cond(rng)
+        | 3 << 25
+        | (p as u32) << 24
+        | (u as u32) << 23
+        | (byte as u32) << 22
+        | (w as u32) << 21
+        | (load as u32) << 20
+        | rng.below(15) << 16
+        | rng.below(15) << 12
+        | 3 << 5
+        | rng.below(15)
 }
 
 /// A halfword, signed or double transfer; `sh` is the `S H` field (1 `H`, 2 `S`, 3 `SH`) and
@@ -198,6 +244,51 @@ mod tests {
                 ops(w),
                 op::LDR | op::LDRB | op::STR | op::STRB | op::LDM | op::HALF
             ));
+            assert!(matches!(
+                ops(rrx(&mut rng)),
+                op::LDR | op::LDRB | op::STR | op::STRB
+            ));
+        }
+        for (word, why) in RRX {
+            assert!(matches!(ops(word), op::LDR | op::LDRB | op::STR | op::STRB));
+            assert_eq!(
+                (word >> 25 & 1, word >> 4 & 1),
+                (1, 0),
+                "{why}: register offset"
+            );
+            assert_eq!((word >> 5 & 3, word >> 7 & 0x1F), (3, 0), "{why}: ROR #0");
+        }
+    }
+
+    #[test]
+    fn register_offsets_never_draw_ror_by_zero_and_do_draw_the_other_zero_shifts() {
+        let mut rng = Rng::new(0x9B);
+        // (type, amount) pairs seen over 4,000 register-offset words
+        let mut seen = std::collections::BTreeSet::new();
+        for i in 0..4_000 {
+            let (word, want) = single(&mut rng, i % 2 == 0, i % 3 == 0, true);
+            let (ty, amount) = (word >> 5 & 3, word >> 7 & 0x1F);
+            assert!(!(ty == 3 && amount == 0), "{word:#010x} is RRX");
+            assert_eq!(want.sh as u32, ty << 5 | amount, "{word:#010x}");
+            seen.insert((ty, amount));
+        }
+        for pair in [
+            (0, 0),
+            (1, 0),
+            (2, 0),
+            (3, 1),
+            (3, 31),
+            (0, 31),
+            (1, 31),
+            (2, 31),
+        ] {
+            assert!(seen.contains(&pair), "{pair:?} never drawn: {seen:?}");
+        }
+        assert!(!seen.contains(&(3, 0)));
+        // the RRX generator draws the shift the other one never does
+        for _ in 0..200 {
+            let word = rrx(&mut rng);
+            assert_eq!((word >> 5 & 3, word >> 7 & 0x1F), (3, 0), "{word:#010x}");
         }
     }
 

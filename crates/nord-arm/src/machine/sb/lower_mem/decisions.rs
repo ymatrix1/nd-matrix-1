@@ -4,8 +4,8 @@
 //! the word), plus explicit lists of the forms that must be rejected. Semantics are in
 //! `semantics.rs`.
 
-use super::lower_mem;
-use super::words::{block, half, literal, single, wild, PC};
+use super::words::{block, half, literal, rrx, single, wild, PC, RRX};
+use super::{lower_mem, FLAG_P, FLAG_U};
 use crate::machine::sb::decode::{decode, lower_or_generic, touches_r15, LowerCtx, Lowered};
 use crate::machine::sb::testkit::Rng;
 use crate::machine::sb::trace::BuildOpts;
@@ -165,8 +165,37 @@ fn forms_the_interpreter_must_run_stay_generic_and_push_nothing() {
         (0xE8AF_0002, "stmia pc!,{r1}"),
         (0xE001_0092, "mul r1,r2,r0 (no kind id)"),
         (0xF57F_F05F, "the unconditional space"),
-    ] {
+    ]
+    .into_iter()
+    // ldr/str/ldrb/strb with a `ROR #0` register offset, RRX: the carry flag is an input no
+    // memory uop has (pre-indexed, with write-back, post-indexed)
+    .chain(RRX)
+    {
         assert_eq!(lower(word), (Lowered::Generic, vec![]), "{why}");
+    }
+}
+
+#[test]
+fn lsr_and_asr_by_zero_register_offsets_still_lower_raw_and_only_ror_by_zero_is_refused() {
+    let uop = |sh: u8| {
+        let mut u = Uop::new(k::LDR_REG, PC);
+        (u.rd, u.rn, u.rm, u.rs, u.sh) = (0, 1, 2, FLAG_U | FLAG_P, sh);
+        u
+    };
+    assert_lowers_to(0xE791_0002, uop(0x00)); // ldr r0,[r1,r2]  (lsl #0)
+    assert_lowers_to(0xE791_0022, uop(0x20)); // ldr r0,[r1,r2,lsr #0]  (= lsr #32)
+    assert_lowers_to(0xE791_0042, uop(0x40)); // ldr r0,[r1,r2,asr #0]  (= asr #32)
+    assert_lowers_to(0xE791_00E2, uop(0x61)); // ldr r0,[r1,r2,ror #1]
+    assert_lowers_to(0xE791_0FE2, uop(0x7F)); // ldr r0,[r1,r2,ror #31]
+    assert_eq!(lower(0xE791_0062), (Lowered::Generic, vec![])); // ror #0 = rrx
+}
+
+#[test]
+fn rrx_stays_generic_whatever_else_the_word_says() {
+    let mut rng = Rng::new(0x45);
+    for _ in 0..COUNT {
+        let word = rrx(&mut rng);
+        assert_eq!(lower(word), (Lowered::Generic, vec![]), "{word:#010x}");
     }
 }
 
