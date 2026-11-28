@@ -242,11 +242,11 @@ mod tests {
         assert_eq!(h.handlers.len(), usize::from(UopKind::MAX));
         assert_eq!(h.page_blocks.len(), crate::core::uop::run::CODE_PAGES);
         assert_eq!((h.pcmaps[0].leaves(), h.pcmaps[1].leaves()), (0, 0));
-        // the BAIL slot is the explicit bail handler; unknown slots fall back the same way
-        assert_eq!(
-            addr(h.handlers[usize::from(UopKind::BAIL.0)]),
-            addr(bail_handler)
-        );
+        // the BAIL slot is the explicit bail handler: it answers `Exit::Slow`. Handler addresses
+        // are not compared (separately named uses of one fn may differ across codegen units).
+        let bail = h.handlers[usize::from(UopKind::BAIL.0)];
+        let r = unsafe { bail(std::ptr::null_mut(), std::ptr::null()) };
+        assert_eq!(r, crate::core::uop::types::Exit::Slow as u32);
     }
 
     #[test]
