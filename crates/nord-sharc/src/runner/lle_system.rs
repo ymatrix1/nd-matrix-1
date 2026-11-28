@@ -6,7 +6,7 @@
 //!
 //! | Preset | Node | Frames per pass | Runs |
 //! |---|---|---|---|
-//! | `org`, `pno` | [`CoreNode`], output pointer set 0 pair 0 (`OutTap::Lane`) | 2 out | every tick |
+//! | `org`, `pno` | [`CoreNode`], output pointer set 2 pair 0 (`OutTap::Lane`, VERIFIED `pno-full-pass.md` s1) | 2 out | every tick |
 //! | `sy`, `smp` | [`SyNode`] (2 audio interrupts per pass) | 2 out | every tick |
 //! | `fx1`, `fx2` | [`CoreNode`], input at `FxCore::input_base`, master words out | 4 in, 4 out | every 2nd tick |
 //!
@@ -121,7 +121,7 @@ pub fn wrap_node(
         None => Box::new(CoreNode::new(
             job,
             None,
-            OutTap::Lane { set: 0, pair: 0 },
+            OutTap::Lane { set: 2, pair: 0 },
             1,
         )),
     })

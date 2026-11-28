@@ -15,6 +15,7 @@ use crate::route::{Action, Router};
 use crate::smp_refill::{bind_flash, SmpRefill};
 use nord_arm::machine::system::Message;
 use nord_core::lle_io::{LleEvent, LleInput, LleTelemetry, TelemetrySnapshot};
+use nord_sharc::core::Core;
 use nord_sharc::runner::audio_bus::{AudioBus, BusNode, Route, Stereo};
 use nord_sharc::runner::live_flash;
 use std::time::Instant;
@@ -53,6 +54,18 @@ pub struct Stats {
     pub events_midi: u64,
     pub events_panel: u64,
     pub events_unmodelled: u64,
+    /// SMP descriptors whose directory index could not be placed (skipped, not fatal).
+    pub bad_descriptors: u64,
+}
+
+/// One message as the node received it, for replays (`lle_sharc_bus --msg`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LoggedMsg {
+    pub node: usize,
+    /// Pass of the node (its own pass counter) before which the message is delivered.
+    pub pass: u64,
+    pub word: u32,
+    pub value: u32,
 }
 
 /// ARM0 + DSP chips.
@@ -67,6 +80,8 @@ pub struct LleEngine<A: ArmHost> {
     buf: Vec<Message>,
     fault: Option<String>,
     requested: Precision,
+    /// Every message posted to a node, when [`LleEngine::record_messages`] was called.
+    pub msg_log: Option<Vec<LoggedMsg>>,
 }
 
 impl<A: ArmHost> LleEngine<A> {
@@ -99,6 +114,7 @@ impl<A: ArmHost> LleEngine<A> {
             buf: Vec::new(),
             fault: None,
             requested: precision,
+            msg_log: None,
         })
     }
 
@@ -110,6 +126,11 @@ impl<A: ArmHost> LleEngine<A> {
     /// The precision the caller asked for.
     pub fn requested_precision(&self) -> Precision {
         self.requested
+    }
+
+    /// Starts keeping every routed message in [`LleEngine::msg_log`].
+    pub fn record_messages(&mut self) {
+        self.msg_log.get_or_insert_with(Vec::new);
     }
 
     pub fn node_names(&self) -> &[String] {
@@ -124,6 +145,13 @@ impl<A: ArmHost> LleEngine<A> {
     /// Binds a user `.npno` to the SMP chip: its core gets the flash image and the descriptor
     /// watcher runs on every SMP message (`ns4-pnoc`).
     pub fn bind_smp(&mut self, npno: Vec<u8>) -> Result<(), String> {
+        if npno.len() as u64 > live_flash::MAX_BYTES {
+            return Err(format!(
+                "npno of {} bytes exceeds {}",
+                npno.len(),
+                live_flash::MAX_BYTES
+            ));
+        }
         let node = self
             .router
             .owner(SMP_COMM, 0)
@@ -183,6 +211,16 @@ impl<A: ArmHost> LleEngine<A> {
     fn route_one(&mut self, m: &Message) -> Result<(), String> {
         if let Action::Post { node, word, value } = self.router.route(m) {
             self.bus.post(node, word, value);
+            if let Some(log) = &mut self.msg_log {
+                let every = u64::from(self.bus.every(node).max(1));
+                let pass = self.clock.passes.div_ceil(every);
+                log.push(LoggedMsg {
+                    node,
+                    pass,
+                    word,
+                    value,
+                });
+            }
             let hit = match &mut self.refill {
                 Some((n, r)) if *n == node && m.comm == SMP_COMM => r.observe(word, value),
                 _ => None,
@@ -191,7 +229,10 @@ impl<A: ArmHost> LleEngine<A> {
                 let core = self.bus.nodes_mut()[node]
                     .core_mut()
                     .ok_or("SMP node has no core")?;
-                live_flash::place(core, rec11)?;
+                // a descriptor is firmware data: a bad one is counted and skipped, not fatal
+                if live_flash::place(core, rec11).is_err() {
+                    self.stats.bad_descriptors += 1;
+                }
             }
         }
         Ok(())
@@ -226,9 +267,11 @@ impl<A: ArmHost> LleEngine<A> {
         &self.bus.host
     }
 
-    /// FNV-1a over the host buffers, the ARM state hash and the routing counters. Equal inputs
-    /// give equal hashes; wall times are not included.
-    pub fn digest(&self) -> u64 {
+    /// FNV-1a over the host buffers, the ARM state hash, the routing counters and, per DSP node
+    /// with a core, its registers, step counter and data words `DM_HASH`. Equal inputs give equal
+    /// digests; wall times are not included. `&mut` because reading core data memory goes through
+    /// the (peripheral-aware) `dm_read`.
+    pub fn digest(&mut self) -> u64 {
         let mut h = 0xCBF2_9CE4_8422_2325u64;
         let mut mix = |v: u64| h = (h ^ v).wrapping_mul(0x100_0000_01B3);
         for s in self.bus.host.left.iter().chain(&self.bus.host.right) {
@@ -238,8 +281,42 @@ impl<A: ArmHost> LleEngine<A> {
         mix(self.stats.messages);
         mix(self.clock.passes);
         mix(self.router.skipped + self.router.counted);
+        for n in self.bus.nodes_mut() {
+            if let Some(c) = n.core_mut() {
+                mix(core_digest(c));
+            }
+        }
         h
     }
+}
+
+/// Data words hashed per core: the SRAM data window `0x80000..0x100000` holds the module state,
+/// pass buffers and strips (`pno-full-pass.md`, `org-system-run.md`). ASSUMED: nothing the
+/// passes write lives outside it (L2 and SDRAM are not hashed).
+pub const DM_HASH: std::ops::Range<u32> = 0x8_0000..0x10_0000;
+
+/// FNV-1a over a core's registers, counters and data window.
+pub fn core_digest(c: &mut Core) -> u64 {
+    let mut h = 0xCBF2_9CE4_8422_2325u64;
+    let mut mix = |v: u64| h = (h ^ v).wrapping_mul(0x100_0000_01B3);
+    mix(u64::from(c.pc));
+    mix(c.steps);
+    for x in
+        c.r.iter()
+            .chain(&c.s)
+            .chain(&c.i)
+            .chain(&c.m)
+            .chain(&c.l)
+            .chain(&c.b)
+    {
+        mix(u64::from(*x));
+    }
+    mix(u64::from(c.mode1));
+    mix(u64::from(c.mode2));
+    for a in DM_HASH {
+        mix(u64::from(c.dm_read(a).unwrap_or(0)));
+    }
+    h
 }
 
 impl<A: ArmHost> LleInput for LleEngine<A> {

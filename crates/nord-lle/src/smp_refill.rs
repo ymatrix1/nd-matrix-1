@@ -54,7 +54,10 @@ pub fn parse_strokes(npno: &[u8]) -> Result<Vec<Stroke>, String> {
             let at = STROKE_TABLE + k * STROKE_SIZE;
             Ok(Stroke {
                 index: k,
-                offset: be32(npno, at + 8).ok_or_else(short)? + CNSP_BASE,
+                offset: be32(npno, at + 8)
+                    .ok_or_else(short)?
+                    .checked_add(CNSP_BASE)
+                    .ok_or("stroke offset overflows the file range")?,
                 frames: be32(npno, at + 0x0E).ok_or_else(short)?,
                 channels,
             })
@@ -188,6 +191,17 @@ mod tests {
         r.observe(0x9_3001, 8);
         assert_eq!(r.observe(0x9_3002, 4321), None);
         assert_eq!((r.descriptors, r.law_ok, r.placed), (1, 0, 0));
+    }
+
+    #[test]
+    fn a_stroke_offset_at_the_top_of_the_range_is_an_error_not_a_panic() {
+        let npno = fake_npno(&[(u32::MAX, 1)], 2);
+        assert!(parse_strokes(&npno).unwrap_err().contains("overflows"));
+        let npno = fake_npno(&[(u32::MAX - CNSP_BASE, 1)], 2);
+        assert!(
+            parse_strokes(&npno).is_ok(),
+            "the largest valid offset still parses"
+        );
     }
 
     #[test]

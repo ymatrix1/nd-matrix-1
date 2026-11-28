@@ -5,15 +5,16 @@
 //!
 //! ```text
 //! lle_engine_run --dir DIR [--ticks N] [--runs N] [--note-on TICK:NOTE:VEL]... [--note-off TICK:NOTE]...
-//!                [--npno FILE] [--no-arm] [--wav OUT]
+//!                [--npno FILE] [--no-arm] [--wav OUT] [--dump-msgs DIR]
 //!   DIR      image directory, layout in `nord_lle::load` (arm/, PNO/, ORG/, SY/, SMP/, FX/)
 //!   --ticks  ARM timer ticks to run after the boot (24,000 = 1 s of virtual time), default 2400
 //!   --runs   how many times to run the whole thing for the determinism check (default 2)
 //!   --no-arm DSP chips only, scripted events are dropped (no firmware needed)
+//!   a fault in any run exits non-zero; data bytes (note, velocity) must be 0..=127
 //! ```
 use nord_core::lle_io::{link, LleEvent, LleInput};
 use nord_lle::arm::{Arm0, ArmHost, FakeArm};
-use nord_lle::engine::{LleEngine, Precision};
+use nord_lle::engine::{LleEngine, LoggedMsg, Precision};
 use nord_lle::load::{build_chips, default_routes, read_dir};
 use nord_sharc::runner::audio::wav_bytes;
 use nord_sharc::runner::system::FRAME_RATE;
@@ -29,6 +30,7 @@ struct Args {
     npno: Option<PathBuf>,
     no_arm: bool,
     wav: Option<String>,
+    dump_msgs: Option<PathBuf>,
 }
 
 fn parse_event(kind: &str, v: &str) -> Result<(u64, LleEvent), String> {
@@ -36,7 +38,10 @@ fn parse_event(kind: &str, v: &str) -> Result<(u64, LleEvent), String> {
         .split(':')
         .map(|x| x.parse::<u64>().map_err(|e| format!("{kind} {v:?}: {e}")))
         .collect::<Result<_, _>>()?;
-    let bad = || format!("bad {kind} {v:?}");
+    let bad = || format!("bad {kind} {v:?} (data bytes are 0..=127)");
+    if f.iter().skip(1).any(|x| *x > 127) {
+        return Err(bad());
+    }
     match (kind, f.as_slice()) {
         ("--note-on", [t, n, vel]) => Ok((
             *t,
@@ -67,6 +72,7 @@ fn parse(args: &[String]) -> Result<Args, String> {
         npno: None,
         no_arm: false,
         wav: None,
+        dump_msgs: None,
     };
     let mut it = args.iter();
     while let Some(k) = it.next() {
@@ -79,6 +85,7 @@ fn parse(args: &[String]) -> Result<Args, String> {
             "--npno" => a.npno = Some(val()?.into()),
             "--no-arm" => a.no_arm = true,
             "--wav" => a.wav = Some(val()?),
+            "--dump-msgs" => a.dump_msgs = Some(val()?.into()),
             _ => return Err(format!("unknown argument {k:?}")),
         }
     }
@@ -87,6 +94,14 @@ fn parse(args: &[String]) -> Result<Args, String> {
     }
     a.events.sort_by_key(|e| e.0);
     Ok(a)
+}
+
+/// `peak / rms / first non-zero tick` of one signal point.
+fn stage(l: &nord_sharc::runner::audio_bus::Level) -> String {
+    let first = l
+        .first_nonzero_tick
+        .map_or("-".to_string(), |t| t.to_string());
+    format!("{:.6}/{:.6}/{first}", l.peak, l.rms())
 }
 
 /// `(peak, rms, nonzero frames)` of the finite samples.
@@ -104,10 +119,26 @@ fn level(l: &[f32], r: &[f32]) -> (f32, f64, usize) {
 }
 
 struct Outcome {
+    fault: Option<String>,
     digest: u64,
     report: String,
     left: Vec<f32>,
     right: Vec<f32>,
+}
+
+/// One `NAME.msgs` file per node: `--msg PASS:WORD=VALUE` tokens, the replay format of
+/// `lle_sharc_bus` (`runner::msg::parse_msg_text`).
+fn write_msgs(dir: &std::path::Path, names: &[String], log: &[LoggedMsg]) -> Result<(), String> {
+    std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    for (i, n) in names.iter().enumerate() {
+        let mut t = String::new();
+        for m in log.iter().filter(|m| m.node == i) {
+            let _ = writeln!(t, "--msg {}:{:#x}={:#x}", m.pass, m.word, m.value);
+        }
+        let f = dir.join(format!("{n}.msgs"));
+        std::fs::write(&f, t).map_err(|e| format!("{}: {e}", f.display()))?;
+    }
+    Ok(())
 }
 
 fn ms(ns: u64) -> f64 {
@@ -156,7 +187,16 @@ fn run_once(a: &Args, first: bool) -> Result<Outcome, String> {
     };
     let mut e = LleEngine::new(arm, chips, routes, Precision::Exact)?;
     if let Some(p) = &a.npno {
+        let len = std::fs::metadata(p)
+            .map_err(|x| format!("{}: {x}", p.display()))?
+            .len();
+        if len > nord_sharc::runner::live_flash::MAX_BYTES {
+            return Err(format!("{}: {len} bytes exceeds the cap", p.display()));
+        }
         e.bind_smp(std::fs::read(p).map_err(|x| format!("{}: {x}", p.display()))?)?;
+    }
+    if a.dump_msgs.is_some() {
+        e.record_messages();
     }
     let (mut host, mut eng) = link(256);
     let mut next = 0;
@@ -164,7 +204,12 @@ fn run_once(a: &Args, first: bool) -> Result<Outcome, String> {
     let mut fault = None;
     for tick in 0..a.ticks {
         while next < a.events.len() && a.events[next].0 <= tick {
-            host.events.push(a.events[next].1);
+            if !host.events.push(a.events[next].1) {
+                return Err(format!(
+                    "event ring full at tick {tick} ({} events due)",
+                    a.events.len()
+                ));
+            }
             next += 1;
         }
         e.drain(&mut eng.events);
@@ -194,12 +239,16 @@ fn run_once(a: &Args, first: bool) -> Result<Outcome, String> {
         ms(s.route_ns),
         ms(s.dsp_ns)
     );
+    let _ = writeln!(out, "per-stage levels (peak / rms / first non-zero tick; in = frames the node took, out = frames it produced):");
     for (i, n) in e.node_names().iter().enumerate() {
-        let (ns, short, peak) = (e.bus.node_ns[i], e.bus.underruns[i], e.bus.node_peak[i]);
+        let l = &e.bus.node_levels[i];
         let _ = writeln!(
             out,
-            "  node {n}: {:.1} ms, input frames short {short}, output peak {peak:.6}",
-            ms(ns)
+            "  {n:<5} {:>8.1} ms  short {:>3}  in {}  out {}",
+            ms(e.bus.node_ns[i]),
+            e.bus.underruns[i],
+            stage(&l.input),
+            stage(&l.output)
         );
     }
     let r = &e.router;
@@ -229,9 +278,14 @@ fn run_once(a: &Args, first: bool) -> Result<Outcome, String> {
     if first {
         let _ = writeln!(out, "ARM insns {}", e.arm.insns());
     }
+    if let (Some(dir), Some(log)) = (&a.dump_msgs, &e.msg_log) {
+        write_msgs(dir, e.node_names(), log)?;
+        let _ = writeln!(out, "wrote {} messages to {}", log.len(), dir.display());
+    }
     let digest = e.digest();
     let _ = writeln!(out, "digest {digest:016x}");
     Ok(Outcome {
+        fault,
         digest,
         report: out,
         left: e.host().left.clone(),
@@ -239,17 +293,32 @@ fn run_once(a: &Args, first: bool) -> Result<Outcome, String> {
     })
 }
 
+/// A fault in any run is an error (non-zero exit): the report is returned as the error text and
+/// carries no determinism claim.
+fn fault_exit(faults: &[String], text: &mut String) -> Result<(), String> {
+    if faults.is_empty() {
+        return Ok(());
+    }
+    let _ = writeln!(text, "FAULTED, no determinism claim: {faults:?}");
+    Err(std::mem::take(text))
+}
+
 fn run(args: &[String]) -> Result<String, String> {
     let a = parse(args)?;
     let mut text = String::new();
     let mut digests = Vec::new();
     let mut first = None;
+    let mut faults: Vec<String> = Vec::new();
     for i in 0..a.runs {
         let o = run_once(&a, i == 0)?;
         let _ = writeln!(text, "== run {} ==\n{}", i + 1, o.report);
         digests.push(o.digest);
+        if let Some(f) = o.fault {
+            faults.push(format!("run {}: {f}", i + 1));
+        }
         first.get_or_insert((o.left, o.right));
     }
+    fault_exit(&faults, &mut text)?;
     let same = digests.windows(2).all(|w| w[0] == w[1]);
     let _ = writeln!(
         text,
@@ -273,7 +342,13 @@ fn run(args: &[String]) -> Result<String, String> {
 
 fn main() -> Result<(), String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    print!("{}", run(&args)?);
+    match run(&args) {
+        Ok(t) => print!("{t}"),
+        Err(e) => {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
+    }
     Ok(())
 }
 
@@ -321,6 +396,58 @@ mod tests {
         ] {
             assert!(parse(&v(bad)).is_err(), "{bad:?}");
         }
+    }
+
+    #[test]
+    fn a_stage_line_shows_peak_rms_and_the_first_non_zero_tick() {
+        let mut l = nord_sharc::runner::audio_bus::Level::default();
+        assert_eq!(stage(&l), "0.000000/0.000000/-");
+        l.add(&[[0.0, 0.0], [0.5, -0.5]], 7);
+        assert_eq!(stage(&l), "0.500000/0.353553/7");
+    }
+
+    #[test]
+    fn messages_are_written_one_replay_file_per_node() {
+        let dir = std::env::temp_dir().join(format!("lle_msgs_{}", std::process::id()));
+        let log = [LoggedMsg {
+            node: 1,
+            pass: 3,
+            word: 0x10,
+            value: 7,
+        }];
+        write_msgs(&dir, &["a".into(), "b".into()], &log).unwrap();
+        let b = std::fs::read_to_string(dir.join("b.msgs")).unwrap();
+        let a = std::fs::read_to_string(dir.join("a.msgs")).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(
+            (b.as_str(), a.as_str()),
+            (
+                "--msg 3:0x10=0x7
+",
+                ""
+            )
+        );
+    }
+
+    #[test]
+    fn a_fault_makes_the_run_an_error_with_no_determinism_claim() {
+        let mut t = String::from(
+            "report
+",
+        );
+        assert!(fault_exit(&[], &mut t).is_ok());
+        let e = fault_exit(&["run 1: boom".into()], &mut t).unwrap_err();
+        assert!(
+            e.contains("FAULTED") && e.contains("boom") && e.contains("report"),
+            "{e}"
+        );
+    }
+
+    #[test]
+    fn data_bytes_above_127_are_rejected() {
+        assert!(parse_event("--note-on", "1:60:127").is_ok());
+        assert!(parse_event("--note-on", "1:60:128").is_err());
+        assert!(parse_event("--note-off", "1:200").is_err());
     }
 
     #[test]

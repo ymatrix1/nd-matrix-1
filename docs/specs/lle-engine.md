@@ -18,7 +18,7 @@ One Rust object, `LleEngine`, that boots ARM0 from the user's OS update, lets th
 | `load` | directory layout, preset per image, default audio routes |
 | `engine` | `LleEngine<A: ArmHost>`: composition, `step`, `render`, `digest`, `LleInput` / `LleTelemetry` |
 
-Reused unchanged: `AudioBus` / `BusNode` / `CoreNode` / `SyNode` / presets (`crates/nord-sharc/src/runner/`), `Machine` (`crates/nord-arm`), `lle_io` rings and traits (`crates/nord-core`). Added to `nord-sharc`: `BusNode::post` (queue one ARM message for the node's next pass), `AudioBus::{post, node_ns, node_peak}` (per-node wall time and output peak).
+Reused unchanged: `AudioBus` / `BusNode` / `CoreNode` / `SyNode` / presets (`crates/nord-sharc/src/runner/`), `Machine` (`crates/nord-arm`), `lle_io` rings and traits (`crates/nord-core`). Added to `nord-sharc`: `BusNode::post` (queue one ARM message for the node's next pass), `AudioBus::{post, every, node_ns, node_levels}` (per-node wall time and input/output `Level` = peak, RMS, first non-zero tick).
 
 ## Who owns time
 
@@ -28,7 +28,7 @@ The **ARM timer tick** (24 kHz, 41.67 us, D130) is the master clock. One `LleEng
 2. Messages completed in that tick are drained, each routed and `post`ed to its node.
 3. `clock.tick()` returns the DSP passes owed: `floor(t * 1,388,875 / 1,536,000)` cumulative (0.9042 per tick, integer, `tools/arm_dsp_link.py`). Each is one `AudioBus::run_tick` (one pass period = 2 frames at `FRAME_RATE` 43,402.34375 Hz; FX cores every 2nd tick).
 
-Messages posted in step 2 are delivered before the node's next pass (`before_pass`). A message therefore sees at most one tick of latency; its pass number is the node's own pass counter, not a wall clock.
+Messages posted in step 2 are delivered before the node's next pass (`before_pass`). A node that runs every pass sees a message within that tick's pass; an FX node (`every = 2`) can wait for its next pass, up to two ticks. A message's pass number is the node's own pass counter, not a wall clock.
 
 The host buffer is at the **DSP frame rate**, not 48 kHz; resampling is not implemented.
 
@@ -44,8 +44,9 @@ The host buffer is at the **DSP frame rate**, not 48 kHz; resampling is not impl
 | path 2, word `>= 2^20` | counted `skipped` |
 | path 1, comm 3 or 4 | SY / SMP node (FIFO address, `SyModel::send`) |
 | anything else, or no node owns it | counted (`router.counted`) |
+| a bad SMP descriptor (`rec11` outside the directory) | counted `stats.bad_descriptors`, skipped, no fault |
 
-Nodes are registered by `(comm, core)`; a missing image just leaves its messages counted.
+Nodes are registered by `(comm, core)`; a missing image just leaves its messages counted. Driven in the run so far: PNO core 1 and 2, ORG core 2, SMP, FX 1, FX 2 (six nodes, `SLOTS`). **SY is loaded but idle** (no message addressed to comm 3). **ORG core 1 is not loaded** (under the `org` preset it does not return to the poll loop, 2,000,000 steps at pass 0) and its 912 messages are counted without a chip. The ARM addresses seven `(comm, core)` pairs; claiming "all six DSP cores driven" is wrong.
 
 ## DSP to ARM return path (`ns4-nds8`)
 
@@ -53,7 +54,7 @@ The three SPI read routines are answered inside `Machine` (`install_dsp_return`,
 
 ## SMP page refill (`ns4-pnoc`)
 
-`bind_smp(npno)` gives the SMP core the file as flash (`epchain` model, external-port DMA) and starts a `SmpRefill` watcher on every SMP message. A descriptor is `rec[-11]`, `rec[-10]`, `rec[-9]` in consecutive DM words with `rec[-9]` a stroke frame count; if `rec[-10]` obeys the page law (`smp-page-refill.md` s2) and `rec[-11]` is new, `live_flash::place` positions the file and writes the directory. Without a bound file the SMP chip gets its messages but its page reads find no flash.
+`bind_smp(npno)` (file capped at 512 MB like `live_flash::load`) gives the SMP core the file as flash (`epchain` model, external-port DMA) and starts a `SmpRefill` watcher on every SMP message. A descriptor is `rec[-11]`, `rec[-10]`, `rec[-9]` in consecutive DM words with `rec[-9]` a stroke frame count; if `rec[-10]` obeys the page law (`smp-page-refill.md` s2) and `rec[-11]` is new, `live_flash::place` positions the file and writes the directory. A `rec11` that would overflow or leave the directory is counted as a bad descriptor and skipped (`live_flash::place` returns `Err`, no panic); `parse_strokes` uses checked arithmetic on firmware-controlled offsets. Without a bound file the SMP chip gets its messages but its page reads find no flash.
 
 ## Input and telemetry
 
@@ -68,7 +69,8 @@ The three SPI read routines are answered inside `Machine` (`install_dsp_return`,
 * single thread, fixed order (ARM, route, passes), no wall clock in any decision;
 * pass count from integer arithmetic; maps are `BTreeMap`;
 * DSP and ARM state are pure functions of images and event stream (`Machine::state_hash`, bit-exact SHARC core);
-* `digest()` = FNV-1a over host buffers, ARM state hash and routing counters; wall times (`Stats`, `node_ns`) are excluded;
+* `digest()` = FNV-1a over host buffers, ARM state hash, routing counters **and the state of every DSP core** (`engine::core_digest` over each node's `core_mut()`: PC, step counter, register files, MODE1/2 and the data window `DM 0x80000..0x100000`; ASSUMED: nothing the passes write lives outside it, PM, L2 and SDRAM are not hashed); wall times (`Stats`, `node_ns`) are excluded. Test: `real_nodes_are_deterministic_and_the_digest_sees_dsp_state` runs real `CoreNode`s twice on a synthetic program and compares the full digest;
+* until a chip produces output the determinism result is "ARM state + DSP state + counters equal; audio all zero". It does not show that audio is reproducible;
 * an error from ARM or a node is sticky: `step` keeps returning it, nothing runs on.
 
 ## Stubs and limits
@@ -85,5 +87,5 @@ See `crates/nord-lle/src/load.rs`: `DIR/arm/{bank0_CODE.bin,bank0_SRAM.bin,eepro
 |---|---|
 | unified `LleEngine`: ARM0, 5 DSP images, return path, SMP refill | composed and run end to end on local images; return path partial (two layers), refill tested synthetically only |
 | pre-allocated, no alloc/lock/IO in `process_block()` | **not met**: offline engine, no `process_block` |
-| CLI render smoke test | `lle_engine_run`: boots, renders, deterministic; output silent in the run so far |
+| CLI render smoke test | `lle_engine_run`: boots, renders, per-stage peak/RMS; ARM + DSP state deterministic; **output all zero** in every run so far ([lle-engine-run](../research/lle-engine-run.md)); a fault exits non-zero |
 | synthetic tests: lockstep scheduling, zero-alloc rendering | scheduling, routing, return, refill, determinism, fault: yes; zero-alloc: no |

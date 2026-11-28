@@ -4,6 +4,7 @@
 //! DIR/arm/bank0_CODE.bin  bank0_SRAM.bin  [eeprom.bin]     ARM0 (OS update, `target/fw_unpacked`)
 //! DIR/FX/core1_sram.bin   core2_sram.bin                    FX Core1 / Core2   (presets fx1, fx2)
 //! DIR/PNO/core1_sram.bin                                    PNO core 1         (preset pno)
+//! DIR/PNO/core2_sram.bin                                    PNO core 2         (preset org)
 //! DIR/ORG/core2_sram.bin                                    ORG core 2         (preset org)
 //! DIR/SY/core1_sram.bin                                     SY1SY2             (preset sy)
 //! DIR/SMP/core1_sram.bin                                    SMP                (preset smp)
@@ -21,9 +22,12 @@ use nord_sharc::runner::pass_sched::Engine;
 use nord_sharc::runner::periph_run::PeriphOpts;
 use std::path::Path;
 
+/// ORG core 1 is NOT a slot: under the `org` preset it does not return to the poll loop (2,000,000
+/// steps at pass 0, run 2026-11-27), its start-up differs and is unknown.
 /// `(comm, core, chip directory, file, preset, node name)` of every DSP slot.
-pub const SLOTS: [(u8, u8, &str, &str, &str, &str); 6] = [
+pub const SLOTS: [(u8, u8, &str, &str, &str, &str); 7] = [
     (1, 1, "PNO", "core1_sram.bin", "pno", "pno1"),
+    (1, 2, "PNO", "core2_sram.bin", "org", "pno2"),
     (2, 2, "ORG", "core2_sram.bin", "org", "org2"),
     (3, 0, "SY", "core1_sram.bin", "sy", "sy"),
     (4, 0, "SMP", "core1_sram.bin", "smp", "smp"),
@@ -125,7 +129,7 @@ pub fn build_chips(images: &Images) -> Result<Vec<ChipNode>, String> {
 /// FX cores the sources go straight to the host.
 pub fn default_routes(chips: &[ChipNode]) -> Vec<Route> {
     let at = |n: &str| chips.iter().position(|c| c.name == n);
-    let sources: Vec<usize> = ["pno1", "org2", "sy", "smp"]
+    let sources: Vec<usize> = ["pno1", "pno2", "org2", "sy", "smp"]
         .iter()
         .filter_map(|n| at(n))
         .collect();
@@ -177,8 +181,8 @@ mod tests {
         assert_eq!(SLOTS[im.chips[0].0].5, "pno1");
         assert_eq!(
             im.missing.len(),
-            7,
-            "2 ARM files and 5 other chip files: {:?}",
+            8,
+            "2 ARM files and 6 other chip files: {:?}",
             im.missing
         );
     }

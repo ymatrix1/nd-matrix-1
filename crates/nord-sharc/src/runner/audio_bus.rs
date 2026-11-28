@@ -83,8 +83,44 @@ pub struct AudioBus {
     /// Host wall time spent in each node's passes, nanoseconds (a measurement, not part of the
     /// deterministic output).
     pub node_ns: Vec<u64>,
-    /// Largest finite absolute sample each node produced so far (0 = silent so far).
-    pub node_peak: Vec<f32>,
+    /// What each node took in and put out so far (input side, output side).
+    pub node_levels: Vec<NodeLevels>,
+}
+
+/// Level statistics of one signal point (finite samples only).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Level {
+    pub peak: f32,
+    sumsq: f64,
+    pub samples: u64,
+    /// First tick with a non-zero sample.
+    pub first_nonzero_tick: Option<u64>,
+}
+
+impl Level {
+    /// Folds `frames` seen at `tick`.
+    pub fn add(&mut self, frames: &[Frame], tick: u64) {
+        for x in frames.iter().flatten().filter(|x| x.is_finite()) {
+            self.peak = self.peak.max(x.abs());
+            self.sumsq += f64::from(*x).powi(2);
+            self.samples += 1;
+            if *x != 0.0 && self.first_nonzero_tick.is_none() {
+                self.first_nonzero_tick = Some(tick);
+            }
+        }
+    }
+
+    /// RMS over all samples folded so far.
+    pub fn rms(&self) -> f64 {
+        (self.sumsq / self.samples.max(1) as f64).sqrt()
+    }
+}
+
+/// Input and output [`Level`] of a node.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct NodeLevels {
+    pub input: Level,
+    pub output: Level,
 }
 
 impl AudioBus {
@@ -107,7 +143,7 @@ impl AudioBus {
             fifos: vec![VecDeque::new(); n],
             underruns: vec![0; n],
             node_ns: vec![0; n],
-            node_peak: vec![0.0; n],
+            node_levels: vec![NodeLevels::default(); n],
             nodes,
             routes,
             host: Stereo::default(),
@@ -118,6 +154,11 @@ impl AudioBus {
     /// Frames waiting in the input FIFO of node `n`.
     pub fn queued(&self, n: usize) -> usize {
         self.fifos[n].len()
+    }
+
+    /// The `every()` of node `n` (1 for a missing node).
+    pub fn every(&self, n: usize) -> u32 {
+        self.nodes.get(n).map_or(1, |x| x.every())
     }
 
     /// Hands an ARM message to node `n` (see [`BusNode::post`]); `false` when it takes none.
@@ -153,9 +194,8 @@ impl AudioBus {
                 .run_pass(&input)
                 .map_err(|e| format!("tick {} node {i}: {e}", self.tick))?;
             self.node_ns[i] += t0.elapsed().as_nanos() as u64;
-            for x in out.iter().flatten().filter(|x| x.is_finite()) {
-                self.node_peak[i] = self.node_peak[i].max(x.abs());
-            }
+            self.node_levels[i].input.add(&input, self.tick);
+            self.node_levels[i].output.add(&out, self.tick);
             produced[i] = Some(out);
         }
         let mut to_node: Vec<Vec<Frame>> = vec![Vec::new(); self.nodes.len()];
@@ -329,6 +369,14 @@ pub(crate) mod tests {
         assert!(!bus.post(7, 1, 2), "no such node");
         bus.run(3).unwrap();
         assert_eq!(bus.node_ns.len(), 1);
-        assert!(bus.node_peak[0] > 0.0, "the counter source is not silent");
+        let l = bus.node_levels[0];
+        assert!(
+            l.output.peak > 0.0 && l.output.rms() > 0.0,
+            "the counter source is not silent"
+        );
+        assert_eq!((l.output.first_nonzero_tick, l.input.samples), (Some(0), 0));
+        let mut z = Level::default();
+        z.add(&[[0.0, f32::NAN]], 4);
+        assert_eq!((z.peak, z.samples, z.first_nonzero_tick), (0.0, 1, None));
     }
 }

@@ -314,3 +314,128 @@ fn messages_the_arm_sends_are_visible_to_it_through_the_return_path() {
     assert_eq!(w[0] & 1, 0, "SY idle mask layer: voice 0 is busy");
     assert_ne!(e.digest(), 0);
 }
+
+#[test]
+fn recorded_messages_carry_the_pass_of_their_node() {
+    let (mut e, _) = org_to_host(vec![(4, msg(2, 2, 0x2880_0004, 5))]);
+    e.record_messages();
+    e.run_ticks(6).unwrap();
+    let log = e.msg_log.as_ref().unwrap();
+    assert_eq!(log.len(), 1);
+    assert_eq!((log[0].node, log[0].word, log[0].value), (0, 1, 5));
+    assert_eq!(
+        log[0].pass, 3,
+        "3 passes were run before tick 4 (floor(4 * 0.9042))"
+    );
+}
+
+/// A real `CoreNode`: `DM(I0) = 0` then `JUMP` back to the poll loop, the mailbox cleared on
+/// every pass (the program of the `audio_bus_node` tests); the output tap reads the lane set 2
+/// pair 0 words that the ARM messages of the test fill.
+fn real_core_engine(script: Vec<(u64, Message)>) -> LleEngine<FakeArm> {
+    use nord_sharc::runner::audio_bus_node::{CoreNode, OutTap};
+    use nord_sharc::runner::pass::PassConfig;
+    use nord_sharc::runner::pass_sched::{Engine, PassJob};
+    let mut data = vec![0u8; 0x24_0000];
+    for p in [0x9004u16, 0x0000, 0x06be, 0x0012, 0x0000] {
+        data.extend_from_slice(&p.to_le_bytes());
+    }
+    let mut core = Core::new(&data);
+    core.pc = 0x12_0000;
+    core.i[0] = 0xB_00E2;
+    let job = PassJob {
+        name: "org2".into(),
+        core,
+        cfg: PassConfig {
+            trigger: 0xB_00E2,
+            idle_pc: 0x12_0002,
+            max_steps: 100,
+            irq: None,
+        },
+        msgs: Vec::new(),
+        msg_base: 0,
+        ping_pong: None,
+        fx: None,
+        engine: Engine::Interp,
+    };
+    let node = CoreNode::new(job, None, OutTap::Lane { set: 2, pair: 0 }, 1);
+    let chips = vec![ChipNode {
+        comm: 2,
+        core: 2,
+        name: "org2".into(),
+        node: Box::new(node),
+    }];
+    let routes = vec![Route {
+        from: 0,
+        to: Dest::Host,
+        gain: 1.0,
+    }];
+    let arm = FakeArm {
+        script,
+        ..Default::default()
+    };
+    LleEngine::new(arm, chips, routes, Precision::Exact).unwrap()
+}
+
+/// ARM message storing `value` at DM word `w` of ORG core 2.
+fn store(w: u32, value: u32) -> Message {
+    msg(2, 2, 0x2880_0000 + 4 * w, value)
+}
+
+#[test]
+fn real_nodes_are_deterministic_and_the_digest_sees_dsp_state() {
+    let level = 0.25f32.to_bits();
+    // pointer of lane set 2 -> 0xB0300, two frames of 0.25 there; plus a word outside the tap
+    let script = |extra: u32| {
+        vec![
+            (0, store(0xB_0159 + 2, 0xB_0300)),
+            (0, store(0xB_0300, level)),
+            (0, store(0xB_0302, level)),
+            (1, store(0xC_0000, extra)),
+        ]
+    };
+    let run = |extra: u32| {
+        let mut e = real_core_engine(script(extra));
+        e.render(100).unwrap();
+        let d = e.digest();
+        (d, e.host().clone())
+    };
+    let (a, ha) = run(1);
+    let (b, hb) = run(1);
+    let (c, hc) = run(2);
+    assert_eq!((a, &ha), (b, &hb), "two runs of real nodes are identical");
+    assert!(ha.left.contains(&0.25), "the tap carries the stored level");
+    assert_eq!(
+        ha, hc,
+        "a word outside the tap does not change the host audio"
+    );
+    assert_ne!(a, c, "but it changes the digest: DSP state is hashed");
+}
+
+#[test]
+fn a_bad_smp_descriptor_is_counted_and_skipped_and_the_engine_keeps_running() {
+    let mut npno = vec![0u8; STROKE_TABLE + STROKE_SIZE];
+    npno[CHANNELS_AT..CHANNELS_AT + 2].copy_from_slice(&2u16.to_be_bytes());
+    npno[NSTROKES_AT..NSTROKES_AT + 2].copy_from_slice(&1u16.to_be_bytes());
+    npno[STROKE_TABLE + 8..STROKE_TABLE + 12]
+        .copy_from_slice(&(2044u32 * 7 - 148 - CNSP_BASE).to_be_bytes());
+    npno[STROKE_TABLE + 0x0E..STROKE_TABLE + 0x12].copy_from_slice(&4321u32.to_be_bytes());
+    let log: Log = Rc::default();
+    let mut smp = Fake::new(&log);
+    smp.core = Some(Core::new(&vec![0u8; 0x24_0000]));
+    let base = 0x9_3000;
+    let arm = FakeArm {
+        script: vec![
+            (0, msg(1, 4, base, 0xFFFF_FFFE)), // rec[-11]: a firmware-controlled index
+            (0, msg(1, 4, base + 1, 7)),
+            (0, msg(1, 4, base + 2, 4321)),
+        ],
+        ..Default::default()
+    };
+    let mut e =
+        LleEngine::new(arm, vec![chip(4, 0, "smp", smp)], vec![], Precision::Exact).unwrap();
+    e.bind_smp(npno).unwrap();
+    e.run_ticks(5).unwrap();
+    assert_eq!((e.stats.bad_descriptors, e.fault()), (1, None));
+    assert!(e.bind_smp(vec![0u8; 1]).is_err());
+}
