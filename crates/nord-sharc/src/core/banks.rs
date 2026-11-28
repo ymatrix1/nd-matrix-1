@@ -23,12 +23,12 @@ const FILE_SETS: [(u32, usize, usize); 2] = [(1 << 7, 8, 16), (1 << 10, 0, 8)];
 /// The inactive copies of the switchable registers.
 #[derive(Default)]
 pub(super) struct Banks {
-    r: [u32; 16],
-    s: [u32; 16],
-    i: [u32; 16],
-    m: [u32; 16],
-    l: [u32; 16],
-    b: [u32; 16],
+    pub(super) r: [u32; 16],
+    pub(super) s: [u32; 16],
+    pub(super) i: [u32; 16],
+    pub(super) m: [u32; 16],
+    pub(super) l: [u32; 16],
+    pub(super) b: [u32; 16],
 }
 
 fn swap_range(live: &mut [u32; 16], hidden: &mut [u32; 16], lo: usize, hi: usize) {

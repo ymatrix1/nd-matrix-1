@@ -22,14 +22,14 @@ const STOP_LATENCY: u64 = 1;
 #[derive(Default)]
 pub(super) struct TimerState {
     /// TCOUNT as last written (or frozen when the timer stopped).
-    tcount: u32,
-    tperiod: u32,
-    running: bool,
+    pub(super) tcount: u32,
+    pub(super) tperiod: u32,
+    pub(super) running: bool,
     /// Cycle at which `base_count` was valid and decrementing starts.
-    base_cycle: u64,
-    base_count: u32,
+    pub(super) base_cycle: u64,
+    pub(super) base_count: u32,
     /// Expiries already latched since `base_cycle`.
-    seen: u64,
+    pub(super) seen: u64,
 }
 
 impl TimerState {

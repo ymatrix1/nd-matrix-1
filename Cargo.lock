@@ -2753,6 +2753,13 @@ dependencies = [
 [[package]]
 name = "nord-arm"
 version = "0.1.6"
+dependencies = [
+ "cranelift-codegen",
+ "cranelift-frontend",
+ "cranelift-jit",
+ "cranelift-module",
+ "cranelift-native",
+]
 
 [[package]]
 name = "nord-core"
