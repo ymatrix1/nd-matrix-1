@@ -36,7 +36,15 @@ pub(super) fn type_grid(p: &Painter, rect: Rect, lit: usize) {
         for (col, &ty) in pair.iter().enumerate() {
             let sign = if col == 0 { -1.0 } else { 1.0 };
             let x = c.x + sign * COL_HALF;
-            w::mini_led(p, pos2(x, y), ty == lit, LED_RED, LED_RED_DIM, 2.2, false);
+            w::mini_led(
+                p,
+                pos2(x, y),
+                ty == lit,
+                LED_ACCENT,
+                LED_ACCENT_DIM,
+                2.2,
+                false,
+            );
             label(
                 p,
                 pos2(x + sign * 6.5, y),
@@ -101,7 +109,7 @@ pub(super) fn draw_timbre(
     for (row, name) in names.iter().enumerate() {
         let c = pos2(x0, top + row as f32 * ROW);
         let on = lit & (1 << bit_of_row(row)) != 0;
-        w::mini_led(p, c, on, LED_RED, LED_RED_DIM, 2.2, clav);
+        w::mini_led(p, c, on, LED_ACCENT, LED_ACCENT_DIM, 2.2, clav);
         let shown = label(
             p,
             c + vec2(5.0, 0.0),
@@ -121,7 +129,7 @@ pub(super) fn draw_timbre(
     for (row, name) in ["DYNO1", "DYNO2"].iter().enumerate() {
         let c = pos2(col2_x, top + row as f32 * ROW);
         let on = electric && dyno_lit == 4 + row;
-        w::mini_led(p, c, on, LED_RED, LED_RED_DIM, 2.2, !electric);
+        w::mini_led(p, c, on, LED_ACCENT, LED_ACCENT_DIM, 2.2, !electric);
         label(
             p,
             c + vec2(5.0, 0.0),

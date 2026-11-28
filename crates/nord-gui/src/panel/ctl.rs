@@ -60,7 +60,7 @@ pub(super) struct Face<'a> {
     /// LED above the button: `Some(lit)`.
     pub led: Option<bool>,
     /// Put the LED left of the button instead of above it: header-tab buttons (Organ and Layer
-    /// Effects ON) have no room above, the LED would print on the red panel outside the tab.
+    /// Effects ON) have no room above, the LED would print on the panel outside the tab.
     pub led_left: bool,
     /// Dimmed with this tooltip: the engine lacks the feature.
     pub dim: Option<&'a str>,
@@ -280,7 +280,7 @@ pub(super) fn gesture_button(
         } else {
             led_above(rect)
         };
-        led_small(p, at, lit, LED_RED, LED_RED_DIM, LED_ABOVE_R);
+        led_small(p, at, lit, LED_ACCENT, LED_ACCENT_DIM, LED_ABOVE_R);
     }
     mark(ui, id);
     let tip = match face.dim {

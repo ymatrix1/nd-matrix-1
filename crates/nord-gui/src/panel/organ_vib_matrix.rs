@@ -44,7 +44,7 @@ pub(super) fn paint(p: &Painter, sel: Rect, cur: usize) {
     for (row, names) in NAMES.iter().enumerate() {
         for (col, name) in names.iter().enumerate() {
             let c = led_center(sel, row, col);
-            led_small(p, c, (row, col) == lit, LED_RED, LED_RED_DIM, 1.5);
+            led_small(p, c, (row, col) == lit, LED_ACCENT, LED_ACCENT_DIM, 1.5);
             let (at, al) = if row == 0 {
                 (pos2(c.x, c.y - 4.0), Align2::CENTER_BOTTOM)
             } else {

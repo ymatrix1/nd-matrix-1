@@ -5,7 +5,7 @@ use super::ctx::Fx;
 use super::ids::dim_reason;
 use crate::panel::prelude::Stage4PanelState;
 use crate::panel::ui_state::fx::{Tone, Unit, REVERB, REVERB_CHORALE_FROM};
-use crate::style::{LED_RED, LED_RED_DIM};
+use crate::style::{LED_ACCENT, LED_ACCENT_DIM};
 use nord_panel::behaviour::{cycle, Trigger};
 
 /// Next BRIGHT / DARK state: normal, bright, dark, normal.
@@ -25,7 +25,7 @@ pub(super) fn reverb(f: &mut Fx, st: &mut Stage4PanelState, slot: usize) {
     {
         let c = &mut st.fx_ui.chains[slot];
         let on = f.rect("reverb.on");
-        f.led_left(on, c.reverb_on, LED_RED, LED_RED_DIM);
+        f.led_left(on, c.reverb_on, LED_ACCENT, LED_ACCENT_DIM);
         match f.button(
             "reverb.on",
             on,

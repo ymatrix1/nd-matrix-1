@@ -54,9 +54,9 @@ pub fn layer_strip(ui: &mut Ui, rect: Rect, id: &str, level: &mut f32, active: &
         let lit = *active && ((*level * 11.0).round() as usize) > i;
         let col = if i >= 10 {
             if lit {
-                LED_RED
+                LED_ACCENT
             } else {
-                LED_RED_DIM
+                LED_ACCENT_DIM
             }
         } else if i >= 8 {
             if lit {
@@ -117,7 +117,7 @@ pub fn drawbar(ui: &mut Ui, rect: Rect, id: &str, value: &mut u8, white: bool) -
         let y = rect.top() + 2.0 + i as f32 * 9.0;
         let r = Rect::from_min_size(pos2(rect.left(), y), vec2(7.0, 6.0));
         let lit = (i as u8) < *value;
-        p.rect_filled(r, 1.0, if lit { LED_RED } else { LED_RED_DIM });
+        p.rect_filled(r, 1.0, if lit { LED_ACCENT } else { LED_ACCENT_DIM });
         if lit {
             p.circle_filled(r.center(), 1.0, Color32::from_rgb(255, 120, 120));
         }

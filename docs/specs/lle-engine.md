@@ -1,6 +1,6 @@
 # Unified LLE engine (`ns4-lle5`)
 
-Status: implemented as an **offline, deterministic, slower-than-real-time** engine (Gate 1 found real-time exact LLE out of reach, [sharc-lle-realtime](../research/sharc-lle-realtime.md), D249). Code: `crates/nord-lle`; binary `lle_engine_run` in `crates/nord-tools`. Decision: D251. Measured run: [lle-engine-run](../research/lle-engine-run.md).
+Status: implemented as an **offline, deterministic, slower-than-real-time** engine (Gate 1 found real-time exact LLE out of reach, [sharc-lle-realtime](../research/sharc-lle-realtime.md), D249). Code: `crates/nord-lle`; binary `lle_engine_run` in `crates/nord-tools`. Decision: D252. Measured run: [lle-engine-run](../research/lle-engine-run.md).
 
 ## Purpose
 

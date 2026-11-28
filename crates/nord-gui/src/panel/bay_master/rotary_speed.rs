@@ -63,8 +63,8 @@ pub(super) fn render_speed(
         painter,
         pos2(lx_fast, ly),
         led_fast,
-        LED_RED,
-        LED_RED_DIM,
+        LED_ACCENT,
+        LED_ACCENT_DIM,
         LED_R,
     );
     for (x, name) in [(lx_slow, "SLOW"), (lx_fast, "FAST")] {

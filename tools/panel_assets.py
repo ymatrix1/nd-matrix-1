@@ -39,7 +39,7 @@ KNOB_FRAME_PX = 96  # 1x frame edge; 2x doubles it
 # a 270 degree sweep; frame 0 = -135 deg, frame 63 = +135 deg (clockwise positive).
 KNOB_SWEEP_DEG = 270.0
 FADER_FRAME_PX = 96
-PLATE_PX = {"plate_red": (128, 128), "plate_slate_slot": (128, 256)}
+PLATE_PX = {"plate_base": (128, 128), "plate_slate_slot": (128, 256)}
 
 # ASSUMED: control counts until B2 (ns4-3n0d) verifies them against the manual; chosen from a
 # rough read of the reference photo (3 sections x ~12 knobs, 9+9 drawbars, 3 layer faders).
@@ -171,7 +171,7 @@ def compose_preview(proof: Path = PROOF_DIR, scale: int = 2) -> object:
     from PIL import Image, ImageDraw
 
     e = KNOB_FRAME_PX * scale
-    plate = Image.open(proof / f"plate_red_{scale}x.png").convert("RGBA")
+    plate = Image.open(proof / f"plate_base_{scale}x.png").convert("RGBA")
     slate = Image.open(proof / f"plate_slate_slot_{scale}x.png").convert("RGBA")
     sheet = Image.new("RGBA", (e * 5 + 4 * 8, e * 2 + 8), (24, 24, 26, 255))
     strip = Image.open(proof / f"knob_filmstrip_{scale}x.png").convert("RGBA")

@@ -6,7 +6,7 @@ use crate::panel::param_hint::fmt;
 use crate::panel::param_hint::table::DELAY_MS as TIME_MS;
 use crate::panel::prelude::Stage4PanelState;
 use crate::panel::ui_state::fx::{ChainUi, Unit, DELAY_FX, MST_LABELS};
-use crate::style::{LED_RED, LED_RED_DIM};
+use crate::style::{LED_ACCENT, LED_ACCENT_DIM};
 use nord_core::fx::DelayFilterMode;
 use nord_panel::behaviour::{cycle, Trigger};
 
@@ -80,7 +80,7 @@ pub(super) fn delay(f: &mut Fx, st: &mut Stage4PanelState, slot: usize) {
         let c = &mut st.fx_ui.chains[slot];
 
         let on = f.rect("delay.on");
-        f.led_left(on, c.delay_on, LED_RED, LED_RED_DIM);
+        f.led_left(on, c.delay_on, LED_ACCENT, LED_ACCENT_DIM);
         match f.button(
             "delay.on",
             on,

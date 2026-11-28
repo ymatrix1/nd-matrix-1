@@ -163,6 +163,6 @@ Every new constant, table or art asset has to fit sections 2 to 4. Contributions
 ## Follow-ups ($0 legal budget posture)
 
 - **Tier 1 (quick wins):** Remove in-GUI sponsorship button (`ns4-s3pn`), GitHub Support purge of old PR refs (`ns4-vt4r`), required checks (`ns4-6fbu`), and free `.dmg`/website terms check (`ns4-d7mg`). (`ns4-sgro` AppImage runtime notices and LGPL source asset shipped in D242; `ns4-b9rn` renamed the standalone binary to `nd-matrix-1-standalone` and `release_verify.py` now rejects any shipped `nord-` name.)
-- **Tier 2 (high-impact engineering):** Finish class B (first) and class C migrations (`ns4-u8o2`, D128), run the second history rewrite (`ns4-eh57`), and ship a neutral non-red default panel theme (`ns4-80xe`).
+- **Tier 2 (high-impact engineering):** Finish class B (first) and class C migrations (`ns4-u8o2`, D128), run the second history rewrite (`ns4-eh57`), and ship a neutral non-red default panel theme (`ns4-80xe`; done, D251: original Slate Matrix identity, red look deleted).
 - **Decision recorded:** Keep DCO without a CLA (`ns4-9ngp`); `ADDITIONAL-PERMISSIONS.md` covers `ymatrix1 and each contributor to ND Matrix 1`.
 - **Deferred / optional:** Paid counsel review of section 8 (`ns4-ns2j`) and paid trademark registration (`ns4-0s8y`) are deferred unless the project ever commercializes or receives a formal legal notice.

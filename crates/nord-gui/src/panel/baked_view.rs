@@ -370,7 +370,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
         p.circle_filled(
             dimple_center,
             rx.max(ry) * 0.92,
-            Color32::from_rgba_unmultiplied(36, 40, 46, 210),
+            Color32::from_rgba_unmultiplied(30, 40, 58, 210),
         );
         p.circle_filled(
             dimple_center + vec2(0.8 * scale_x, -0.6 * scale_x),
@@ -468,7 +468,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             p.circle_filled(
                 rect.center() + vec2(c * dot_r, s * dot_r),
                 1.6 * scale_x,
-                Color32::from_rgba_unmultiplied(215, 224, 234, 190),
+                Color32::from_rgba_unmultiplied(53, 224, 232, 210),
             );
         }
     }
@@ -531,8 +531,8 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
         let sprite = match (b.variant.as_str(), down) {
             ("grey", true) => "btn_grey_down",
             ("grey", false) => "btn_grey_up",
-            ("red", true) => "btn_red_down",
-            ("red", false) => "btn_red_up",
+            ("accent", true) => "btn_accent_down",
+            ("accent", false) => "btn_accent_up",
             (_, true) => "btn_black_down",
             (_, false) => "btn_black_up",
         };
@@ -615,11 +615,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             sorted.sort_by(|a, b| b.center().y.total_cmp(&a.center().y));
             for (seg_idx, sr) in sorted.into_iter().enumerate() {
                 let on = seg_idx < lit_segs && val > 0.01;
-                let col = if on {
-                    LED_GREEN
-                } else {
-                    Color32::from_rgb(22, 30, 24)
-                };
+                let col = if on { LED_GREEN } else { LED_OFF_WELL };
                 p.rect_filled(sr, 0.8, col);
             }
         }
@@ -675,17 +671,13 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
         };
         assets.paint_sprite(&p, sprite, cap, Color32::WHITE);
 
-        // 8-segment red LED ladder using exact DOM rects inside the black LED column
+        // 8-segment accent LED ladder using exact DOM rects inside the black LED column
         if let Some(segs) = assets.layout.drawbar_ladders.get(idx) {
             let mut sorted: Vec<Rect> = segs.iter().map(|s| s.in_rect(plate_rect)).collect();
             sorted.sort_by(|a, b| a.center().y.total_cmp(&b.center().y));
             for (seg_idx, sr) in sorted.into_iter().enumerate() {
                 let on = (seg_idx as u8) < step_u8;
-                let col = if on {
-                    LED_RED
-                } else {
-                    Color32::from_rgb(32, 18, 20)
-                };
+                let col = if on { LED_ACCENT } else { LED_OFF_WELL };
                 p.rect_filled(sr, 0.8, col);
             }
         }
@@ -703,7 +695,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             let col = match color_name.as_str() {
                 "green" => LED_GREEN,
                 "amber" => LED_AMBER,
-                _ => LED_RED,
+                _ => LED_ACCENT,
             };
             p.circle_filled(r.center(), radius * 2.1, col.gamma_multiply(0.14));
             p.circle_filled(r.center(), radius * 1.45, col.gamma_multiply(0.28));
@@ -714,7 +706,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                 Color32::from_white_alpha(140),
             );
         } else {
-            p.circle_filled(r.center(), radius * 0.85, Color32::from_rgb(24, 20, 22));
+            p.circle_filled(r.center(), radius * 0.85, LED_OFF_WELL);
         }
     }
 
@@ -728,13 +720,9 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             "up" => vec![r.center_top(), r.left_bottom(), r.right_bottom()],
             _ => vec![r.center_bottom(), r.left_top(), r.right_top()],
         };
-        let fill = if on {
-            LED_RED
-        } else {
-            Color32::from_rgb(32, 24, 26)
-        };
+        let fill = if on { LED_ACCENT } else { LED_OFF_WELL };
         let stroke = if on {
-            egui::Stroke::new(1.0_f32, LED_RED.gamma_multiply(0.5))
+            egui::Stroke::new(1.0_f32, LED_ACCENT.gamma_multiply(0.5))
         } else {
             egui::Stroke::NONE
         };
@@ -853,7 +841,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
         }
     }
     // Render pressed keys matching HTML/CSS .key-white.active & .key-black.active verbatim:
-    // - Clipped at `keys_bbox.top()` so keys never bleed over the red felt lip, while allowing
+    // - Clipped at `keys_bbox.top()` so keys never bleed over the felt lip, while allowing
     //   `shift_y` (2px) downward travel into the black bottom trim (CSS `transform: translateY(2px)`).
     // - White keys use the exact CSS 4-stop vertical gradient + 1px bottom lip + side recession shadows.
     // - Overlapping unpressed black keys restore their drop shadow and verbatim baked Fatar TP/40 pixels.
@@ -876,23 +864,23 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
             if is_pressed {
                 let r = norm_rect(key.x, key.y, key.w, key.h, plate_rect);
                 pressed_white_rects.push(r);
-                // Recessed gap under the red felt lip where the key dropped down
+                // Recessed gap under the felt lip where the key dropped down
                 key_p.rect_filled(
                     Rect::from_min_max(r.left_top(), pos2(r.right(), r.top() + shift_y + 1.0)),
                     0.0,
-                    Color32::from_rgb(138, 136, 129),
+                    Color32::from_rgb(88, 122, 124),
                 );
                 let r_down = r.translate(vec2(0.0, shift_y));
                 // Exact CSS `.key-white.active` vertical gradient:
-                // linear-gradient(180deg, #cfcdc6 0%, #e4e2db 20%, #ebe9e2 88%, #d2d0c8 100%)
+                // linear-gradient(180deg, #a9d6d6 0%, #c5e8e5 20%, #d3efe9 88%, #acd3d1 100%)
                 paint_vertical_gradient(
                     &key_p,
                     r_down,
                     &[
-                        (0.00, Color32::from_rgb(0xcf, 0xcd, 0xc6)),
-                        (0.20, Color32::from_rgb(0xe4, 0xe2, 0xdb)),
-                        (0.88, Color32::from_rgb(0xeb, 0xe9, 0xe2)),
-                        (1.00, Color32::from_rgb(0xd2, 0xd0, 0xc8)),
+                        (0.00, Color32::from_rgb(0xa9, 0xd6, 0xd6)),
+                        (0.20, Color32::from_rgb(0xc5, 0xe8, 0xe5)),
+                        (0.88, Color32::from_rgb(0xd3, 0xef, 0xe9)),
+                        (1.00, Color32::from_rgb(0xac, 0xd3, 0xd1)),
                     ],
                 );
                 // Top felt-lip cast shadow + left/right neighbor-wall recession shadows
@@ -915,17 +903,17 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                     0.0,
                     Color32::from_black_alpha(28),
                 );
-                // CSS `border-right: 1px solid #9c9a92` & `border-bottom: 1px solid #bdbbb2`
+                // CSS `border-right: 1px solid #9d957f` & `border-bottom: 1px solid #b8af97`
                 key_p.line_segment(
                     [r_down.right_top(), r_down.right_bottom()],
-                    egui::Stroke::new(1.0_f32, Color32::from_rgb(0x9c, 0x9a, 0x92)),
+                    egui::Stroke::new(1.0_f32, Color32::from_rgb(0x9d, 0x95, 0x7f)),
                 );
                 key_p.line_segment(
                     [
                         pos2(r_down.left(), r_down.bottom() - 0.5),
                         pos2(r_down.right(), r_down.bottom() - 0.5),
                     ],
-                    egui::Stroke::new(1.0_f32, Color32::from_rgb(0xa4, 0xa2, 0x99)),
+                    egui::Stroke::new(1.0_f32, Color32::from_rgb(0x8f, 0xb4, 0xb2)),
                 );
             }
         }
@@ -944,7 +932,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                 key_p.rect_filled(
                     Rect::from_min_max(r.left_top(), pos2(r.right(), r.top() + shift_y + 1.0)),
                     0.0,
-                    Color32::from_rgb(10, 11, 13),
+                    Color32::from_rgb(7, 10, 16),
                 );
                 // Paint verbatim baked Fatar TP/40 black key shifted down by `shift_y`
                 assets.paint_plate_region(&key_p, plate_down, key.x, key.y, key.w, key.h);
@@ -962,7 +950,7 @@ pub fn render_baked_panel(ui: &mut Ui, state: &mut Stage4PanelState, audio_handl
                         pos2(r_down.right() - 1.0, r_down.bottom() - 1.0),
                     ),
                     0.0,
-                    Color32::from_rgba_unmultiplied(0x18, 0x1a, 0x1f, 165),
+                    Color32::from_rgba_unmultiplied(0x1b, 0x24, 0x36, 165),
                 );
                 key_p.line_segment(
                     [

@@ -183,7 +183,7 @@ pub(super) fn render_bay_program(
     state.program_ui.undo_op = state.telemetry.undo_label();
 
     let area = to_px(layout::section_rect(Section::Program), origin);
-    painter.rect_filled(area, 5.0, PROGRAM_RED);
+    painter.rect_filled(area, 5.0, PROGRAM_PLATE);
     painter.rect_stroke(
         area,
         5.0,

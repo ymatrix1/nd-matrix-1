@@ -45,7 +45,7 @@ pub fn plate_of(section: Section) -> Option<Plate> {
             top: PLATE_TOP_MM,
             tab: Some(tab(85.4)),
         },
-        // The hardware prints no tab here (ON / SOLO / FX FOCUS sit on the red panel); the GUI
+        // The hardware prints no tab here (ON / SOLO / FX FOCUS sit on the panel); the GUI
         // gives Synth one like Organ and Layer Effects so the header reads the same everywhere
         // and the ON button, its LED and SOLO stay on a plate (production look, not photo parity).
         Section::Synth => Plate {
