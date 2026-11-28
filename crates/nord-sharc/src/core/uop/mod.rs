@@ -11,6 +11,8 @@
 pub mod config;
 pub mod drive;
 pub mod exec;
+#[cfg(test)]
+mod fuzz;
 pub mod hot;
 pub mod invalidate;
 pub mod kernels;
