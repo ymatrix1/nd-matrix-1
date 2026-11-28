@@ -48,6 +48,7 @@ pub mod loopwatch;
 pub mod lower_dp;
 pub mod lower_flow;
 pub mod lower_mem;
+pub mod lower_mul;
 #[cfg(test)]
 mod mutants;
 #[cfg(feature = "sb-native")]

@@ -27,7 +27,8 @@ Not translated:
 | Thumb | `bx` and loads into `pc` with bit 0 set exit with `cpu.thumb = true`; T1 and T0 run Thumb. A Thumb front end only if the dynamic Thumb share exceeds 3 % (counter in G0). |
 | MMU, TLB, caches, permissions | Not modelled (VA = PA, CP15 is a stub, all pages RWX, ASSUMED by `mem.rs`). Nothing to invalidate on `mcr c7/c8`. If an MMU model is added, section 6 must grow. |
 | WFI | 0 encodings in the benchmark images; `mcr p15,0,rd,c7,c0,4` is `GENERIC` and raises `Fault::Wfi` exactly as before. |
-| `MUL`, `MLA`, long multiplies and the other `SLOW` classes | `GENERIC` (no kind id allocated, see section 12). |
+| `MUL`, `MLA` | Lowered to `MUL`, `MULS`, `MLA`, `MLAS` (ids 108..=111, WP W2-MUL). |
+| Long multiplies, halfword multiplies and the other `SLOW` classes | `GENERIC` (no kind id allocated). |
 | Page mapping | The tier never maps a page (I9). |
 
 ## 2. Invariants
@@ -71,12 +72,13 @@ Conventions pinned by S0:
 | Page numbers | `Sb::pages` holds `addr >> 12`, the unit of `Mem::stale_code`. |
 | Registry | `k::family(kind)` is the static table every dispatcher (executor, native codegen) goes through, so no package edits another's file to register itself. An unknown id is `unreachable!`; `every_id_is_either_registered_to_one_family_or_unreachable` enumerates all 256. |
 
-Kind ids (`k::COUNT = 165`, `k::DEFINED = 141`; the gaps 108..=111, 129..=143, 155..=159 and 165..=255 are reserved, not allocated):
+Kind ids (`k::COUNT = 165`, `k::DEFINED = 145`; the gaps 129..=143, 155..=159 and 165..=255 are reserved, not allocated):
 
 | Ids | Family (executor) | Kinds |
 |---|---|---|
 | 0..=95 | `Dp` (`exec_alu`) | generic data processing, `k::dp(form, opcode, s) = form*32 + opcode*2 + s`; form 0 immediate, 1 register shifted by immediate, 2 register shifted by register; equal to the predecode handler ids (`the_generic_dp_ids_match_the_predecode_handler_ids`) |
 | 96..=107 | `Dp` | specialised: `MOV_IMM MOV_REG MVN_IMM ADD_IMM SUB_IMM ADD_REG SUB_REG CMP_IMM CMP_REG TST_IMM TST_REG ORR_IMM`, same semantics as the generic id they replace |
+| 108..=111 | `Dp` | `MUL MULS MLA MLAS` = `k::mul(acc, s)` = `108 + acc*2 + s`: `rd = rm * rs (+ rn)` modulo 2^32, N and Z from the result when S, C and V untouched (ARMv5), as `Cpu::arm_mul` cases 0 and 1; one instruction like any other (`Exit::done`) |
 | 112..=128 | `Mem` (`exec_mem`) | `LDR_IMM LDRB_IMM STR_IMM STRB_IMM LDR_REG LDRB_REG STR_REG STRB_REG` (112..=119), `LDRH LDRSH LDRSB STRH LDRD STRD` (120..=125), `LDM STM` (126, 127), `LDR_ABS` (128) |
 | 144..=154 | `Flow` (`exec_flow`) | `PRED GUARD GUARD_REG_EQ LOOP_BACK EXIT EXIT_REG EXIT_REG_ARM GENERIC GENERIC_END MRS MSR_C` |
 | 160..=164 | `Fused` (`exec_flow`) | `CMP_GUARD_I CMP_GUARD_R TST_GUARD_I MOV_PAIR LDR_PAIR` |
@@ -87,6 +89,7 @@ Operand layout:
 |---|---|---|---|---|---|---|
 | DP generic | dest | first operand | Rm (forms 1, 2) | Rs (form 2) | form 1: `type<<5 \| amount (0..31)`, special encodings (LSR/ASR #0 = 32, ROR #0 = RRX) resolved by `alu::shift(.., imm = true)`; form 2: `type<<5`; form 0: bit 0 = 1 when rot == 0 (shifter carry = C) | form 0: rotated immediate |
 | DP specialised | dest | first | Rm | | | immediate |
+| `MUL MULS MLA MLAS` | Rd (instruction bits 19..16) | accumulator (bits 15..12; 0 for `MUL`) | Rm (bits 3..0) | Rs (bits 11..8) | | |
 | `LDR/LDRB/STR/STRB` (`_IMM`, `_REG`; a register offset shifted by `ROR #0` = RRX stays `GENERIC`) | Rd | Rn | Rm (reg offset) | flags: b0 U (add), b1 P (pre), b2 WB (`!P \|\| W`) | reg offset: `type<<5 \| amount` | 12-bit offset |
 | `LDRH LDRSH LDRSB STRH LDRD STRD` | Rd | Rn | Rm | flags as above plus b3 REG | | 8-bit offset |
 | `LDM`, `STM` (S bit and empty list stay `GENERIC`) | | Rn | | flags | popcount | register list |
@@ -351,7 +354,7 @@ Policy:
 
 Open items:
 
-* **MUL and MLA.** S0 allocated no kind id for `MUL`, `MLA` and the long multiplies, so they stay `GENERIC` until a design review allocates ids (the design's W1-XALU row lists "native `mul/mla`", which needs those ids). A review must allocate them before W1-XALU or W2-NDP can cover multiplies.
+* **Long multiplies.** `MUL`, `MLA` and their S forms have kind ids 108..=111 (W2-MUL: `lower_mul.rs`, executor arm `exec_alu::exec_mul_with`, differential against `Cpu::step` in `lower_mul/diff.rs`). `UMULL`, `UMLAL`, `SMULL`, `SMLAL` (two result registers, flags from a 64-bit value) and the ARMv5E halfword multiplies stay `GENERIC`: they have no id and no executor arm. W2-NDP can lower the four 32-bit ids natively.
 * **Framing conflict (R5, follow-up F10).** `nord-lle` runs `TICK_INSNS = 200_000` per 24 kHz tick (4.8 G virtual instructions per second, against an AM1705 bound of 0.3 to 0.456 G); both framings cannot be true, and every steady-state figure scales with the one chosen. G0 (c) and (e) measure it; the cost model is given at both.
 * **Goldens (R12).** The L2 goldens are for OS v1.66 and one program; PR 687 (v1.68 layouts) may change them, so they are re-derived on T1 first.
 * **Conflicts (R11).** PR 689 and PR 687 edit `machine/mod.rs`; PR 689 edits `fastrun.rs`. All new code is in new files and W4-SEAM is last.

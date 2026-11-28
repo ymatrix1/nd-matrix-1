@@ -2,7 +2,8 @@
 //! every dispatcher goes through, and the store predicate.
 //!
 //! Spec: `docs/research/arm0-jit-design.md` section 3.1. Ids are part of the frozen contract;
-//! the gaps 108..=111, 129..=143 and 155..=159 are reserved, not allocated. The generic
+//! the gaps 129..=143 and 155..=159 are reserved, not allocated (108..=111 went to the 32-bit
+//! multiplies, work package W2-MUL). The generic
 //! data-processing ids equal the predecode handler ids minus `op::DP_BASE` (a test below).
 
 /// First generic data-processing id.
@@ -25,6 +26,20 @@ pub const CMP_REG: u8 = 104;
 pub const TST_IMM: u8 = 105;
 pub const TST_REG: u8 = 106;
 pub const ORR_IMM: u8 = 107;
+
+/// `MUL`: `rd = rm * rs`, flags untouched. The four multiply ids are `MUL + acc * 2 + s`.
+pub const MUL: u8 = 108;
+/// `MULS`: `MUL` setting N and Z from the result (C and V unchanged on ARMv5).
+pub const MULS: u8 = 109;
+/// `MLA`: `rd = rm * rs + rn`.
+pub const MLA: u8 = 110;
+/// `MLAS`: `MLA` setting N and Z from the result.
+pub const MLAS: u8 = 111;
+
+/// Multiply id of `MUL` (`acc` false) or `MLA` (`acc` true), `S` set or not.
+pub const fn mul(acc: bool, s: bool) -> u8 {
+    MUL + (acc as u8) * 2 + s as u8
+}
 
 pub const LDR_IMM: u8 = 112;
 pub const LDRB_IMM: u8 = 113;
@@ -65,12 +80,13 @@ pub const LDR_PAIR: u8 = 164;
 /// One past the highest allocated id.
 pub const COUNT: usize = 165;
 /// Allocated ids (the rest of `0..COUNT` is reserved and `unreachable!` in an executor).
-pub const DEFINED: usize = 141;
+pub const DEFINED: usize = 145;
 
 /// Which executor module (and native lowering module) owns a kind id.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Family {
-    /// `0..=107`: data processing, generic and specialised (`exec_alu`, `native::lower_dp`).
+    /// `0..=111`: data processing, generic and specialised, and the 32-bit multiplies
+    /// (`exec_alu`, `native::lower_dp`).
     Dp,
     /// `112..=128`: loads and stores (`exec_mem`, `native::lower_mem`).
     Mem,
@@ -86,7 +102,7 @@ pub enum Family {
 /// function, so a work package never edits another one's file to register its arms.
 pub const fn family(kind: u8) -> Family {
     match kind {
-        0..=107 => Family::Dp,
+        0..=111 => Family::Dp,
         112..=128 => Family::Mem,
         144..=154 => Family::Flow,
         160..=164 => Family::Fused,
@@ -129,6 +145,10 @@ mod tests {
             k::TST_IMM,
             k::TST_REG,
             k::ORR_IMM,
+            k::MUL,
+            k::MULS,
+            k::MLA,
+            k::MLAS,
             k::LDR_IMM,
             k::LDRB_IMM,
             k::STR_IMM,
@@ -191,6 +211,24 @@ mod tests {
             }
         }
         assert_eq!(k::dp(2, 15, true), 95);
+    }
+
+    #[test]
+    fn the_multiply_ids_are_mul_plus_acc_times_two_plus_s_and_are_data_processing() {
+        assert_eq!(
+            [k::mul(false, false), k::mul(false, true)],
+            [k::MUL, k::MULS]
+        );
+        assert_eq!([k::mul(true, false), k::mul(true, true)], [k::MLA, k::MLAS]);
+        assert_eq!([k::MUL, k::MULS, k::MLA, k::MLAS], [108, 109, 110, 111]);
+        for id in k::MUL..=k::MLAS {
+            assert_eq!(k::family(id), k::Family::Dp, "{id}");
+        }
+        assert_eq!(
+            k::family(129),
+            k::Family::Invalid,
+            "the other gaps stay reserved"
+        );
     }
 
     #[test]

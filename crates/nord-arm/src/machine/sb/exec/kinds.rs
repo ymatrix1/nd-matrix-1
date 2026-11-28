@@ -1,6 +1,6 @@
 //! OWNER: W2-XCORE (tests). Layer L6: every defined kind id has an arm. One uop of each of the
-//! 141 allocated ids runs through `run_sb` and none reaches an `unreachable!`; every other id
-//! (the gaps `108..=111`, `129..=143`, `155..=159` and `165..=255`) does, by design.
+//! 145 allocated ids runs through `run_sb` and none reaches an `unreachable!`; every other id
+//! (the gaps `129..=143`, `155..=159` and `165..=255`) does, by design.
 
 use super::*;
 use crate::machine::sb::exec_mem::{F_P, F_U, F_WB};

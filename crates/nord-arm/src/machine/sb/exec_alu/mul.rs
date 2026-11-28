@@ -11,16 +11,12 @@
 //! [`exec_mul_with`] the same arm with `(acc, s)` as run-time flags, so a caller that learns the
 //! pair from a kind id needs no const-generic dispatch of its own.
 //!
-//! Reachability: the frozen contract allocates no kind id for multiplies (`uop.rs` note, `k.rs`:
-//! ids `108..=111` are reserved and `unreachable!` in an executor), so [`exec_dp`](super::exec_dp)
-//! does not dispatch here and `k::family` maps no id to this arm; a guest `mul` is `GENERIC`
-//! today. Making it reachable takes edits to files this package does not own: allocate the ids
-//! (`uop/k.rs`: constants, `family`, `DEFINED`, `COUNT`), route multiplies out of
-//! `LowerFamily::Generic` (`decode.rs::lower_family`), emit them in `lower_dp.rs`, and call
-//! `exec_mul_with` from the `run_sb` arm (`exec.rs`). Until then `W2-NDP` has no kind to lower
-//! for `mul`.
+//! Reachability (WP W2-MUL): the kind ids `k::MUL..=k::MLAS` (108..=111, `k::mul(acc, s)`) are in
+//! the `Dp` family and [`exec_dp`](super::exec_dp) calls [`exec_mul_with`] for them, so `run_sb`
+//! reaches the arm; `lower_mul.rs` emits the ids. The long multiplies and the ARMv5E halfword
+//! multiplies have no id and stay `GENERIC`.
 //!
-//! Mutation sites 314, 315 and 316 (see `MUTANTS` in the parent module).
+//! Mutation sites 314, 315, 316 and 317 (see `MUTANTS` in the parent module).
 
 use super::{mutant, nz, put, reg, Regs};
 use crate::machine::sb::uop::Uop;
@@ -57,6 +53,7 @@ pub(super) use tests::suite;
 
 #[cfg(test)]
 mod tests {
+    use super::super::exec_dp;
     use super::*;
     use crate::cpu::Cpu;
     use crate::machine::sb::testkit::{random_cpu, Rng};
@@ -115,6 +112,19 @@ mod tests {
         if (r2, f2) != (r, f) {
             return Err(format!(
                 "exec_mul_with({ACC}, {S}) differs from exec_mul {u:?}"
+            ));
+        }
+        // the kind-id path of the executor loop: `exec_dp` on `k::mul(ACC, S)`
+        let by_id = Uop {
+            kind: k::mul(ACC, S),
+            ..*u
+        };
+        let (mut r3, mut f3) = (cpu.r, pack_flags(cpu));
+        exec_dp(&mut r3, &mut f3, &by_id);
+        if (r3, f3) != (r, f) {
+            return Err(format!(
+                "exec_dp kind {} differs from exec_mul {u:?}",
+                by_id.kind
             ));
         }
         seen.cases += 1;
