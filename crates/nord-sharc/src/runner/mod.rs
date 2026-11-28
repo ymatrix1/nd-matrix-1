@@ -30,6 +30,7 @@ pub mod pass;
 pub mod pass_sched;
 pub mod periph_run;
 pub mod ring_trace;
+pub mod rt_sched;
 pub mod system;
 pub mod system_diff;
 pub mod tap_run;
