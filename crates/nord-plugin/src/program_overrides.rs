@@ -66,7 +66,7 @@ fn mod2_values(params: &Stage4Params, layer: usize) -> Mod2Values {
 
 /// Per-control "host overrides the program" flags plus the last host value seen.
 pub struct ProgramOverrides {
-    armed: AtomicU32,
+    armed: std::sync::Arc<AtomicU32>,
     touch_last: AtomicU32,
     mod2_last: [[AtomicU32; 4]; FX_LAYERS],
 }
@@ -75,7 +75,7 @@ impl Default for ProgramOverrides {
     /// Baseline = the parameter defaults (`Medium` Touch; Mod 2 Off, 0.8 Hz, variation off).
     fn default() -> Self {
         Self {
-            armed: AtomicU32::new(0),
+            armed: Default::default(),
             touch_last: AtomicU32::new(0),
             mod2_last: std::array::from_fn(|_| {
                 [
@@ -107,6 +107,16 @@ impl ProgramOverrides {
                 self.armed.fetch_or(mod2_bit(layer), Relaxed);
             }
         }
+    }
+
+    /// The armed flags, shared with the project state (`library_state.rs`).
+    pub fn armed_handle(&self) -> std::sync::Arc<AtomicU32> {
+        std::sync::Arc::clone(&self.armed)
+    }
+
+    /// Arms the flags in `mask` after a program load: a restored project's host values win (D262).
+    pub fn arm(&self, mask: u32) {
+        self.armed.fetch_or(mask, Relaxed);
     }
 
     /// The host `piano_touch` value replaces the program Touch of both Piano layers.

@@ -88,6 +88,10 @@ impl Loaded {
                 // the program's until the host moves them.
                 params.program_overrides.rebaseline(params);
                 params.program_hold.hold(Group::PROGRAM);
+                // A restored project: the edits it had armed win over this program (D262).
+                let (hold, overrides) = params.library_state.take_rearm();
+                params.program_hold.arm(hold);
+                params.program_overrides.arm(overrides);
                 if let Some(old) = self.program.replace(prog) {
                     bin.put(Garbage::Program(old));
                 }

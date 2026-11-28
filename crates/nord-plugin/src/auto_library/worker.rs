@@ -9,9 +9,10 @@ use super::archive::{
 use super::handled::Handled;
 use super::{report, QUEUE_WAIT, WAVE_TABLES_WAIT};
 use crate::library_select::{label, location};
+use crate::library_state::{LibraryPersist, LibraryStatus};
 use crate::loader::{LoadJob, LoadSender, Refused};
 use crate::shared_sounds::Shared;
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, RecvTimeoutError};
 use nord_core::piano::NpnoSound;
 use nord_core::synth::SynthSampleSound;
 use std::collections::HashMap;
@@ -24,6 +25,14 @@ use std::time::{Duration, Instant};
 /// [`bank_key`].
 static PIANOS: Shared<NpnoSound> = Shared::new();
 static SAMPLES: Shared<SynthSampleSound> = Shared::new();
+
+/// How often a request for a library that is not there is tried again (an external volume
+/// mounted after the host started). ASSUMED: a few seconds is quick enough for a user who just
+/// mounted a disk and costs one `stat` per try.
+#[cfg(not(test))]
+const RETRY_EVERY: Duration = Duration::from_secs(5);
+#[cfg(test)]
+const RETRY_EVERY: Duration = Duration::from_millis(100);
 
 const CLOSING: &str = "the plugin instance is closing";
 
@@ -43,6 +52,11 @@ pub(super) struct Worker {
     wave_bank_sent: bool,
     /// The OS update tables were waited for once and did not come: do not wait again.
     wave_wait_failed: bool,
+    /// The project's library reference: the path to follow (restored late, or chosen in the
+    /// editor) and where the status is reported (D262).
+    state: Option<Arc<LibraryPersist>>,
+    /// The request to try again because the library file was not there, with its generation.
+    retry: Option<(u64, i32)>,
     /// Tests: `load` panics for this location (a decoder bug the guard in `handle` must survive).
     #[cfg(test)]
     panic_on_load: Option<u16>,
@@ -54,8 +68,11 @@ impl Worker {
         loads: LoadSender,
         done: Arc<Handled>,
         closed: Arc<AtomicBool>,
+        state: Option<Arc<LibraryPersist>>,
     ) -> Self {
         Self {
+            state,
+            retry: None,
             path,
             loads,
             done,
@@ -71,7 +88,19 @@ impl Worker {
     }
 
     pub(super) fn run(mut self, rx: Receiver<(u64, i32)>) {
-        while let Ok((mut generation, mut want)) = rx.recv() {
+        loop {
+            let next = match self.retry {
+                Some(again) => match rx.recv_timeout(RETRY_EVERY) {
+                    Ok(request) => request,
+                    Err(RecvTimeoutError::Timeout) => again,
+                    Err(RecvTimeoutError::Disconnected) => return,
+                },
+                None => match rx.recv() {
+                    Ok(request) => request,
+                    Err(_) => return,
+                },
+            };
+            let (mut generation, mut want) = next;
             // Only the newest request matters when the host scrubbed through several.
             while let Ok((later_generation, later)) = rx.try_recv() {
                 generation = later_generation;
@@ -80,7 +109,11 @@ impl Worker {
             if self.closing() {
                 return;
             }
+            self.retry = None;
             self.handle(want);
+            if self.retry.is_some() {
+                self.retry = Some((generation, want));
+            }
             self.done.record(generation, want);
         }
     }
@@ -91,10 +124,17 @@ impl Worker {
     /// wait out its whole timeout.
     fn handle(&mut self, want: i32) {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.follow_state();
             if let Some(flat) = location(want) {
                 match self.load(flat) {
-                    Ok(name) => report(&format!("program {} loaded: {name}", label(want))),
-                    Err(e) => report(&format!("program {} not loaded ({e})", label(want))),
+                    Ok(name) => {
+                        self.note_found();
+                        report(&format!("program {} loaded: {name}", label(want)));
+                    }
+                    Err(e) => {
+                        report(&format!("program {} not loaded ({e})", label(want)));
+                        self.note_missing();
+                    }
                 }
             } else if want == 0 {
                 self.unload();
@@ -110,6 +150,43 @@ impl Worker {
                 "program {} not loaded (the decoder panicked: {what})",
                 label(want)
             ));
+        }
+    }
+
+    /// Switches to the path the project state names now (restored after the worker started, or
+    /// chosen in the editor); the old index and banks are let go.
+    fn follow_state(&mut self) {
+        let Some(path) = self.state.as_ref().and_then(|s| s.path()) else {
+            return;
+        };
+        if path != self.path {
+            report(&format!("sound library is now {}", path.display()));
+            self.path = path;
+            self.archive = None;
+            self.pianos.clear();
+            self.samples.clear();
+        }
+    }
+
+    /// A failed load because the file is not there: say so and try again in a few seconds.
+    fn note_missing(&mut self) {
+        if self.path.is_file() {
+            return;
+        }
+        if let Some(s) = &self.state {
+            s.set_status(LibraryStatus::Missing(self.path.display().to_string()));
+        }
+        self.retry = Some((0, 0));
+    }
+
+    /// A load worked: a `Missing` status is over.
+    fn note_found(&self) {
+        if let Some(s) = self
+            .state
+            .as_ref()
+            .filter(|s| matches!(s.status(), LibraryStatus::Missing(_)))
+        {
+            s.set_status(LibraryStatus::Ready);
         }
     }
 
@@ -323,7 +400,7 @@ mod tests {
 
     fn worker(loads: LoadSender, closed: Arc<AtomicBool>) -> Worker {
         let done = Arc::new(Handled::default());
-        Worker::new(PathBuf::from("unused.ns4b"), loads, done, closed)
+        Worker::new(PathBuf::from("unused.ns4b"), loads, done, closed, None)
     }
 
     #[test]
@@ -369,6 +446,7 @@ mod tests {
             tx,
             Arc::clone(&done),
             Arc::new(AtomicBool::new(false)),
+            None,
         );
         // Program 1 is location 0 (A:11); the panic hits it, program 2 (A:12) loads normally.
         w.panic_on_load = location(1);

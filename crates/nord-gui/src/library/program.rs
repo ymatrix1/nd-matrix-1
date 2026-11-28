@@ -11,6 +11,23 @@ use std::io::BufReader;
 use std::path::Path;
 
 impl BackupLibraryState {
+    /// Flat location (bank * 64 + location) of `entry_name` in the primary backup, `None` for an
+    /// entry of a merged bank or one without a location.
+    fn slot_of(&self, entry_name: &str) -> Option<u16> {
+        if self.origin.contains_key(entry_name) {
+            return None;
+        }
+        self.program_slots
+            .iter()
+            .find(|(_, n)| n == entry_name)
+            .map(|(l, _)| *l)
+    }
+
+    /// The flat location of the last program loaded from the primary backup, once.
+    pub fn take_loaded_slot(&mut self) -> Option<u16> {
+        self.loaded_slot.take()
+    }
+
     /// Reads and applies a `.ns4p` program entry from the currently opened `.ns4b` archive,
     /// automatically resolving and scheduling matching `.npno` and `.nsmp4` banks.
     pub fn load_program_entry(
@@ -64,6 +81,7 @@ impl BackupLibraryState {
                     prog.name = stem.to_string();
                 }
                 panel.apply_program(&prog);
+                self.loaded_slot = self.slot_of(entry_name);
                 audio.send_command(AudioCommand::LoadProgram(Box::new(prog)));
 
                 let mut resolved_count = 0usize;
@@ -275,5 +293,22 @@ mod tests {
         )));
 
         let _ = std::fs::remove_file(&tmp_path);
+    }
+
+    #[test]
+    fn the_location_of_a_primary_entry_is_found_once_and_merged_banks_have_none() {
+        let mut lib = BackupLibraryState::new();
+        lib.program_slots = vec![
+            (65, "Program/B11.ns4p".into()),
+            (0, "Program/A11.ns4p".into()),
+        ];
+        lib.origin
+            .insert("Program/Merged.ns4p".into(), (1, "Program/A11.ns4p".into()));
+        assert_eq!(lib.slot_of("Program/B11.ns4p"), Some(65));
+        assert_eq!(lib.slot_of("Program/Merged.ns4p"), None);
+        assert_eq!(lib.slot_of("Program/none.ns4p"), None);
+        lib.loaded_slot = lib.slot_of("Program/A11.ns4p");
+        assert_eq!(lib.take_loaded_slot(), Some(0));
+        assert_eq!(lib.take_loaded_slot(), None);
     }
 }
