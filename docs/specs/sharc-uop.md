@@ -36,11 +36,12 @@ Code: `crates/nord-sharc/src/core/uop/`, `runner/uop_pass.rs`, `runner/uop_repor
 | `UopHot` (boxed, taken out during `uop_try`) | blocks, uop arena, `pcmaps` (one `PcMap` per PEy mode; `pcmap(simd)`), `page_blocks`, `dropped`, `epoch`, handler table. |
 | `Core::enable_uop(cfg, ranges)` | validates the request (native needs the feature; ranges inside the code window), translates, installs, marks pages, arms the hooks. |
 | `disable_uop`, `uop_enabled`, `uop_stats`, `uop_reset_stats` | lifecycle and counters. |
-| `uop_try(limit) -> bool` | one block from `pc`: entry guard, event room, run, counters. False means the caller runs `Core::step`. |
+| `uop_try(limit) -> bool` | a chain of blocks from `pc` (`drive/chain.rs`): revalidate dirty pages, find the block (cached `Link` while its epoch is current, else the pc map of `core.simd()`), entry guard (a failing row is counted for the first block of the call only), run, count; continues after `Ok`, `Jump` and `Smc` unless `pc == stop_pc`, no step ran or a fault is pending. False means no step ran and the caller runs one `Core::step` (`steps_core_step += 1`); a `Slow` or `Guard` exit with no progress in a later block of the chain is replayed by the driver, so each exit is counted once. A `Fault` from a fast handler is replayed through `Core::step` (the interpreter's fault and partial effects); `Interp` stores its own. |
 | `run_uop(n)` | `Core::run` with the hook; fault returned like `run`. |
 | `uop_begin_pass(idle_pc)`, `uop_take_fault`, `uop_set_stop_pc` | pass runner support. |
 | `uop_note_write(first_short, count)`, `uop_note_all()` | called from `invalidate_sram_cache` and `invalidate_code_cache`; early return while `uop_run.active` is false. |
 | `uop_revalidate_dirty`, `uop_maintain`, `uop_needs_maintenance`, `uop_dirty` | invalidation (section 5). |
+| `uop_maintain_async(&mut Service)`, `uop_submit_dropped`, `uop_collect`, `uop_install_done` | the same through the translation service; the caller owns the `Service` (the frozen state types have no slot for one). |
 | `lean_pass_uop`, `lean_pass_uop_checked` | pass loops (`runner/uop_pass.rs`). |
 | `Engine::{Uop, UopChecked, UopNative}` | census and pass-scheduler selection; `#[default] Interp`. |
 
@@ -60,14 +61,18 @@ A block runs only when all of these hold; else `Exit::Guard` and one `Core::step
 | Arith | no arithmetic-interrupt enable unless the block cannot raise one |
 | Valid | `!block.poisoned`, ISA at pc equals `block.isa` |
 
+Event split (`exec/event.rs`, `exec/dispatch.rs`): `Core::step` looks at the controller only when `steps >= irq.due`, so a block entered at `steps` may run `due - steps` steps unchecked. A handler that may poke the controller (`INTERP`, the wrap latch, `finish_step`) lowers `ctx.room` to `event::due_room`; the dispatch loop re-checks the room after every uop and runs the rest of the block checked, so the first uop that no longer fits exits `Slow` in front of itself and the interpreter prologue sees the event at the step where it would have seen it. This replaces "the uop ends with `return Slow`" of design 4.5 rule 4: `Slow` means the uop did not run, so a uop that ran cannot return it. Every exit materializes `pc` and `steps` at the uop boundary (`exec/exit.rs`).
+
 Events raised inside a block follow design section 7.3: a system-register write is a block terminator; a peripheral access re-checks `irq.due` after the access; the I7/I15 wrap latch is processed by `UF_CB` uops; `IDLE` runs through the interpreter body.
 
 ## 5. Invalidation
 
 1. `uop_note_write` ORs the bitmap words a write touches into `uop_run.dirty` and, when the write hits a code page, sets `RF_SMC` and counts `smc`; `uop_note_all` marks everything. Both hooks use `Core::uop_run` only, never `UopHot`.
 2. A store handler checks `uop_run.flags` once after the write; `RF_SMC` returns `Exit::Smc` after the store completed.
-3. At the next `uop_try`, `uop_revalidate_dirty` handles the blocks on dirty pages. Skeleton behaviour: drop every block on a dirty page (tombstone, clear the `PcMap` entries of the block's own mode, push the range to `dropped`, `epoch += 1`). W2-DRIVE adds the `code_hash` compare (`lower::decode::code_hash` over `block.pc..block.end_pc`, the function the translator stored) that keeps an overlay that reloads identical code.
-4. Dropped ranges run in the interpreter; `uop_maintain` retranslates them after the pass.
+3. At the next block entry (`uop_chain`), `uop_revalidate_dirty` walks the blocks registered on the pages of the dirty bitmap words and recomputes `lower::decode::code_hash` over `block.pc..block.end_pc` (the function the translator stored). A block whose hash still matches is kept, so an overlay that reloads identical code and a data store into the page of a block cost a compare (P6). The others are dropped: tombstone, clear the `PcMap` entries, push `(pc, last_pc + 3)` to `dropped`, `epoch += 1`. The walk is in place and allocates nothing (P14); `drop_block` pushes into capacity `UopHot::install` reserved.
+4. Dropped ranges run in the interpreter; `uop_maintain` (pass boundary, only when `uop_needs_maintenance()`) merges them, retranslates and installs them, and compacts the tombstones once there are at least 8 (ASSUMED) and more than live blocks: the arena, block list, pc maps, page lists and links are rebuilt and `epoch` moves. Retranslation keeps the stop pc.
+5. Async path: `uop_submit_dropped` sends the merged ranges to the service (ISA-mode code and a full request ring stay with the caller: translated synchronously, respectively queued again), `uop_collect` installs the answers through `uop_install_done`, which recomputes `code_hash` on the live core and does not install a block whose code changed since the request (its range goes back to `dropped`). An empty answer means "not translatable": nothing is installed and nothing is retried. A block whose pc, `end_pc` and hash match a live block is a twin and is skipped.
+6. Known limitation: a range that retranslates to zero blocks leaves no block to drop later, so it stays interpreted until the next `enable_uop`. A dropped range is `last_pc + 3`, up to two parcels past the block, so a block retranslated again and again widens by up to two parcels per round (bounded by `max_block_steps`).
 
 ## 6. Cost model and report
 
@@ -120,5 +125,6 @@ Each stub file starts with `OWNER: <package>`; after W0 a file belongs to one pa
 ## 10. Provenance and open items
 
 - Constants in the cost model, the page size (256 short words), the 8 translation-validation states and every gate threshold are `ASSUMED`; nothing here is `VERIFIED` against hardware beyond the layout tests (`uop_is_16_bytes`, `code_pages_cover_short_window`, handler-table order, `CTX_*` offsets).
+- Open, W1-LOWER (`lower/guard.rs`): the `Window` row tests `irq.stall != 0`, but `irq.stall` is the cumulative cycle offset (`cycles() = steps + stall`; interrupt entry and IDLE wake-up add to it and it is never cleared), so after the first interrupt no block ever passes the guard. The row should test `window_len != 0 || idle` as `aot_try` does, or the transient condition it means. The W2-DRIVE event tests hold with either guard (equality with the interpreter; exact counters only up to the interrupt).
 - Tier 2 sources under `core/uop/native/` are stubs (`enter` returns `Slow`, emitters emit nothing). `UopNative` degrades to Tier 1.
 - Real-time on ORG Core2 stays unlikely (design 9.2: x1.14 raw); the hybrid verdict in `sharc-lle-realtime.md` stands until K3 passes.
