@@ -41,6 +41,7 @@ mod extra_voice;
 mod interp_switch;
 #[cfg(test)]
 mod loop_tests;
+mod pedal_restrike;
 mod pedal_voices;
 mod sample_loop;
 mod sfz;
@@ -708,6 +709,12 @@ pub struct PianoLayer {
     /// about 6 dB quieter); the pedal-down key-up record placement stays unmodelled and the
     /// engine's own sustain logic releases the voices.
     pub firmware_pedal_voices: bool,
+    /// A note struck again while the damper pedal still holds an earlier instance of it leaves
+    /// that instance ringing until the pedal lifts (the firmware writes the hold word to the old
+    /// voices, `piano/pedal_restrike.rs`, `docs/research/piano-pedal-keyup.md` s3), and the lift
+    /// plays one key-up sample per note. Default `false` (D22, D263): the engine damps the
+    /// previous instance with its soft release.
+    pub firmware_pedal_restrike: bool,
     /// Play the Soft / Mid / Bright timbre as the firmware does: a gain per note from the ROM tables of
     /// `kEq` (`piano/timbre_gain.rs`, VERIFIED by the ARM run, `docs/research/piano-timbre-gain.md`)
     /// instead of the engine's IIR contour. Default `false` (D22): the gain at note start is the whole
@@ -811,6 +818,7 @@ impl PianoLayer {
             firmware_slew: false,
             firmware_key_up: false,
             firmware_pedal_voices: true,
+            firmware_pedal_restrike: false,
             firmware_timbre_gain: false,
             firmware_bus_scale: false,
             receiver_chain_scale: false,
@@ -928,9 +936,16 @@ impl PianoLayer {
             (None, 0.0, false)
         };
 
-        // Smoothly damp any previous sustaining instance of the same note rather than hard-cutting mid-wave
+        // Smoothly damp any previous sustaining instance of the same note rather than hard-cutting
+        // mid-wave; pedal-held instances stay under `firmware_pedal_restrike`.
+        let keep_held = self.restrike_keeps_held_voices();
         for v in &mut self.voices {
-            if v.active && !v.is_release_sample && v.note == note && !v.releasing {
+            if v.active
+                && !v.is_release_sample
+                && v.note == note
+                && !v.releasing
+                && !(keep_held && v.sustained)
+            {
                 v.releasing = true;
                 v.soft_release = false;
                 v.sustained = false;
@@ -1108,9 +1123,13 @@ impl PianoLayer {
                     if !v.sostenuto_held && !v.releasing {
                         v.releasing = true;
                         v.soft_release = self.soft_release;
-                        if rel_count < MAX_PIANO_VOICES && !v.extra {
-                            released_notes[rel_count] = (v.note, v.last_velocity, v.amp, v.gain);
-                            rel_count += 1;
+                        if !v.extra {
+                            pedal_restrike::push_key_up(
+                                &mut released_notes,
+                                &mut rel_count,
+                                (v.note, v.last_velocity, v.amp, v.gain),
+                                self.firmware_pedal_restrike,
+                            );
                         }
                     }
                 }
