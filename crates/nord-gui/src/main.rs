@@ -195,7 +195,9 @@ impl Stage4App {
             shot_requested: false,
             frame_count: 0,
             headless_load: nord_gui::headless_load::HeadlessLoad::default(),
-            firmware: FirmwarePanelState::new(cli.firmware),
+            firmware: FirmwarePanelState::new(nord_gui::firmware_panel::live::live_options(
+                cli.firmware,
+            )),
             os_update: nord_gui::os_update_panel::OsUpdatePanel::new(
                 nord_core::user_config::default_config_path(),
                 std::env::var("NS4_WAVE_TABLES").ok().as_deref(),

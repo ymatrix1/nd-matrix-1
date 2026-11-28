@@ -1187,6 +1187,16 @@ writes synth oscillator P block; `--synth-p verified` opt-in
 - **Alternatives:** Flip the default now (rejected: hold logic untraced, one mixed clip); keep the blanket opt-in without the program bit (rejected: it would hold the five programs whose bit is 0).
 - **Impact:** `cbin/synth_sustain.rs` (tests), `cbin/presets.rs`, `engine/routing.rs`, `engine/mod.rs`, `render_opts.rs` (`apply_synth_sustain`, test), `tools/synth_sustped.py` (tests), `docs/research/synth-sustped.md`, `data/synth-sustped-programs.csv`, `midi-and-control.md`, OQ21b, [audio-remaining](research/audio-remaining.md) item 8, ROADMAP. Default renders and `render_hash` unchanged.
 
+### D97a. The windowed app starts with the Synth SUSTPED option on (issue #678)
+
+- **Status:** accepted
+- **Decided by:** Claude (agent), on the parent session's task
+- **Context:** A user reported that CC64 only sustained the Pianos. The engine routes CC64 correctly; a non-piano layer holds released keys only when its `pedals.sustped` flag is on. The Synth flag was off unless `--synth-sustain-pedal` was passed, although the hardware default is on (D97).
+- **Decision:** `firmware_panel::live::live_options` sets `synth_sustain_pedal = true` for the windowed app only. Programs then apply their own Synth SUSTPED bit on load. The engine default, the offline render default and `render_hash` are unchanged. Organ stays off (hardware default 0); Shift + Layer A toggles it per layer.
+- **Why:** The live app should play like the hardware where the default is verified (D97); the D22 gate protects offline reference renders, not interactive use.
+- **Alternatives:** Flip the engine default (rejected: D22, changes renders); leave as is and document (rejected: the shipped app sustains nothing on Synth by default).
+- **Impact:** `firmware_panel/live.rs` (tests), `main.rs`, `midi-and-control.md`. Open: the plugin build keeps its own host parameters (`ped_sustped_{n}`, Synth default off).
+
 ### D107. The FM table generator, the strip words and the pitch words are decoded; `FmVoice::select` follows the wave edit (opt-in)
 - **Status:** accepted
 - **Decided by:** Claude (agent), on the parent session's task
