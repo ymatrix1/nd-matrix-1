@@ -15,6 +15,7 @@
 
 use super::super::bus::SbBus;
 use super::super::exec_alu::exec_dp;
+use super::super::exec_flow::{exec_flow, Lap, Step};
 use super::super::exec_mem::exec_mem;
 use super::super::uop::{holds, k, pack_flags, unpack_flags, ExitKind, Sb};
 use super::{build_flipped, BuildOpts};
@@ -124,6 +125,14 @@ pub(super) fn run_trace<B: SbBus>(cpu: &mut Cpu, bus: &mut B, sb: &Sb, left: &mu
                         break (u.exit_idx(), u.kind);
                     }
                     i += 1;
+                }
+                k::Family::Fused => {
+                    // the fused uops of the peephole pass (W2-PEEP): the real arms
+                    let mut lap = Lap::start(*left, false);
+                    match exec_flow(cpu, bus, sb, i, &mut f, &mut lap) {
+                        Step::Next(n) => i = n,
+                        Step::Exit(e) => break (e, u.kind),
+                    }
                 }
                 _ => panic!("the test executor does not know uop kind {}", u.kind),
             },
