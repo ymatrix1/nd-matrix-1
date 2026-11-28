@@ -48,10 +48,9 @@ pub const WRONG_ENGINE_WORD: u32 = 0xA_0100;
 const WRONG_ENGINE_MARK: u32 = 0x0BAD_E461;
 
 /// Makes the uop engine wrong on `core`: every engine pass run on it ends with a register
-/// flipped, which stands in for an executor bug. The executor of this base is still the skeleton
-/// (every handler bails and the interpreter runs the pass), so no real misbehaviour is reachable
-/// from the runner, and a test of the checked passes needs a wrong engine to be sure that it can
-/// see one. The mark lives in the core's memory, not in a thread-local: it follows the core into
+/// flipped, which stands in for an executor bug. The engine equals the interpreter (that is what
+/// the differential tests establish), so no real misbehaviour is reachable from the runner, and a
+/// test of the checked passes needs a wrong engine to be sure that it can see one. The mark lives in the core's memory, not in a thread-local: it follows the core into
 /// the scheduler's worker threads, and the rewind of a checked pass restores it with the rest of
 /// the state, so the replaying interpreter never sees a difference it did not cause.
 pub fn mark_wrong_engine(core: &mut Core) {

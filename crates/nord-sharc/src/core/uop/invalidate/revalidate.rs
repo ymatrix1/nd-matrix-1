@@ -21,10 +21,11 @@ use crate::core::uop::lower::decode::code_hash;
 use crate::core::uop::run::{CODE_PAGES, CODE_PAGE_WORDS, RF_SMC};
 use crate::core::Core;
 
-/// Pages per bitmap word of `UopRun::dirty`. VERIFIED: `CODE_PAGES / CODE_PAGE_WORDS` of `run.rs`
-/// (4096 / 64), checked by
-/// `a_block_that_spans_two_pages_is_forgotten_by_the_page_it_was_not_dropped_from` (two
-/// neighbouring pages are walked together), max err 0.
+/// Pages per bitmap word of `UopRun::dirty`: bit `k` of `dirty` is word `k` of the `CodePages`
+/// bitmap, which holds 64 pages. VERIFIED: `CODE_PAGES / CODE_PAGE_WORDS` of `run.rs` (4096 / 64
+/// = 64 = `u64::BITS`), checked by `a_dirty_bit_walks_exactly_the_64_pages_of_its_bitmap_word`
+/// (the last page of word 0 is walked when bit 0 is set, the first page of word 1 only when bit
+/// 1 is), max err 0; a value other than 64 fails it on one side or the other.
 const PAGES_PER_WORD: usize = CODE_PAGES / CODE_PAGE_WORDS;
 
 impl Core {
@@ -153,6 +154,48 @@ mod tests {
             "a tombstone is not a second drop"
         );
         assert!(hot.page_blocks[p0].is_empty());
+    }
+
+    #[test]
+    fn a_dirty_bit_walks_exactly_the_64_pages_of_its_bitmap_word() {
+        use crate::core::uop::run::CODE_BASE;
+        use crate::core::Core;
+        // one range on the last page of bitmap word 0 (page 63) and one on the first page of
+        // word 1 (page 64); both are changed, but only the dirty bit says which one is walked
+        let (a, b) = (CODE_BASE + (63 << 8), CODE_BASE + (64 << 8));
+        assert_eq!(
+            (CodePages::page_of(a), CodePages::page_of(b)),
+            (Some(63), Some(64))
+        );
+        let mut c = Core::new(&[]);
+        for pc in [a, b] {
+            for k in 0..8 {
+                c.dm_write(pc + k, 0x0001).unwrap();
+            }
+        }
+        arm_interp(&mut c, &[(a, a + 8), (b, b + 8)]);
+        c.dm_write(a, 0x0002).unwrap();
+        c.dm_write(b, 0x0002).unwrap();
+        assert_eq!(c.uop_dirty(), 0b11, "one bit per bitmap word");
+        let live = |c: &Core| -> Vec<bool> {
+            let hot = c.uop.as_ref().unwrap();
+            hot.blocks.iter().map(|k| k.len != 0).collect()
+        };
+        c.uop_run.dirty = 1; // word 0 only
+        let mut hot = c.uop.take().unwrap();
+        assert_eq!(c.uop_revalidate_dirty(&mut hot), 2, "page 63: both modes");
+        c.uop = Some(hot);
+        assert_eq!(
+            live(&c),
+            [false, false, true, true],
+            "page 64 was not walked"
+        );
+        c.uop_run.dirty = 1 << 1; // word 1
+        let mut hot = c.uop.take().unwrap();
+        assert_eq!(c.uop_revalidate_dirty(&mut hot), 2, "page 64: both modes");
+        c.uop = Some(hot);
+        assert_eq!(live(&c), [false; 4]);
+        assert_eq!(super::PAGES_PER_WORD, u64::BITS as usize);
     }
 
     #[test]

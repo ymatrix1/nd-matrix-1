@@ -11,7 +11,7 @@
 //! | `shift.rs` | the 21 shifter opcodes that do not touch the bit FIFO, register and immediate form |
 //! | `multi.rs` | the dual add/subtract and the multifunction forms |
 //! | `run.rs` | the handler: conditions, effects of PEx and PEy, the bail, the commit |
-//! | `fixture.rs`, `diff.rs`, `diff_sweep.rs`, `diff_ops.rs`, `diff_wide.rs` | test build only: the state filler and program generators, the handler-versus-`Core::step` rig, its sweeps and counters, and the acceptance tests per unit |
+//! | `fixture.rs`, `diff.rs`, `diff_sweep.rs`, `diff_ops.rs`, `diff_wide.rs`, `diff_sticky.rs` | test build only: the state filler and program generators, the handler-versus-`Core::step` rig, its sweeps and counters, and the acceptance tests per unit |
 //!
 //! Exactness: every handler computes the effects of both elements from the entry state and
 //! returns `Exit::Slow` BEFORE writing anything when an effect would raise an arithmetic-exception
@@ -21,6 +21,20 @@
 //! against `Core::step` on random full states, hidden state included, SIMD on and off, and run
 //! each bailing case again through the same handler without the bail (`run::forced`, test build
 //! only), which proves the saturated and wrapped values the interpreter produces for those cases.
+//!
+//! The bail is exact and not handled in the handler, also when the sticky bit is already latched:
+//! the interpreter raises the interrupt on every event (`note_arith_exception_in`: it ORs the bit
+//! into STKY and `raise_interrupt` sets the latch and pokes `irq.due` to 0 again, PRM A-21), so a
+//! latched bit is not a no-op and `exact_diff` sees the poke (`diff_sticky.rs`,
+//! `an_already_latched_sticky_bit_still_pokes_the_controller_so_it_is_not_a_no_op`). Frequency,
+//! MEASURED by `diff_sticky.rs` on the census generator (`verify::gen::census_encodings` of the
+//! ALU, multiplier and shifter forms, 2 seeds, both PEy modes, edge-biased random states and
+//! random STKY): 3 of 480 cases bail (0.6%), 1 of those on bits STKY already held; on random ALU
+//! programs of the same rig, which overflow far more often than audio code: 24 of 840 (2.9%), 13
+//! on latched bits. No firmware share is known (none can be measured without firmware); the cost
+//! of a bail is one `Slow` exit and one `Core::step`, counted by the G2 `Slow` row. If a real
+//! pass shows many, the exact alternative is the float family's: raise through the interpreter's
+//! own function in the handler and hand over (`h_float/run.rs`).
 pub mod kinds;
 
 mod alu;
@@ -34,6 +48,8 @@ mod shift;
 mod diff;
 #[cfg(test)]
 mod diff_ops;
+#[cfg(test)]
+mod diff_sticky;
 #[cfg(test)]
 mod diff_sweep;
 #[cfg(test)]

@@ -34,7 +34,7 @@ struct Mini {
 /// Leaves the core materialized at the exit (the block end after an `Ok` run to the end).
 fn run_mini(core: &mut Core, table: &[Handler], block: &Block, uops: &[Uop]) -> Mini {
     let mut ctx = UopCtx::new(core as *mut Core, core.steps, u32::MAX);
-    for u in uops {
+    for (i, u) in uops.iter().enumerate() {
         if u.h == UopKind::INTERP.0 {
             materialize(core, &ctx, u.pc);
             let c = decode_at(core, u.pc);
@@ -49,9 +49,9 @@ fn run_mini(core: &mut Core, table: &[Handler], block: &Block, uops: &[Uop]) -> 
             }
             continue;
         }
-        // SAFETY: `ctx.core` is `core`, not used until the handler returns; `u` is a uop of the
-        // block, so for a `Jump` the next uop of the slice exists
-        let r = unsafe { table[usize::from(u.h)](&mut ctx, u) };
+        // SAFETY: `ctx.core` is `core`, not used until the handler returns; the pointer is into
+        // the slice (the handler ABI), so for a `Jump` the next uop of the slice is readable
+        let r = unsafe { table[usize::from(u.h)](&mut ctx, uops.as_ptr().add(i)) };
         match Exit::from_u32(r).expect("an exit code") {
             Exit::Ok => {
                 ctx.done += u32::from(u.steps);

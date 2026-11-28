@@ -21,6 +21,8 @@ use crate::core::uop::types::{Exit, Handler, Uop, UopCtx, UF_SIMD};
 
 const OK: u32 = Exit::Ok as u32;
 const FAULT: u32 = Exit::Fault as u32;
+/// The bail exit (`Exit::Slow as u32`): nothing was written. VERIFIED by the dispatch tests of
+/// `exec/dispatch.rs`, which read the code back with `Exit::from_u32`.
 const SLOW: u32 = Exit::Slow as u32;
 
 /// `Un = <imm>` for register class `D` (system registers are left to the interpreter).

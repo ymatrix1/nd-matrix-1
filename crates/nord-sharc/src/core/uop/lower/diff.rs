@@ -21,6 +21,7 @@ use super::support::{build, guard_state, lockstep, reg_move, Seen, FLOW_CASES};
 use crate::core::decode_cache::{DecodedOp, MoveOp};
 use crate::core::support::{core_with, CODE};
 use crate::core::uop::config::UopConfig;
+use crate::core::uop::types::UopKind;
 use crate::core::uop::verify::compare::exact_diff;
 use crate::core::uop::verify::gen::{fill_state, Rng, PROGRAM_POOL};
 use std::collections::BTreeSet;
@@ -289,7 +290,7 @@ fn every_block_of_a_random_program_is_well_formed_and_the_two_modes_agree() {
         let program = random_program(&mut rng);
         let at = CODE + rng.below(program.len() as u32);
         let stop = (rng.below(2) == 0).then_some(at);
-        let (core, built) = build(&program, &UopConfig::default(), stop, lower_insn);
+        let (mut core, built) = build(&program, &UopConfig::default(), stop, lower_insn);
         let shape = |simd| {
             built
                 .mode(simd)
@@ -310,11 +311,22 @@ fn every_block_of_a_random_program_is_well_formed_and_the_two_modes_agree() {
             );
             floor = b.end_pc;
             assert_eq!(b.last_pc, uops.last().unwrap().pc);
-            assert_eq!(b.steps as usize, uops.len(), "all-Interp: one step per uop");
+            let accounted: u32 = uops.iter().map(|u| u32::from(u.steps)).sum();
+            assert_eq!(b.steps, accounted, "the budget is what the uops account");
             assert_eq!(b.cum.len(), uops.len());
+            // the uops follow the instruction chain: each instruction starts where the decoder
+            // says the previous one ends (a second uop of one instruction shares its pc)
+            let insns: Vec<&crate::core::uop::types::Uop> =
+                uops.iter().filter(|u| u.steps > 0).collect();
+            assert!(insns.windows(2).all(|w| {
+                w[0].pc < w[1].pc && decode_at(&mut core, w[0].pc).next_pc == w[1].pc
+            }));
+            assert!(uops.windows(2).all(|w| w[0].pc <= w[1].pc));
+            // an Interp uop keeps the next pc in `b` (`h_core`: a changed pc is a Jump); the uop
+            // of a flow instruction keeps its branch target there, so only Interp is comparable
             assert!(uops
                 .windows(2)
-                .all(|w| w[0].pc < w[1].pc && w[0].b == w[1].pc));
+                .all(|w| w[0].h != UopKind::INTERP.0 || w[0].b == w[1].pc));
             let last = uops
                 .iter()
                 .filter(|u| u.flags & crate::core::uop::types::UF_LAST != 0);
@@ -329,7 +341,7 @@ fn every_block_of_a_random_program_is_well_formed_and_the_two_modes_agree() {
 }
 
 #[test]
-fn enable_uop_over_a_synthetic_image_translates_it_and_keeps_every_instruction_interp() {
+fn enable_uop_over_a_synthetic_image_translates_it_and_leaves_what_no_family_takes_interp() {
     let mut rng = Rng::new(0xe4ab_1e00);
     let program = random_program(&mut rng);
     let mut core = core_with(&program);
@@ -341,8 +353,9 @@ fn enable_uop_over_a_synthetic_image_translates_it_and_keeps_every_instruction_i
         report.blocks >= 4 && report.blocks.is_multiple_of(2),
         "{report:?}"
     );
+    // the families take instructions and the rest stays Interp: both kinds are in the image
     assert!(
-        report.insns >= 8 && report.insns == report.interp_insns,
+        report.insns >= 8 && 0 < report.interp_insns && report.interp_insns < report.insns,
         "{report:?}"
     );
     assert_eq!(report.uops, report.insns, "one uop per instruction");

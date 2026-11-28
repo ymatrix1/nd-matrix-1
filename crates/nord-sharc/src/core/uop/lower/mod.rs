@@ -8,8 +8,8 @@
 //! exact (design section 8) and the packages never edit this file for a new family member.
 //!
 //! [`translate_range`] walks the range once (`scan`), cuts it into blocks (`cut`, `translate`)
-//! for both PEy modes and lowers every instruction with [`lower_insn`]; while no family takes an
-//! instruction every uop is an `Interp` uop, which is exact by construction.
+//! for both PEy modes and lowers every instruction with [`lower_insn`]; an instruction no family
+//! takes is an `Interp` uop, which is exact by construction.
 pub mod budget;
 pub mod builder;
 pub mod cbwrap;
@@ -71,8 +71,8 @@ pub(in crate::core) fn lower_insn(cx: &LowerCtx<'_>, c: &CachedInsn, out: &mut B
 /// `first` indexes are relative to the returned vector). Reads the code through the decode path
 /// of `Core::step`. Every range is translated twice, once per PEy mode (rule P4), the PEy-off
 /// blocks first. `core.uop_run.stop_pc` is the pass idle pc a block must end at (none when
-/// `NONE`); the caller sets it before translating (`uop_maintain` keeps it, `enable_uop` must
-/// restore it after `disable_uop`, see `docs/specs/sharc-uop.md`).
+/// `NONE`); the caller sets it before translating (`uop_maintain` keeps it, and `enable_uop`
+/// saves it across `disable_uop` and restores it before it translates).
 pub(crate) fn translate_range(
     core: &mut Core,
     cfg: &UopConfig,

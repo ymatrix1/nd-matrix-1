@@ -22,7 +22,13 @@ use std::time::Instant;
 /// [`run_ticks_with`] takes another function so a test can make a core fail at a chosen pass.
 pub type PassFn = fn(&mut PassJob, u32) -> (u64, bool);
 
-/// Spins before a waiting thread starts to yield its host core.
+/// Spins before a waiting thread starts to yield its host core. ASSUMED: 2^16 `spin_loop` hints
+/// (about 0.2 to 1 ms at a few ns to some 15 ns each) is long against the skew of one tick (tens
+/// of microseconds between the threads of a barrier) and short enough that a host with fewer
+/// cores than threads hands the core over within a few milliseconds. It changes timing only,
+/// never a result (the barrier waits for the same counters either way). Would be confirmed by a
+/// wall-clock run of `lle_sharc_bench` with 2^10 and 2^20 spins on an oversubscribed host (owner
+/// run; no benchmark in the implementation waves).
 const SPINS: u32 = 1 << 16;
 
 /// What the threads share: the published tick, the count of workers done with it and the abort

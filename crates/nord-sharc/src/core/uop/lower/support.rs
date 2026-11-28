@@ -2,12 +2,13 @@
 //! result of a program, the guard-relevant state of a core and an instruction-level lockstep
 //! against `Core::step`.
 //!
-//! OWNER: W1-LOWER. Only compiled for tests. `lockstep` is NOT the uop engine (`run_block` is a
-//! stub): it executes every uop with `steps > 0` as `exec_cached` of its instruction, which is the
-//! semantics of an `Interp` uop, next to the interpreter, so it proves the structure of the blocks
-//! (the instruction chain, the step budget, where the pc may change) and not any fast handler.
+//! OWNER: W1-LOWER. Only compiled for tests. `lockstep` is NOT the uop engine: it executes every
+//! uop with `steps > 0` as `exec_cached` of its instruction, which is the semantics of an `Interp`
+//! uop, next to the interpreter, so it proves the structure of the blocks (the instruction chain,
+//! the step budget, where the pc may change) and not any fast handler (the handlers are checked
+//! by the differential tests of `exec/h_*` and `verify/`).
 use super::builder::BlockBuilder;
-use super::cut::Flow;
+use super::cut::{flow_of, Flow};
 use super::decode::decode_at;
 use super::translate::translate_with;
 use super::{lower_insn, LowerCtx};
@@ -161,6 +162,18 @@ pub(super) fn build_default(program: &[u16]) -> (Core, Built) {
     build(program, &UopConfig::default(), None, lower_insn)
 }
 
+/// [`build`] with the all-`Interp` lowering (`b.interp(c)` for every instruction): the exact-by-
+/// construction baseline the structure tests of the translator compare the production lowering
+/// with, now that the families take most instructions.
+pub(super) fn build_interp(program: &[u16]) -> (Core, Built) {
+    build(
+        program,
+        &UopConfig::default(),
+        None,
+        crate::core::uop::drive::fixture::interp_lower,
+    )
+}
+
 /// [`build`] with the production lowering, keeping only the result.
 pub(super) fn build_cfg(program: &[u16], cfg: &UopConfig, stop_pc: Option<u32>) -> Built {
     build(program, cfg, stop_pc, lower_insn).1
@@ -237,7 +250,7 @@ pub(super) struct Seen {
     pub taken: u32,
     /// Blocks that ended on a flow instruction (or a delay group) and fell through to `end_pc`.
     pub fell_through: u32,
-    /// Blocks that hold a delay group.
+    /// Blocks that hold a delay group (a delayed branch and its owed slots).
     pub groups: u32,
     /// Blocks whose last instruction is a loop end that jumped back.
     pub loop_backs: u32,
@@ -262,10 +275,10 @@ pub(super) fn lockstep(
         let Some((block, uops)) = built.at(b.pc, b.simd()) else {
             break;
         };
-        let (start, delayed) = (
-            b.steps,
-            block.guard == crate::core::uop::types::GuardClass::Delayed,
-        );
+        let start = b.steps;
+        // a delay group is a branch with owed slots; the guard class cannot tell (a block with a
+        // fast compute is `Arith` first, `guard::classify`), the instructions can
+        let mut delayed = false;
         let insns: Vec<&Uop> = uops.iter().filter(|u| u.steps > 0).collect();
         let mut complete = true;
         for (k, u) in insns.iter().enumerate() {
@@ -273,6 +286,7 @@ pub(super) fn lockstep(
                 return Err(format!("pc {:#x} / {:#x}, uop at {:#x}", a.pc, b.pc, u.pc));
             }
             let c = decode_at(b, u.pc);
+            delayed |= matches!(flow_of(&c), Flow::End { slots } if slots > 0);
             let (rb, ra) = (b.exec_cached(&c), a.step());
             if format!("{ra:?}") != format!("{rb:?}") {
                 return Err(format!("result {ra:?} vs {rb:?} at {:#x}", u.pc));

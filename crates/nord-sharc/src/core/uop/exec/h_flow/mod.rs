@@ -38,16 +38,9 @@
 //!   `EMUCLK2` and `TCOUNT` read `pc` or `steps`; `diff_chain.rs` covers each of them).
 //! * A handler that returns `Fault` or `Slow` has changed nothing; the driver replays the
 //!   instruction through `Core::step`, which raises the real fault.
-//! * Allocation (design 9.3, P14): a steady-state call of every handler allocates nothing except
-//!   `DO_UNTIL`. KNOWN LIMITATION, inherited from v1: it runs `Core::exec_do_until`, whose
-//!   `refresh_check` (`arith_loop.rs`, not a W2-FLOW file) collects the addresses of the loop
-//!   body in a `Vec`, so a `DO_UNTIL` handler allocates once per capacity doubling of that walk
-//!   (measured by `allocs.rs`: 1 for a body of 1 instruction, 2 for 5, 5 for 38), as the
-//!   interpreter and the `Interp` fallback do. It happens once per entry of an arithmetic loop,
-//!   not per pass. G2's "no allocation in a steady pass" does not hold for a pass that enters
-//!   such a loop until `refresh_check` walks the body twice (count, then index) instead of
-//!   collecting it; `allocs.rs` pins the handler to exactly the allocations of that walk, so
-//!   nothing else can creep in.
+//! * Allocation (design 9.3, P14): a steady-state call of every handler allocates nothing,
+//!   `DO_UNTIL` included (`Core::refresh_check` of `arith_loop.rs` walks the body twice, count
+//!   then index, instead of collecting its addresses); `allocs.rs` pins every handler to 0.
 //! * A taken branch that pokes the interrupt controller (`RTI`, a call onto a nearly full PC
 //!   stack, a loop stack overflow) is a block end, so the next block entry sees `irq.due == 0`
 //!   (`Steps` row of the guard) and the interpreter's prologue runs before anything else. The

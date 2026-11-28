@@ -14,7 +14,9 @@ use crate::core::uop::exec::h_float::fgen_supports;
 use crate::core::uop::exec::pe::{add2, avg2, mul2};
 use crate::core::uop::types::{Exit, Uop, UopCtx, UF_SIMD};
 
-/// The bail exit: nothing was written.
+/// The bail exit: nothing was written. VERIFIED: `Exit::Slow as u32` is the code the dispatch loop
+/// reads back with `Exit::from_u32` (`types.rs`, the `Exit` discriminants are `repr(u32)`), checked
+/// by `a_bad_operand_makes_the_handler_bail_with_the_core_untouched`, max err 0.
 const SLOW: u32 = Exit::Slow as u32;
 
 /// `FGEN`: any float op `Pe::exec` implements and the kernels do not, with the compute field in
@@ -23,8 +25,8 @@ const SLOW: u32 = Exit::Slow as u32;
 ///
 /// # Safety
 /// The handler ABI: `ctx` and `u` valid, `(*ctx).core` the running core.
-pub(super) unsafe extern "C" fn fgen(ctx: *mut UopCtx, u: *const Uop) -> u32 {
-    let (ctx, u) = (&mut *ctx, &*u);
+pub(super) unsafe extern "C" fn fgen(ctx: *mut UopCtx, up: *const Uop) -> u32 {
+    let (ctx, u) = (&mut *ctx, &*up);
     let op = ComputeOp::decode(u64::from(u.a));
     if !fgen_supports(op) {
         return SLOW;
@@ -43,7 +45,7 @@ pub(super) unsafe extern "C" fn fgen(ctx: *mut UopCtx, u: *const Uop) -> u32 {
         pe.exec(op);
         sy = pe.sticky();
     }
-    finish(ctx, u, core, due, sx, sy)
+    finish(ctx, up, core, due, sx, sy)
 }
 
 /// `FADD` (`SUB` false) and `FSUB`: `Fn = Fx + Fy` or `Fx - Fy`.

@@ -13,6 +13,8 @@ use crate::core::uop::exec::mem::Mem;
 use crate::core::uop::types::{Exit, Handler, Uop, UopCtx, UF_SIMD};
 
 const FAULT: u32 = Exit::Fault as u32;
+/// The bail exit (`Exit::Slow as u32`): nothing was written. VERIFIED by the dispatch tests of
+/// `exec/dispatch.rs`, which read the code back with `Exit::from_u32`.
 const SLOW: u32 = Exit::Slow as u32;
 
 /// The access of one side: `access` with the direction chosen at run time.

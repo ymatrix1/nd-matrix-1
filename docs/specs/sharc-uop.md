@@ -1,6 +1,6 @@
 # SHARC uop engine (D260)
 
-Status: **skeleton (W0)**. The module tree, types, driver, invalidation, verification harness and gate tooling exist and are tested; every lowering family is a stub that returns "not handled", so each instruction becomes an `Interp` uop and the engine is bit-exact by construction. Design, scores and work packages: [sharc-compiler-design](../research/sharc-compiler-design.md). Decision: [D260](../DECISIONS.md) (proposed).
+Status: **Tier 1 integrated (wave 2)**. The module tree, types, driver, invalidation, verification harness, gate tooling and the float, fixed, move and flow families exist and are tested against `Core::step`; an instruction no family takes is an `Interp` uop, which is bit-exact by construction. Tier 2 (native) is still a stub. Design, scores and work packages: [sharc-compiler-design](../research/sharc-compiler-design.md). Decision: [D260](../DECISIONS.md) (proposed).
 
 Code: `crates/nord-sharc/src/core/uop/`, `runner/uop_pass/`, `runner/pass_sched/`, `runner/uop_report/`, `crates/nord-tools/src/bin/uop_report.rs` (+ `uop_report/`), `crates/nord-tools/src/bin/lle_sharc_bench.rs`, `tools/uop_gates.py`.
 
@@ -13,7 +13,7 @@ Code: `crates/nord-sharc/src/core/uop/`, `runner/uop_pass/`, `runner/pass_sched/
 | No instruction is guessed. Anything the lowering does not model is an `Interp` uop (runs the interpreter body verbatim). | `lower/mod.rs` `lower_insn` |
 | No allocation, lock or I/O in `uop_try`, `run_block`, handlers, `lean_pass_uop`, revalidation and `drop_block` (`install` reserves `dropped`). `uop_maintain` may allocate and runs only after a program change or overlay load. | gate G2 (`maintain_calls == 0`, `smc == 0`), `count_alloc` tests |
 | `INTERP` runs `exec_cached` verbatim: it materializes before the call, signals `Jump` when `core.pc != u.b`, checks `RF_SMC` after a store, re-checks `due`, counts `steps_interp_uop`. | header of `exec/h_core.rs`, design 4.5 rule 5 |
-| `stop_pc` (the pass idle pc) is a block start, never an interior pc; `uop_begin_pass` repairs a late one. A cut never separates a delayed branch from its owed slots. `Core::enable_uop` clears the stop pc before it translates (`disable_uop`), so the first translation does not see it: `arm_uop_ranges` cuts the range that holds the idle pc at the idle pc, which starts a block there, and sets the stop pc for every retranslation (`uop_maintain`). Until `enable_uop` keeps the stop pc while it translates (W2-DRIVE), the cut is what makes it a block start at arming. | header of `lower/cut.rs`, design P7; `arming_cuts_the_first_translation_at_the_idle_pc_which_a_bare_enable_does_not`, `the_stop_pc_set_at_arming_cuts_the_retranslation_too` |
+| `stop_pc` (the pass idle pc) is a block start, never an interior pc; `uop_begin_pass` repairs a late one. A cut never separates a delayed branch from its owed slots. `Core::enable_uop` saves the stop pc across `disable_uop` and restores it before it translates, so the first translation honours it (a stop pc set before arming gives the same build as arming alone); `uop_maintain` keeps it for every retranslation. | header of `lower/cut.rs`, design P7; `arming_cuts_the_first_translation_at_the_idle_pc_which_a_bare_enable_does_not`, `the_stop_pc_set_at_arming_cuts_the_retranslation_too` |
 | No firmware bytes or derived tables in git (D20, D128). Census replay reads the committed hardware-measured cases only. | `tools/check_fw_derived.py` |
 | Feature `uop-native = ["jit"]` (Tier 2, Cranelift) is not in `default`. | `crates/nord-sharc/Cargo.toml` |
 
@@ -42,7 +42,7 @@ Code: `crates/nord-sharc/src/core/uop/`, `runner/uop_pass/`, `runner/pass_sched/
 | `uop_note_write(first_short, count)`, `uop_note_all()` | called from `invalidate_sram_cache` and `invalidate_code_cache`; early return while `uop_run.active` is false. |
 | `uop_revalidate_dirty`, `uop_maintain`, `uop_needs_maintenance`, `uop_dirty` | invalidation (section 5). |
 | `uop_maintain_async(&mut Service)`, `uop_submit_dropped`, `uop_collect`, `uop_install_done` | the same through the translation service; the caller owns the `Service` (the frozen state types have no slot for one). |
-| `lean_pass_uop`, `lean_pass_uop_checked` | pass loops (`runner/uop_pass/`: `mod.rs` the engine loop, `checked.rs` the interpreter replay with `shadowed_with`, `diff_of`, `checked_with`; `*_entries` forms report each block entry to a callback for the histogram; `engines.rs` the engine names and `arm_for`). The checked tests get a wrong engine from a test-only hook (`support::mark_wrong_engine`): the executor is a skeleton at this base, so the engine would otherwise equal the interpreter and no test could show that a check sees a difference. |
+| `lean_pass_uop`, `lean_pass_uop_checked` | pass loops (`runner/uop_pass/`: `mod.rs` the engine loop, `checked.rs` the interpreter replay with `shadowed_with`, `diff_of`, `checked_with`; `*_entries` forms report each block entry to a callback for the histogram; `engines.rs` the engine names and `arm_for`). The checked tests get a wrong engine from a test-only hook (`support::mark_wrong_engine`): the engine equals the interpreter, so without a wrong one no test could show that a check sees a difference. |
 | `run_ticks`, `run_ticks_with` | threaded pass scheduler (`runner/pass_sched/`). A panic in a core's pass stops every core at once (shared abort flag) and returns `Err("core NAME panicked in pass N: ...")`; the bench exits non-zero. `CoreSeries::uop_at_warmup` is the counter snapshot taken when the first measured pass starts. |
 | `Engine::{Uop, UopChecked, UopNative}` | census and pass-scheduler selection; `#[default] Interp`. |
 
@@ -53,7 +53,7 @@ A block runs only when all of these hold; else `Exit::Guard` and one `Core::step
 | Row | Condition |
 |---|---|
 | Steps | `room = min(limit, irq.due) - steps` is not 0 (a block longer than `room` runs the checked loop, which exits `Slow` at the first uop that does not fit) |
-| Window | `irq.window_len == 0`, `!irq.idle`, `irq.stall == 0` |
+| Window | `irq.window_len == 0`, `!irq.idle`. `irq.stall` is not tested: it is the cumulative cycle offset (`cycles() = steps + stall`; interrupt entry and IDLE wake-up add to it, nothing clears it), so testing it would send every block after the first interrupt to `Core::step`. Same choice as `aot_try`; pinned by `blocks_keep_running_after_the_first_interrupt_and_stay_equal_to_the_interpreter` |
 | Pending | `pending.is_none()` |
 | Loop | no active `LoopFrame` ends inside the block |
 | Simd | `core.simd() == block.simd`; the driver already looks the pc up in the map of `core.simd()` (both PEy variants of every range are translated: ORG Core2 runs 5,584 of 5,953 steps with PEy on), so this row is a safety net |
@@ -133,9 +133,19 @@ Each stub file starts with `OWNER: <package>`; after W0 a file belongs to one pa
 | 3 | W4-NSVC, W5-NFLOAT, W5-NMOVE |
 | 4 | W6-NREG (only if K6), W3-DOC |
 
+## 9a. Handler and service details (wave 2)
+
+- Handler ABI: `handler(ctx, up)` gets `up = uops.as_ptr().add(i)`, a pointer into the block slice, never one made from a `&Uop` (that covers one element). The float family relies on it: after a raised arithmetic exception `run.rs::poked` returns `Jump` to the next uop's pc (`(*up.add(1)).pc`) unless `irq.due` is unchanged or the uop is `UF_LAST`/`UF_FIN`, so the interpreter prologue sees the interrupt at the step where it would have.
+- Kind tables and operand layouts are in the module docs of `exec/h_float/mod.rs` (FGEN..FABSNEG), `exec/h_fixed/kinds.rs`, `exec/h_move/layout.rs` (register classes split at `SYS_UREG`, the same constant as `lower::cut::SYS_UREG`) and `exec/h_flow/mod.rs`. Each float kind carries a `VERIFIED` tag naming its differential test.
+- DO_UNTIL (arithmetic loops): `Core::refresh_check` computes the check address with two walks (`walk_body`) and does not allocate; `the_check_address_equals_the_list_walk_on_random_bodies_and_does_not_allocate` compares it with the list walk on 400 random bodies, and `h_flow/allocs.rs` counts 0 allocations for a steady call of every flow handler, DO_UNTIL included.
+- `TransReq::capture` copies `lo..hi` plus `TAIL_WORDS` (8) of the code window; it returns `None` for an empty range, a range over `CODE_SPAN`, or ISA-mode code. The service (`Service::new/spawn/spawn_with/submit/poll/pump`) has a request ring of `CAP = 16`.
+- `exact_diff` hidden extension: the f40 registers compare `effective_f40` (`lo` counts only while `tag == r`) plus `raw_ext` (`lo`, and `tag` if `lo != 0`), so a stale `lo` under a different tag is seen when it can matter.
+- Revalidation keeps a block whose `code_hash` is unchanged (P6); a dirty bit walks exactly the 64 pages of its bitmap word (`PAGES_PER_WORD == u64::BITS`, test `a_dirty_bit_walks_exactly_the_64_pages_of_its_bitmap_word`).
+
 ## 10. Provenance and open items
 
 - Constants in the cost model, the page size (256 short words), the 8 translation-validation states and every gate threshold are `ASSUMED`; nothing here is `VERIFIED` against hardware beyond the layout tests (`uop_is_16_bytes`, `code_pages_cover_short_window`, handler-table order, `CTX_*` offsets).
-- Open, W1-LOWER (`lower/guard.rs`): the `Window` row tests `irq.stall != 0`, but `irq.stall` is the cumulative cycle offset (`cycles() = steps + stall`; interrupt entry and IDLE wake-up add to it and it is never cleared), so after the first interrupt no block ever passes the guard. The row should test `window_len != 0 || idle` as `aot_try` does, or the transient condition it means. The W2-DRIVE event tests hold with either guard (equality with the interpreter; exact counters only up to the interrupt).
+- Sticky bail of the fixed uops (`exec/h_fixed/mod.rs`, measured by `h_fixed/diff_sticky.rs`): a fixed uop whose effect sets an arithmetic sticky bit answers `Slow` (the uop did not run) and the interpreter runs it. Latching is not a no-op even when STKY already holds the bit: `note_arith_exception_in` re-raises the vector and pokes `irq.due` to 0 on every event (PRM A-21), which `exact_diff` compares. Share of bails: 3 of 480 cases (0.6%) on the census pool (T2a, T2b, T6n; 2 seeds, both PEy modes), 24 of 840 (2.9%) on edge-biased random ALU programs (an upper bound: the rig draws operands from the edges). The handler is kept as is.
+- `AF` (all-float flag) in `h_fixed/eff.rs`: the position and "float sets it" are `VERIFIED` (`simd_measured.rs`); "a fixed ALU op clears it" is `ASSUMED` (an ASTAT measurement after a fixed op that follows a float op would confirm it).
 - Tier 2 sources under `core/uop/native/` are stubs (`enter` returns `Slow`, emitters emit nothing). `UopNative` degrades to Tier 1.
 - Real-time on ORG Core2 stays unlikely (design 9.2: x1.14 raw); the hybrid verdict in `sharc-lle-realtime.md` stands until K3 passes.
