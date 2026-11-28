@@ -487,7 +487,7 @@ mod tests {
 
     #[test]
     fn steal_level_is_one_at_the_hold_gain() {
-        let mut v = SlewVoice::start(0.4454, f32::from_bits(0x3F7F_FF42), 48_000.0);
+        let v = SlewVoice::start(0.4454, f32::from_bits(0x3F7F_FF42), 48_000.0);
         // Held at the hold gain: 1.0 whatever the level word.
         assert!((v.steal_level() - 1.0).abs() < 1e-3, "{}", v.steal_level());
         let mut quiet = SlewVoice::start(0.1, f32::from_bits(0x3F7F_FF42), 48_000.0);
